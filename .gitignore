@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: 2019 BTG Pactual
+# SPDX-License-Identifier: LicenseRef-Proprietary
+#
+.stack-work
+db.json
+.DS_Store
+TAGS
+
+# hpack
+**/*.cabal
