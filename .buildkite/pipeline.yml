@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: 2019 Bitcoin Suisse
+# SPDX-License-Identifier: LicenseRef-Proprietary
+
+env:
+  NIX_PATH: nixpkgs=channel:nixos-unstable
+
+steps:
+ - command: nix run nixpkgs.{gnumake,hlint,ncurses} -c make lint
+   label: make lint
+ - command: nix run nixpkgs.reuse -c reuse lint
+   label: reuse lint
+ - command: .buildkite/check-trailing-whitespace.sh
+ - command: "nix run -f https://github.com/serokell/crossref-verifier/archive/master.tar.gz -c crossref-verify || true"
+   label: crossref-verify
+ - commands:
+   - nix-shell --run "make test"
+   - echo +++ Weeder
+   - nix-shell --run "nix run nixpkgs.haskellPackages.weeder -c weeder ."
+   label: test && weeder

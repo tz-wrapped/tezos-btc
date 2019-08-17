@@ -1,7 +1,7 @@
 <!--
- - SPDX-FileCopyrightText: 2019 Bitcoin Suisse
+ - SPDX-FileCopyrightText: 2019 Serokell <https://serokell.io>, 2019 Bitcoin Suisse
  -
- - SPDX-License-Identifier: LicenseRef-Proprietary
+ - SPDX-License-Identifier: LicenseRef-MPL-2.0
  -->
 # Contribution Guidelines
 
@@ -50,7 +50,7 @@ A workaround is to set `TERM=dumb`.
 We have a [Makefile](/Makefile) which provides shortcuts for the most
 common developers' activities, like building with flags suitable for
 development, testing, applying `stylish-haskell` and `hlint`, building
-Haddock documentation. Mentioned `Makefile` builds btg itself,
+Haddock documentation. Mentioned `Makefile` builds tzbtc itself,
 and each extra package which has its own `Makefile`.
 
 If you want to run test suite with additional options, set `TEST_ARGUMENTS` variable.

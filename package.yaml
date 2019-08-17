@@ -12,7 +12,7 @@ extra-source-files:
 - CONTRIBUTING.md
 
 category:            Blockchain
-description: Wrapped Bitcoin on Tezos Blockchain 
+description: Wrapped Bitcoin on Tezos Blockchain
 
 library:
   <<: *lib-common
@@ -26,7 +26,6 @@ executables:
 
     dependencies:
       - tzbtc
-      - universum
 
 tests:
   tzbtc-test:
@@ -38,8 +37,6 @@ tests:
     dependencies:
     - tzbtc
     - tasty
-    - tasty-hspec
-    - tasty-quickcheck
     - universum
     - HUnit
     - tasty-hunit

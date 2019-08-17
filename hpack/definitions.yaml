@@ -11,7 +11,7 @@ _definitions:
         author:              Serokell, Bitcoin Suisse
         maintainer:          Serokell <hi@serokell.io>
         copyright:           2019 Bitcoin Suisse
-        license:             Proprietary
+        license:             AllRightsReserved
         license-file:        LICENSE
         git:                 git@github.com:serokell/tezos-btc.git
         homepage:            https://github.com/serokell/tezos-btc.git

@@ -1,6 +1,6 @@
-# SPDX-FileCopyrightText: 2019 Bitcoin Suisse
+# SPDX-FileCopyrightText: 2019 Serokell <https://serokell.io>, 2019 Bitcoin Suisse
 #
-# SPDX-License-Identifier: LicenseRef-Proprietary
+# SPDX-License-Identifier: LicenseRef-MPL-2.0
 #
 .PHONY: tzbtc test haddock haddock-no-deps stylish lint clean all
 
