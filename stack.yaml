@@ -2,10 +2,10 @@
 #
 # SPDX-License-Identifier: LicenseRef-Proprietary
 #
-.stack-work
-db.json
-.DS_Store
-TAGS
+resolver: lts-14.0
 
-# hpack
-**/*.cabal
+packages:
+- .
+
+nix:
+  shell-file: shell.nix

@@ -1,0 +1,42 @@
+# SPDX-FileCopyrightText: 2019 Bitcoin Suisse
+#
+# SPDX-License-Identifier: LicenseRef-Proprietary
+#
+<<: !include "./hpack/module.yaml"
+
+name:                tzbtc
+version:             0.0.1
+
+extra-source-files:
+- README.md
+- CONTRIBUTING.md
+
+category:            Blockchain
+description: Wrapped Bitcoin on Tezos Blockchain
+
+library:
+  <<: *lib-common
+
+  dependencies:
+    - universum
+
+executables:
+  tzbtc-exe:
+    <<: *exec-common
+
+    dependencies:
+      - tzbtc
+
+tests:
+  tzbtc-test:
+    <<: *test-common
+
+    default-extensions:
+      - DerivingStrategies
+
+    dependencies:
+    - tzbtc
+    - tasty
+    - universum
+    - HUnit
+    - tasty-hunit

@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: 2019 Serokell <https://serokell.io>
+
+# SPDX-License-Identifier: LicenseRef-MPL-2.0
+
+# top-most EditorConfig file
+root = true
+
+[*.hs]
+indent_style = space
+indent_size = 2
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+max_line_length = 100
