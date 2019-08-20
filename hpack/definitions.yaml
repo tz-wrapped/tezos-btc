@@ -60,7 +60,7 @@ _definitions:
         - ViewPatterns
 
     - &dependencies
-        - base >= 4.7 && < 5
+        - base-noprelude >= 4.7 && < 5
 
     - &ghc-options
         - -Weverything

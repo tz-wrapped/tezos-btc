@@ -4,6 +4,16 @@
 - package:
   - name: tzbtc
   - section:
+    - name: exe:tzbtc
+    - message:
+      - name: Redundant build-depends entry
+      - depends: base-noprelude
+  - section:
+    - name: library
+    - message:
+      - name: Redundant build-depends entry
+      - depends: base-noprelude
+  - section:
     - name: test:tzbtc-test
     - message:
       - name: Weeds exported
@@ -12,4 +22,7 @@
         - identifier:
           - ingredients
           - main
+    - message:
+      - name: Redundant build-depends entry
+      - depends: base-noprelude
 

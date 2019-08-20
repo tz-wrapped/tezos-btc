@@ -7,5 +7,23 @@ resolver: lts-14.0
 packages:
 - .
 
+extra-deps:
+
+- git:
+    https://gitlab.com/morley-framework/morley.git
+    # ^ CI cannot use ssh, so we use http clone here
+  commit:
+    722b318ee7497c439cf5bb4732c47a9497b06d06 # master
+  subdirs:
+    - .
+    - lorentz-contracts
+    - prelude
+
+# Required by morley
+- show-type-0.1.1@sha256:24f681a3481b3f9630e619d816054804ba1bd6cc05b5978ddd2cece8499ff2fa
+- aeson-options-0.1.0
+- base58-bytestring-0.1.0
+- hex-text-0.1.0.0
+
 nix:
   shell-file: shell.nix

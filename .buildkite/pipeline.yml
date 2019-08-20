@@ -13,7 +13,7 @@ steps:
  - command: "nix run -f https://github.com/serokell/crossref-verifier/archive/master.tar.gz -c crossref-verify || true"
    label: crossref-verify
  - commands:
-   - nix-shell --run "make test"
+   - nix-shell --run "make test-ci"
    - echo +++ Weeder
    - nix-shell --run "nix run nixpkgs.haskellPackages.weeder -c weeder ."
    label: test && weeder
