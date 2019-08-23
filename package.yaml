@@ -17,15 +17,31 @@ description: Wrapped Bitcoin on Tezos Blockchain
 library:
   <<: *lib-common
 
+  default-extensions:
+    - DerivingStrategies
+    - DeriveAnyClass
+    - NoApplicativeDo
+
   dependencies:
+    - containers
+    - morley
+    - lorentz-contracts
+    - morley-prelude
+    - named
+    - fmt
+    - text
     - universum
+    - optparse-applicative
 
 executables:
-  tzbtc-exe:
+  tzbtc:
     <<: *exec-common
 
     dependencies:
       - tzbtc
+      - morley-prelude
+      - morley
+      - optparse-applicative
 
 tests:
   tzbtc-test:
@@ -36,7 +52,9 @@ tests:
 
     dependencies:
     - tzbtc
-    - tasty
+    - morley-prelude
     - universum
-    - HUnit
+    - tasty
     - tasty-hunit
+    - morley
+    - fmt
