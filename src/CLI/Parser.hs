@@ -32,7 +32,8 @@ data CmdLnArgs
   | CmdGetBalance (View GetBalanceParams Natural)
   | CmdAddOperator OperatorParams
   | CmdRemoveOperator OperatorParams
-  | CmdPause PauseParams
+  | CmdPause
+  | CmdUnpause
   | CmdSetRedeemAddress SetRedeemAddressParams
   | CmdTransferOwnership TransferOwnershipParams
   | CmdAcceptOwnership AcceptOwnershipParams
@@ -40,7 +41,7 @@ data CmdLnArgs
   | CmdStartMigrateFrom StartMigrateFromParams
   | CmdMigrate MigrateParams
   | CmdPrintContract Bool
-  | CmdPrintInitialStorage Address
+  | CmdPrintInitialStorage Address Address
   | CmdParseParameter Text
 
 argParser :: Opt.Parser CmdLnArgs
@@ -72,8 +73,9 @@ argParser = hsubparser $
     printInitialStorageCmd =
       (mkCommandParser
          "printInitialStorage"
-         (CmdPrintInitialStorage <$>
-            addressArgument "Administrator's address")
+         (CmdPrintInitialStorage
+            <$> addressArgument "Administrator's address"
+            <*> addressArgument "Redeem address")
          "Print initial contract storage")
     parseParameterCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     parseParameterCmd =
@@ -133,13 +135,13 @@ argParser = hsubparser $
     pauseCmd =
       (mkCommandParser
          "pause"
-         (pure $ CmdPause True)
+         (pure CmdPause)
          "Pause the contract")
     unpauseCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     unpauseCmd =
       (mkCommandParser
          "unpause"
-         (pure $ CmdPause False)
+         (pure CmdUnpause)
          "Unpause the contract")
     setRedeemAddressCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     setRedeemAddressCmd =

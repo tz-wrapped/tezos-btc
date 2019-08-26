@@ -61,3 +61,4 @@ tests:
     - tasty-hunit
     - morley
     - fmt
+    - containers

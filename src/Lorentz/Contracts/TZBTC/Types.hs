@@ -4,33 +4,33 @@
  -}
 module Lorentz.Contracts.TZBTC.Types
   ( BurnParams
-  , OperatorParams
-  , GetBalanceParams
-  , SetRedeemAddressParams
-  , PauseParams
   , AcceptOwnershipParams
-  , TransferOwnershipParams
-  , StartMigrateToParams
-  , StartMigrateFromParams
-  , MigrateParams
-  , Storage
-  , mkStorage
+  , Error(..)
+  , GetBalanceParams
+  , ManagedLedger.AllowanceParams
+  , ManagedLedger.ApproveParams
+  , ManagedLedger.GetAllowanceParams
   , ManagedLedger.LedgerValue
-  , ManagedLedger.Error (..)
+  , ManagedLedger.MintParams
   , ManagedLedger.Storage' (..)
   , ManagedLedger.TransferParams
-  , ManagedLedger.ApproveParams
-  , ManagedLedger.AllowanceParams
-  , ManagedLedger.GetAllowanceParams
-  , ManagedLedger.MintParams
+  , MigrateParams
+  , OperatorParams
+  , PauseParams
+  , SetRedeemAddressParams
+  , StartMigrateFromParams
+  , StartMigrateToParams
+  , Storage
+  , StorageFields(..)
+  , TransferOwnershipParams
+  , mkStorage
   ) where
 
 import Data.Set (Set)
-import qualified Data.Set as Set
 
 import Lorentz
 import qualified Lorentz.Contracts.ManagedLedger.Types as ManagedLedger
-import Lorentz.Contracts.ManagedLedger.Types (Storage', mkStorage')
+import Lorentz.Contracts.ManagedLedger.Types (Storage'(..), mkStorage')
 import Util.Instances ()
 
 type BurnParams = ("from" :! Address, "value" :! Natural)
@@ -54,15 +54,37 @@ data StorageFields = StorageFields
   , operators   :: Set Address
   , migrateFrom :: Maybe Address
   , migrateTo   :: Maybe Address
+  , redeemAddress :: Address
   } deriving stock Generic -- @TODO Is TokenName required here?
     deriving anyclass IsoValue
+
+data Error
+  = UnsafeAllowanceChange Natural
+    -- ^ Attempt to change allowance from non-zero to a non-zero value.
+  | SenderIsNotAdmin
+    -- ^ Contract initiator has not enough rights to perform this operation.
+  | NotEnoughBalance ("required" :! Natural, "present" :! Natural)
+    -- ^ Insufficient balance.
+  | NotEnoughAllowance ("required" :! Natural, "present" :! Natural)
+    -- ^ Insufficient allowance to transfer foreign funds.
+  | OperationsArePaused
+    -- ^ Operation is unavailable until resume by token admin.
+  | NotInTransferOwnershipMode
+    -- ^ For the `acceptOwnership` entry point, if the contract's `newOwner`
+    -- field is None
+  | SenderIsNotNewOwner
+    -- ^ For the `acceptOwnership` entry point, if the sender is not the
+    -- address in the `newOwner` field
+  deriving stock (Eq, Generic)
+
+deriveCustomError ''Error
 
 type Storage = Storage' StorageFields
 
 -- | Create a default storage with ability to set some balances to
 -- non-zero values.
-mkStorage :: Address -> Map Address Natural -> Storage
-mkStorage adminAddress balances = mkStorage' balances $
+mkStorage :: Address -> Address -> Map Address Natural -> Set Address -> Storage
+mkStorage adminAddress redeem balances operators = mkStorage' balances $
   StorageFields
   { admin = adminAddress
   , paused = False
@@ -70,7 +92,8 @@ mkStorage adminAddress balances = mkStorage' balances $
   , totalBurned = 0
   , totalMinted = sum balances
   , newOwner = Nothing
-  , operators = Set.empty
+  , operators = operators
   , migrateFrom = Nothing
   , migrateTo = Nothing
+  , redeemAddress = redeem
   }

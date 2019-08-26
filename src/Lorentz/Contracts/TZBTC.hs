@@ -9,6 +9,7 @@ module Lorentz.Contracts.TZBTC
   ( mkStorage
   , Parameter(..)
   , Storage
+  , StorageFields(..)
   , tzbtcContract
   ) where
 
@@ -31,7 +32,6 @@ data Parameter
   | GetAllowance        !(View GetAllowanceParams Natural)
   | GetBalance          !(View Address Natural)
   | GetTotalSupply      !(View () Natural)
-  | SetPause            !Bool
   | SetAdministrator    !Address
   | GetAdministrator    !(View () Address)
   | Mint                !MintParams
@@ -39,7 +39,8 @@ data Parameter
   | AddOperator         !OperatorParams
   | RemoveOperator      !OperatorParams
   | SetRedeemAddress    !SetRedeemAddressParams
-  | Pause               !PauseParams
+  | Pause               !()
+  | Unpause             !()
   | TransferOwnership   !TransferOwnershipParams
   | AcceptOwnership     !AcceptOwnershipParams
   | StartMigrateTo      !StartMigrateToParams
@@ -61,8 +62,6 @@ instance Buildable Parameter where
       "Get balance for " +| addr |+ ""
     GetTotalSupply _ ->
       "Get total supply"
-    SetPause b ->
-      "Set pause to " +| b |+ ""
     SetAdministrator addr ->
       "Set administrator to " +| addr |+ ""
     GetAdministrator _ ->
@@ -77,8 +76,10 @@ instance Buildable Parameter where
       "Remove operator " +| operator |+ ""
     SetRedeemAddress (arg #redeem -> redeem) ->
       "Set redeem address to " +| redeem |+ ""
-    Pause b ->
-      "Pause " +| b |+ ""
+    Pause _ ->
+      "Pause"
+    Unpause _ ->
+      "Unpause"
     TransferOwnership (arg #newowner -> newOwner) ->
       "Transfer ownership to " +| newOwner |+ ""
     AcceptOwnership _ ->
@@ -104,7 +105,6 @@ tzbtcContract = do
     , #cGetAllowance /-> getAllowance
     , #cGetBalance /-> getBalance
     , #cGetTotalSupply /-> getTotalSupply
-    , #cSetPause /-> setPause
     , #cSetAdministrator /-> setAdministrator
     , #cGetAdministrator /-> getAdministrator
     , #cMint /-> mint
@@ -112,7 +112,8 @@ tzbtcContract = do
     , #cAddOperator /-> addOperator
     , #cRemoveOperator /-> removeOperator
     , #cSetRedeemAddress /-> setRedeemAddress
-    , #cPause /-> setPause
+    , #cPause /-> pause
+    , #cUnpause /-> unpause
     , #cTransferOwnership /-> transferOwnership
     , #cAcceptOwnership /-> acceptOwnership
     , #cStartMigrateTo /-> startMigrateTo
