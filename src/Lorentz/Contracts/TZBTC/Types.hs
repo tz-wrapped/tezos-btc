@@ -33,7 +33,7 @@ import qualified Lorentz.Contracts.ManagedLedger.Types as ManagedLedger
 import Lorentz.Contracts.ManagedLedger.Types (Storage'(..), mkStorage')
 import Util.Instances ()
 
-type BurnParams = ("from" :! Address, "value" :! Natural)
+type BurnParams = ("value" :! Natural)
 type OperatorParams = ("operator" :! Address)
 type GetBalanceParams = Address
 type SetRedeemAddressParams = ("redeem" :! Address)
@@ -66,15 +66,18 @@ data Error
   | NotEnoughBalance ("required" :! Natural, "present" :! Natural)
     -- ^ Insufficient balance.
   | NotEnoughAllowance ("required" :! Natural, "present" :! Natural)
-    -- ^ Insufficient allowance to transfer foreign funds.
+    -- ^ Insufficient allowance to transfer funds.
   | OperationsArePaused
     -- ^ Operation is unavailable until resume by token admin.
   | NotInTransferOwnershipMode
     -- ^ For the `acceptOwnership` entry point, if the contract's `newOwner`
-    -- field is None
+    -- field is None.
   | SenderIsNotNewOwner
     -- ^ For the `acceptOwnership` entry point, if the sender is not the
-    -- address in the `newOwner` field
+    -- address in the `newOwner` field.
+  | SenderIsNotOperator
+    -- ^ For the burn/mint/pause entry point, if the sender is not one
+    -- of the operators.
   deriving stock (Eq, Generic)
 
 deriveCustomError ''Error

@@ -62,3 +62,5 @@ tests:
     - morley
     - fmt
     - containers
+    - lorentz-contracts
+    - named
