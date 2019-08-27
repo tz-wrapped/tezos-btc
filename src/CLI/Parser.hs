@@ -4,6 +4,7 @@
  -}
 module CLI.Parser
   ( CmdLnArgs(..)
+  , TestScenarioOptions(..)
   , argParser
   ) where
 
@@ -40,9 +41,16 @@ data CmdLnArgs
   | CmdStartMigrateTo StartMigrateToParams
   | CmdStartMigrateFrom StartMigrateFromParams
   | CmdMigrate MigrateParams
-  | CmdPrintContract Bool
   | CmdPrintInitialStorage Address Address
+  | CmdPrintContract Bool (Maybe FilePath)
   | CmdParseParameter Text
+  | CmdTestScenario TestScenarioOptions
+
+data TestScenarioOptions = TestScenarioOptions
+  { tsoMaster :: !Address
+  , tsoOutput :: !(Maybe FilePath)
+  , tsoAddresses :: ![Address]
+  }
 
 argParser :: Opt.Parser CmdLnArgs
 argParser = hsubparser $
@@ -52,7 +60,7 @@ argParser = hsubparser $
   <> setRedeemAddressCmd <> transferOwnershipCmd
   <> startMigrateFromCmd <> startMigrateToCmd
   <> migrateCmd <> printCmd <> printInitialStorageCmd
-  <> parseParameterCmd
+  <> parseParameterCmd <> testScenarioCmd
   where
     mkCommandParser ::
          String
@@ -67,7 +75,7 @@ argParser = hsubparser $
             switch (long "oneline" <> help "Single line output")
        in (mkCommandParser
              "printContract"
-             (CmdPrintContract <$> singleLineSwitch)
+             (CmdPrintContract <$> singleLineSwitch <*> outputOption)
              "Print token contract")
     printInitialStorageCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     printInitialStorageCmd =
@@ -83,6 +91,12 @@ argParser = hsubparser $
           "parseContractParameter"
           (CmdParseParameter <$> Opt.strArgument mempty)
           "Parse contract parameter to Lorentz representation")
+    testScenarioCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
+    testScenarioCmd =
+      (mkCommandParser
+          "testScenario"
+          (CmdTestScenario <$> testScenarioOptions)
+          "Print parameters for smoke tests")
     mintCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     mintCmd =
       (mkCommandParser
@@ -255,6 +269,12 @@ instance
     in option ((Name @name) <.!> getReader) $
          mconcat [ long name , metavar (toUpper <$> name), help hInfo ]
 
+testScenarioOptions :: Opt.Parser TestScenarioOptions
+testScenarioOptions = TestScenarioOptions <$>
+  addressArgument "Owner's address" <*>
+  outputOption <*>
+  (many $ addressOption Nothing "Other owned addresses")
+
 addressOption :: Maybe Address -> String -> Opt.Parser Address
 addressOption defAddress hInfo =
   option (eitherReader parseAddrDo) $
@@ -271,6 +291,15 @@ addressArgument hInfo =
   mconcat
     [ metavar "ADDRESS", help hInfo
     ]
+
+outputOption :: Opt.Parser (Maybe FilePath)
+outputOption = Opt.optional $ Opt.strOption $ mconcat
+  [ Opt.short 'o'
+  , Opt.long "output"
+  , Opt.metavar "FILEPATH"
+  , Opt.help "Output file"
+  ]
+
 
 callBackAddressOption :: Opt.Parser (ContractAddr a)
 callBackAddressOption = ContractAddr <$> caddr
