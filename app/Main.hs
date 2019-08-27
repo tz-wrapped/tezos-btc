@@ -35,7 +35,8 @@ main = do
     CmdGetBalance getBalanceParams -> printParam (GetBalance getBalanceParams)
     CmdAddOperator operatorParams -> printParam (AddOperator operatorParams)
     CmdRemoveOperator operatorParams -> printParam (RemoveOperator operatorParams)
-    CmdPause pauseParams -> printParam (Pause pauseParams)
+    CmdPause -> printParam $ Pause ()
+    CmdUnpause -> printParam $ Unpause ()
     CmdSetRedeemAddress setRedeemAddressParams ->
       printParam (SetRedeemAddress setRedeemAddressParams)
     CmdTransferOwnership p -> printParam (TransferOwnership p)
@@ -46,8 +47,8 @@ main = do
     CmdPrintContract singleLine ->
       putStrLn $
         printLorentzContract singleLine tzbtcContract
-    CmdPrintInitialStorage adminAddress ->
-      putStrLn $ printLorentzValue True (mkStorage adminAddress mempty)
+    CmdPrintInitialStorage adminAddress redeemAddress ->
+      putStrLn $ printLorentzValue True (mkStorage adminAddress redeemAddress mempty mempty)
     CmdParseParameter t ->
       either (throwString . pretty) (putTextLn . pretty) $
       parseLorentzValue @Parameter t
