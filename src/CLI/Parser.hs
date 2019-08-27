@@ -40,6 +40,8 @@ data CmdLnArgs
   | CmdStartMigrateFrom StartMigrateFromParams
   | CmdMigrate MigrateParams
   | CmdPrintContract Bool
+  | CmdPrintInitialStorage Address
+  | CmdParseParameter Text
 
 argParser :: Opt.Parser CmdLnArgs
 argParser = hsubparser $
@@ -48,7 +50,8 @@ argParser = hsubparser $
   <> removeOperatorCmd <> pauseCmd <> unpauseCmd
   <> setRedeemAddressCmd <> transferOwnershipCmd
   <> startMigrateFromCmd <> startMigrateToCmd
-  <> migrateCmd <> printCmd
+  <> migrateCmd <> printCmd <> printInitialStorageCmd
+  <> parseParameterCmd
   where
     mkCommandParser ::
          String
@@ -65,6 +68,19 @@ argParser = hsubparser $
              "printContract"
              (CmdPrintContract <$> singleLineSwitch)
              "Print token contract")
+    printInitialStorageCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
+    printInitialStorageCmd =
+      (mkCommandParser
+         "printInitialStorage"
+         (CmdPrintInitialStorage <$>
+            addressArgument "Administrator's address")
+         "Print initial contract storage")
+    parseParameterCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
+    parseParameterCmd =
+      (mkCommandParser
+          "parseContractParameter"
+          (CmdParseParameter <$> Opt.strArgument mempty)
+          "Parse contract parameter to Lorentz representation")
     mintCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     mintCmd =
       (mkCommandParser

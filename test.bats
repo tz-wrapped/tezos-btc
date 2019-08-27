@@ -92,3 +92,15 @@
 @test "invoking tzbtc 'printContract' command with --oneline flag" {
   stack exec -- tzbtc printContract --oneline
 }
+
+@test "invoking tzbts 'printInitialStorage'" {
+  result="$(stack exec -- tzbtc printInitialStorage tz1f1S7V2hZJ3mhj47djb5j1saek8c2yB2Cx)"
+  [ "$result" == '(Pair { } (Pair (Pair (Pair "tz1f1S7V2hZJ3mhj47djb5j1saek8c2yB2Cx" False) (Pair 0 0)) (Pair (Pair 0 None) (Pair { } (Pair None None)))))' ]
+}
+
+@test "invoking 'parseContractParameter' to parse burn parameter" {
+  raw_parameter="$(stack exec -- tzbtc burn --from tz1f1S7V2hZJ3mhj47djb5j1saek8c2yB2Cx --value 100500)"
+  exec_command="stack exec -- tzbtc parseContractParameter '${raw_parameter}'"
+  result=$(eval $exec_command)
+  [ "$result" == 'Burn from tz1f1S7V2hZJ3mhj47djb5j1saek8c2yB2Cx, value = 100500' ]
+}

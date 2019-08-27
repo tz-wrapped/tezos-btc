@@ -38,10 +38,13 @@ executables:
     <<: *exec-common
 
     dependencies:
-      - tzbtc
+      - fmt
       - morley-prelude
       - morley
       - optparse-applicative
+      - safe-exceptions
+      - tzbtc
+
 
 tests:
   tzbtc-test:

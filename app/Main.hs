@@ -6,16 +6,18 @@ module Main
   ( main
   ) where
 
+import Control.Exception.Safe (throwString)
 import Data.Version (showVersion)
+import Fmt (pretty)
 import Options.Applicative
   (execParser, footerDoc, fullDesc, header, help, helper, info, infoOption, long, progDesc)
 import Options.Applicative.Help.Pretty (Doc, linebreak)
 
-import Lorentz (printLorentzContract, printLorentzValue)
+import Lorentz (parseLorentzValue, printLorentzContract, printLorentzValue)
 import Paths_tzbtc (version)
 
 import CLI.Parser
-import Lorentz.Contracts.TZBTC (Parameter(..), tzbtcContract)
+import Lorentz.Contracts.TZBTC (Parameter(..), mkStorage, tzbtcContract)
 
 -- Here in main function we will just accept commands from user
 -- and print the smart contract parameter by using `printLorentzValue`
@@ -44,6 +46,11 @@ main = do
     CmdPrintContract singleLine ->
       putStrLn $
         printLorentzContract singleLine tzbtcContract
+    CmdPrintInitialStorage adminAddress ->
+      putStrLn $ printLorentzValue True (mkStorage adminAddress mempty)
+    CmdParseParameter t ->
+      either (throwString . pretty) (putTextLn . pretty) $
+      parseLorentzValue @Parameter t
   where
     printParam :: Parameter -> IO ()
     printParam = putStrLn . printLorentzValue True
