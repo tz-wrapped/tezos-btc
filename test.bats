@@ -19,8 +19,8 @@
 }
 
 @test "invoking tzbtc 'burn' command" {
-  result="$(stack exec -- tzbtc burn --from "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" --value 100)"
-  [ "$result" == '(Left (Right (Right (Right (Right (Pair "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" 100))))))' ]
+  result="$(stack exec -- tzbtc burn --value 100)"
+  [ "$result" == '(Left (Right (Right (Right (Right 100)))))' ]
 }
 
 @test "invoking tzbtc 'transfer' command" {

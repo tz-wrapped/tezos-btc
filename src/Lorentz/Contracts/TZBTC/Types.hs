@@ -33,7 +33,7 @@ import qualified Lorentz.Contracts.ManagedLedger.Types as ManagedLedger
 import Lorentz.Contracts.ManagedLedger.Types (Storage'(..), mkStorage')
 import Util.Instances ()
 
-type BurnParams = ("from" :! Address, "value" :! Natural)
+type BurnParams = ("value" :! Natural)
 type OperatorParams = ("operator" :! Address)
 type GetBalanceParams = Address
 type SetRedeemAddressParams = ("redeem" :! Address)

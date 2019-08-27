@@ -12,7 +12,6 @@ module Lorentz.Contracts.TZBTC.Impl
   ( StorageFieldsC
   , ManagedLedger.approve
   , ManagedLedger.approve'
-  , ManagedLedger.burn
   , ManagedLedger.getAdministrator
   , ManagedLedger.getAllowance
   , ManagedLedger.getBalance
@@ -23,6 +22,7 @@ module Lorentz.Contracts.TZBTC.Impl
   , ManagedLedger.transfer'
   , acceptOwnership
   , addOperator
+  , burn
   , migrate
   , pause
   , removeOperator
@@ -40,6 +40,7 @@ import Data.Set (Set)
 import Lorentz
 import Lorentz.Contracts.TZBTC.Types
 import qualified Lorentz.Contracts.ManagedLedger.Impl as ManagedLedger
+import qualified Lorentz.Contracts.ManagedLedger.Types as ManagedLedger
 
 type StorageFieldsC fields =
   fields `HasFieldsOfType`
@@ -59,6 +60,22 @@ stub = do
   dip authorizeAdmin
   drop
   finishNoOp
+
+burn :: forall fields. StorageFieldsC fields => Entrypoint BurnParams fields
+burn = do
+  dip authorizeAdmin
+  -- Get redeem address from storage
+  dip $ do
+    dup
+    stackType @'[Storage' _, Storage' _]
+    toField #fields; toField #redeemAddress
+    toNamed #from
+  -- Make managed ledgers burn parameter
+  swap
+  pair
+  stackType @'[ManagedLedger.BurnParams, Storage' _]
+  -- Call managed ledgers's burn entry point
+  ManagedLedger.burn
 
 addOperator :: forall fields. StorageFieldsC fields => Entrypoint OperatorParams fields
 addOperator = addRemoveOperator AddOperator
