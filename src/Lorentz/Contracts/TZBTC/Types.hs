@@ -75,6 +75,9 @@ data Error
   | SenderIsNotNewOwner
     -- ^ For the `acceptOwnership` entry point, if the sender is not the
     -- address in the `newOwner` field
+  | SenderIsNotOperator
+    -- ^ For the burn/mint/pause entry point, if the sender is not the
+    -- address in the `newOwner` field
   deriving stock (Eq, Generic)
 
 deriveCustomError ''Error

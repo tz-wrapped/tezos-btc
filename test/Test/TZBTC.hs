@@ -256,19 +256,51 @@ test_acceptOwnership = testGroup "TZBTC contract `acceptOwnership` test"
 test_burn :: TestTree
 test_burn = testGroup "TZBTC contract `burn` test"
   [ testCase
-      "Call to `burn` burns from `redeemAddress`" $
+      "Call to `burn` gets denied with `SenderIsNotOperator`" $
       contractProp lContract
-        validate_ contractEnv (Burn (#value .! 100)) storage
+        validateFail_ contractEnv (Burn (#value .! 100)) storageWithOperator
+  , testCase
+      "Call to `burn` burns from `redeemAddress` and update `totalBurned` \
+      \ and `totalSupply` fields correctly" $
+      contractProp lContract
+        validate_ contractEnvWithOperatorSender (Burn (#value .! 100)) storageWithOperator
   ]
   where
+    contractEnvWithOperatorSender = contractEnv { ceSender = newOperatorAddress }
+    storageWithOperator =
+      mkStorage adminAddress redeemAddress_
+        (Map.fromList [(redeemAddress_, initialSupply)]) (Set.fromList [newOperatorAddress])
+    validateFail_ :: ContractPropValidator (ToT Storage) Assertion
+    validateFail_ (res, _) =
+      case res of
+        Left err -> do
+          case err of
+            MichelsonFailedWith (VPair ((VC (CvString t)), _)) ->
+              assertEqual
+                "Contract did not fail with 'SenderIsNotOperator' message"
+                 [mt|SenderIsNotOperator|]
+                 t
+            a -> assertFailure $ "Unexpected contract failure: " <> pretty a
+        Right (_operations, _) ->
+          assertFailure "Contract did not fail as expected"
+
     validate_ :: ContractPropValidator (ToT Storage) Assertion
     validate_ (res, _) =
       case res of
         Left err -> assertFailure $ "Unexpected contract failure: " <> pretty err
-        Right (_operations, rstorage) ->
+        Right (_operations, rstorage) -> do
           assertEqual
-            "Contract's `burn` operation did not work as expected"
+            "Contract's `burn` operation reduced the balance in redeem address by expected amount"
              (Just 400  :: Maybe Natural)
              (((arg #balance) . fst)
                 <$> (Map.lookup redeemAddress_ $ unBigMap $
                   ledger $ (fromVal rstorage :: Storage)))
+          --  Assert the totalBurned field in storage is updated correctly.
+          assertEqual
+            "Contract's `burn` operation did not update `totalBurned` field correctly."
+             100
+             (totalBurned $ fields $ (fromVal rstorage :: Storage))
+          assertEqual
+            "Contract's `burn` operation did not update `totalSupply` field correctly"
+             400
+             (totalSupply $ fields $ (fromVal rstorage :: Storage))

@@ -47,6 +47,8 @@ type StorageFieldsC fields =
   [ "admin" := Address
   , "paused" := Bool
   , "totalSupply" := Natural
+  , "totalMinted" := Natural
+  , "totalBurned" := Natural
   , "operators" := Set Address
   , "redeemAddress" := Address
   , "newOwner" := Maybe Address
@@ -61,21 +63,45 @@ stub = do
   drop
   finishNoOp
 
+userFail :: forall name fieldTy s s'. FailUsingArg Error name fieldTy s s'
+userFail = failUsingArg @Error @name
+
 burn :: forall fields. StorageFieldsC fields => Entrypoint BurnParams fields
 burn = do
-  dip authorizeAdmin
+  dip authorizeOperator
   -- Get redeem address from storage
   dip $ do
     dup
     stackType @'[Storage' _, Storage' _]
     toField #fields; toField #redeemAddress
     toNamed #from
-  -- Make managed ledgers burn parameter
-  swap
-  pair
-  stackType @'[ManagedLedger.BurnParams, Storage' _]
-  -- Call managed ledgers's burn entry point
-  ManagedLedger.burn
+  -- Make managed ledger's burn entrypoint parameter
+  stackType @'["value" :! Natural, "from" :! Address, Storage' _]
+  dup
+  dip $ do
+    swap
+    pair
+    stackType @'[ManagedLedger.BurnParams, Storage' _]
+    -- Call managed ledgers's burn entry point
+    debitFrom
+    -- Drop burn prameters
+    drop
+    stackType @'[Storage' _]
+  stackType @'["value" :! Natural, Storage' _]
+  -- Now add the value to total burned field
+  -- Assuming totalSupply field to be amended by
+  -- ManagedLedger's burn procedure.
+  dip $ do
+    dup
+    toField #fields; getField #totalBurned
+  stackType @'["value" :! Natural, Natural, _, Storage' _]
+  fromNamed #value
+  add
+  -- Update storage
+  setField #totalBurned
+  setField #fields
+  stackType @'[Storage' _]
+  finishNoOp
 
 addOperator :: forall fields. StorageFieldsC fields => Entrypoint OperatorParams fields
 addOperator = addRemoveOperator AddOperator
@@ -194,5 +220,71 @@ authorizeNewOwner = do
     if_ nop (failUsing SenderIsNotNewOwner)
     else (failUsing NotInTransferOwnershipMode)
 
+authorizeOperator
+  :: StorageFieldsC fields
+  => Storage' fields : s :-> Storage' fields : s
+authorizeOperator = do
+  getField #fields; toField #operators; sender; mem;
+  assert SenderIsNotOperator
+
 finishNoOp :: '[st] :-> (ContractOut st)
 finishNoOp = do;nil;pair
+
+---
+addTotalSupply
+  :: StorageFieldsC fields
+  => Integer : Storage' fields : s :-> Storage' fields : s
+addTotalSupply = do
+  dip $ getField #fields >> getField #totalSupply
+  add; isNat; ifSome nop (failUnexpected [mt|Negative total supply|])
+  setField #totalSupply; setField #fields
+
+debitFrom
+  :: forall param fields.
+     ( param `HasFieldsOfType` ["from" := Address, "value" := Natural]
+     , StorageFieldsC fields
+     )
+  => '[param, Storage' fields] :-> '[param, Storage' fields]
+debitFrom = do
+    -- Get LedgerValue
+    duupX @2; toField #ledger; duupX @2; toField #from
+    get; ifSome nop $ do
+      -- Fail if absent
+      stackType @[param, Storage' _]
+      toField #value; toNamed #required; push 0; toNamed #present
+      swap; pair; userFail #cNotEnoughBalance
+    -- Get balance
+    stackType @[LedgerValue, param, Storage' _]
+    getField #balance
+    duupX @3; toField #value
+    rsub; isNat
+    ifSome nop $ do
+      -- Fail if balance is not enough
+      stackType @[LedgerValue, param, Storage' _]
+      toField #balance; toNamed #present
+      duupX @2; toField #value; toNamed #required
+      pair; userFail #cNotEnoughBalance
+    -- Update balance, LedgerValue and Storage
+    setField #balance;
+    duupX @2; dip $ do
+      nonEmptyLedgerValue; swap; toField #from
+      dip (dip $ getField #ledger)
+      update; setField #ledger
+
+    -- Update total supply
+    dup; dip $ do toField #value; neg; addTotalSupply
+
+-- | Ensure that given 'LedgerValue' value cannot be safely removed
+-- and return it.
+nonEmptyLedgerValue :: LedgerValue : s :-> Maybe LedgerValue : s
+nonEmptyLedgerValue = do
+  getField #balance; int
+  if IsNotZero
+  then some
+  else do
+    getField #approvals
+    size; int
+    if IsNotZero
+    then some
+    else drop >> none
+
