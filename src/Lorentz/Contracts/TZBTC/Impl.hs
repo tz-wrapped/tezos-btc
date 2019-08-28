@@ -66,6 +66,10 @@ stub = do
 userFail :: forall name fieldTy s s'. FailUsingArg Error name fieldTy s s'
 userFail = failUsingArg @Error @name
 
+-- | Burn the specified amount of tokens from redeem address. Since it
+-- is not possible to burn from any other address, this entry point does
+-- not have an address input. Only operators are allowed to call this entry
+-- point.
 burn :: forall fields. StorageFieldsC fields => Entrypoint BurnParams fields
 burn = do
   dip authorizeOperator
@@ -103,14 +107,20 @@ burn = do
   stackType @'[Storage' _]
   finishNoOp
 
+-- | Add a new operator to the set of Operators. Only admin is allowed to call this
+-- entrypoint.
 addOperator :: forall fields. StorageFieldsC fields => Entrypoint OperatorParams fields
 addOperator = addRemoveOperator AddOperator
 
+-- | Add an operator from the set of Operators. Only admin is allowed to call this
+-- entrypoint.
 removeOperator :: StorageFieldsC fields => Entrypoint OperatorParams fields
 removeOperator = addRemoveOperator RemoveOperator
 
+-- | A type to indicate required action to the `addRemoveOperator` function.
 data OperatorAction = AddOperator | RemoveOperator
 
+-- | Adds or remove an operator.
 addRemoveOperator :: StorageFieldsC fields => OperatorAction -> Entrypoint OperatorParams fields
 addRemoveOperator ar = do
   dip authorizeAdmin
@@ -145,6 +155,9 @@ setRedeemAddress = do
   setField #fields
   finishNoOp
 
+-- | Start the transfer of ownership to a new owner. This stores the
+-- address of the new owenr in the `newOwner` field in storage. Only
+-- admin is allowed to make this call.
 transferOwnership
   :: StorageFieldsC fields
   => Entrypoint TransferOwnershipParams fields
@@ -160,6 +173,8 @@ transferOwnership = do
   setField #fields
   finishNoOp
 
+-- | Accept ownership of the contract. This is only callable by
+-- the address in `newOwner` field, if it contains one.
 acceptOwnership :: StorageFieldsC fields => Entrypoint () fields
 acceptOwnership = do
   dip authorizeNewOwner
@@ -190,18 +205,22 @@ startMigrateFrom = stub
 migrate :: StorageFieldsC fields => Entrypoint MigrateParams fields
 migrate = stub
 
+-- | Pause end user actions. This is callable only by the operators.
 pause :: StorageFieldsC fields => Entrypoint () fields
 pause = do
   drop
   push True
   ManagedLedger.setPause
 
+-- | Resume end user actions if the contract is in a paused state.
+-- This is callable only by the admin.
 unpause :: StorageFieldsC fields => Entrypoint () fields
 unpause = do
   drop
   push False
   ManagedLedger.setPause
 
+-- | Check that the sender is admin
 authorizeAdmin
   :: StorageFieldsC fields
   => Storage' fields : s :-> Storage' fields : s
@@ -209,6 +228,8 @@ authorizeAdmin = do
   getField #fields; toField #admin; sender; eq
   if_ nop (failUsing SenderIsNotAdmin)
 
+-- | Check that the address of the sender is an address that is
+-- present in the `newOwner` storage field.
 authorizeNewOwner
   :: StorageFieldsC fields
   => Storage' fields : s :-> Storage' fields : s
@@ -220,6 +241,7 @@ authorizeNewOwner = do
     if_ nop (failUsing SenderIsNotNewOwner)
     else (failUsing NotInTransferOwnershipMode)
 
+-- | Check that the sender is an operator
 authorizeOperator
   :: StorageFieldsC fields
   => Storage' fields : s :-> Storage' fields : s
