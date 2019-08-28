@@ -5,9 +5,6 @@
 {-# Language RebindableSyntax #-}
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 
--- | Implementation of manalged ledger which does not require
--- particular storage type.
-
 module Lorentz.Contracts.TZBTC.Impl
   ( StorageFieldsC
   , ManagedLedger.approve
@@ -63,9 +60,6 @@ stub = do
   drop
   finishNoOp
 
-userFail :: forall name fieldTy s s'. FailUsingArg Error name fieldTy s s'
-userFail = failUsingArg @Error @name
-
 -- | Burn the specified amount of tokens from redeem address. Since it
 -- is not possible to burn from any other address, this entry point does
 -- not have an address input. Only operators are allowed to call this entry
@@ -87,7 +81,7 @@ burn = do
     pair
     stackType @'[ManagedLedger.BurnParams, Storage' _]
     -- Call managed ledgers's burn entry point
-    debitFrom
+    ManagedLedger.debitFrom
     -- Drop burn prameters
     drop
     stackType @'[Storage' _]
@@ -251,62 +245,3 @@ authorizeOperator = do
 
 finishNoOp :: '[st] :-> (ContractOut st)
 finishNoOp = do;nil;pair
-
----
-addTotalSupply
-  :: StorageFieldsC fields
-  => Integer : Storage' fields : s :-> Storage' fields : s
-addTotalSupply = do
-  dip $ getField #fields >> getField #totalSupply
-  add; isNat; ifSome nop (failUnexpected [mt|Negative total supply|])
-  setField #totalSupply; setField #fields
-
-debitFrom
-  :: forall param fields.
-     ( param `HasFieldsOfType` ["from" := Address, "value" := Natural]
-     , StorageFieldsC fields
-     )
-  => '[param, Storage' fields] :-> '[param, Storage' fields]
-debitFrom = do
-    -- Get LedgerValue
-    duupX @2; toField #ledger; duupX @2; toField #from
-    get; ifSome nop $ do
-      -- Fail if absent
-      stackType @[param, Storage' _]
-      toField #value; toNamed #required; push 0; toNamed #present
-      swap; pair; userFail #cNotEnoughBalance
-    -- Get balance
-    stackType @[LedgerValue, param, Storage' _]
-    getField #balance
-    duupX @3; toField #value
-    rsub; isNat
-    ifSome nop $ do
-      -- Fail if balance is not enough
-      stackType @[LedgerValue, param, Storage' _]
-      toField #balance; toNamed #present
-      duupX @2; toField #value; toNamed #required
-      pair; userFail #cNotEnoughBalance
-    -- Update balance, LedgerValue and Storage
-    setField #balance;
-    duupX @2; dip $ do
-      nonEmptyLedgerValue; swap; toField #from
-      dip (dip $ getField #ledger)
-      update; setField #ledger
-
-    -- Update total supply
-    dup; dip $ do toField #value; neg; addTotalSupply
-
--- | Ensure that given 'LedgerValue' value cannot be safely removed
--- and return it.
-nonEmptyLedgerValue :: LedgerValue : s :-> Maybe LedgerValue : s
-nonEmptyLedgerValue = do
-  getField #balance; int
-  if IsNotZero
-  then some
-  else do
-    getField #approvals
-    size; int
-    if IsNotZero
-    then some
-    else drop >> none
-

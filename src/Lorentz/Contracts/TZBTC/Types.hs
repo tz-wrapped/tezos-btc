@@ -66,18 +66,18 @@ data Error
   | NotEnoughBalance ("required" :! Natural, "present" :! Natural)
     -- ^ Insufficient balance.
   | NotEnoughAllowance ("required" :! Natural, "present" :! Natural)
-    -- ^ Insufficient allowance to transfer foreign funds.
+    -- ^ Insufficient allowance to transfer funds.
   | OperationsArePaused
     -- ^ Operation is unavailable until resume by token admin.
   | NotInTransferOwnershipMode
     -- ^ For the `acceptOwnership` entry point, if the contract's `newOwner`
-    -- field is None
+    -- field is None.
   | SenderIsNotNewOwner
     -- ^ For the `acceptOwnership` entry point, if the sender is not the
-    -- address in the `newOwner` field
+    -- address in the `newOwner` field.
   | SenderIsNotOperator
-    -- ^ For the burn/mint/pause entry point, if the sender is not the
-    -- address in the `newOwner` field
+    -- ^ For the burn/mint/pause entry point, if the sender is not one
+    -- of the operators.
   deriving stock (Eq, Generic)
 
 deriveCustomError ''Error
