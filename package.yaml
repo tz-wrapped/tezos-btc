@@ -23,13 +23,22 @@ library:
     - NoApplicativeDo
 
   dependencies:
+    - aeson
+    - bytestring
     - containers
+    - hex-text
+    - memory
     - morley
+    - lens
     - lorentz-contracts
     - morley-prelude
     - named
     - fmt
+    - servant
+    - servant-client
+    - servant-client-core
     - text
+    - tezos-bake-monitor-lib
     - universum
     - optparse-applicative
     - vinyl
@@ -40,12 +49,30 @@ executables:
 
     dependencies:
       - fmt
-      - lens
       - lorentz-contracts
       - morley-prelude
       - morley
       - optparse-applicative
       - safe-exceptions
+      - tzbtc
+
+  tzbtc-client:
+    main: Main.hs
+    source-dirs: client
+
+    dependencies:
+      - aeson
+      - fmt
+      - http-client
+      - lorentz-contracts
+      - morley-prelude
+      - morley
+      - optparse-applicative
+      - safe-exceptions
+      - servant-client
+      - servant-client-core
+      - text
+      - tezos-bake-monitor-lib
       - tzbtc
 
 tests:

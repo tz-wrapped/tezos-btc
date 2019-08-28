@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: LicenseRef-Proprietary
 #
-resolver: lts-13.22
+resolver: lts-14.0
 
 packages:
 - .
@@ -19,11 +19,21 @@ extra-deps:
     - lorentz-contracts
     - prelude
 
+- git:
+    https://gitlab.com/obsidian.systems/tezos-bake-monitor.git
+  commit:
+    1d89cee1576dbbc6969a6f56a3dfe64702c6d9a1
+  subdirs:
+    - tezos-bake-monitor-lib
+
 # Required by morley
 - show-type-0.1.1@sha256:24f681a3481b3f9630e619d816054804ba1bd6cc05b5978ddd2cece8499ff2fa
 - aeson-options-0.1.0
 - base58-bytestring-0.1.0
 - hex-text-0.1.0.0
+# Required by tezos-bake-monitor-lib
+- functor-infix-0.0.5@sha256:cea21a321031f556d7a21b51e049493e7cb78baf64dd63f0d1a36de01c4c735b
+- hashing-0.1.0.1@sha256:98861f16791946cdf28e3c7a6ee9ac8b72d546d6e33c569c7087ef18253294e7
 
 nix:
   shell-file: shell.nix

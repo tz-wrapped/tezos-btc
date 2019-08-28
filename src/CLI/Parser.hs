@@ -5,7 +5,10 @@
 module CLI.Parser
   ( CmdLnArgs(..)
   , TestScenarioOptions(..)
+  , HasParser(..)
+  , addressArgument
   , argParser
+  , mkCommandParser
   ) where
 
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
@@ -15,7 +18,7 @@ import Fmt (pretty)
 import Named (Name(..))
 import Options.Applicative
   (argument, auto, command, eitherReader, help, hsubparser, info, long, metavar, option, progDesc,
-  showDefaultWith, switch, value)
+  showDefaultWith, str, switch, value)
 import qualified Options.Applicative as Opt
 
 import Lorentz ((:!), ContractAddr(..), View(..))
@@ -65,15 +68,6 @@ argParser = hsubparser $
   <> printAgentCmd <> printProxyCmd
   <> printInitialStorageCmd <> parseParameterCmd <> testScenarioCmd
   where
-    mkCommandParser ::
-         String
-      -> Opt.Parser CmdLnArgs
-      -> String
-      -> Opt.Mod Opt.CommandFields CmdLnArgs
-    mkCommandParser commandName parser desc =
-      command commandName $ info parser $ progDesc desc
-    singleLineSwitch =
-            switch (long "oneline" <> help "Single line output")
     printCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     printCmd =
       (mkCommandParser
@@ -203,6 +197,15 @@ argParser = hsubparser $
          (pure $ CmdMigrate ())
          "Migrate contract")
 
+mkCommandParser
+  :: String
+  -> Opt.Parser a
+  -> String
+  -> Opt.Mod Opt.CommandFields a
+mkCommandParser commandName parser desc =
+  command commandName $ info parser $ progDesc desc
+
+
 mintParamParser :: Opt.Parser MintParams
 mintParamParser =
   (,) <$> (getParser "Address to mint to")
@@ -269,6 +272,12 @@ class HasReader a where
 
 instance HasReader Natural where
   getReader = auto
+
+instance HasReader Int where
+  getReader = auto
+
+instance HasReader Text where
+  getReader = str
 
 instance HasReader Address where
   getReader = eitherReader parseAddrDo

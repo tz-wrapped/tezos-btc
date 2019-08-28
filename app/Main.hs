@@ -7,7 +7,6 @@ module Main
   ) where
 
 import Control.Exception.Safe (throwString)
-import Control.Lens (ix)
 import Data.Version (showVersion)
 import Fmt (pretty)
 import Options.Applicative
@@ -17,15 +16,15 @@ import Options.Applicative.Help.Pretty (Doc, linebreak)
 import Lorentz
   (Address, CanHaveBigMap, Contract, KnownValue, NoBigMap, NoOperation,
    parseLorentzValue, printLorentzContract, printLorentzValue, lcwDumb)
-import Lorentz.Common (TestScenario, showTestScenario)
-import Util.Named ((.!))
+import Lorentz.Common (showTestScenario)
 import Util.IO (writeFileUtf8)
 import Paths_tzbtc (version)
 
 import CLI.Parser
 import Lorentz.Contracts.TZBTC
-  (Parameter(..), agentContract, mkStorage, tzbtcContract)
+  (Parameter(..), agentContract, mkStorage, tzbtcCompileWay, tzbtcContract)
 import Lorentz.Contracts.TZBTC.Proxy (tzbtcProxyContract)
+import Lorentz.Contracts.TZBTC.Test (mkTestScenario)
 
 -- Here in main function we will just accept commands from user
 -- and print the smart contract parameter by using `printLorentzValue`
@@ -113,14 +112,3 @@ usageDoc =
     , "  chain using tezos-client"
     ]
 
-mkTestScenario :: Address -> [Address] -> Maybe (TestScenario Parameter)
-mkTestScenario owner addresses = do
-  addr0 <- addresses ^? ix 0
-  addr1 <- addresses ^? ix 1
-  pure
-    [ (owner, AddOperator (#operator .! owner))
-    , (owner, Pause ())
-    , (owner, Unpause ())
-    , (owner, Mint (#to .! addr0, #value .! 100500))
-    , (owner, Mint (#to .! addr1, #value .! 100500))
-    ]
