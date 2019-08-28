@@ -73,14 +73,14 @@ burn = do
     stackType @'[Storage' _, Storage' _]
     toField #fields; toField #redeemAddress
     toNamed #from
-  -- Make managed ledger's burn entrypoint parameter
+  -- Make ManagedLedger's burn entrypoint parameter
   stackType @'["value" :! Natural, "from" :! Address, Storage' _]
   dup
   dip $ do
     swap
     pair
     stackType @'[ManagedLedger.BurnParams, Storage' _]
-    -- Call managed ledgers's burn entry point
+    -- Call ManagedLedgers's `debitFrom` function.
     ManagedLedger.debitFrom
     -- Drop burn prameters
     drop
