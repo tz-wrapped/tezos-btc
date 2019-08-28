@@ -13,13 +13,13 @@ module Lorentz.Contracts.TZBTC.Impl
   , ManagedLedger.getAllowance
   , ManagedLedger.getBalance
   , ManagedLedger.getTotalSupply
-  , ManagedLedger.mint
   , ManagedLedger.setAdministrator
   , ManagedLedger.transfer
   , ManagedLedger.transfer'
   , acceptOwnership
   , addOperator
   , burn
+  , mint
   , migrate
   , pause
   , removeOperator
@@ -87,8 +87,8 @@ burn = do
     stackType @'[Storage' _]
   stackType @'["value" :! Natural, Storage' _]
   -- Now add the value to total burned field
-  -- Assuming totalSupply field to be amended by
-  -- ManagedLedger's burn procedure.
+  -- assuming totalSupply field to be amended by
+  -- managedLedger's burn procedure.
   dip $ do
     dup
     toField #fields; getField #totalBurned
@@ -97,6 +97,36 @@ burn = do
   add
   -- Update storage
   setField #totalBurned
+  setField #fields
+  stackType @'[Storage' _]
+  finishNoOp
+
+mint :: forall fields. StorageFieldsC fields => Entrypoint MintParams fields
+mint = do
+  dip authorizeOperator
+  -- Make managed ledger's mint entrypoint parameter
+  stackType @'[("to" :! Address, "value" :! Natural), Storage' _]
+  dup
+  dip $ do
+    stackType @'[ManagedLedger.MintParams, Storage' _]
+    -- update ledger
+    ManagedLedger.creditTo
+    -- Drop mint prameters
+    drop
+    stackType @'[Storage' _]
+  cdr
+  stackType @'["value" :! Natural, Storage' _]
+  -- Now add the value to total minted field
+  -- assuming totalSupply field to be amended by
+  -- managedLedger's mint procedure.
+  dip $ do
+    dup
+    toField #fields; getField #totalMinted
+  stackType @'["value" :! Natural, Natural, _, Storage' _]
+  fromNamed #value
+  add
+  -- Update storage
+  setField #totalMinted
   setField #fields
   stackType @'[Storage' _]
   finishNoOp
