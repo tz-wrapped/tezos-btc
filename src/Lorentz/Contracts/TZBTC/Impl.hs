@@ -87,18 +87,16 @@ burn = do
     stackType @'[Storage' _]
   stackType @'["value" :! Natural, Storage' _]
   -- Now add the value to total burned field
-  -- assuming totalSupply field to be amended by
+  -- assuming totalSupply field to be update by
   -- managedLedger's burn procedure.
   dip $ do
     dup
     toField #fields; getField #totalBurned
-  stackType @'["value" :! Natural, Natural, _, Storage' _]
   fromNamed #value
   add
   -- Update storage
   setField #totalBurned
   setField #fields
-  stackType @'[Storage' _]
   finishNoOp
 
 mint :: forall fields. StorageFieldsC fields => Entrypoint MintParams fields
@@ -117,18 +115,16 @@ mint = do
   cdr
   stackType @'["value" :! Natural, Storage' _]
   -- Now add the value to total minted field
-  -- assuming totalSupply field to be amended by
+  -- assuming totalSupply field to be updated by
   -- managedLedger's mint procedure.
   dip $ do
     dup
     toField #fields; getField #totalMinted
-  stackType @'["value" :! Natural, Natural, _, Storage' _]
   fromNamed #value
   add
   -- Update storage
   setField #totalMinted
   setField #fields
-  stackType @'[Storage' _]
   finishNoOp
 
 -- | Add a new operator to the set of Operators. Only admin is allowed to call this
