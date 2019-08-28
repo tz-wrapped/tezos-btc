@@ -10,6 +10,7 @@ module Test.TZBTC
   , test_transferOwnership
   , test_acceptOwnership
   , test_burn
+  , test_mint
   ) where
 
 import Fmt (pretty)
@@ -50,6 +51,9 @@ replaceAddress = genesisAddress2
 
 contractAddress :: Address
 contractAddress = genesisAddress4
+
+alice :: Address
+alice = genesisAddress6
 
 contractEnv :: ContractEnv
 contractEnv =
@@ -303,4 +307,56 @@ test_burn = testGroup "TZBTC contract `burn` test"
           assertEqual
             "Contract's `burn` operation did not update `totalSupply` field correctly"
              400
+             (totalSupply $ fields $ (fromVal rstorage :: Storage))
+
+test_mint :: TestTree
+test_mint = testGroup "TZBTC contract `mint` test"
+  [ testCase
+      "Call to `mint` gets denied with `SenderIsNotOperator`" $
+      contractProp lContract
+        validateFail_ contractEnv (Burn (#value .! 100)) storageWithOperator
+  , testCase
+      "Call to `mint` adds value to `to` parameter in input and update `totalMinted` \
+      \ and `totalSupply` fields correctly" $
+      contractProp lContract
+        validate_ contractEnvWithOperatorSender (Mint (#to .! alice, #value .! 200)) storageWithOperator
+  ]
+  where
+    contractEnvWithOperatorSender = contractEnv { ceSender = newOperatorAddress }
+    storageWithOperator =
+      mkStorage adminAddress redeemAddress_
+        (Map.fromList [(redeemAddress_, initialSupply)]) (Set.fromList [newOperatorAddress])
+    validateFail_ :: ContractPropValidator (ToT Storage) Assertion
+    validateFail_ (res, _) =
+      case res of
+        Left err -> do
+          case err of
+            MichelsonFailedWith (VPair ((VC (CvString t)), _)) ->
+              assertEqual
+                "Contract did not fail with 'SenderIsNotOperator' message"
+                 [mt|SenderIsNotOperator|]
+                 t
+            a -> assertFailure $ "Unexpected contract failure: " <> pretty a
+        Right (_operations, _) ->
+          assertFailure "Contract did not fail as expected"
+
+    validate_ :: ContractPropValidator (ToT Storage) Assertion
+    validate_ (res, _) =
+      case res of
+        Left err -> assertFailure $ "Unexpected contract failure: " <> pretty err
+        Right (_operations, rstorage) -> do
+          assertEqual
+            "Contract's `mint` operation credited the target account with the  expected amount"
+             (Just 200  :: Maybe Natural)
+             (((arg #balance) . fst)
+                <$> (Map.lookup alice $ unBigMap $
+                  ledger $ (fromVal rstorage :: Storage)))
+          --  Assert the totalBurned field in storage is updated correctly.
+          assertEqual
+            "Contract's `mint` operation did not update `totalMinted` field correctly."
+             700
+             (totalMinted $ fields $ (fromVal rstorage :: Storage))
+          assertEqual
+            "Contract's `mint` operation did not update `totalSupply` field correctly"
+             700
              (totalSupply $ fields $ (fromVal rstorage :: Storage))
