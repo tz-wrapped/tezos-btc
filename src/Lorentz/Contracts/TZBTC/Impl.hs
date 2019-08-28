@@ -228,9 +228,11 @@ migrate = stub
 -- | Pause end user actions. This is callable only by the operators.
 pause :: StorageFieldsC fields => Entrypoint () fields
 pause = do
+  dip authorizeOperator
   drop
   push True
-  ManagedLedger.setPause
+  dip (getField #fields); setField #paused; setField #fields
+  nil; pair
 
 -- | Resume end user actions if the contract is in a paused state.
 -- This is callable only by the admin.

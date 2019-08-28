@@ -11,6 +11,8 @@ module Test.TZBTC
   , test_acceptOwnership
   , test_burn
   , test_mint
+  , test_pause
+  , test_unpause_
   ) where
 
 import Fmt (pretty)
@@ -360,3 +362,83 @@ test_mint = testGroup "TZBTC contract `mint` test"
             "Contract's `mint` operation did not update `totalSupply` field correctly"
              700
              (totalSupply $ fields $ (fromVal rstorage :: Storage))
+
+test_pause :: TestTree
+test_pause = testGroup "TZBTC contract `pause` permission test"
+  [ testCase
+      "Call to `pause` gets denied with `SenderIsNotOperator`" $
+      contractProp lContract
+        validateFail_ contractEnv (Pause ()) storageWithOperator
+  , testCase
+      "Call to `pause` as operator is allowed" $
+      contractProp lContract
+        validate_ contractEnvWithOperatorSender (Pause ()) storageWithOperator
+  ]
+  where
+    contractEnvWithOperatorSender = contractEnv { ceSender = newOperatorAddress }
+    storageWithOperator =
+      mkStorage adminAddress redeemAddress_
+        (Map.fromList [(redeemAddress_, initialSupply)]) (Set.fromList [newOperatorAddress])
+    validateFail_ :: ContractPropValidator (ToT Storage) Assertion
+    validateFail_ (res, _) =
+      case res of
+        Left err -> do
+          case err of
+            MichelsonFailedWith (VPair ((VC (CvString t)), _)) ->
+              assertEqual
+                "Contract did not fail with 'SenderIsNotOperator' message"
+                 [mt|SenderIsNotOperator|]
+                 t
+            a -> assertFailure $ "Unexpected contract failure: " <> pretty a
+        Right (_operations, _) ->
+          assertFailure "Contract did not fail as expected"
+
+    validate_ :: ContractPropValidator (ToT Storage) Assertion
+    validate_ (res, _) =
+      case res of
+        Left err -> assertFailure $ "Unexpected contract failure: " <> pretty err
+        Right (_operations, rstorage) ->
+          assertEqual
+            "Contract's `pause` operation executed with out error"
+             True
+             (paused $ fields $ (fromVal rstorage :: Storage))
+
+test_unpause_ :: TestTree
+test_unpause_ = testGroup "TZBTC contract `unpause` permission test"
+  [ testCase
+      "Call to `unpause` as operator gets denied with `SenderIsNotAdmin`" $
+      contractProp lContract
+        validateFail_ contractEnvWithOperatorSender (Unpause ()) storageWithOperator
+  , testCase
+      "Call to `unpause` as admin is allowed" $
+      contractProp lContract
+        validate_ contractEnv (Unpause ()) storageWithOperator
+  ]
+  where
+    contractEnvWithOperatorSender = contractEnv { ceSender = newOperatorAddress }
+    storageWithOperator =
+      mkStorage adminAddress redeemAddress_
+        (Map.fromList [(redeemAddress_, initialSupply)]) (Set.fromList [newOperatorAddress])
+    validateFail_ :: ContractPropValidator (ToT Storage) Assertion
+    validateFail_ (res, _) =
+      case res of
+        Left err -> do
+          case err of
+            MichelsonFailedWith (VPair ((VC (CvString t)), _)) ->
+              assertEqual
+                "Contract did not fail with 'SenderIsNotAdmin' message"
+                 [mt|SenderIsNotAdmin|]
+                 t
+            a -> assertFailure $ "Unexpected contract failure: " <> pretty a
+        Right (_operations, _) ->
+          assertFailure "Contract did not fail as expected"
+
+    validate_ :: ContractPropValidator (ToT Storage) Assertion
+    validate_ (res, _) =
+      case res of
+        Left err -> assertFailure $ "Unexpected contract failure: " <> pretty err
+        Right (_operations, rstorage) ->
+          assertEqual
+            "Contract's `unpause` operation executed with out error"
+             False
+             (paused $ fields $ (fromVal rstorage :: Storage))
