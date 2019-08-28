@@ -30,7 +30,7 @@ import Michelson.Interpret (ContractEnv(..), MichelsonFailed(..))
 import Michelson.Runtime.GState
 import Michelson.Test (ContractPropValidator, contractProp, dummyContractEnv)
 import Michelson.Text (mt)
-import Michelson.Typed (Instr, ToTs, Value'(..))
+import Michelson.Typed (Instr, ToTs, Value, Value'(..))
 import Util.Named
 
 lContract :: Instr (ToTs '[(Parameter, Storage)]) (ToTs (ContractOut Storage))
@@ -57,11 +57,6 @@ contractAddress = genesisAddress4
 alice :: Address
 alice = genesisAddress6
 
-contractEnv :: ContractEnv
-contractEnv =
-  dummyContractEnv
-    { ceSender = adminAddress }
-
 initialSupply :: Natural
 initialSupply = 500
 
@@ -70,58 +65,70 @@ storage =
   mkStorage adminAddress redeemAddress_
     (Map.fromList [(redeemAddress_, initialSupply)]) mempty
 
+contractPropWithSender
+  :: Address
+  -> ContractPropValidator (ToT Storage) prop
+  -> Parameter
+  -> Storage
+  -> prop
+contractPropWithSender address_ check param initSt =
+  contractProp lContract check
+    (dummyContractEnv { ceSender = address_ })
+    param
+    initSt
+
+assertFailureMessage
+  :: Either MichelsonFailed ([Operation], Value (ToT Storage))
+  -> MText
+  -> String
+  -> Assertion
+assertFailureMessage res msg tstMsg = case res of
+  Right (_, _) ->
+    assertFailure "Contract did not fail as expected"
+  Left err -> case err of
+    MichelsonFailedWith (VPair ((VC (CvString t)), _)) -> do
+      assertEqual tstMsg msg t
+    a -> assertFailure $ "Unexpected contract failure: " <> pretty a
+
 test_adminCheck :: TestTree
 test_adminCheck = testGroup "TZBTC contract admin check test"
   [ testCase "Fails with `SenderNotAdmin` if sender is not administrator for `addOperator` call" $
-      contractProp lContract
-        validate' badContractEnv (AddOperator (#operator .! newOperatorAddress)) storage
+      contractPropWithSender badAdminAddress validate'
+        (AddOperator (#operator .! newOperatorAddress)) storage
   , testCase
       "Fails with `SenderNotAdmin` if sender is not administrator for `removeOperator` call" $
-      contractProp lContract
-        validate' badContractEnv (RemoveOperator (#operator .! newOperatorAddress)) storage
+      contractPropWithSender badAdminAddress validate'
+        (RemoveOperator (#operator .! newOperatorAddress)) storage
   , testCase
       "Fails with `SenderNotAdmin` if sender is not administrator for `startMigrateFrom` call" $
-      contractProp lContract
-        validate' badContractEnv (StartMigrateFrom (#migratefrom .! contractAddress)) storage
+      contractPropWithSender badAdminAddress validate'
+        (StartMigrateFrom (#migratefrom .! contractAddress)) storage
   , testCase
       "Fails with `SenderNotAdmin` if sender is not administrator for `startMigrateTo` call" $
-      contractProp lContract
-        validate' badContractEnv (StartMigrateTo (#migrateto .! contractAddress)) storage
+      contractPropWithSender badAdminAddress validate'
+        (StartMigrateTo (#migrateto .! contractAddress)) storage
   , testCase
       "Fails with `SenderNotAdmin` if sender is not administrator for `transferOwnership` call" $
-      contractProp lContract
-        validate' badContractEnv (TransferOwnership (#newowner .! adminAddress)) storage
+      contractPropWithSender badAdminAddress validate'
+        (TransferOwnership (#newowner .! adminAddress)) storage
   , testCase
       "Fails with `SenderNotAdmin` if sender is not administrator for `setRedeemAddress` call" $
-      contractProp lContract
-        validate' badContractEnv (SetRedeemAddress (#redeem .! redeemAddress_)) storage
+      contractPropWithSender badAdminAddress validate'
+        (SetRedeemAddress (#redeem .! redeemAddress_)) storage
   ]
   where
-    badContractEnv :: ContractEnv
-    badContractEnv =
-      dummyContractEnv
-        { ceSender = badAdminAddress }
-
     validate' :: ContractPropValidator (ToT Storage) Assertion
     validate' (res, _) =
-      case res of
-        Left err -> do
-          case err of
-            MichelsonFailedWith (VPair ((VC (CvString t)), _)) ->
-              assertEqual
-                "Contract did not fail with 'SenderIsNotAdmin' message"
-                 [mt|SenderIsNotAdmin|]
-                 t
-            a -> assertFailure $ "Unexpected contract failure: " <> pretty a
-        Right (_operations, _) ->
-          assertFailure "Contract did not fail as expected"
+      assertFailureMessage
+        res [mt|SenderIsNotAdmin|]
+        "Contract did not fail with 'SenderIsNotAdmin' message"
 
 test_addOperator :: TestTree
 test_addOperator = testGroup "TZBTC contract `addOperator` test"
   [ testCase
       "Call to `addOperator` Adds new operator to the set of operators" $
-      contractProp lContract
-        validateAdd contractEnv (AddOperator (#operator .! newOperatorAddress)) storage
+      contractPropWithSender adminAddress
+        validateAdd (AddOperator (#operator .! newOperatorAddress)) storage
   ]
   where
     validateAdd :: ContractPropValidator (ToT Storage) Assertion
@@ -136,9 +143,9 @@ test_removeOperator :: TestTree
 test_removeOperator = testGroup "TZBTC contract `removeOperator` test"
   [ testCase
       "Call to `removeOperator` removes operator from the set of operators" $
-      contractProp lContract
+      contractPropWithSender adminAddress
         validateRemove
-        contractEnv (RemoveOperator (#operator .! operatorToRemove)) storageWithOperator
+        (RemoveOperator (#operator .! operatorToRemove)) storageWithOperator
   ]
   where
     operatorToRemove = replaceAddress
@@ -155,8 +162,8 @@ test_setRedeemAddress :: TestTree
 test_setRedeemAddress = testGroup "TZBTC contract `setRedeemAddress` test"
   [ testCase
       "Call to `setRedeemAddress` updates redeemAddress" $
-      contractProp lContract
-        validate_ contractEnv (SetRedeemAddress (#redeem .! newRedeemAddress)) storage
+      contractPropWithSender adminAddress
+        validate_ (SetRedeemAddress (#redeem .! newRedeemAddress)) storage
   ]
   where
     newRedeemAddress = replaceAddress
@@ -174,8 +181,8 @@ test_transferOwnership :: TestTree
 test_transferOwnership = testGroup "TZBTC contract `transferOwnership` test"
   [ testCase
       "Call to `transferOwnership` updates `newOwner`" $
-      contractProp lContract
-        validate_ contractEnv (TransferOwnership (#newowner .! newOwnerAddress)) storage
+      contractPropWithSender adminAddress
+        validate_ (TransferOwnership (#newowner .! newOwnerAddress)) storage
   ]
   where
     newOwnerAddress = replaceAddress
@@ -193,57 +200,35 @@ test_acceptOwnership :: TestTree
 test_acceptOwnership = testGroup "TZBTC contract `acceptOwnership` test"
   [ testCase
       "Call to `acceptOwnership` get denied on contract that is not in transfer mode" $
-      contractProp lContract
-        validateNotInTransfer contractEnvWithGoodSender (AcceptOwnership ()) storage
+      contractPropWithSender newOwnerAddress
+        validateNotInTransfer (AcceptOwnership ()) storage
   , testCase
       "Call to `acceptOwnership` fails for bad caller" $
-      contractProp lContract
-        validateBadSender contractEnvWithBadSender (AcceptOwnership ()) storageInTranferOwnership
+      contractPropWithSender badSenderAddress
+        validateBadSender (AcceptOwnership ()) storageInTranferOwnership
   , testCase
       "Call to `acceptOwnership` updates admin with address of new owner" $
-      contractProp lContract
-        validateGoodOwner contractEnvWithGoodSender (AcceptOwnership ()) storageInTranferOwnership
+      contractPropWithSender newOwnerAddress
+        validateGoodOwner (AcceptOwnership ()) storageInTranferOwnership
   ]
   where
     newOwnerAddress = replaceAddress
     badSenderAddress = genesisAddress1
-    contractEnvWithBadSender =
-      dummyContractEnv
-        { ceSender = badSenderAddress }
-    contractEnvWithGoodSender =
-      dummyContractEnv
-        { ceSender = newOwnerAddress }
     storageInTranferOwnership = let
       f = fields storage
       in storage { fields = f { newOwner = Just newOwnerAddress } }
 
     validateNotInTransfer :: ContractPropValidator (ToT Storage) Assertion
     validateNotInTransfer (res, _) =
-      case res of
-        Left err -> do
-          case err of
-            MichelsonFailedWith (VPair ((VC (CvString t)), _)) ->
-              assertEqual
-                "Contract did not fail with 'NotInTransferOwnershipMode' message"
-                 [mt|NotInTransferOwnershipMode|]
-                 t
-            a -> assertFailure $ "Unexpected contract failure: " <> pretty a
-        Right (_operations, _) ->
-          assertFailure "Contract did not fail as expected"
+      assertFailureMessage
+        res [mt|NotInTransferOwnershipMode|]
+          "Contract did not fail with 'NotInTransferOwnershipMode' message"
 
     validateBadSender :: ContractPropValidator (ToT Storage) Assertion
     validateBadSender (res, _) =
-      case res of
-        Left err -> do
-          case err of
-            MichelsonFailedWith (VPair ((VC (CvString t)), _)) ->
-              assertEqual
-                "Contract did not fail with 'SenderIsNotNewOwner' message"
-                 [mt|SenderIsNotNewOwner|]
-                 t
-            a -> assertFailure $ "Unexpected contract failure: " <> pretty a
-        Right (_operations, _) ->
-          assertFailure "Contract did not fail as expected"
+      assertFailureMessage
+        res [mt|SenderIsNotNewOwner|]
+          "Contract did not fail with 'SenderIsNotNewOwner' message"
 
     validateGoodOwner :: ContractPropValidator (ToT Storage) Assertion
     validateGoodOwner (res, _) =
@@ -263,32 +248,23 @@ test_burn :: TestTree
 test_burn = testGroup "TZBTC contract `burn` test"
   [ testCase
       "Call to `burn` gets denied with `SenderIsNotOperator`" $
-      contractProp lContract
-        validateFail_ contractEnv (Burn (#value .! 100)) storageWithOperator
+      contractPropWithSender adminAddress
+        validateFail_ (Burn (#value .! 100)) storageWithOperator
   , testCase
       "Call to `burn` burns from `redeemAddress` and update `totalBurned` \
       \ and `totalSupply` fields correctly" $
-      contractProp lContract
-        validate_ contractEnvWithOperatorSender (Burn (#value .! 100)) storageWithOperator
+      contractPropWithSender newOperatorAddress
+        validate_ (Burn (#value .! 100)) storageWithOperator
   ]
   where
-    contractEnvWithOperatorSender = contractEnv { ceSender = newOperatorAddress }
     storageWithOperator =
       mkStorage adminAddress redeemAddress_
         (Map.fromList [(redeemAddress_, initialSupply)]) (Set.fromList [newOperatorAddress])
     validateFail_ :: ContractPropValidator (ToT Storage) Assertion
     validateFail_ (res, _) =
-      case res of
-        Left err -> do
-          case err of
-            MichelsonFailedWith (VPair ((VC (CvString t)), _)) ->
-              assertEqual
-                "Contract did not fail with 'SenderIsNotOperator' message"
-                 [mt|SenderIsNotOperator|]
-                 t
-            a -> assertFailure $ "Unexpected contract failure: " <> pretty a
-        Right (_operations, _) ->
-          assertFailure "Contract did not fail as expected"
+      assertFailureMessage
+        res [mt|SenderIsNotOperator|]
+          "Contract did not fail with 'SenderIsNotOperator' message"
 
     validate_ :: ContractPropValidator (ToT Storage) Assertion
     validate_ (res, _) =
@@ -315,32 +291,23 @@ test_mint :: TestTree
 test_mint = testGroup "TZBTC contract `mint` test"
   [ testCase
       "Call to `mint` gets denied with `SenderIsNotOperator`" $
-      contractProp lContract
-        validateFail_ contractEnv (Burn (#value .! 100)) storageWithOperator
+      contractPropWithSender adminAddress
+        validateFail_ (Burn (#value .! 100)) storageWithOperator
   , testCase
       "Call to `mint` adds value to `to` parameter in input and update `totalMinted` \
       \ and `totalSupply` fields correctly" $
-      contractProp lContract
-        validate_ contractEnvWithOperatorSender (Mint (#to .! alice, #value .! 200)) storageWithOperator
+      contractPropWithSender newOperatorAddress
+        validate_ (Mint (#to .! alice, #value .! 200)) storageWithOperator
   ]
   where
-    contractEnvWithOperatorSender = contractEnv { ceSender = newOperatorAddress }
     storageWithOperator =
       mkStorage adminAddress redeemAddress_
         (Map.fromList [(redeemAddress_, initialSupply)]) (Set.fromList [newOperatorAddress])
     validateFail_ :: ContractPropValidator (ToT Storage) Assertion
     validateFail_ (res, _) =
-      case res of
-        Left err -> do
-          case err of
-            MichelsonFailedWith (VPair ((VC (CvString t)), _)) ->
-              assertEqual
-                "Contract did not fail with 'SenderIsNotOperator' message"
-                 [mt|SenderIsNotOperator|]
-                 t
-            a -> assertFailure $ "Unexpected contract failure: " <> pretty a
-        Right (_operations, _) ->
-          assertFailure "Contract did not fail as expected"
+      assertFailureMessage
+        res [mt|SenderIsNotOperator|]
+          "Contract did not fail with 'SenderIsNotOperator' message"
 
     validate_ :: ContractPropValidator (ToT Storage) Assertion
     validate_ (res, _) =
@@ -367,31 +334,22 @@ test_pause :: TestTree
 test_pause = testGroup "TZBTC contract `pause` permission test"
   [ testCase
       "Call to `pause` gets denied with `SenderIsNotOperator`" $
-      contractProp lContract
-        validateFail_ contractEnv (Pause ()) storageWithOperator
+      contractPropWithSender adminAddress
+        validateFail_ (Pause ()) storageWithOperator
   , testCase
       "Call to `pause` as operator is allowed" $
-      contractProp lContract
-        validate_ contractEnvWithOperatorSender (Pause ()) storageWithOperator
+      contractPropWithSender newOperatorAddress
+        validate_ (Pause ()) storageWithOperator
   ]
   where
-    contractEnvWithOperatorSender = contractEnv { ceSender = newOperatorAddress }
     storageWithOperator =
       mkStorage adminAddress redeemAddress_
         (Map.fromList [(redeemAddress_, initialSupply)]) (Set.fromList [newOperatorAddress])
     validateFail_ :: ContractPropValidator (ToT Storage) Assertion
     validateFail_ (res, _) =
-      case res of
-        Left err -> do
-          case err of
-            MichelsonFailedWith (VPair ((VC (CvString t)), _)) ->
-              assertEqual
-                "Contract did not fail with 'SenderIsNotOperator' message"
-                 [mt|SenderIsNotOperator|]
-                 t
-            a -> assertFailure $ "Unexpected contract failure: " <> pretty a
-        Right (_operations, _) ->
-          assertFailure "Contract did not fail as expected"
+      assertFailureMessage
+        res [mt|SenderIsNotOperator|]
+          "Contract did not fail with 'SenderIsNotOperator' message"
 
     validate_ :: ContractPropValidator (ToT Storage) Assertion
     validate_ (res, _) =
@@ -407,31 +365,22 @@ test_unpause_ :: TestTree
 test_unpause_ = testGroup "TZBTC contract `unpause` permission test"
   [ testCase
       "Call to `unpause` as operator gets denied with `SenderIsNotAdmin`" $
-      contractProp lContract
-        validateFail_ contractEnvWithOperatorSender (Unpause ()) storageWithOperator
+      contractPropWithSender newOperatorAddress
+        validateFail_ (Unpause ()) storageWithOperator
   , testCase
       "Call to `unpause` as admin is allowed" $
-      contractProp lContract
-        validate_ contractEnv (Unpause ()) storageWithOperator
+      contractPropWithSender adminAddress
+        validate_ (Unpause ()) storageWithOperator
   ]
   where
-    contractEnvWithOperatorSender = contractEnv { ceSender = newOperatorAddress }
     storageWithOperator =
       mkStorage adminAddress redeemAddress_
         (Map.fromList [(redeemAddress_, initialSupply)]) (Set.fromList [newOperatorAddress])
     validateFail_ :: ContractPropValidator (ToT Storage) Assertion
     validateFail_ (res, _) =
-      case res of
-        Left err -> do
-          case err of
-            MichelsonFailedWith (VPair ((VC (CvString t)), _)) ->
-              assertEqual
-                "Contract did not fail with 'SenderIsNotAdmin' message"
-                 [mt|SenderIsNotAdmin|]
-                 t
-            a -> assertFailure $ "Unexpected contract failure: " <> pretty a
-        Right (_operations, _) ->
-          assertFailure "Contract did not fail as expected"
+      assertFailureMessage
+        res [mt|SenderIsNotAdmin|]
+        "Contract did not fail with 'SenderIsNotAdmin' message"
 
     validate_ :: ContractPropValidator (ToT Storage) Assertion
     validate_ (res, _) =
