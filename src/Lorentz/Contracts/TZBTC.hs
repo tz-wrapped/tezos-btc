@@ -45,6 +45,7 @@ data Parameter
   | AcceptOwnership     !AcceptOwnershipParams
   | StartMigrateTo      !StartMigrateToParams
   | StartMigrateFrom    !StartMigrateFromParams
+  | MigrateFrom         !MigrateFromParams
   | Migrate             !MigrateParams
   deriving stock Generic
   deriving anyclass IsoValue
@@ -80,13 +81,13 @@ instance Buildable Parameter where
       "Pause"
     Unpause _ ->
       "Unpause"
-    TransferOwnership (arg #newowner -> newOwner) ->
+    TransferOwnership (arg #newOwner -> newOwner) ->
       "Transfer ownership to " +| newOwner |+ ""
     AcceptOwnership _ ->
       "Accept ownership"
-    StartMigrateTo (arg #migrateto -> migrateTo) ->
+    StartMigrateTo (arg #startMigrateTo -> migrateTo) ->
       "Start migrate to " +| migrateTo |+ ""
-    StartMigrateFrom (arg #migratefrom -> migrateFrom) ->
+    StartMigrateFrom (arg #startMigrateFrom -> migrateFrom) ->
       "Start migrate from " +| migrateFrom |+ ""
     Migrate _ ->
       "Migrate"
@@ -118,5 +119,6 @@ tzbtcContract = do
     , #cAcceptOwnership /-> acceptOwnership
     , #cStartMigrateTo /-> startMigrateTo
     , #cStartMigrateFrom /-> startMigrateFrom
+    , #cMigrateFrom /-> migrateFrom
     , #cMigrate /-> migrate
     )

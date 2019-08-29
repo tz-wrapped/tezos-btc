@@ -213,14 +213,14 @@ setRedeemAddressParamsParser :: Opt.Parser SetRedeemAddressParams
 setRedeemAddressParamsParser = #redeem <.!> addressArgument "Redeem address"
 
 transferOwnershipParamsParser :: Opt.Parser TransferOwnershipParams
-transferOwnershipParamsParser = #newowner
+transferOwnershipParamsParser = #newOwner
   <.!> addressArgument "Address of the new owner"
 
 startMigrateFromParamsParser :: Opt.Parser StartMigrateFromParams
-startMigrateFromParamsParser = #migratefrom <.!> addressArgument "Source contract address"
+startMigrateFromParamsParser = #startMigrateFrom <.!> addressArgument "Source contract address"
 
 startMigrateToParamsParser :: Opt.Parser StartMigrateToParams
-startMigrateToParamsParser = #migrateto <.!> addressArgument "Destination contract address"
+startMigrateToParamsParser = undefined-- #migrateto <.!> addressArgument "Destination contract address"
 
 -- Maybe add default value and make sure it will be shown in help message.
 maybeAddDefault :: Opt.HasValue f => (a -> String) -> Maybe a -> Opt.Mod f a

@@ -20,17 +20,20 @@ module Lorentz.Contracts.TZBTC.Types
   , SetRedeemAddressParams
   , StartMigrateFromParams
   , StartMigrateToParams
+  , MigrateFromParams
   , Storage
   , StorageFields(..)
   , TransferOwnershipParams
   , mkStorage
   ) where
 
+import Fmt (Buildable(..))
 import Data.Set (Set)
 
 import Lorentz
 import qualified Lorentz.Contracts.ManagedLedger.Types as ManagedLedger
 import Lorentz.Contracts.ManagedLedger.Types (Storage'(..), mkStorage')
+import Lorentz.Contracts.UserUpgradeable.Migrations (MigrationScript)
 import Util.Instances ()
 
 type BurnParams = ("value" :! Natural)
@@ -38,11 +41,15 @@ type OperatorParams = ("operator" :! Address)
 type GetBalanceParams = Address
 type SetRedeemAddressParams = ("redeem" :! Address)
 type PauseParams = Bool
-type TransferOwnershipParams = ("newowner" :! Address)
-type StartMigrateToParams = ("migrateto" :! Address)
-type StartMigrateFromParams = ("migratefrom" :! Address)
+type TransferOwnershipParams = ("newOwner" :! Address)
+type StartMigrateToParams = ("startMigrateTo" :! MigrationScript)
+type StartMigrateFromParams = ("startMigrateFrom" :! Address)
+type MigrateFromParams = ("migrateMintTo" :! Address, "value" :! Natural)
 type AcceptOwnershipParams = ()
 type MigrateParams = ()
+
+instance Buildable MigrationScript where
+  build = undefined
 
 data StorageFields = StorageFields
   { admin       :: Address
@@ -52,9 +59,9 @@ data StorageFields = StorageFields
   , totalMinted :: Natural
   , newOwner    :: Maybe Address
   , operators   :: Set Address
-  , migrateFrom :: Maybe Address
-  , migrateTo   :: Maybe Address
+  , previousVersion :: Maybe Address
   , redeemAddress :: Address
+  , migrationScript :: Maybe MigrationScript
   } deriving stock Generic -- @TODO Is TokenName required here?
     deriving anyclass IsoValue
 
@@ -78,6 +85,9 @@ data Error
   | SenderIsNotOperator
     -- ^ For the burn/mint/pause entry point, if the sender is not one
     -- of the operators.
+  | UnauthorizedMigrateFrom
+    -- ^ For migration calls if the contract does not have previous
+    -- version field set.
   deriving stock (Eq, Generic)
 
 deriveCustomError ''Error
@@ -86,8 +96,8 @@ type Storage = Storage' StorageFields
 
 -- | Create a default storage with ability to set some balances to
 -- non-zero values.
-mkStorage :: Address -> Address -> Map Address Natural -> Set Address -> Storage
-mkStorage adminAddress redeem balances operators = mkStorage' balances $
+mkStorage :: Address -> Address -> Map Address Natural -> Set Address -> Maybe Address -> Storage
+mkStorage adminAddress redeem balances operators prev = mkStorage' balances $
   StorageFields
   { admin = adminAddress
   , paused = False
@@ -96,7 +106,7 @@ mkStorage adminAddress redeem balances operators = mkStorage' balances $
   , totalMinted = sum balances
   , newOwner = Nothing
   , operators = operators
-  , migrateFrom = Nothing
-  , migrateTo = Nothing
+  , previousVersion = prev
   , redeemAddress = redeem
+  , migrationScript = Nothing
   }

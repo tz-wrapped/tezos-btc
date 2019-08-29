@@ -13,6 +13,7 @@ module Test.TZBTC
   , test_mint
   , test_pause
   , test_unpause_
+  , test_migration
   ) where
 
 import Fmt (pretty)
@@ -26,9 +27,10 @@ import Named (arg)
 import Lorentz
 import Lorentz.Contracts.TZBTC
 import Lorentz.Contracts.TZBTC.Types
+import qualified Lorentz.Contracts.UserUpgradeable.Migrations as Migrations
+import Lorentz.Test.Integrational
 import Michelson.Interpret (ContractEnv(..), MichelsonFailed(..))
-import Michelson.Runtime.GState
-import Michelson.Test (ContractPropValidator, contractProp, dummyContractEnv)
+import Michelson.Test (ContractPropValidator, contractProp, dummyContractEnv, IntegrationalScenarioM)
 import Michelson.Text (mt)
 import Michelson.Typed (Instr, ToTs, Value, Value'(..))
 import Util.Named
@@ -63,7 +65,7 @@ initialSupply = 500
 storage :: Storage
 storage =
   mkStorage adminAddress redeemAddress_
-    (Map.fromList [(redeemAddress_, initialSupply)]) mempty
+    (Map.fromList [(redeemAddress_, initialSupply)]) mempty Nothing
 
 contractPropWithSender
   :: Address
@@ -102,15 +104,19 @@ test_adminCheck = testGroup "TZBTC contract admin check test"
   , testCase
       "Fails with `SenderNotAdmin` if sender is not administrator for `startMigrateFrom` call" $
       contractPropWithSender badAdminAddress validate'
-        (StartMigrateFrom (#migratefrom .! contractAddress)) storage
-  , testCase
-      "Fails with `SenderNotAdmin` if sender is not administrator for `startMigrateTo` call" $
-      contractPropWithSender badAdminAddress validate'
-        (StartMigrateTo (#migrateto .! contractAddress)) storage
+        (StartMigrateFrom (#startMigrateFrom .! contractAddress)) storage
+  --, testCase
+  --    "Fails with `SenderNotAdmin` if sender is not administrator for `startMigrateTo` call" $
+  --    integrationalTestExpectation $ do
+  --      v1 <- originateV1
+  --      withSender badAdminAddress $
+  --        lCall v1 (StartMigrateTo (#migrateto .! (Migrations.mkMigrationScript v1)))
+  --      validate . Left $
+  --        lExpectError (== SenderIsNotAdmin)
   , testCase
       "Fails with `SenderNotAdmin` if sender is not administrator for `transferOwnership` call" $
       contractPropWithSender badAdminAddress validate'
-        (TransferOwnership (#newowner .! adminAddress)) storage
+        (TransferOwnership (#newOwner .! adminAddress)) storage
   , testCase
       "Fails with `SenderNotAdmin` if sender is not administrator for `setRedeemAddress` call" $
       contractPropWithSender badAdminAddress validate'
@@ -149,7 +155,9 @@ test_removeOperator = testGroup "TZBTC contract `removeOperator` test"
   ]
   where
     operatorToRemove = replaceAddress
-    storageWithOperator = mkStorage adminAddress redeemAddress_ mempty (Set.fromList [operatorToRemove])
+    storageWithOperator =
+      mkStorage adminAddress redeemAddress_
+        mempty (Set.fromList [operatorToRemove]) Nothing
     validateRemove :: ContractPropValidator (ToT Storage) Assertion
     validateRemove (res, _) =
       case res of
@@ -182,7 +190,7 @@ test_transferOwnership = testGroup "TZBTC contract `transferOwnership` test"
   [ testCase
       "Call to `transferOwnership` updates `newOwner`" $
       contractPropWithSender adminAddress
-        validate_ (TransferOwnership (#newowner .! newOwnerAddress)) storage
+        validate_ (TransferOwnership (#newOwner .! newOwnerAddress)) storage
   ]
   where
     newOwnerAddress = replaceAddress
@@ -259,7 +267,8 @@ test_burn = testGroup "TZBTC contract `burn` test"
   where
     storageWithOperator =
       mkStorage adminAddress redeemAddress_
-        (Map.fromList [(redeemAddress_, initialSupply)]) (Set.fromList [newOperatorAddress])
+        (Map.fromList [(redeemAddress_, initialSupply)])
+          (Set.fromList [newOperatorAddress]) Nothing
     validateFail_ :: ContractPropValidator (ToT Storage) Assertion
     validateFail_ (res, _) =
       assertFailureMessage
@@ -302,7 +311,8 @@ test_mint = testGroup "TZBTC contract `mint` test"
   where
     storageWithOperator =
       mkStorage adminAddress redeemAddress_
-        (Map.fromList [(redeemAddress_, initialSupply)]) (Set.fromList [newOperatorAddress])
+        (Map.fromList [(redeemAddress_, initialSupply)])
+        (Set.fromList [newOperatorAddress]) Nothing
     validateFail_ :: ContractPropValidator (ToT Storage) Assertion
     validateFail_ (res, _) =
       assertFailureMessage
@@ -344,7 +354,8 @@ test_pause = testGroup "TZBTC contract `pause` permission test"
   where
     storageWithOperator =
       mkStorage adminAddress redeemAddress_
-        (Map.fromList [(redeemAddress_, initialSupply)]) (Set.fromList [newOperatorAddress])
+        (Map.fromList [(redeemAddress_, initialSupply)])
+        (Set.fromList [newOperatorAddress]) Nothing
     validateFail_ :: ContractPropValidator (ToT Storage) Assertion
     validateFail_ (res, _) =
       assertFailureMessage
@@ -375,7 +386,8 @@ test_unpause_ = testGroup "TZBTC contract `unpause` permission test"
   where
     storageWithOperator =
       mkStorage adminAddress redeemAddress_
-        (Map.fromList [(redeemAddress_, initialSupply)]) (Set.fromList [newOperatorAddress])
+        (Map.fromList [(redeemAddress_, initialSupply)])
+        (Set.fromList [newOperatorAddress]) Nothing
     validateFail_ :: ContractPropValidator (ToT Storage) Assertion
     validateFail_ (res, _) =
       assertFailureMessage
@@ -391,3 +403,21 @@ test_unpause_ = testGroup "TZBTC contract `unpause` permission test"
             "Contract's `unpause` operation executed with out error"
              False
              (paused $ fields $ (fromVal rstorage :: Storage))
+
+-- Migration tests
+  --
+originateV1 :: IntegrationalScenarioM (ContractAddr Parameter)
+originateV1 =
+  lOriginate tzbtcContract "UserUpgradeable V1" storage (toMutez 1000)
+
+test_migration :: TestTree
+test_migration = testGroup "TZBTC contract migration tests"
+  [ testCase
+      "call `migrate` to unprepared contract is denied" $
+        integrationalTestExpectation $ do
+          v1 <- originateV1
+          lCall v1 (Migrate ())
+          validate . Left $
+            lExpectError (== Migrations.NowhereToMigrate)
+
+  ]

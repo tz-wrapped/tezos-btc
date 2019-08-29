@@ -48,7 +48,7 @@ main = do
       putStrLn $
         printLorentzContract singleLine tzbtcContract
     CmdPrintInitialStorage adminAddress redeemAddress ->
-      putStrLn $ printLorentzValue True (mkStorage adminAddress redeemAddress mempty mempty)
+      putStrLn $ printLorentzValue True (mkStorage adminAddress redeemAddress mempty mempty undefined)
     CmdParseParameter t ->
       either (throwString . pretty) (putTextLn . pretty) $
       parseLorentzValue @Parameter t
