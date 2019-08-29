@@ -14,14 +14,15 @@ import Options.Applicative
   (execParser, footerDoc, fullDesc, header, help, helper, info, infoOption, long, progDesc)
 import Options.Applicative.Help.Pretty (Doc, linebreak)
 
-import Lorentz (Address, parseLorentzValue, printLorentzContract, printLorentzValue)
+import Lorentz (Address, parseLorentzValue, printLorentzContract, printLorentzValue, lcwDumb)
 import Lorentz.Common (TestScenario, showTestScenario)
 import Util.Named ((.!))
 import Util.IO (writeFileUtf8)
 import Paths_tzbtc (version)
 
 import CLI.Parser
-import Lorentz.Contracts.TZBTC (Parameter(..), mkStorage, tzbtcCompileWay, tzbtcContract)
+import Lorentz.Contracts.TZBTC
+  (Parameter(..), agentContract, mkStorage, tzbtcCompileWay, tzbtcContract)
 
 -- Here in main function we will just accept commands from user
 -- and print the smart contract parameter by using `printLorentzValue`
@@ -51,6 +52,15 @@ main = do
     CmdPrintContract singleLine mbFilePath ->
       maybe putStrLn writeFileUtf8 mbFilePath $
         printLorentzContract singleLine tzbtcCompileWay tzbtcContract
+    CmdPrintAgentContract singleLine mbFilePath ->
+      maybe putStrLn writeFileUtf8 mbFilePath $
+        printLorentzContract singleLine lcwDumb (agentContract @Parameter)
+        -- Here agentContract that is printed is the one that target a
+        -- contract with the parameter `Parameter`. If we can obtain
+        -- runtime witness or type class dictionaries for the constraints
+        -- `agentContract` require it might be possible to read a contract
+        -- from a file, and printout an agent contract that can migrate
+        -- to it, or print out an error if it is incompatible.
     CmdPrintInitialStorage adminAddress redeemAddress ->
       putStrLn $ printLorentzValue True (mkStorage adminAddress redeemAddress mempty mempty)
     CmdParseParameter t ->

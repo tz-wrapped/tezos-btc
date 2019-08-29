@@ -43,6 +43,7 @@ data CmdLnArgs
   | CmdMigrate MigrateParams
   | CmdPrintInitialStorage Address Address
   | CmdPrintContract Bool (Maybe FilePath)
+  | CmdPrintAgentContract Bool (Maybe FilePath)
   | CmdParseParameter Text
   | CmdTestScenario TestScenarioOptions
 
@@ -59,7 +60,8 @@ argParser = hsubparser $
   <> removeOperatorCmd <> pauseCmd <> unpauseCmd
   <> setRedeemAddressCmd <> transferOwnershipCmd
   <> startMigrateFromCmd <> startMigrateToCmd
-  <> migrateCmd <> printCmd <> printInitialStorageCmd
+  <> migrateCmd <> printCmd
+  <> printAgentCmd <> printInitialStorageCmd
   <> parseParameterCmd <> testScenarioCmd
   where
     mkCommandParser ::
@@ -77,6 +79,14 @@ argParser = hsubparser $
              "printContract"
              (CmdPrintContract <$> singleLineSwitch <*> outputOption)
              "Print token contract")
+    printAgentCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
+    printAgentCmd =
+      let singleLineSwitch =
+            switch (long "oneline" <> help "Single line output")
+       in (mkCommandParser
+             "printAgentContract"
+             (CmdPrintAgentContract <$> singleLineSwitch <*> outputOption)
+             "Print migration agent contract")
     printInitialStorageCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     printInitialStorageCmd =
       (mkCommandParser
@@ -227,14 +237,16 @@ setRedeemAddressParamsParser :: Opt.Parser SetRedeemAddressParams
 setRedeemAddressParamsParser = #redeem <.!> addressArgument "Redeem address"
 
 transferOwnershipParamsParser :: Opt.Parser TransferOwnershipParams
-transferOwnershipParamsParser = #newowner
+transferOwnershipParamsParser = #newOwner
   <.!> addressArgument "Address of the new owner"
 
 startMigrateFromParamsParser :: Opt.Parser StartMigrateFromParams
-startMigrateFromParamsParser = #migratefrom <.!> addressArgument "Source contract address"
+startMigrateFromParamsParser = #migrationManager <.!>
+  (ContractAddr <$> addressArgument "Source contract address")
 
 startMigrateToParamsParser :: Opt.Parser StartMigrateToParams
-startMigrateToParamsParser = #migrateto <.!> addressArgument "Destination contract address"
+startMigrateToParamsParser = #migrationManager <.!>
+  (ContractAddr <$> addressArgument "Manager contract address")
 
 -- Maybe add default value and make sure it will be shown in help message.
 maybeAddDefault :: Opt.HasValue f => (a -> String) -> Maybe a -> Opt.Mod f a
