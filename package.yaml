@@ -48,7 +48,6 @@ executables:
       - safe-exceptions
       - tzbtc
 
-
 tests:
   tzbtc-test:
     <<: *test-common
@@ -65,5 +64,6 @@ tests:
     - morley
     - fmt
     - containers
+    - singletons
     - lorentz-contracts
     - named

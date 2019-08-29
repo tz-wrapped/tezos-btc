@@ -14,6 +14,8 @@ module Test.TZBTC
   , test_pause
   , test_unpause_
   , test_bookkeeping
+  , test_migration
+  , test_migrationAgent
   ) where
 
 import Fmt (pretty)
@@ -21,19 +23,22 @@ import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (Assertion, assertEqual, assertBool, assertFailure, testCase)
 import qualified Data.Map as Map
 import Data.Set
+import Data.Singletons (SingI(..))
 import qualified Data.Set as Set
 import Named (arg)
 
 import Lorentz
 import Lorentz.Contracts.Consumer
 import Lorentz.Contracts.TZBTC
+import qualified Lorentz.Contracts.Agent as Agent
 import Lorentz.Contracts.TZBTC.Types
 import Lorentz.Test.Integrational
 import Michelson.Interpret (ContractEnv(..), MichelsonFailed(..))
 import Michelson.Test
   ( ContractPropValidator, contractProp, dummyContractEnv)
 import Michelson.Text (mt)
-import Michelson.Typed (Instr, ToTs, Value, Value'(..))
+import Michelson.Typed (Instr, InstrWrapC, AppendCtorField, GetCtorField, ToTs, Value, Value'(..))
+import Michelson.Typed.Scope (checkOpPresence, OpPresence(..))
 import Util.Named
 
 lContract :: Instr (ToTs '[(Parameter, Storage)]) (ToTs (ContractOut Storage))
@@ -44,9 +49,6 @@ newOperatorAddress = genesisAddress1
 
 adminAddress :: Address
 adminAddress = genesisAddress3
-
-badAdminAddress :: Address
-badAdminAddress = genesisAddress5
 
 redeemAddress_ :: Address
 redeemAddress_ = adminAddress
@@ -59,6 +61,9 @@ contractAddress = genesisAddress4
 
 alice :: Address
 alice = genesisAddress6
+
+bob :: Address
+bob = genesisAddress5
 
 initialSupply :: Natural
 initialSupply = 500
@@ -96,27 +101,23 @@ assertFailureMessage res msg tstMsg = case res of
 test_adminCheck :: TestTree
 test_adminCheck = testGroup "TZBTC contract admin check test"
   [ testCase "Fails with `SenderNotAdmin` if sender is not administrator for `addOperator` call" $
-      contractPropWithSender badAdminAddress validate'
+      contractPropWithSender bob validate'
         (AddOperator (#operator .! newOperatorAddress)) storage
   , testCase
       "Fails with `SenderNotAdmin` if sender is not administrator for `removeOperator` call" $
-      contractPropWithSender badAdminAddress validate'
+      contractPropWithSender bob validate'
         (RemoveOperator (#operator .! newOperatorAddress)) storage
   , testCase
       "Fails with `SenderNotAdmin` if sender is not administrator for `startMigrateFrom` call" $
-      contractPropWithSender badAdminAddress validate'
-        (StartMigrateFrom (#migratefrom .! contractAddress)) storage
-  , testCase
-      "Fails with `SenderNotAdmin` if sender is not administrator for `startMigrateTo` call" $
-      contractPropWithSender badAdminAddress validate'
-        (StartMigrateTo (#migrateto .! contractAddress)) storage
+      contractPropWithSender bob validate'
+        (StartMigrateFrom (#migrationAgent .! (ContractAddr contractAddress))) storage
   , testCase
       "Fails with `SenderNotAdmin` if sender is not administrator for `transferOwnership` call" $
-      contractPropWithSender badAdminAddress validate'
-        (TransferOwnership (#newowner .! adminAddress)) storage
+      contractPropWithSender bob validate'
+        (TransferOwnership (#newOwner .! adminAddress)) storage
   , testCase
       "Fails with `SenderNotAdmin` if sender is not administrator for `setRedeemAddress` call" $
-      contractPropWithSender badAdminAddress validate'
+      contractPropWithSender bob validate'
         (SetRedeemAddress (#redeem .! redeemAddress_)) storage
   ]
   where
@@ -152,7 +153,9 @@ test_removeOperator = testGroup "TZBTC contract `removeOperator` test"
   ]
   where
     operatorToRemove = replaceAddress
-    storageWithOperator = mkStorage adminAddress redeemAddress_ mempty (Set.fromList [operatorToRemove])
+    storageWithOperator =
+      mkStorage adminAddress redeemAddress_
+        mempty (Set.fromList [operatorToRemove])
     validateRemove :: ContractPropValidator (ToT Storage) Assertion
     validateRemove (res, _) =
       case res of
@@ -185,7 +188,7 @@ test_transferOwnership = testGroup "TZBTC contract `transferOwnership` test"
   [ testCase
       "Call to `transferOwnership` updates `newOwner`" $
       contractPropWithSender adminAddress
-        validate_ (TransferOwnership (#newowner .! newOwnerAddress)) storage
+        validate_ (TransferOwnership (#newOwner .! newOwnerAddress)) storage
   ]
   where
     newOwnerAddress = replaceAddress
@@ -206,17 +209,21 @@ test_acceptOwnership = testGroup "TZBTC contract `acceptOwnership` test"
       contractPropWithSender newOwnerAddress
         validateNotInTransfer (AcceptOwnership ()) storage
   , testCase
-      "Call to `acceptOwnership` fails for bad caller" $
+      "Call to `acceptOwnership` fails for random caller" $
       contractPropWithSender badSenderAddress
         validateBadSender (AcceptOwnership ()) storageInTranferOwnership
   , testCase
-      "Call to `acceptOwnership` updates admin with address of new owner" $
+      "Call to `acceptOwnership` fails for current admin" $
+      contractPropWithSender adminAddress
+        validateBadSender (AcceptOwnership ()) storageInTranferOwnership
+  , testCase
+      "Call to `acceptOwnership` updates admin with address of new owner and resets `newOwner` field" $
       contractPropWithSender newOwnerAddress
         validateGoodOwner (AcceptOwnership ()) storageInTranferOwnership
   ]
   where
     newOwnerAddress = replaceAddress
-    badSenderAddress = genesisAddress1
+    badSenderAddress = bob
     storageInTranferOwnership = let
       f = fields storage
       in storage { fields = f { newOwner = Just newOwnerAddress } }
@@ -250,11 +257,16 @@ test_acceptOwnership = testGroup "TZBTC contract `acceptOwnership` test"
 test_burn :: TestTree
 test_burn = testGroup "TZBTC contract `burn` test"
   [ testCase
-      "Call to `burn` gets denied with `SenderIsNotOperator`" $
+      "Call to `burn` from admin gets denied with `SenderIsNotOperator`" $
       contractPropWithSender adminAddress
         validateFail_ (Burn (#value .! 100)) storageWithOperator
   , testCase
-      "Call to `burn` burns from `redeemAddress` and update `totalBurned` \
+      "Call to `burn` from random address gets denied with `SenderIsNotOperator`" $
+      contractPropWithSender bob
+        validateFail_ (Burn (#value .! 100)) storageWithOperator
+
+  , testCase
+      "Call to `burn` from operator, burns from `redeemAddress` and update `totalBurned` \
       \ and `totalSupply` fields correctly" $
       contractPropWithSender newOperatorAddress
         validate_ (Burn (#value .! 100)) storageWithOperator
@@ -262,7 +274,8 @@ test_burn = testGroup "TZBTC contract `burn` test"
   where
     storageWithOperator =
       mkStorage adminAddress redeemAddress_
-        (Map.fromList [(redeemAddress_, initialSupply)]) (Set.fromList [newOperatorAddress])
+        (Map.fromList [(redeemAddress_, initialSupply)])
+          (Set.fromList [newOperatorAddress])
     validateFail_ :: ContractPropValidator (ToT Storage) Assertion
     validateFail_ (res, _) =
       assertFailureMessage
@@ -280,7 +293,6 @@ test_burn = testGroup "TZBTC contract `burn` test"
              (((arg #balance) . fst)
                 <$> (Map.lookup redeemAddress_ $ unBigMap $
                   ledger $ (fromVal rstorage :: Storage)))
-          --  Assert the totalBurned field in storage is updated correctly.
           assertEqual
             "Contract's `burn` operation did not update `totalBurned` field correctly."
              100
@@ -293,8 +305,12 @@ test_burn = testGroup "TZBTC contract `burn` test"
 test_mint :: TestTree
 test_mint = testGroup "TZBTC contract `mint` test"
   [ testCase
-      "Call to `mint` gets denied with `SenderIsNotOperator`" $
+      "Call to `mint` from admin gets denied with `SenderIsNotOperator`" $
       contractPropWithSender adminAddress
+        validateFail_ (Burn (#value .! 100)) storageWithOperator
+  , testCase
+      "Call to `mint` from random address gets denied with `SenderIsNotOperator`" $
+      contractPropWithSender bob
         validateFail_ (Burn (#value .! 100)) storageWithOperator
   , testCase
       "Call to `mint` adds value to `to` parameter in input and update `totalMinted` \
@@ -305,7 +321,8 @@ test_mint = testGroup "TZBTC contract `mint` test"
   where
     storageWithOperator =
       mkStorage adminAddress redeemAddress_
-        (Map.fromList [(redeemAddress_, initialSupply)]) (Set.fromList [newOperatorAddress])
+        (Map.fromList [(redeemAddress_, initialSupply)])
+        (Set.fromList [newOperatorAddress])
     validateFail_ :: ContractPropValidator (ToT Storage) Assertion
     validateFail_ (res, _) =
       assertFailureMessage
@@ -323,7 +340,6 @@ test_mint = testGroup "TZBTC contract `mint` test"
              (((arg #balance) . fst)
                 <$> (Map.lookup alice $ unBigMap $
                   ledger $ (fromVal rstorage :: Storage)))
-          --  Assert the totalBurned field in storage is updated correctly.
           assertEqual
             "Contract's `mint` operation did not update `totalMinted` field correctly."
              700
@@ -336,8 +352,12 @@ test_mint = testGroup "TZBTC contract `mint` test"
 test_pause :: TestTree
 test_pause = testGroup "TZBTC contract `pause` permission test"
   [ testCase
-      "Call to `pause` gets denied with `SenderIsNotOperator`" $
+      "Call to `pause` from admin gets denied with `SenderIsNotOperator`" $
       contractPropWithSender adminAddress
+        validateFail_ (Pause ()) storageWithOperator
+  , testCase
+      "Call to `pause` from random address gets denied with `SenderIsNotOperator`" $
+      contractPropWithSender bob
         validateFail_ (Pause ()) storageWithOperator
   , testCase
       "Call to `pause` as operator is allowed" $
@@ -347,7 +367,8 @@ test_pause = testGroup "TZBTC contract `pause` permission test"
   where
     storageWithOperator =
       mkStorage adminAddress redeemAddress_
-        (Map.fromList [(redeemAddress_, initialSupply)]) (Set.fromList [newOperatorAddress])
+        (Map.fromList [(redeemAddress_, initialSupply)])
+        (Set.fromList [newOperatorAddress])
     validateFail_ :: ContractPropValidator (ToT Storage) Assertion
     validateFail_ (res, _) =
       assertFailureMessage
@@ -371,6 +392,10 @@ test_unpause_ = testGroup "TZBTC contract `unpause` permission test"
       contractPropWithSender newOperatorAddress
         validateFail_ (Unpause ()) storageWithOperator
   , testCase
+      "Call to `unpause` from random address gets denied with `SenderIsNotAdmin`" $
+      contractPropWithSender bob
+        validateFail_ (Unpause ()) storageWithOperator
+  , testCase
       "Call to `unpause` as admin is allowed" $
       contractPropWithSender adminAddress
         validate_ (Unpause ()) storageWithOperator
@@ -378,7 +403,8 @@ test_unpause_ = testGroup "TZBTC contract `unpause` permission test"
   where
     storageWithOperator =
       mkStorage adminAddress redeemAddress_
-        (Map.fromList [(redeemAddress_, initialSupply)]) (Set.fromList [newOperatorAddress])
+        (Map.fromList [(redeemAddress_, initialSupply)])
+        (Set.fromList [newOperatorAddress])
     validateFail_ :: ContractPropValidator (ToT Storage) Assertion
     validateFail_ (res, _) =
       assertFailureMessage
@@ -420,3 +446,201 @@ test_bookkeeping = testGroup "TZBTC contract bookkeeping views test"
     st :: Storage
     st = mkStorage adminAddress redeemAddress_
         (Map.fromList [(redeemAddress_, initialSupply)]) (Set.fromList [newOperatorAddress])
+
+-- Migration tests
+  --
+originateV1 :: IntegrationalScenarioM (ContractAddr Parameter)
+originateV1 =
+  lOriginate tzbtcContract "UserUpgradeable V1" storageWithAlice (toMutez 1000)
+
+originateV2 :: IntegrationalScenarioM (ContractAddr Parameter)
+originateV2 =
+  lOriginate tzbtcContract "UserUpgradeable V2" storage (toMutez 1000)
+
+originateAgent
+  :: forall v2.
+  ( InstrWrapC v2 "cMintForMigration"
+  , AppendCtorField (GetCtorField v2 "cMintForMigration") '[] ~ '[("to" :! Address, "value" :! Natural)]
+  , KnownValue v2, NoOperation v2, NoBigMap v2)
+  => Address
+  -> ContractAddr v2
+  -> IntegrationalScenarioM (ContractAddr Agent.Parameter)
+originateAgent oldContract newContract =
+  case checkOpPresence (sing @(ToT v2)) of
+    OpAbsent ->
+      lOriginate (Agent.agentContract @v2) "Migration Agent" agentStorage (toMutez 1000)
+    OpPresent ->
+      error "Cannot originate contract with operations in parameter"
+    where
+      agentStorage = Agent.StorageFields
+        { oldVersion = oldContract
+        , newVersion = newContract
+        }
+
+storageWithAlice :: Storage
+storageWithAlice =
+  mkStorage adminAddress redeemAddress_
+    (Map.fromList [(alice, initialSupply)]) mempty
+
+test_migration :: TestTree
+test_migration = testGroup "TZBTC contract migration tests"
+  [ testCase
+      "call `migrate` to unprepared contract is denied" $
+        integrationalTestExpectation $ do
+          v1 <- originateV1
+          withSender alice $ lCall v1 (Migrate ())
+          validate . Left $
+            lExpectError (== MigrationNotEnabled)
+  , testCase
+      "call to `migrate` from an empty accounts address fails" $
+        integrationalTestExpectation $ do
+          v1 <- originateV1
+          v2 <- originateV2
+          agent <- originateAgent (unContractAddress v1) v2
+          withSender adminAddress $ lCall v1 (StartMigrateTo (#migrationManager .! agent) )
+          withSender bob $ lCall v1 (Migrate ())
+          validate . Left $
+            lExpectError (== NoBalanceToMigrate)
+ , testCase
+     "call `startMigrateTo` to from non admin address fails" $
+       integrationalTestExpectation $ do
+         v1 <- originateV1
+         v2 <- originateV2
+         agent <- originateAgent (unContractAddress v1) v2
+         withSender bob $ lCall v1 (StartMigrateTo $ (#migrationManager .! agent))
+         validate . Left $
+           lExpectError (== SenderIsNotAdmin)
+ , testCase
+     "call `startMigrateFrom` to from non admin address fails" $
+       integrationalTestExpectation $ do
+         v1 <- originateV1
+         v2 <- originateV2
+         agent <- originateAgent (unContractAddress v1) v2
+         withSender bob $ lCall v2 (StartMigrateFrom $ (#migrationAgent .! agent))
+         validate . Left $
+           lExpectError (== SenderIsNotAdmin)
+ , testCase
+     "call `startMigrateTo` from admin saves the address of migration manager proxy" $
+       integrationalTestExpectation $ do
+         v1 <- originateV1
+         v2 <- originateV2
+         agent <- originateAgent (unContractAddress v1) v2
+         withSender adminAddress $ lCall v1 (StartMigrateTo $ (#migrationManager .! agent))
+         validate . Right $
+           lExpectStorageConst v1 $ let
+            oldFields = fields storageWithAlice
+            in storageWithAlice
+              { fields = oldFields { migrationManager = Just agent }}
+ , testCase
+     "multple calls `startMigrateTo` from admin stores the address of the last call" $
+       integrationalTestExpectation $ do
+         v1 <- originateV1
+         v2 <- originateV2
+         agent <- originateAgent (unContractAddress v2) v1
+         agent2 <- originateAgent (unContractAddress v1) v2
+         withSender adminAddress $ lCall v1 (StartMigrateTo $ (#migrationManager .! agent))
+         withSender adminAddress $ lCall v1 (StartMigrateTo $ (#migrationManager .! agent2))
+         validate . Right $
+           lExpectStorageConst v1 $ let
+            oldFields = fields storageWithAlice
+            in storageWithAlice
+              { fields = oldFields { migrationManager = Just agent2 }}
+ , testCase
+     "call `startMigrateFrom` from admin saves the address of migration agent proxy" $
+       integrationalTestExpectation $ do
+         v1 <- originateV1
+         v2 <- originateV2
+         agent <- originateAgent (unContractAddress v1) v2
+         withSender adminAddress $ lCall v2 (StartMigrateFrom $ (#migrationAgent .! agent))
+         validate . Right $
+           lExpectStorageConst v2 $ let
+            oldFields = fields storageWithAlice
+            in storage
+              { fields = oldFields { migrationAgent = Just agent }}
+ , testCase
+     "multiple calls to `startMigrateFrom` from admin saves the address from the last call" $
+       integrationalTestExpectation $ do
+         v1 <- originateV1
+         v2 <- originateV2
+         agent <- originateAgent (unContractAddress v2) v1
+         agent2 <- originateAgent (unContractAddress v1) v2
+         withSender adminAddress $ lCall v2 (StartMigrateFrom $ (#migrationAgent .! agent))
+         withSender adminAddress $ lCall v2 (StartMigrateFrom $ (#migrationAgent .! agent2))
+         validate . Right $
+           lExpectStorageConst v2 $ let
+            oldFields = fields storageWithAlice
+            in storage
+              { fields = oldFields { migrationAgent = Just agent2 }}
+ , testCase
+     "call `mintForMigration` from random address to new contract is denied" $
+       integrationalTestExpectation $ do
+         v1 <- originateV1
+         v2 <- originateV2
+         agent <- originateAgent (unContractAddress v1) v2
+         withSender adminAddress $ lCall v2 (StartMigrateFrom $ (#migrationAgent .! agent))
+         withSender bob $ lCall v2 (MintForMigration $ (#to .! alice, #value .! 100))
+         validate . Left $
+           lExpectError (== SenderIsNotAgent)
+
+ , testCase
+     "call `mintForMigration` from agent address to new contract mints tokens" $
+       integrationalTestExpectation $ do
+         v1 <- originateV1
+         v2 <- originateV2
+         agent <- originateAgent (unContractAddress v1) v2
+         withSender adminAddress $ lCall v2 (StartMigrateFrom $ (#migrationAgent .! agent))
+         withSender (unContractAddress agent) $ lCall v2 (MintForMigration $ (#to .! alice, #value .! 250))
+         consumer <- lOriginateEmpty contractConsumer "consumer"
+         lCall v2 $ GetBalance (View alice consumer)
+         validate . Right $
+           lExpectViewConsumerStorage consumer [250]
+ , testCase
+     "call `mintForMigration` to contract that does not have migration agent set is denied" $
+       integrationalTestExpectation $ do
+         v2 <- originateV2
+         withSender bob $ lCall v2 (MintForMigration $ (#to .! alice, #value .! 100))
+         validate . Left $
+           lExpectError (== MigrationNotEnabled)
+  ]
+
+test_migrationAgent :: TestTree
+test_migrationAgent = testGroup "TZBTC migration manager tests"
+  [ testCase
+      "migration manager stores addesses of both old and new contracts" $
+        integrationalTestExpectation $ do
+          v1 <- originateV1
+          v2 <- originateV2
+          agent <- originateAgent (unContractAddress v1) v2
+          validate . Right $
+            lExpectStorageConst agent $
+              Agent.StorageFields
+                { oldVersion = unContractAddress v1
+                , newVersion = v2
+                }
+  , testCase
+      "calling migration manager from random address is denied" $
+        integrationalTestExpectation $ do
+          v1 <- originateV1
+          v2 <- originateV2
+          agent <- originateAgent (unContractAddress v1) v2
+          withSender bob $ lCall agent (alice, 100)
+          validate . Left $
+            lExpectError (== Agent.MigrationBadOrigin)
+  , testCase
+      "calling migrate on old version burns tokens in old version and mint them in new" $
+        integrationalTestExpectation $ do
+          v1 <- originateV1
+          v2 <- originateV2
+          agent <- originateAgent (unContractAddress v1) v2
+          consumer <- lOriginateEmpty contractConsumer "consumer"
+          withSender adminAddress $ lCall v1 (StartMigrateTo $ (#migrationManager .! agent))
+          withSender adminAddress $ lCall v2 (StartMigrateFrom $ (#migrationAgent .! agent))
+          lCall v1 $ GetBalance (View alice consumer)
+          lCall v2 $ GetBalance (View alice consumer)
+          withSender alice $ lCall v1 (Migrate ())
+          lCall v1 $ GetBalance (View alice consumer)
+          lCall v2 $ GetBalance (View alice consumer)
+          validate . Right $
+            lExpectViewConsumerStorage consumer [500, 0, 0, 500]
+  ]
+

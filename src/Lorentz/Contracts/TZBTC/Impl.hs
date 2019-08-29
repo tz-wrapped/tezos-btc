@@ -22,6 +22,7 @@ module Lorentz.Contracts.TZBTC.Impl
   , getTotal
   , mint
   , migrate
+  , mintForMigration
   , pause
   , removeOperator
   , setRedeemAddress
@@ -37,7 +38,7 @@ import Data.Set (Set)
 import Data.Vinyl.Derived (Label)
 
 import Lorentz
-import Lorentz.Contracts.TZBTC.Types
+import Lorentz.Contracts.TZBTC.Types hiding (AddOperator, RemoveOperator)
 import qualified Lorentz.Contracts.ManagedLedger.Impl as ManagedLedger
 import qualified Lorentz.Contracts.ManagedLedger.Types as ManagedLedger
 
@@ -51,6 +52,8 @@ type StorageFieldsC fields =
   , "operators" := Set Address
   , "redeemAddress" := Address
   , "newOwner" := Maybe Address
+  , "migrationAgent" := Maybe MigrationManager
+  , "migrationManager" := Maybe MigrationManager
   ]
 
 type Entrypoint param fields
@@ -83,6 +86,14 @@ burn = do
     toNamed #from
   -- Make ManagedLedger's burn entrypoint parameter
   stackType @'["value" :! Natural, "from" :! Address, Storage' _]
+  pair
+  burn_
+
+burn_
+  :: forall fields. StorageFieldsC fields
+  => Entrypoint ("value" :! Natural, "from" :! Address) fields
+burn_ = do
+  unpair
   dup
   dip $ do
     swap
@@ -107,9 +118,8 @@ burn = do
   setField #fields
   finishNoOp
 
-mint :: forall fields. StorageFieldsC fields => Entrypoint MintParams fields
-mint = do
-  dip authorizeOperator
+mint_ :: forall fields. StorageFieldsC fields => Entrypoint MintParams fields
+mint_ = do
   -- Make managed ledger's mint entrypoint parameter
   stackType @'[("to" :! Address, "value" :! Natural), Storage' _]
   dup
@@ -134,6 +144,11 @@ mint = do
   setField #totalMinted
   setField #fields
   finishNoOp
+
+mint :: forall fields. StorageFieldsC fields => Entrypoint MintParams fields
+mint = do
+  dip authorizeOperator
+  mint_
 
 -- | Add a new operator to the set of Operators. Only admin is allowed to call this
 -- entrypoint.
@@ -192,7 +207,7 @@ transferOwnership
 transferOwnership = do
   dip authorizeAdmin
   -- Unwrap new owner address
-  fromNamed #newowner
+  fromNamed #newOwner
   dip (getField #fields)
   -- Make a `Some` value and..
   some
@@ -220,18 +235,138 @@ acceptOwnership = do
     -- check is done in `authorizeNewOwner`
   finishNoOp
 
+-- | This accepts a migration script (a lambda) and stores it
+-- in the storage field `migrationScript'.
 startMigrateTo
-  :: StorageFieldsC fields
+  :: forall fields. StorageFieldsC fields
   => Entrypoint StartMigrateToParams fields
-startMigrateTo = stub
+startMigrateTo = do
+  dip authorizeAdmin
+  fromNamed #migrationManager
+  stackType @'[MigrationManager, Storage' _]
+  saveMigrationManager
 
+-- | This accepts a contract address and store it in the `previousVersion`
+-- storage field. This marks this contract to act as a successor of the input
+-- contract, and thus enables the `previousContract` to mint tokens in this
+-- contract via the `migrateFrom` call here.
 startMigrateFrom
-  :: StorageFieldsC fields
+  :: forall fields. StorageFieldsC fields
   => Entrypoint StartMigrateFromParams fields
-startMigrateFrom = stub
+startMigrateFrom = do
+  dip authorizeAdmin
+  fromNamed #migrationAgent
+  some
+  dip $ getField #fields
+  setField #migrationAgent
+  setField #fields
+  finishNoOp
 
-migrate :: StorageFieldsC fields => Entrypoint MigrateParams fields
-migrate = stub
+-- Check previous version and mint tokens for address
+-- in param
+mintForMigration
+  :: forall fields. StorageFieldsC fields
+  => Entrypoint MintForMigrationParams fields
+mintForMigration = do
+  dip ensureMigrationAgent
+  mint_
+  where
+    ensureMigrationAgent = do
+      getField #fields
+      toField #migrationAgent
+      ifSome (do; address; sender # eq) (failUsing MigrationNotEnabled)
+      if_ nop $ failUsing SenderIsNotAgent
+
+-- | This entry point just fetches the migrationScript from storage
+-- and calls it passing senders address and balance migrating all the
+-- accounts credits, it also burns all tokens for the sender in this contract.
+migrate :: forall fields. StorageFieldsC fields => Entrypoint MigrateParams fields
+migrate = do
+  drop
+  dup
+  toField #ledger;
+  sender
+  get
+  if IsSome then do
+    toField #balance
+    dup; int
+    if IsZero
+      then failUsing NoBalanceToMigrate
+      else do
+        stackType @'[Natural, Storage' fields]
+        toNamed #value
+        stackType @'["value" :! Natural, Storage' fields]
+        sender
+        swap
+        dip $ toNamed #from
+        stackType @'["value" :! Natural, "from" :! Address, Storage' fields]
+        dup
+        dip $ do
+          pair
+          burn_
+          unpair
+          drop
+        stackType @'["value" :! Natural, Storage' fields]
+        fromNamed #value
+        stackType @'[Natural, Storage' fields]
+        doMigrate
+    else failUsing NoBalanceToMigrate
+  where
+    doMigrate :: '[Natural, Storage' fields] :-> '[([Operation], Storage' fields)]
+    doMigrate = do
+      stackType @'[Natural, Storage' fields]
+      dip $ do
+        getField #fields
+        toField #migrationManager
+        if IsSome then do
+          stackType @'[MigrationManager, Storage' fields]
+          nop
+        else
+          failUsing MigrationNotEnabled
+      stackType @'[Natural, MigrationManager, Storage' fields]
+      sender
+      pair
+      push (toMutez 0)
+      swap
+      transferTokens
+      nil
+      swap
+      cons
+      pair
+
+-- | Starts a migration from an old version of a contract to a new one.
+-- Since the old version does not know the parameter type of the new one,
+-- it can not call the `MigrateFrom` endpoint (in Athens). To overcome this
+-- limitation, the caller must supply a MigrationScript lambda that forges
+-- a call to the new version.
+saveMigrationManager
+  :: forall fields. StorageFieldsC fields
+  => Entrypoint MigrationManager fields
+saveMigrationManager = do
+  dip $ do
+    getField #fields
+  some;
+  setField #migrationManager
+  setField #fields
+  nil; pair
+
+-- | Starts a migration from an old version of a contract to a new one.
+-- Since the old version does not know the parameter type of the new one,
+-- it can not call the `MigrateFrom` endpoint (in Athens). To overcome this
+-- limitation, the caller must supply a MigrationScript lambda that forges
+-- a call to the new version.
+saveMigrationAgent
+  :: forall fields. StorageFieldsC fields
+  => Entrypoint SetMigrationAgentParams fields
+saveMigrationAgent = do
+  dip $ do
+    authorizeAdmin
+    getField #fields
+  fromNamed #migrationAgent
+  some;
+  setField #migrationAgent
+  setField #fields
+  nil; pair
 
 -- | Pause end user actions. This is callable only by the operators.
 pause :: StorageFieldsC fields => Entrypoint () fields
