@@ -231,7 +231,7 @@ transferOwnershipParamsParser = #newOwner
   <.!> addressArgument "Address of the new owner"
 
 startMigrateFromParamsParser :: Opt.Parser StartMigrateFromParams
-startMigrateFromParamsParser = #migrationAgent <.!>
+startMigrateFromParamsParser = #migrationManager <.!>
   (ContractAddr <$> addressArgument "Source contract address")
 
 startMigrateToParamsParser :: Opt.Parser StartMigrateToParams

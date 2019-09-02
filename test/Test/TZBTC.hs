@@ -15,7 +15,7 @@ module Test.TZBTC
   , test_unpause_
   , test_bookkeeping
   , test_migration
-  , test_migrationAgent
+  , test_migrationManager
   ) where
 
 import Fmt (pretty)
@@ -110,7 +110,7 @@ test_adminCheck = testGroup "TZBTC contract admin check test"
   , testCase
       "Fails with `SenderNotAdmin` if sender is not administrator for `startMigrateFrom` call" $
       contractPropWithSender bob validate'
-        (StartMigrateFrom (#migrationAgent .! (ContractAddr contractAddress))) storage
+        (StartMigrateFrom (#migrationManager .! (ContractAddr contractAddress))) storage
   , testCase
       "Fails with `SenderNotAdmin` if sender is not administrator for `transferOwnership` call" $
       contractPropWithSender bob validate'
@@ -516,7 +516,7 @@ test_migration = testGroup "TZBTC contract migration tests"
          v1 <- originateV1
          v2 <- originateV2
          agent <- originateAgent (unContractAddress v1) v2
-         withSender bob $ lCall v2 (StartMigrateFrom $ (#migrationAgent .! agent))
+         withSender bob $ lCall v2 (StartMigrateFrom $ (#migrationManager .! agent))
          validate . Left $
            lExpectError (== SenderIsNotAdmin)
  , testCase
@@ -530,7 +530,7 @@ test_migration = testGroup "TZBTC contract migration tests"
            lExpectStorageConst v1 $ let
             oldFields = fields storageWithAlice
             in storageWithAlice
-              { fields = oldFields { migrationManager = Just agent }}
+              { fields = oldFields { migrationManagerOut = Just agent }}
  , testCase
      "multple calls `startMigrateTo` from admin stores the address of the last call" $
        integrationalTestExpectation $ do
@@ -544,19 +544,19 @@ test_migration = testGroup "TZBTC contract migration tests"
            lExpectStorageConst v1 $ let
             oldFields = fields storageWithAlice
             in storageWithAlice
-              { fields = oldFields { migrationManager = Just agent2 }}
+              { fields = oldFields { migrationManagerOut = Just agent2 }}
  , testCase
      "call `startMigrateFrom` from admin saves the address of migration agent proxy" $
        integrationalTestExpectation $ do
          v1 <- originateV1
          v2 <- originateV2
          agent <- originateAgent (unContractAddress v1) v2
-         withSender adminAddress $ lCall v2 (StartMigrateFrom $ (#migrationAgent .! agent))
+         withSender adminAddress $ lCall v2 (StartMigrateFrom $ (#migrationManager .! agent))
          validate . Right $
            lExpectStorageConst v2 $ let
             oldFields = fields storageWithAlice
             in storage
-              { fields = oldFields { migrationAgent = Just agent }}
+              { fields = oldFields { migrationManagerIn = Just agent }}
  , testCase
      "multiple calls to `startMigrateFrom` from admin saves the address from the last call" $
        integrationalTestExpectation $ do
@@ -564,20 +564,20 @@ test_migration = testGroup "TZBTC contract migration tests"
          v2 <- originateV2
          agent <- originateAgent (unContractAddress v2) v1
          agent2 <- originateAgent (unContractAddress v1) v2
-         withSender adminAddress $ lCall v2 (StartMigrateFrom $ (#migrationAgent .! agent))
-         withSender adminAddress $ lCall v2 (StartMigrateFrom $ (#migrationAgent .! agent2))
+         withSender adminAddress $ lCall v2 (StartMigrateFrom $ (#migrationManager .! agent))
+         withSender adminAddress $ lCall v2 (StartMigrateFrom $ (#migrationManager .! agent2))
          validate . Right $
            lExpectStorageConst v2 $ let
             oldFields = fields storageWithAlice
             in storage
-              { fields = oldFields { migrationAgent = Just agent2 }}
+              { fields = oldFields { migrationManagerIn = Just agent2 }}
  , testCase
      "call `mintForMigration` from random address to new contract is denied" $
        integrationalTestExpectation $ do
          v1 <- originateV1
          v2 <- originateV2
          agent <- originateAgent (unContractAddress v1) v2
-         withSender adminAddress $ lCall v2 (StartMigrateFrom $ (#migrationAgent .! agent))
+         withSender adminAddress $ lCall v2 (StartMigrateFrom $ (#migrationManager .! agent))
          withSender bob $ lCall v2 (MintForMigration $ (#to .! alice, #value .! 100))
          validate . Left $
            lExpectError (== SenderIsNotAgent)
@@ -588,7 +588,7 @@ test_migration = testGroup "TZBTC contract migration tests"
          v1 <- originateV1
          v2 <- originateV2
          agent <- originateAgent (unContractAddress v1) v2
-         withSender adminAddress $ lCall v2 (StartMigrateFrom $ (#migrationAgent .! agent))
+         withSender adminAddress $ lCall v2 (StartMigrateFrom $ (#migrationManager .! agent))
          withSender (unContractAddress agent) $ lCall v2 (MintForMigration $ (#to .! alice, #value .! 250))
          consumer <- lOriginateEmpty contractConsumer "consumer"
          lCall v2 $ GetBalance (View alice consumer)
@@ -603,8 +603,8 @@ test_migration = testGroup "TZBTC contract migration tests"
            lExpectError (== MigrationNotEnabled)
   ]
 
-test_migrationAgent :: TestTree
-test_migrationAgent = testGroup "TZBTC migration manager tests"
+test_migrationManager :: TestTree
+test_migrationManager = testGroup "TZBTC migration manager tests"
   [ testCase
       "migration manager stores addesses of both old and new contracts" $
         integrationalTestExpectation $ do
@@ -634,7 +634,7 @@ test_migrationAgent = testGroup "TZBTC migration manager tests"
           agent <- originateAgent (unContractAddress v1) v2
           consumer <- lOriginateEmpty contractConsumer "consumer"
           withSender adminAddress $ lCall v1 (StartMigrateTo $ (#migrationManager .! agent))
-          withSender adminAddress $ lCall v2 (StartMigrateFrom $ (#migrationAgent .! agent))
+          withSender adminAddress $ lCall v2 (StartMigrateFrom $ (#migrationManager .! agent))
           lCall v1 $ GetBalance (View alice consumer)
           lCall v2 $ GetBalance (View alice consumer)
           withSender alice $ lCall v1 (Migrate ())

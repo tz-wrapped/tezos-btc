@@ -52,8 +52,8 @@ type StorageFieldsC fields =
   , "operators" := Set Address
   , "redeemAddress" := Address
   , "newOwner" := Maybe Address
-  , "migrationAgent" := Maybe MigrationManager
-  , "migrationManager" := Maybe MigrationManager
+  , "migrationManagerIn" := Maybe MigrationManager
+  , "migrationManagerOut" := Maybe MigrationManager
   ]
 
 type Entrypoint param fields
@@ -261,10 +261,10 @@ startMigrateFrom
   => Entrypoint StartMigrateFromParams fields
 startMigrateFrom = do
   dip authorizeAdmin
-  fromNamed #migrationAgent
+  fromNamed #migrationManager
   some
   dip $ getField #fields
-  setField #migrationAgent
+  setField #migrationManagerIn
   setField #fields
   finishNoOp
 
@@ -279,7 +279,7 @@ mintForMigration = do
   where
     ensureMigrationAgent = do
       getField #fields
-      toField #migrationAgent
+      toField #migrationManagerIn
       ifSome (do; address; sender # eq) (failUsing MigrationNotEnabled)
       if_ nop $ failUsing SenderIsNotAgent
 
@@ -323,7 +323,7 @@ migrate = do
       stackType @'[Natural, Storage' fields]
       dip $ do
         getField #fields
-        toField #migrationManager
+        toField #migrationManagerOut
         if IsSome then do
           stackType @'[MigrationManager, Storage' fields]
           nop
@@ -347,7 +347,7 @@ saveMigrationManager = do
   dip $ do
     getField #fields
   some;
-  setField #migrationManager
+  setField #migrationManagerOut
   setFields
 
 -- | Pause end user actions. This is callable only by the operators.

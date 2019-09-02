@@ -46,7 +46,7 @@ type SetRedeemAddressParams = ("redeem" :! Address)
 type PauseParams = Bool
 type TransferOwnershipParams = ("newOwner" :! Address)
 type StartMigrateToParams = ("migrationManager" :! MigrationManager)
-type StartMigrateFromParams = ("migrationAgent" :! MigrationManager)
+type StartMigrateFromParams = ("migrationManager" :! MigrationManager)
 type MintForMigrationParams = ("to" :! Address, "value" :! Natural)
 type AcceptOwnershipParams = ()
 type MigrateParams = ()
@@ -97,8 +97,8 @@ data StorageFields = StorageFields
   , redeemAddress :: Address
   , code :: MText
   , tokenname :: MText
-  , migrationManager :: Maybe MigrationManager
-  , migrationAgent :: Maybe MigrationManager
+  , migrationManagerIn :: Maybe MigrationManager
+  , migrationManagerOut :: Maybe MigrationManager
   } deriving stock Generic
     deriving anyclass IsoValue
 
@@ -176,7 +176,7 @@ instance Buildable Parameter where
       "Accept ownership"
     StartMigrateTo (arg #migrationManager -> migrationMangerAddress) ->
       "Start migrate to " +| migrationMangerAddress |+ ""
-    StartMigrateFrom (arg #migrationAgent -> migrationAgent) ->
+    StartMigrateFrom (arg #migrationManager -> migrationAgent) ->
       "Start migrate from " +| migrationAgent |+ ""
     Migrate _ ->
       "Migrate"
@@ -200,6 +200,6 @@ mkStorage adminAddress redeem balances operators = mkStorage' balances $
   , redeemAddress = redeem
   , code = [mt|ZBTC|]
   , tokenname = [mt|TZBTC|]
-  , migrationManager = Nothing
-  , migrationAgent = Nothing
+  , migrationManagerOut = Nothing
+  , migrationManagerIn = Nothing
   }
