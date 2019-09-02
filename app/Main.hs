@@ -17,7 +17,7 @@ import Lorentz (parseLorentzValue, printLorentzContract, printLorentzValue)
 import Paths_tzbtc (version)
 
 import CLI.Parser
-import Lorentz.Contracts.TZBTC (Parameter(..), mkStorage, tzbtcContract)
+import Lorentz.Contracts.TZBTC (Parameter(..), mkStorage, tzbtcCompileWay, tzbtcContract)
 
 -- Here in main function we will just accept commands from user
 -- and print the smart contract parameter by using `printLorentzValue`
@@ -46,7 +46,7 @@ main = do
     CmdMigrate p -> printParam (Migrate p)
     CmdPrintContract singleLine ->
       putStrLn $
-        printLorentzContract singleLine tzbtcContract
+        printLorentzContract singleLine tzbtcCompileWay tzbtcContract
     CmdPrintInitialStorage adminAddress redeemAddress ->
       putStrLn $ printLorentzValue True (mkStorage adminAddress redeemAddress mempty mempty)
     CmdParseParameter t ->

@@ -11,6 +11,7 @@ module Lorentz.Contracts.TZBTC
   , Storage
   , StorageFields(..)
   , tzbtcContract
+  , tzbtcCompileWay
   ) where
 
 import Fmt (Buildable(..), (+|), (|+))
@@ -120,3 +121,6 @@ tzbtcContract = do
     , #cStartMigrateFrom /-> startMigrateFrom
     , #cMigrate /-> migrate
     )
+
+tzbtcCompileWay :: LorentzCompilationWay Parameter Storage
+tzbtcCompileWay = lcwEntryPoints
