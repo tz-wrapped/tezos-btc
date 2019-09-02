@@ -216,6 +216,12 @@ transferOwnership = do
   setField #fields
   finishNoOp
 
+setFields :: (StorageFieldsC fields) => Entrypoint fields fields
+setFields = do
+  setField #fields
+  nil
+  pair
+
 -- | Accept ownership of the contract. This is only callable by
 -- the address in `newOwner` field, if it contains one.
 acceptOwnership :: StorageFieldsC fields => Entrypoint () fields
@@ -334,11 +340,6 @@ migrate = do
       cons
       pair
 
--- | Starts a migration from an old version of a contract to a new one.
--- Since the old version does not know the parameter type of the new one,
--- it can not call the `MigrateFrom` endpoint (in Athens). To overcome this
--- limitation, the caller must supply a MigrationScript lambda that forges
--- a call to the new version.
 saveMigrationManager
   :: forall fields. StorageFieldsC fields
   => Entrypoint MigrationManager fields
@@ -347,26 +348,7 @@ saveMigrationManager = do
     getField #fields
   some;
   setField #migrationManager
-  setField #fields
-  nil; pair
-
--- | Starts a migration from an old version of a contract to a new one.
--- Since the old version does not know the parameter type of the new one,
--- it can not call the `MigrateFrom` endpoint (in Athens). To overcome this
--- limitation, the caller must supply a MigrationScript lambda that forges
--- a call to the new version.
-saveMigrationAgent
-  :: forall fields. StorageFieldsC fields
-  => Entrypoint SetMigrationAgentParams fields
-saveMigrationAgent = do
-  dip $ do
-    authorizeAdmin
-    getField #fields
-  fromNamed #migrationAgent
-  some;
-  setField #migrationAgent
-  setField #fields
-  nil; pair
+  setFields
 
 -- | Pause end user actions. This is callable only by the operators.
 pause :: StorageFieldsC fields => Entrypoint () fields
@@ -374,8 +356,7 @@ pause = do
   dip authorizeOperator
   drop
   push True
-  dip (getField #fields); setField #paused; setField #fields
-  nil; pair
+  dip (getField #fields); setField #paused; setFields
 
 -- | Resume end user actions if the contract is in a paused state.
 -- This is callable only by the admin.
