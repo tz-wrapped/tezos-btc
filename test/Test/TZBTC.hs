@@ -9,13 +9,16 @@ module Test.TZBTC
   , test_setRedeemAddress
   , test_transferOwnership
   , test_acceptOwnership
+  , test_burn
   ) where
 
 import Fmt (pretty)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (Assertion, assertEqual, assertBool, assertFailure, testCase)
+import qualified Data.Map as Map
 import Data.Set
 import qualified Data.Set as Set
+import Named (arg)
 
 import Lorentz
 import Lorentz.Contracts.TZBTC
@@ -53,8 +56,13 @@ contractEnv =
   dummyContractEnv
     { ceSender = adminAddress }
 
+initialSupply :: Natural
+initialSupply = 500
+
 storage :: Storage
-storage = mkStorage adminAddress redeemAddress_ mempty mempty
+storage =
+  mkStorage adminAddress redeemAddress_
+    (Map.fromList [(redeemAddress_, initialSupply)]) mempty
 
 test_adminCheck :: TestTree
 test_adminCheck = testGroup "TZBTC contract admin check test"
@@ -244,3 +252,55 @@ test_acceptOwnership = testGroup "TZBTC contract `acceptOwnership` test"
             "Contract did not set newOwner field to None"
              Nothing
              ((newOwner.fields) $ fromVal rstorage)
+
+test_burn :: TestTree
+test_burn = testGroup "TZBTC contract `burn` test"
+  [ testCase
+      "Call to `burn` gets denied with `SenderIsNotOperator`" $
+      contractProp lContract
+        validateFail_ contractEnv (Burn (#value .! 100)) storageWithOperator
+  , testCase
+      "Call to `burn` burns from `redeemAddress` and update `totalBurned` \
+      \ and `totalSupply` fields correctly" $
+      contractProp lContract
+        validate_ contractEnvWithOperatorSender (Burn (#value .! 100)) storageWithOperator
+  ]
+  where
+    contractEnvWithOperatorSender = contractEnv { ceSender = newOperatorAddress }
+    storageWithOperator =
+      mkStorage adminAddress redeemAddress_
+        (Map.fromList [(redeemAddress_, initialSupply)]) (Set.fromList [newOperatorAddress])
+    validateFail_ :: ContractPropValidator (ToT Storage) Assertion
+    validateFail_ (res, _) =
+      case res of
+        Left err -> do
+          case err of
+            MichelsonFailedWith (VPair ((VC (CvString t)), _)) ->
+              assertEqual
+                "Contract did not fail with 'SenderIsNotOperator' message"
+                 [mt|SenderIsNotOperator|]
+                 t
+            a -> assertFailure $ "Unexpected contract failure: " <> pretty a
+        Right (_operations, _) ->
+          assertFailure "Contract did not fail as expected"
+
+    validate_ :: ContractPropValidator (ToT Storage) Assertion
+    validate_ (res, _) =
+      case res of
+        Left err -> assertFailure $ "Unexpected contract failure: " <> pretty err
+        Right (_operations, rstorage) -> do
+          assertEqual
+            "Contract's `burn` operation reduced the balance in redeem address by expected amount"
+             (Just 400  :: Maybe Natural)
+             (((arg #balance) . fst)
+                <$> (Map.lookup redeemAddress_ $ unBigMap $
+                  ledger $ (fromVal rstorage :: Storage)))
+          --  Assert the totalBurned field in storage is updated correctly.
+          assertEqual
+            "Contract's `burn` operation did not update `totalBurned` field correctly."
+             100
+             (totalBurned $ fields $ (fromVal rstorage :: Storage))
+          assertEqual
+            "Contract's `burn` operation did not update `totalSupply` field correctly"
+             400
+             (totalSupply $ fields $ (fromVal rstorage :: Storage))

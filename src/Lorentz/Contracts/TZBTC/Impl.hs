@@ -5,14 +5,10 @@
 {-# Language RebindableSyntax #-}
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 
--- | Implementation of manalged ledger which does not require
--- particular storage type.
-
 module Lorentz.Contracts.TZBTC.Impl
   ( StorageFieldsC
   , ManagedLedger.approve
   , ManagedLedger.approve'
-  , ManagedLedger.burn
   , ManagedLedger.getAdministrator
   , ManagedLedger.getAllowance
   , ManagedLedger.getBalance
@@ -23,6 +19,7 @@ module Lorentz.Contracts.TZBTC.Impl
   , ManagedLedger.transfer'
   , acceptOwnership
   , addOperator
+  , burn
   , migrate
   , pause
   , removeOperator
@@ -40,12 +37,15 @@ import Data.Set (Set)
 import Lorentz
 import Lorentz.Contracts.TZBTC.Types
 import qualified Lorentz.Contracts.ManagedLedger.Impl as ManagedLedger
+import qualified Lorentz.Contracts.ManagedLedger.Types as ManagedLedger
 
 type StorageFieldsC fields =
   fields `HasFieldsOfType`
   [ "admin" := Address
   , "paused" := Bool
   , "totalSupply" := Natural
+  , "totalMinted" := Natural
+  , "totalBurned" := Natural
   , "operators" := Set Address
   , "redeemAddress" := Address
   , "newOwner" := Maybe Address
@@ -60,14 +60,61 @@ stub = do
   drop
   finishNoOp
 
+-- | Burn the specified amount of tokens from redeem address. Since it
+-- is not possible to burn from any other address, this entry point does
+-- not have an address input. Only operators are allowed to call this entry
+-- point.
+burn :: forall fields. StorageFieldsC fields => Entrypoint BurnParams fields
+burn = do
+  dip authorizeOperator
+  -- Get redeem address from storage
+  dip $ do
+    dup
+    stackType @'[Storage' _, Storage' _]
+    toField #fields; toField #redeemAddress
+    toNamed #from
+  -- Make ManagedLedger's burn entrypoint parameter
+  stackType @'["value" :! Natural, "from" :! Address, Storage' _]
+  dup
+  dip $ do
+    swap
+    pair
+    stackType @'[ManagedLedger.BurnParams, Storage' _]
+    -- Call ManagedLedgers's `debitFrom` function.
+    ManagedLedger.debitFrom
+    -- Drop burn prameters
+    drop
+    stackType @'[Storage' _]
+  stackType @'["value" :! Natural, Storage' _]
+  -- Now add the value to total burned field
+  -- Assuming totalSupply field to be amended by
+  -- ManagedLedger's burn procedure.
+  dip $ do
+    dup
+    toField #fields; getField #totalBurned
+  stackType @'["value" :! Natural, Natural, _, Storage' _]
+  fromNamed #value
+  add
+  -- Update storage
+  setField #totalBurned
+  setField #fields
+  stackType @'[Storage' _]
+  finishNoOp
+
+-- | Add a new operator to the set of Operators. Only admin is allowed to call this
+-- entrypoint.
 addOperator :: forall fields. StorageFieldsC fields => Entrypoint OperatorParams fields
 addOperator = addRemoveOperator AddOperator
 
+-- | Add an operator from the set of Operators. Only admin is allowed to call this
+-- entrypoint.
 removeOperator :: StorageFieldsC fields => Entrypoint OperatorParams fields
 removeOperator = addRemoveOperator RemoveOperator
 
+-- | A type to indicate required action to the `addRemoveOperator` function.
 data OperatorAction = AddOperator | RemoveOperator
 
+-- | Adds or remove an operator.
 addRemoveOperator :: StorageFieldsC fields => OperatorAction -> Entrypoint OperatorParams fields
 addRemoveOperator ar = do
   dip authorizeAdmin
@@ -102,6 +149,9 @@ setRedeemAddress = do
   setField #fields
   finishNoOp
 
+-- | Start the transfer of ownership to a new owner. This stores the
+-- address of the new owenr in the `newOwner` field in storage. Only
+-- admin is allowed to make this call.
 transferOwnership
   :: StorageFieldsC fields
   => Entrypoint TransferOwnershipParams fields
@@ -117,6 +167,8 @@ transferOwnership = do
   setField #fields
   finishNoOp
 
+-- | Accept ownership of the contract. This is only callable by
+-- the address in `newOwner` field, if it contains one.
 acceptOwnership :: StorageFieldsC fields => Entrypoint () fields
 acceptOwnership = do
   dip authorizeNewOwner
@@ -147,18 +199,22 @@ startMigrateFrom = stub
 migrate :: StorageFieldsC fields => Entrypoint MigrateParams fields
 migrate = stub
 
+-- | Pause end user actions. This is callable only by the operators.
 pause :: StorageFieldsC fields => Entrypoint () fields
 pause = do
   drop
   push True
   ManagedLedger.setPause
 
+-- | Resume end user actions if the contract is in a paused state.
+-- This is callable only by the admin.
 unpause :: StorageFieldsC fields => Entrypoint () fields
 unpause = do
   drop
   push False
   ManagedLedger.setPause
 
+-- | Check that the sender is admin
 authorizeAdmin
   :: StorageFieldsC fields
   => Storage' fields : s :-> Storage' fields : s
@@ -166,6 +222,8 @@ authorizeAdmin = do
   getField #fields; toField #admin; sender; eq
   if_ nop (failUsing SenderIsNotAdmin)
 
+-- | Check that the address of the sender is an address that is
+-- present in the `newOwner` storage field.
 authorizeNewOwner
   :: StorageFieldsC fields
   => Storage' fields : s :-> Storage' fields : s
@@ -176,6 +234,14 @@ authorizeNewOwner = do
     eq
     if_ nop (failUsing SenderIsNotNewOwner)
     else (failUsing NotInTransferOwnershipMode)
+
+-- | Check that the sender is an operator
+authorizeOperator
+  :: StorageFieldsC fields
+  => Storage' fields : s :-> Storage' fields : s
+authorizeOperator = do
+  getField #fields; toField #operators; sender; mem;
+  assert SenderIsNotOperator
 
 finishNoOp :: '[st] :-> (ContractOut st)
 finishNoOp = do;nil;pair

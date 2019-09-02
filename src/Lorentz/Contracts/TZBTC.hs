@@ -69,8 +69,8 @@ instance Buildable Parameter where
       "Get administrator"
     Mint (arg #to -> to, arg #value -> value) ->
       "Mint to " +| to |+ ", value = " +| value |+ ""
-    Burn (arg #from -> from, arg #value -> value) ->
-      "Burn from " +| from |+ ", value = " +| value |+ ""
+    Burn (arg #value -> value) ->
+      "Burn, value = " +| value |+ ""
     AddOperator (arg #operator -> operator) ->
       "Add operator " +| operator |+ ""
     RemoveOperator (arg #operator -> operator) ->

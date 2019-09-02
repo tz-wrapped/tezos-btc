@@ -180,9 +180,7 @@ mintParamParser =
        <*> (getParser "Amount to mint")
 
 burnParamsParser :: Opt.Parser BurnParams
-burnParamsParser =
-  (,) <$> (getParser "Address to burn from")
-       <*> (getParser "Amount to mint")
+burnParamsParser = getParser "Amount to burn"
 
 approveParamsParser :: Opt.Parser ApproveParams
 approveParamsParser =
