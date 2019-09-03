@@ -132,6 +132,10 @@ data Error
   | SenderIsNotAgent
     -- ^ For `mintForMigration` calls from address other than that of the
     -- migration agent.
+  | ContractIsNotPaused
+    -- ^ For `startMigrateTo` calls when the contract is in a running state
+  | ContractIsPaused
+    -- ^ For calls to end user actions when the contract is paused.
   deriving stock (Eq, Generic)
 
 instance Buildable Parameter where

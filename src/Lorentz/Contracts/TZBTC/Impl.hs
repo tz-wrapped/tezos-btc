@@ -247,7 +247,9 @@ startMigrateTo
   :: forall fields. StorageFieldsC fields
   => Entrypoint StartMigrateToParams fields
 startMigrateTo = do
-  dip authorizeAdmin
+  dip $ do
+    authorizeAdmin
+    ensurePaused
   fromNamed #migrationManager
   stackType @'[MigrationManager, Storage' _]
   saveMigrationManager
@@ -268,8 +270,8 @@ startMigrateFrom = do
   setField #fields
   finishNoOp
 
--- Check previous version and mint tokens for address
--- in param
+-- Check the existence of migration agent and if it is equal to the
+-- sender and mints tokens in this contract for the address in parameter
 mintForMigration
   :: forall fields. StorageFieldsC fields
   => Entrypoint MintForMigrationParams fields
@@ -288,6 +290,7 @@ mintForMigration = do
 -- accounts credits, it also burns all tokens for the sender in this contract.
 migrate :: forall fields. StorageFieldsC fields => Entrypoint MigrateParams fields
 migrate = do
+  dip ensureNotPaused
   drop
   dup
   toField #ledger;
@@ -394,6 +397,20 @@ authorizeOperator
 authorizeOperator = do
   getField #fields; toField #operators; sender; mem;
   assert SenderIsNotOperator
+
+ensurePaused
+  :: forall fields. StorageFieldsC fields
+  => '[Storage' fields] :-> '[Storage' fields]
+ensurePaused = do
+  getField #fields; toField #paused
+  if_ (nop) (failUsing ContractIsNotPaused)
+
+ensureNotPaused
+  :: forall fields. StorageFieldsC fields
+  => '[Storage' fields] :-> '[Storage' fields]
+ensureNotPaused = do
+  getField #fields; toField #paused
+  if_ (failUsing ContractIsPaused) (nop)
 
 finishNoOp :: '[st] :-> (ContractOut st)
 finishNoOp = do;nil;pair

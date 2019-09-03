@@ -449,13 +449,24 @@ test_bookkeeping = testGroup "TZBTC contract bookkeeping views test"
 
 -- Migration tests
   --
+
+storageV1 :: Storage
+storageV1 =
+  mkStorage adminAddress redeemAddress_
+    (Map.fromList [(alice, initialSupply)])
+          (Set.fromList [newOperatorAddress])
+
+storageV2 :: Storage
+storageV2 =
+  mkStorage adminAddress redeemAddress_ mempty mempty
+
 originateV1 :: IntegrationalScenarioM (ContractAddr Parameter)
 originateV1 =
-  lOriginate tzbtcContract "UserUpgradeable V1" storageWithAlice (toMutez 1000)
+  lOriginate tzbtcContract "UserUpgradeable V1" storageV1 (toMutez 1000)
 
 originateV2 :: IntegrationalScenarioM (ContractAddr Parameter)
 originateV2 =
-  lOriginate tzbtcContract "UserUpgradeable V2" storage (toMutez 1000)
+  lOriginate tzbtcContract "UserUpgradeable V2" storageV2 (toMutez 1000)
 
 originateAgent
   :: forall v2.
@@ -477,11 +488,6 @@ originateAgent oldContract newContract =
         , newVersion = newContract
         }
 
-storageWithAlice :: Storage
-storageWithAlice =
-  mkStorage adminAddress redeemAddress_
-    (Map.fromList [(alice, initialSupply)]) mempty
-
 test_migration :: TestTree
 test_migration = testGroup "TZBTC contract migration tests"
   [ testCase
@@ -497,7 +503,9 @@ test_migration = testGroup "TZBTC contract migration tests"
           v1 <- originateV1
           v2 <- originateV2
           agent <- originateAgent (unContractAddress v1) v2
+          withSender newOperatorAddress $ lCall v1 (Pause ())
           withSender adminAddress $ lCall v1 (StartMigrateTo (#migrationManager .! agent) )
+          withSender adminAddress $ lCall v1 (Unpause ())
           withSender bob $ lCall v1 (Migrate ())
           validate . Left $
             lExpectError (== NoBalanceToMigrate)
@@ -507,7 +515,9 @@ test_migration = testGroup "TZBTC contract migration tests"
          v1 <- originateV1
          v2 <- originateV2
          agent <- originateAgent (unContractAddress v1) v2
+         withSender newOperatorAddress $ lCall v1 (Pause ())
          withSender bob $ lCall v1 (StartMigrateTo $ (#migrationManager .! agent))
+         withSender adminAddress $ lCall v1 (Unpause ())
          validate . Left $
            lExpectError (== SenderIsNotAdmin)
  , testCase
@@ -525,12 +535,23 @@ test_migration = testGroup "TZBTC contract migration tests"
          v1 <- originateV1
          v2 <- originateV2
          agent <- originateAgent (unContractAddress v1) v2
+         withSender newOperatorAddress $ lCall v1 (Pause ())
          withSender adminAddress $ lCall v1 (StartMigrateTo $ (#migrationManager .! agent))
+         withSender adminAddress $ lCall v1 (Unpause ())
          validate . Right $
            lExpectStorageConst v1 $ let
-            oldFields = fields storageWithAlice
-            in storageWithAlice
+            oldFields = fields storageV1
+            in storageV1
               { fields = oldFields { migrationManagerOut = Just agent }}
+ , testCase
+     "call `startMigrateTo` to unpaused contract is denied with `ContractIsNotPaused` error" $
+       integrationalTestExpectation $ do
+         v1 <- originateV1
+         v2 <- originateV2
+         agent <- originateAgent (unContractAddress v1) v2
+         withSender adminAddress $ lCall v1 (StartMigrateTo $ (#migrationManager .! agent))
+         validate . Left $
+           lExpectError (== ContractIsNotPaused)
  , testCase
      "multple calls `startMigrateTo` from admin stores the address of the last call" $
        integrationalTestExpectation $ do
@@ -538,12 +559,14 @@ test_migration = testGroup "TZBTC contract migration tests"
          v2 <- originateV2
          agent <- originateAgent (unContractAddress v2) v1
          agent2 <- originateAgent (unContractAddress v1) v2
+         withSender newOperatorAddress $ lCall v1 (Pause ())
          withSender adminAddress $ lCall v1 (StartMigrateTo $ (#migrationManager .! agent))
          withSender adminAddress $ lCall v1 (StartMigrateTo $ (#migrationManager .! agent2))
+         withSender adminAddress $ lCall v1 (Unpause ())
          validate . Right $
            lExpectStorageConst v1 $ let
-            oldFields = fields storageWithAlice
-            in storageWithAlice
+            oldFields = fields storageV1
+            in storageV1
               { fields = oldFields { migrationManagerOut = Just agent2 }}
  , testCase
      "call `startMigrateFrom` from admin saves the address of migration agent proxy" $
@@ -554,8 +577,8 @@ test_migration = testGroup "TZBTC contract migration tests"
          withSender adminAddress $ lCall v2 (StartMigrateFrom $ (#migrationManager .! agent))
          validate . Right $
            lExpectStorageConst v2 $ let
-            oldFields = fields storageWithAlice
-            in storage
+            oldFields = fields storageV2
+            in storageV2
               { fields = oldFields { migrationManagerIn = Just agent }}
  , testCase
      "multiple calls to `startMigrateFrom` from admin saves the address from the last call" $
@@ -568,8 +591,8 @@ test_migration = testGroup "TZBTC contract migration tests"
          withSender adminAddress $ lCall v2 (StartMigrateFrom $ (#migrationManager .! agent2))
          validate . Right $
            lExpectStorageConst v2 $ let
-            oldFields = fields storageWithAlice
-            in storage
+            oldFields = fields storageV2
+            in storageV2
               { fields = oldFields { migrationManagerIn = Just agent2 }}
  , testCase
      "call `mintForMigration` from random address to new contract is denied" $
@@ -633,8 +656,10 @@ test_migrationManager = testGroup "TZBTC migration manager tests"
           v2 <- originateV2
           agent <- originateAgent (unContractAddress v1) v2
           consumer <- lOriginateEmpty contractConsumer "consumer"
+          withSender newOperatorAddress $ lCall v1 (Pause ())
           withSender adminAddress $ lCall v1 (StartMigrateTo $ (#migrationManager .! agent))
           withSender adminAddress $ lCall v2 (StartMigrateFrom $ (#migrationManager .! agent))
+          withSender adminAddress $ lCall v1 (Unpause ())
           lCall v1 $ GetBalance (View alice consumer)
           lCall v2 $ GetBalance (View alice consumer)
           withSender alice $ lCall v1 (Migrate ())
@@ -642,5 +667,17 @@ test_migrationManager = testGroup "TZBTC migration manager tests"
           lCall v2 $ GetBalance (View alice consumer)
           validate . Right $
             lExpectViewConsumerStorage consumer [500, 0, 0, 500]
+  , testCase
+      "calling migrate on paused contract fails with `ContractIsPaused` error" $
+        integrationalTestExpectation $ do
+          v1 <- originateV1
+          v2 <- originateV2
+          agent <- originateAgent (unContractAddress v1) v2
+          withSender newOperatorAddress $ lCall v1 (Pause ())
+          withSender adminAddress $ lCall v1 (StartMigrateTo $ (#migrationManager .! agent))
+          withSender adminAddress $ lCall v2 (StartMigrateFrom $ (#migrationManager .! agent))
+          withSender alice $ lCall v1 (Migrate ())
+          validate . Left $
+            lExpectError (== ContractIsPaused)
   ]
 
