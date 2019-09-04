@@ -18,11 +18,13 @@ Wrapped Bitcoin on Tezos Blockchain called ZBTC
 Run `stack test` and explore the tests.
 
 You can use `tzbtc` executable in order to get raw Michelson
-parameters, that can be sumbited to the chain via `tezos-client`.
+parameters, that can be submitted to the chain via `tezos-client`.
 Also, you can get contract code, initial contracts storage. This
 stuff can be used for contract origination via `tezos-client`.
-`parseContractParameter` subcommand can be used for debuging,
+`parseContractParameter` subcommand can be used for debugging,
 it parses raw Michelson value to the TZBTC contract parameter.
+
+Use `tzbtc --help` to get a list of available commands.
 
 ## Issue Tracker [↑](#ZBTC)
 
