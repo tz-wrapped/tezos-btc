@@ -43,6 +43,7 @@ data CmdLnArgs
   | CmdMigrate MigrateParams
   | CmdPrintInitialStorage Address Address
   | CmdPrintContract Bool (Maybe FilePath)
+  | CmdPrintAgentContract Bool (Maybe FilePath)
   | CmdParseParameter Text
   | CmdTestScenario TestScenarioOptions
 
@@ -59,7 +60,8 @@ argParser = hsubparser $
   <> removeOperatorCmd <> pauseCmd <> unpauseCmd
   <> setRedeemAddressCmd <> transferOwnershipCmd
   <> startMigrateFromCmd <> startMigrateToCmd
-  <> migrateCmd <> printCmd <> printInitialStorageCmd
+  <> migrateCmd <> printCmd
+  <> printAgentCmd <> printInitialStorageCmd
   <> parseParameterCmd <> testScenarioCmd
   where
     mkCommandParser ::
@@ -77,6 +79,14 @@ argParser = hsubparser $
              "printContract"
              (CmdPrintContract <$> singleLineSwitch <*> outputOption)
              "Print token contract")
+    printAgentCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
+    printAgentCmd =
+      let singleLineSwitch =
+            switch (long "oneline" <> help "Single line output")
+       in (mkCommandParser
+             "printAgentContract"
+             (CmdPrintAgentContract <$> singleLineSwitch <*> outputOption)
+             "Print migration agent contract")
     printInitialStorageCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     printInitialStorageCmd =
       (mkCommandParser

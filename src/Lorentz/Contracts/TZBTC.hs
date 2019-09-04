@@ -10,6 +10,7 @@ module Lorentz.Contracts.TZBTC
   , Parameter(..)
   , Storage
   , StorageFields(..)
+  , agentContract
   , tzbtcContract
   , tzbtcCompileWay
   ) where
@@ -17,6 +18,7 @@ module Lorentz.Contracts.TZBTC
 
 import Lorentz
 
+import Lorentz.Contracts.Agent (agentContract)
 import Lorentz.Contracts.TZBTC.Impl
 import Lorentz.Contracts.TZBTC.Types
 

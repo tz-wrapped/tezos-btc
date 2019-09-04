@@ -95,6 +95,14 @@
   stack exec -- tzbtc printContract --oneline
 }
 
+@test "invoking tzbtc 'printAgentContract' command" {
+  stack exec -- tzbtc printAgentContract
+}
+
+@test "invoking tzbtc 'printAgentContract' command with --oneline flag" {
+  stack exec -- tzbtc printAgentContract --oneline
+}
+
 @test "invoking tzbts 'printInitialStorage' command" {
   result="$(stack exec -- tzbtc printInitialStorage tz1f1S7V2hZJ3mhj47djb5j1saek8c2yB2Cx tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV)"
   [ "$result" == '(Pair { } (Pair (Pair (Pair "tz1f1S7V2hZJ3mhj47djb5j1saek8c2yB2Cx" False) (Pair 0 (Pair 0 0))) (Pair (Pair None { }) (Pair "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" (Pair None None)))))' ]

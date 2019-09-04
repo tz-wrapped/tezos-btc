@@ -30,6 +30,8 @@ data Error
   = MigrationBadOrigin
   deriving stock (Eq, Generic)
 
+deriveCustomError ''Error
+
 -- | A migration agent that can migrate to any contract as long as the
 -- target contract have a constructor/entrypoint `MintForMigration` with field
 -- ("to" :! Address, "value" :! Natural)
@@ -75,5 +77,3 @@ agentContract = do
         if IsEq then
           nop
         else failUsing MigrationBadOrigin
-
-deriveCustomError ''Error
