@@ -89,6 +89,9 @@ burn = do
   pair
   burn_
 
+-- | Burns tokens for an account. Uses ML's `debitFrom` function
+-- to actually update the ledger, and do ML's bookeeping. Also
+-- update the value of `totalBurned` field in this contract.
 burn_
   :: forall fields. StorageFieldsC fields
   => Entrypoint ("value" :! Natural, "from" :! Address) fields
@@ -118,6 +121,9 @@ burn_ = do
   setField #fields
   finishNoOp
 
+-- | Mint tokens for an account. Uses ML's `creditTo` function
+-- to actually update the ledger, and do ML's bookeeping. Also
+-- update the value of `totalMinted` field in this contract.
 mint_ :: forall fields. StorageFieldsC fields => Entrypoint MintParams fields
 mint_ = do
   -- Make managed ledger's mint entrypoint parameter
@@ -145,6 +151,7 @@ mint_ = do
   setField #fields
   finishNoOp
 
+-- | Mints tokens for an account
 mint :: forall fields. StorageFieldsC fields => Entrypoint MintParams fields
 mint = do
   dip authorizeOperator
@@ -185,6 +192,7 @@ addRemoveOperator ar = do
   setField #fields
   finishNoOp
 
+-- | Entry point handler to set redeem address
 setRedeemAddress
   :: StorageFieldsC fields
   => Entrypoint SetRedeemAddressParams fields
@@ -216,6 +224,7 @@ transferOwnership = do
   setField #fields
   finishNoOp
 
+-- | Set inner `fields` value of the storage.
 setFields :: (StorageFieldsC fields) => Entrypoint fields fields
 setFields = do
   setField #fields
@@ -252,7 +261,11 @@ startMigrateTo = do
     ensurePaused
   fromNamed #migrationManager
   stackType @'[MigrationManager, Storage' _]
-  saveMigrationManager
+  dip $ do
+    getField #fields
+  some;
+  setField #migrationManagerOut
+  setFields
 
 -- | This accepts a contract address and store it in the `previousVersion`
 -- storage field. This marks this contract to act as a successor of the input
@@ -282,7 +295,7 @@ mintForMigration = do
     ensureMigrationAgent = do
       getField #fields
       toField #migrationManagerIn
-      ifSome (do; address; sender # eq) (failUsing MigrationNotEnabled)
+      ifSome (do address; sender # eq) (failUsing MigrationNotEnabled)
       if_ nop $ failUsing SenderIsNotAgent
 
 -- | This entry point just fetches the migrationScript from storage
@@ -343,16 +356,6 @@ migrate = do
       cons
       pair
 
-saveMigrationManager
-  :: forall fields. StorageFieldsC fields
-  => Entrypoint MigrationManager fields
-saveMigrationManager = do
-  dip $ do
-    getField #fields
-  some;
-  setField #migrationManagerOut
-  setFields
-
 -- | Pause end user actions. This is callable only by the operators.
 pause :: StorageFieldsC fields => Entrypoint () fields
 pause = do
@@ -398,6 +401,7 @@ authorizeOperator = do
   getField #fields; toField #operators; sender; mem;
   assert SenderIsNotOperator
 
+-- | Check that the contract is paused
 ensurePaused
   :: forall fields. StorageFieldsC fields
   => '[Storage' fields] :-> '[Storage' fields]
@@ -405,6 +409,7 @@ ensurePaused = do
   getField #fields; toField #paused
   if_ (nop) (failUsing ContractIsNotPaused)
 
+-- | Check that the contract is NOT paused
 ensureNotPaused
   :: forall fields. StorageFieldsC fields
   => '[Storage' fields] :-> '[Storage' fields]
@@ -412,5 +417,6 @@ ensureNotPaused = do
   getField #fields; toField #paused
   if_ (failUsing ContractIsPaused) (nop)
 
+-- | Finish with an empty list of operations
 finishNoOp :: '[st] :-> (ContractOut st)
-finishNoOp = do;nil;pair
+finishNoOp = do nil;pair

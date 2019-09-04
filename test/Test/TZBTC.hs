@@ -448,7 +448,6 @@ test_bookkeeping = testGroup "TZBTC contract bookkeeping views test"
         (Map.fromList [(redeemAddress_, initialSupply)]) (Set.fromList [newOperatorAddress])
 
 -- Migration tests
-  --
 
 storageV1 :: Storage
 storageV1 =
@@ -680,4 +679,3 @@ test_migrationManager = testGroup "TZBTC migration manager tests"
           validate . Left $
             lExpectError (== ContractIsPaused)
   ]
-
