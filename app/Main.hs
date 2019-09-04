@@ -80,7 +80,17 @@ main = do
 usageDoc :: Maybe Doc
 usageDoc =
   Just $ mconcat
-    [ " TODO ", linebreak ]
+    [ "You can use help for specific COMMAND", linebreak
+    , "EXAMPLE:", linebreak
+    , "  tzbtc mint --help", linebreak
+    , "USAGE EXAMPLE:", linebreak
+    , "  tzbtc mint --to tz1U1h1YzBJixXmaTgpwDpZnbrYHX3fMSpvb --value 100500", linebreak
+    , linebreak
+    , "  This command will return raw Michelson representation", linebreak
+    , "  of `Mint` entrypoint with the given arguments.", linebreak
+    , "  This raw Michelson value can later be submited to the", linebreak
+    , "  chain using tezos-client"
+    ]
 
 mkTestScenario :: Address -> [Address] -> Maybe (TestScenario Parameter)
 mkTestScenario owner addresses = do
