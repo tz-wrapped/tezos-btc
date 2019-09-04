@@ -7,13 +7,17 @@ module Main
   ) where
 
 import Control.Exception.Safe (throwString)
+import Control.Lens (ix)
 import Data.Version (showVersion)
 import Fmt (pretty)
 import Options.Applicative
   (execParser, footerDoc, fullDesc, header, help, helper, info, infoOption, long, progDesc)
 import Options.Applicative.Help.Pretty (Doc, linebreak)
 
-import Lorentz (parseLorentzValue, printLorentzContract, printLorentzValue)
+import Lorentz (Address, parseLorentzValue, printLorentzContract, printLorentzValue)
+import Lorentz.Common (TestScenario, showTestScenario)
+import Util.Named ((.!))
+import Util.IO (writeFileUtf8)
 import Paths_tzbtc (version)
 
 import CLI.Parser
@@ -44,14 +48,18 @@ main = do
     CmdStartMigrateTo p -> printParam (StartMigrateTo p)
     CmdStartMigrateFrom p -> printParam (StartMigrateFrom p)
     CmdMigrate p -> printParam (Migrate p)
-    CmdPrintContract singleLine ->
-      putStrLn $
+    CmdPrintContract singleLine mbFilePath ->
+      maybe putStrLn writeFileUtf8 mbFilePath $
         printLorentzContract singleLine tzbtcCompileWay tzbtcContract
     CmdPrintInitialStorage adminAddress redeemAddress ->
       putStrLn $ printLorentzValue True (mkStorage adminAddress redeemAddress mempty mempty)
     CmdParseParameter t ->
       either (throwString . pretty) (putTextLn . pretty) $
       parseLorentzValue @Parameter t
+    CmdTestScenario TestScenarioOptions {..} -> do
+      maybe (throwString "Not enough addresses")
+        (maybe putStrLn writeFileUtf8 tsoOutput) $
+        showTestScenario <$> mkTestScenario tsoMaster tsoAddresses
   where
     printParam :: Parameter -> IO ()
     printParam = putStrLn . printLorentzValue True
@@ -72,4 +80,26 @@ main = do
 usageDoc :: Maybe Doc
 usageDoc =
   Just $ mconcat
-    [ " TODO ", linebreak ]
+    [ "You can use help for specific COMMAND", linebreak
+    , "EXAMPLE:", linebreak
+    , "  tzbtc mint --help", linebreak
+    , "USAGE EXAMPLE:", linebreak
+    , "  tzbtc mint --to tz1U1h1YzBJixXmaTgpwDpZnbrYHX3fMSpvb --value 100500", linebreak
+    , linebreak
+    , "  This command will return raw Michelson representation", linebreak
+    , "  of `Mint` entrypoint with the given arguments.", linebreak
+    , "  This raw Michelson value can later be submited to the", linebreak
+    , "  chain using tezos-client"
+    ]
+
+mkTestScenario :: Address -> [Address] -> Maybe (TestScenario Parameter)
+mkTestScenario owner addresses = do
+  addr0 <- addresses ^? ix 0
+  addr1 <- addresses ^? ix 1
+  pure
+    [ (owner, AddOperator (#operator .! owner))
+    , (owner, Pause ())
+    , (owner, Unpause ())
+    , (owner, Mint (#to .! addr0, #value .! 100500))
+    , (owner, Mint (#to .! addr1, #value .! 100500))
+    ]

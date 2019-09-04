@@ -16,4 +16,10 @@ steps:
    - nix-shell --run "make test-ci"
    - echo +++ Weeder
    - nix-shell --run "nix run nixpkgs.haskellPackages.weeder -c weeder ."
-   label: test && weeder
+   - echo +++ Bats
+   - nix-shell --run "nix run nixpkgs.bats -c bats test.bats"
+   - echo 'bats passed successfully'
+   - echo +++ Smoke
+   - nix-shell --run "nix run nixpkgs.python3 -c bash scripts/ci-test.sh"
+   - echo 'ci-test passed successfully'
+   label: test && weeder && bats
