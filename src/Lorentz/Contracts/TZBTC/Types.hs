@@ -3,8 +3,9 @@
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
 module Lorentz.Contracts.TZBTC.Types
-  ( BurnParams
-  , AcceptOwnershipParams
+  ( AcceptOwnershipParams
+  , ApproveViaProxyParams
+  , BurnParams
   , Error(..)
   , GetBalanceParams
   , ManagedLedger.AllowanceParams
@@ -27,6 +28,7 @@ module Lorentz.Contracts.TZBTC.Types
   , Storage
   , StorageFields(..)
   , TransferOwnershipParams
+  , TransferViaProxyParams
   , mkStorage
   ) where
 
@@ -41,6 +43,8 @@ import Util.Instances ()
 type MigrationManager = ContractAddr (Address, Natural)
 type BurnParams = ("value" :! Natural)
 type OperatorParams = ("operator" :! Address)
+type TransferViaProxyParams = ("sender" :! Address, ManagedLedger.TransferParams)
+type ApproveViaProxyParams = ("sender" :! Address, ManagedLedger.ApproveParams)
 type GetBalanceParams = Address
 type SetRedeemAddressParams = ("redeem" :! Address)
 type PauseParams = Bool
@@ -58,7 +62,9 @@ type SetMigrationAgentParams = ("migrationAgent" :! MigrationManager)
 
 data Parameter
   = Transfer            !ManagedLedger.TransferParams
+  | TransferViaProxy    !TransferViaProxyParams
   | Approve             !ManagedLedger.ApproveParams
+  | ApproveViaProxy     !ApproveViaProxyParams
   | GetAllowance        !(View ManagedLedger.GetAllowanceParams Natural)
   | GetBalance          !(View Address Natural)
   | GetTotalSupply      !(View () Natural)
@@ -99,7 +105,8 @@ data StorageFields = StorageFields
   , tokenname :: MText
   , migrationManagerIn :: Maybe MigrationManager
   , migrationManagerOut :: Maybe MigrationManager
-  } deriving stock Generic
+  , proxy :: Either Address Address
+  } deriving stock Generic -- @TODO Is TokenName required here?
     deriving anyclass IsoValue
 
 data Error
@@ -136,14 +143,22 @@ data Error
     -- ^ For `startMigrateTo` calls when the contract is in a running state
   | ContractIsPaused
     -- ^ For calls to end user actions when the contract is paused.
+  | ProxyIsNotSet
+    -- ^ For FA1.2.1 compliance endpoints that are callable via a proxy
+  | CallerIsNotProxy
+    -- ^ For FA1.2.1 compliance endpoints that are callable via a proxy
   deriving stock (Eq, Generic)
 
 instance Buildable Parameter where
   build = \case
     Transfer (arg #from -> from, arg #to -> to, arg #value -> value) ->
       "Transfer from " +| from |+ " to " +| to |+ ", value = " +| value |+ ""
+    TransferViaProxy (arg #sender -> sender_, (arg #from -> from, arg #to -> to, arg #value -> value)) ->
+      "Transfer via proxy from sender " +| sender_ |+ ", from" +| from |+ " to " +| to |+ ", value = " +| value |+ ""
     Approve (arg #spender -> spender, arg #value -> value) ->
       "Approve for " +| spender |+ ", value = " +| value |+ ""
+    ApproveViaProxy (arg #sender -> sender_, (arg #spender -> spender, arg #value -> value)) ->
+      "Approve via proxy for sender " +| sender_ |+ ", spender ="+| spender |+ ", value = " +| value |+ ""
     GetAllowance (View (arg #owner -> owner, arg #spender -> spender) _) ->
       "Get allowance for " +| owner |+ " from " +| spender |+ ""
     GetBalance (View addr _) ->
@@ -178,10 +193,10 @@ instance Buildable Parameter where
       "Transfer ownership to " +| newOwner |+ ""
     AcceptOwnership _ ->
       "Accept ownership"
-    StartMigrateTo (arg #migrationManager -> migrationMangerAddress) ->
-      "Start migrate to " +| migrationMangerAddress |+ ""
-    StartMigrateFrom (arg #migrationManager -> migrationAgent) ->
-      "Start migrate from " +| migrationAgent |+ ""
+    StartMigrateTo (arg #migrationManager -> migrateTo) ->
+      "Start migrate to " +| migrateTo |+ ""
+    StartMigrateFrom (arg #migrationManager -> migrateFrom) ->
+      "Start migrate from " +| migrateFrom |+ ""
     Migrate _ ->
       "Migrate"
 
@@ -206,4 +221,5 @@ mkStorage adminAddress redeem balances operators = mkStorage' balances $
   , tokenname = [mt|TZBTC|]
   , migrationManagerOut = Nothing
   , migrationManagerIn = Nothing
+  , proxy = Left adminAddress
   }

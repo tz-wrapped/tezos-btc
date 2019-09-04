@@ -33,7 +33,9 @@ tzbtcContract = do
   unpair
   caseT @Parameter
     ( #cTransfer /-> transfer
+    , #cTransferViaProxy /-> transferViaProxy
     , #cApprove /-> approve
+    , #cApproveViaProxy /-> approveViaProxy
     , #cGetAllowance /-> getAllowance
     , #cGetBalance /-> getBalance
     , #cGetTotalSupply /-> getTotal #totalSupply

@@ -18,6 +18,7 @@ module Lorentz.Contracts.TZBTC.Impl
   , ManagedLedger.transfer'
   , acceptOwnership
   , addOperator
+  , approveViaProxy
   , burn
   , getTotal
   , mint
@@ -29,6 +30,7 @@ module Lorentz.Contracts.TZBTC.Impl
   , startMigrateFrom
   , startMigrateTo
   , transferOwnership
+  , transferViaProxy
   , unpause
   ) where
 
@@ -54,6 +56,7 @@ type StorageFieldsC fields =
   , "newOwner" := Maybe Address
   , "migrationManagerIn" := Maybe MigrationManager
   , "migrationManagerOut" := Maybe MigrationManager
+  , "proxy" := Either Address Address
   ]
 
 type Entrypoint param fields
@@ -150,6 +153,21 @@ mint :: forall fields. StorageFieldsC fields => Entrypoint MintParams fields
 mint = do
   dip authorizeOperator
   mint_
+
+transferViaProxy
+  :: forall fields. StorageFieldsC fields
+  => Entrypoint TransferViaProxyParams fields
+transferViaProxy = do
+  dip authorizeProxy
+  ManagedLedger.transfer'
+
+approveViaProxy
+  :: forall fields. StorageFieldsC fields
+  => Entrypoint ApproveViaProxyParams fields
+approveViaProxy = do
+  dip authorizeProxy
+  coerce_
+  ManagedLedger.approve'
 
 -- | Add a new operator to the set of Operators. Only admin is allowed to call this
 -- entrypoint.
@@ -408,6 +426,18 @@ ensureNotPaused = do
   getField #fields; toField #paused
   if_ (failUsing ContractIsPaused) (nop)
 
+-- | Check that the sender is proxy
+authorizeProxy
+  :: StorageFieldsC fields
+  => Storage' fields ': s :-> Storage' fields ': s
+authorizeProxy = do
+  getField #fields
+  toField #proxy
+  ifLeft (failUsing ProxyIsNotSet) $ do
+    sender
+    if IsEq then nop else failUsing CallerIsNotProxy
+
 -- | Finish with an empty list of operations
 finishNoOp :: '[st] :-> (ContractOut st)
 finishNoOp = do nil;pair
+
