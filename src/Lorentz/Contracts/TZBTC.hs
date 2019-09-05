@@ -56,6 +56,7 @@ tzbtcContract = do
     , #cStartMigrateFrom /-> startMigrateFrom
     , #cMintForMigration /-> mintForMigration
     , #cMigrate /-> migrate
+    , #cSetProxy /-> setProxy
     )
 
 tzbtcCompileWay :: LorentzCompilationWay Parameter Storage
