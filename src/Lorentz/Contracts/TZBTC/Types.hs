@@ -144,8 +144,6 @@ data Error
     -- migration agent.
   | ContractIsNotPaused
     -- ^ For `startMigrateTo` calls when the contract is in a running state
-  | ContractIsPaused
-    -- ^ For calls to end user actions when the contract is paused.
   | ProxyIsNotSet
     -- ^ For FA1.2.1 compliance endpoints that are callable via a proxy
   | CallerIsNotProxy
@@ -205,6 +203,8 @@ instance Buildable Parameter where
       "Start migrate to " +| migrateTo |+ ""
     StartMigrateFrom (arg #migrationManager -> migrateFrom) ->
       "Start migrate from " +| migrateFrom |+ ""
+    SetProxy address_ ->
+      "Set proxy " +| address_ |+ ""
     Migrate _ ->
       "Migrate"
 

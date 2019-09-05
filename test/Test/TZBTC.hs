@@ -19,6 +19,7 @@ module Test.TZBTC
   , test_bookkeeping
   , test_migration
   , test_migrationManager
+  , test_proxyCheck
   ) where
 
 import Fmt (pretty)
@@ -103,9 +104,18 @@ assertFailureMessage res msg tstMsg = case res of
 
 test_proxyCheck :: TestTree
 test_proxyCheck = testGroup "TZBTC contract proxy endpoints check"
-  [ testCase "Fails with `ProxyIsNotSet` if one of the proxy serving endpoints is called" $
+  [ testCase "Fails with `ProxyIsNotSet` if one of the proxy serving endpoints is called and proxy is not set" $
       contractPropWithSender bob validate'
         (TransferViaProxy (#sender .! bob, (#from .! bob, #to .! alice, #value .! 100))) storage
+  , testCase
+      "Fails with `CallerIsNotProxy` if the caller to a proxy endpoint is not known proxy address." $
+      integrationalTestExpectation $ do
+        c <- lOriginate tzbtcContract "TZBTC Contract" storage (toMutez 1000)
+        withSender adminAddress $ lCall c (SetProxy contractAddress)
+        withSender bob $
+          lCall c (TransferViaProxy (#sender .! bob, (#from .! bob, #to .! alice, #value .! 100)))
+        validate . Left $
+          lExpectError (== CallerIsNotProxy)
   ]
   where
     validate' :: ContractPropValidator (ToT Storage) Assertion
@@ -728,7 +738,7 @@ test_migrationManager = testGroup "TZBTC migration manager tests"
           validate . Right $
             lExpectViewConsumerStorage consumer [500, 0, 0, 500]
   , testCase
-      "calling migrate on paused contract fails with `ContractIsPaused` error" $
+      "calling migrate on paused contract fails with `OperationsArePaused` error" $
         integrationalTestExpectation $ do
           v1 <- originateV1
           v2 <- originateV2
@@ -740,5 +750,5 @@ test_migrationManager = testGroup "TZBTC migration manager tests"
             lCall v2 (StartMigrateFrom $ (#migrationManager .! agent))
           withSender alice $ lCall v1 (Migrate ())
           validate . Left $
-            lExpectError (== ContractIsPaused)
+            lExpectError (== OperationsArePaused)
   ]

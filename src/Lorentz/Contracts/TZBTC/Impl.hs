@@ -439,7 +439,7 @@ ensureNotPaused
   => '[Storage' fields] :-> '[Storage' fields]
 ensureNotPaused = do
   getField #fields; toField #paused
-  if_ (failUsing ContractIsPaused) (nop)
+  if_ (failUsing OperationsArePaused) (nop)
 
 -- | Check that the sender is proxy
 authorizeProxy
