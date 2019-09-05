@@ -17,14 +17,15 @@ module Lorentz.Contracts.TZBTC.Types
   , ManagedLedger.TransferParams
   , MigrateParams
   , MigrationManager
+  , MintForMigrationParams
   , OperatorParams
   , Parameter(..)
   , PauseParams
-  , SetRedeemAddressParams
   , SetMigrationAgentParams
+  , SetProxyParams
+  , SetRedeemAddressParams
   , StartMigrateFromParams
   , StartMigrateToParams
-  , MintForMigrationParams
   , Storage
   , StorageFields(..)
   , TransferOwnershipParams
@@ -55,6 +56,7 @@ type MintForMigrationParams = ("to" :! Address, "value" :! Natural)
 type AcceptOwnershipParams = ()
 type MigrateParams = ()
 type SetMigrationAgentParams = ("migrationAgent" :! MigrationManager)
+type SetProxyParams = Address
 
 ----------------------------------------------------------------------------
 -- Parameter
@@ -85,6 +87,7 @@ data Parameter
   | StartMigrateFrom    !StartMigrateFromParams
   | MintForMigration    !MintForMigrationParams
   | Migrate             !MigrateParams
+  | SetProxy            !SetProxyParams
   deriving stock Generic
   deriving anyclass IsoValue
 
@@ -147,6 +150,11 @@ data Error
     -- ^ For FA1.2.1 compliance endpoints that are callable via a proxy
   | CallerIsNotProxy
     -- ^ For FA1.2.1 compliance endpoints that are callable via a proxy
+  | NotAllowedToSetProxy
+    -- ^ For setProxy entry point if Left value in `proxy` field does not
+    -- match the sender's address
+  | ProxyAlreadySet
+    -- ^ For setProxy entry point if Proxy is set already
   deriving stock (Eq, Generic)
 
 instance Buildable Parameter where

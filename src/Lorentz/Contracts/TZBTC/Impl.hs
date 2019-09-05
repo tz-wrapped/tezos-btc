@@ -22,10 +22,11 @@ module Lorentz.Contracts.TZBTC.Impl
   , burn
   , getTotal
   , mint
-  , migrate
   , mintForMigration
+  , migrate
   , pause
   , removeOperator
+  , setProxy
   , setRedeemAddress
   , startMigrateFrom
   , startMigrateTo
@@ -381,6 +382,21 @@ unpause = do
   push False
   ManagedLedger.setPause
 
+setProxy :: StorageFieldsC fields => Entrypoint SetProxyParams fields
+setProxy = do
+  -- Check sender
+  dip $ do
+    getField #fields
+    toField #proxy
+    ifLeft
+      (do sender; if IsEq then nop else failUsing NotAllowedToSetProxy)
+      (failUsing ProxyAlreadySet)
+  right @Address
+  dip $ getField #fields
+  setField #proxy
+  setField #fields
+  nil; pair
+
 -- | Check that the sender is admin
 authorizeAdmin
   :: StorageFieldsC fields
@@ -440,4 +456,3 @@ authorizeProxy = do
 -- | Finish with an empty list of operations
 finishNoOp :: '[st] :-> (ContractOut st)
 finishNoOp = do nil;pair
-
