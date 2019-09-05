@@ -186,7 +186,7 @@ main = do
         [ fullDesc
         , progDesc
             "TZBTC - Wrapped bitcoin on tezos blockchain"
-        , header "TZBTC Tools"
+        , header "TZBTC Client"
         , footerDoc $ usageDoc
         ]
     versionOption =
@@ -196,4 +196,14 @@ main = do
     usageDoc :: Maybe Doc
     usageDoc =
       Just $ mconcat
-      [ " TODO ", linebreak ]
+      [ "You can use help for specific COMMAND", linebreak
+      , "EXAMPLE:", linebreak
+      , "  tzbtc-client mint --help", linebreak
+      , "USAGE EXAMPLE:", linebreak
+      , "  tzbtc-client mint --to tz1U1h1YzBJixXmaTgpwDpZnbrYHX3fMSpvb --value 100500", linebreak
+      , linebreak
+      , "  This command will return perform transaction that", linebreak
+      , "  will mint given amout of token to the given address.", linebreak
+      , "  As a result, this command returns operation hash,", linebreak
+      , "  which later can be checked in the block explorer"
+      ]
