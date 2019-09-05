@@ -7,7 +7,7 @@
 @test "invoking tzbtc 'approve' command" {
   result="$(stack exec -- tzbtc approve\
           --spender "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" --value 100)"
-  [ "$result" == '(Left (Left (Left (Right (Pair "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" 100)))))' ]
+  [ "$result" == '(Left (Left (Right (Left (Pair "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" 100)))))' ]
 
 }
 
@@ -35,14 +35,14 @@
     --owner "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"\
     --spender "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx"\
     --callback "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46")"
-  [ "$result" == '(Left (Left (Right (Left (Pair (Pair "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx") "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46")))))' ]
+  [ "$result" == '(Left (Left (Right (Right (Right (Pair (Pair "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx") "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46"))))))' ]
 }
 
 @test "invoking tzbtc 'getBalance' command" {
   result="$(stack exec -- tzbtc getBalance\
     --address "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"\
     --callback "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46")"
-  [ "$result" == '(Left (Left (Right (Right (Left (Pair "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46"))))))' ]
+  [ "$result" == '(Left (Right (Left (Left (Pair "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46")))))' ]
 }
 
 @test "invoking tzbtc 'addOperator' command" {
@@ -54,7 +54,7 @@
 @test "invoking tzbtc 'removeOperator' command" {
   result="$(stack exec -- tzbtc removeOperator\
     --operator "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV")"
-  [ "$result" == '(Right (Left (Left (Right "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"))))' ]
+  [ "$result" == '(Right (Left (Left (Right (Left "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV")))))' ]
 }
 
 @test "invoking tzbtc 'pause' command" {
@@ -69,22 +69,22 @@
 
 @test "invoking tzbtc 'setRedeemAddress' command" {
   result="$(stack exec -- tzbtc setRedeemAddress "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV")"
-  [ "$result" == '(Right (Left (Right (Left "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"))))' ]
+  [ "$result" == '(Right (Left (Left (Right (Right "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV")))))' ]
 }
 
 @test "invoking tzbtc 'startMigrateFrom' command" {
   result="$(stack exec -- tzbtc startMigrateFrom "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV")"
-  [ "$result" == '(Right (Right (Right (Left "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"))))' ]
+  [ "$result" == '(Right (Right (Left (Right (Right "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV")))))' ]
 }
 
 @test "invoking tzbtc 'startMigrateTo' command" {
   result="$(stack exec -- tzbtc startMigrateTo "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV")"
-  [ "$result" == '(Right (Right (Left (Right (Right "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV")))))' ]
+  [ "$result" == '(Right (Right (Left (Right (Left "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV")))))' ]
 }
 
 @test "invoking tzbtc 'migrate' command" {
   result="$(stack exec -- tzbtc migrate)"
-  [ "$result" == '(Right (Right (Right (Right (Right Unit)))))' ]
+  [ "$result" == '(Right (Right (Right (Right (Left Unit)))))' ]
 }
 
 @test "invoking tzbtc 'printContract' command" {
@@ -105,7 +105,7 @@
 
 @test "invoking tzbts 'printInitialStorage' command" {
   result="$(stack exec -- tzbtc printInitialStorage tz1f1S7V2hZJ3mhj47djb5j1saek8c2yB2Cx tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV)"
-  [ "$result" == '(Pair { } (Pair (Pair (Pair "tz1f1S7V2hZJ3mhj47djb5j1saek8c2yB2Cx" (Pair False 0)) (Pair 0 (Pair 0 None))) (Pair (Pair { } (Pair "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" "ZBTC")) (Pair "TZBTC" (Pair None None)))))' ]
+  [ "$result" == '(Pair { } (Pair (Pair (Pair "tz1f1S7V2hZJ3mhj47djb5j1saek8c2yB2Cx" False) (Pair 0 (Pair 0 0))) (Pair (Pair None (Pair { } "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV")) (Pair None (Pair None (Left "tz1f1S7V2hZJ3mhj47djb5j1saek8c2yB2Cx"))))))' ]
 }
 
 @test "invoking 'parseContractParameter' command to parse burn parameter" {
