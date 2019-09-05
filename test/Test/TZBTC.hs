@@ -101,6 +101,19 @@ assertFailureMessage res msg tstMsg = case res of
       assertEqual tstMsg msg t
     a -> assertFailure $ "Unexpected contract failure: " <> pretty a
 
+test_proxyCheck :: TestTree
+test_proxyCheck = testGroup "TZBTC contract proxy endpoints check"
+  [ testCase "Fails with `ProxyIsNotSet` if one of the proxy serving endpoints is called" $
+      contractPropWithSender bob validate'
+        (TransferViaProxy (#sender .! bob, (#from .! bob, #to .! alice, #value .! 100))) storage
+  ]
+  where
+    validate' :: ContractPropValidator (ToT Storage) Assertion
+    validate' (res, _) =
+      assertFailureMessage
+        res [mt|ProxyIsNotSet|]
+        "Contract did not fail with 'ProxyIsNotSet' message"
+
 test_adminCheck :: TestTree
 test_adminCheck = testGroup "TZBTC contract admin check test"
   [ testCase "Fails with `SenderNotAdmin` if sender is not administrator for `addOperator` call" $

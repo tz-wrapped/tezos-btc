@@ -9,7 +9,7 @@ module Lorentz.Contracts.TZBTC.Proxy
   ( mkStorage
   , tzbtcProxyContract
   , MLProxy.Parameter
-  , MLProxy.SaneParameter
+  , MLProxy.SaneParameter(..)
   , MLProxy.fromSaneParameter
   )
 where
@@ -17,6 +17,8 @@ where
 import Lorentz
 import qualified Lorentz.Contracts.TZBTC.Types as TZBTC
 import qualified Lorentz.Contracts.ManagedLedger.Proxy as MLProxy
+
+{-# ANN module ("HLint: ignore Reduce duplication" :: Text) #-}
 
 type Storage = ContractAddr TZBTC.Parameter
 
