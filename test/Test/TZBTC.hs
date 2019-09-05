@@ -30,7 +30,7 @@ import Named (arg)
 import Lorentz
 import Lorentz.Contracts.Consumer
 import Lorentz.Contracts.TZBTC
-import qualified Lorentz.Contracts.Agent as Agent
+import qualified Lorentz.Contracts.TZBTC.Agent as Agent
 import Lorentz.Contracts.TZBTC.Types
 import Lorentz.Test.Integrational
 import Michelson.Interpret (ContractEnv(..), MichelsonFailed(..))

@@ -18,7 +18,7 @@ module Lorentz.Contracts.TZBTC
 
 import Lorentz
 
-import Lorentz.Contracts.Agent (agentContract)
+import Lorentz.Contracts.TZBTC.Agent (agentContract)
 import Lorentz.Contracts.TZBTC.Impl
 import Lorentz.Contracts.TZBTC.Types
 

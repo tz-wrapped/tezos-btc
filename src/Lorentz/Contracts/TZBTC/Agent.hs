@@ -5,7 +5,7 @@
 {-# LANGUAGE RebindableSyntax #-}
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 
-module Lorentz.Contracts.Agent
+module Lorentz.Contracts.TZBTC.Agent
   ( Parameter
   , StorageFields(..)
   , agentContract
