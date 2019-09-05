@@ -3,15 +3,18 @@
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
 module Test.TZBTC
-  ( test_adminCheck
+  ( test_acceptOwnership
   , test_addOperator
-  , test_removeOperator
-  , test_setRedeemAddress
-  , test_transferOwnership
-  , test_acceptOwnership
+  , test_adminCheck
   , test_burn
+  , test_migration
+  , test_migrationManager
   , test_mint
   , test_pause
+  , test_removeOperator
+  , test_setProxy
+  , test_setRedeemAddress
+  , test_transferOwnership
   , test_unpause_
   , test_bookkeeping
   , test_migration
@@ -446,6 +449,45 @@ test_bookkeeping = testGroup "TZBTC contract bookkeeping views test"
     st :: Storage
     st = mkStorage adminAddress redeemAddress_
         (Map.fromList [(redeemAddress_, initialSupply)]) (Set.fromList [newOperatorAddress])
+
+test_setProxy :: TestTree
+test_setProxy = testGroup "TZBTC contract `setProxy` test"
+  [ testCase
+      "Call to `setProxy` from random address gets denied with `NotAllowedToSetProxy`" $
+      contractPropWithSender bob
+        validateFail_ (SetProxy contractAddress) storageWithOperator
+  , testCase
+      "Call to `setProxy` from expected address sets proxy" $
+      contractPropWithSender adminAddress
+        validate_ (SetProxy contractAddress) storageWithOperator
+  , testCase
+      "Call to `setProxy` in contract with proxy set fails with `ProxyAlreadySet` error" $
+      integrationalTestExpectation $ do
+        c <- lOriginate tzbtcContract "TZBTC Contract" storageWithOperator (toMutez 1000)
+        withSender adminAddress $ lCall c (SetProxy contractAddress)
+        withSender adminAddress $ lCall c (SetProxy contractAddress)
+        validate . Left $
+          lExpectError (== ProxyAlreadySet)
+  ]
+  where
+    storageWithOperator =
+      mkStorage adminAddress redeemAddress_
+        (Map.fromList [(redeemAddress_, initialSupply)])
+        (Set.fromList [newOperatorAddress])
+    validateFail_ :: ContractPropValidator (ToT Storage) Assertion
+    validateFail_ (res, _) =
+      assertFailureMessage
+        res [mt|NotAllowedToSetProxy|]
+        "Contract did not fail with 'NotAllowedToSetProxy' message"
+    validate_ :: ContractPropValidator (ToT Storage) Assertion
+    validate_ (res, _) =
+      case res of
+        Left err -> assertFailure $ "Unexpected contract failure: " <> pretty err
+        Right (_operations, rstorage) ->
+          assertEqual
+            "Contract's `proxy` is set as expected"
+             (Right contractAddress)
+             (proxy $ fields $ (fromVal rstorage :: Storage))
 
 -- Migration tests
 

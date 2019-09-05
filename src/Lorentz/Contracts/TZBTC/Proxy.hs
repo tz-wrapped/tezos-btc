@@ -8,6 +8,7 @@
 module Lorentz.Contracts.TZBTC.Proxy
   ( mkStorage
   , tzbtcProxyContract
+  , MLProxy.Parameter
   , MLProxy.SaneParameter
   , MLProxy.fromSaneParameter
   )
