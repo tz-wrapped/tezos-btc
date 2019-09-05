@@ -177,7 +177,7 @@ addRemoveOperator ar = do
   stackType @'[OperatorParams, Storage' _]
   -- Unwrap operator address
   fromNamed #operator
-  -- Get operator set from storage...
+  -- Get set of operators from storage...
   dip $ do
     getField #fields
     getField #operators
@@ -236,22 +236,19 @@ setFields = do
 acceptOwnership :: StorageFieldsC fields => Entrypoint () fields
 acceptOwnership = do
   dip authorizeNewOwner
-  -- Discart the unit parameter
   drop
+  -- Get `newOwner` address from storage
   getField #fields
-  -- Get sender newOwner address
   getField #newOwner
   ifSome (do
     setField #admin
     none
     setField #newOwner -- Reset newOwner field to None.
     setField #fields) (failUsing NotInTransferOwnershipMode)
-    -- This isSome check is probably redundant since the
-    -- check is done in `authorizeNewOwner`
   finishNoOp
 
--- | This accepts a migration script (a lambda) and stores it
--- in the storage field `migrationScript'.
+-- | This accepts a `MigrationManager` (a proxy contract address) and
+-- stores it in the storage field `MigrationManagerOut'.
 startMigrateTo
   :: forall fields. StorageFieldsC fields
   => Entrypoint StartMigrateToParams fields
@@ -267,10 +264,8 @@ startMigrateTo = do
   setField #migrationManagerOut
   setFields
 
--- | This accepts a contract address and store it in the `previousVersion`
--- storage field. This marks this contract to act as a successor of the input
--- contract, and thus enables the `previousContract` to mint tokens in this
--- contract via the `migrateFrom` call here.
+-- | This accepts a `MigrationManager` (a proxy contract address) and stores it
+-- in the `MigrationManagerIn` storage field.
 startMigrateFrom
   :: forall fields. StorageFieldsC fields
   => Entrypoint StartMigrateFromParams fields
@@ -298,9 +293,11 @@ mintForMigration = do
       ifSome (do address; sender # eq) (failUsing MigrationNotEnabled)
       if_ nop $ failUsing SenderIsNotAgent
 
--- | This entry point just fetches the migrationScript from storage
--- and calls it passing senders address and balance migrating all the
--- accounts credits, it also burns all tokens for the sender in this contract.
+-- | This entry point just fetches the migration manager from storage
+-- (MigrationManagerOut) and calls it passing senders address and balance,
+-- migrating all the account's credits. It also burns all tokens for the sender
+-- in this contract. This entrypoint require contract to be running as it
+-- is an end user call.
 migrate :: forall fields. StorageFieldsC fields => Entrypoint MigrateParams fields
 migrate = do
   dip ensureNotPaused
@@ -356,7 +353,7 @@ migrate = do
       cons
       pair
 
--- | Pause end user actions. This is callable only by the operators.
+-- | Pause end user actions. This is callable only by the operator.
 pause :: StorageFieldsC fields => Entrypoint () fields
 pause = do
   dip authorizeOperator
