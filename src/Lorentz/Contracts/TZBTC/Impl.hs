@@ -394,8 +394,7 @@ setProxy = do
   right @Address
   dip $ getField #fields
   setField #proxy
-  setField #fields
-  nil; pair
+  setFields
 
 -- | Check that the sender is admin
 authorizeAdmin
