@@ -2,11 +2,11 @@
  -
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
-{-# Language RebindableSyntax #-}
+{-# LANGUAGE RebindableSyntax #-}
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 
 module Lorentz.Contracts.TZBTC.Impl
-  ( StorageFieldsC
+  ( StorageC
   , ManagedLedger.approve
   , ManagedLedger.approve'
   , ManagedLedger.getAdministrator
@@ -38,12 +38,11 @@ import Data.Set (Set)
 import Data.Vinyl.Derived (Label)
 
 import Lorentz
-import Lorentz.Contracts.TZBTC.Types hiding (AddOperator, RemoveOperator)
 import qualified Lorentz.Contracts.ManagedLedger.Impl as ManagedLedger
 import qualified Lorentz.Contracts.ManagedLedger.Types as ManagedLedger
+import Lorentz.Contracts.TZBTC.Types hiding (AddOperator, RemoveOperator)
 
-type StorageFieldsC fields =
-  fields `HasFieldsOfType`
+type StorageC store = StorageContains store
   [ "admin" := Address
   , "paused" := Bool
   , "totalSupply" := Natural
@@ -54,32 +53,33 @@ type StorageFieldsC fields =
   , "newOwner" := Maybe Address
   , "migrationManagerIn" := Maybe MigrationManager
   , "migrationManagerOut" := Maybe MigrationManager
+  , "ledger" := Address ~> LedgerValue
   ]
 
-type Entrypoint param fields
-  = '[ param, Storage' fields ] :-> ContractOut (Storage' fields)
+type Entrypoint param store
+  = '[ param, store ] :-> ContractOut store
 
 getTotal
-  :: forall fields a.
-    (fields `HasFieldsOfType` '[a := Natural])
-  => Label a -> Entrypoint (View () Natural) fields
-getTotal bp = view_ (do cdr; toField #fields; toField bp)
+  :: forall store a.
+    (StoreHasField store a Natural)
+  => Label a -> Entrypoint (View () Natural) store
+getTotal bp = view_ $ do cdr; stToField bp
 
 -- | Burn the specified amount of tokens from redeem address. Since it
 -- is not possible to burn from any other address, this entry point does
 -- not have an address input. Only operators are allowed to call this entry
 -- point.
-burn :: forall fields. StorageFieldsC fields => Entrypoint BurnParams fields
+burn :: forall store. StorageC store => Entrypoint BurnParams store
 burn = do
   dip authorizeOperator
   -- Get redeem address from storage
   dip $ do
     dup
-    stackType @'[Storage' _, Storage' _]
-    toField #fields; toField #redeemAddress
+    stackType @'[store, store]
+    stToField #redeemAddress
     toNamed #from
   -- Make ManagedLedger's burn entrypoint parameter
-  stackType @'["value" :! Natural, "from" :! Address, Storage' _]
+  stackType @'["value" :! Natural, "from" :! Address, store]
   pair
   burn_
 
@@ -87,94 +87,90 @@ burn = do
 -- to actually update the ledger, and do ML's bookeeping. Also
 -- update the value of `totalBurned` field in this contract.
 burn_
-  :: forall fields. StorageFieldsC fields
-  => Entrypoint ("value" :! Natural, "from" :! Address) fields
+  :: forall store. StorageC store
+  => Entrypoint ("value" :! Natural, "from" :! Address) store
 burn_ = do
   unpair
   dup
   dip $ do
     swap
     pair
-    stackType @'[ManagedLedger.BurnParams, Storage' _]
+    stackType @'[ManagedLedger.BurnParams, store]
     -- Call ManagedLedgers's `debitFrom` function.
     ManagedLedger.debitFrom
     -- Drop burn prameters
     drop
-    stackType @'[Storage' _]
-  stackType @'["value" :! Natural, Storage' _]
+    stackType @'[store]
+  stackType @'["value" :! Natural, store]
   -- Now add the value to total burned field
   -- assuming totalSupply field to be update by
   -- managedLedger's burn procedure.
-  dip $ do
-    dup
-    toField #fields; getField #totalBurned
+  dip $ stGetField #totalBurned
   fromNamed #value
   add
   -- Update storage
-  setField #totalBurned
-  setField #fields
+  stSetField #totalBurned
   finishNoOp
 
 -- | Mint tokens for an account. Uses ML's `creditTo` function
 -- to actually update the ledger, and do ML's bookeeping. Also
 -- update the value of `totalMinted` field in this contract.
-mint_ :: forall fields. StorageFieldsC fields => Entrypoint MintParams fields
+mint_ :: forall store. StorageC store => Entrypoint MintParams store
 mint_ = do
   -- Make managed ledger's mint entrypoint parameter
-  stackType @'[("to" :! Address, "value" :! Natural), Storage' _]
+  stackType @'[("to" :! Address, "value" :! Natural), store]
   dup
   dip $ do
-    stackType @'[ManagedLedger.MintParams, Storage' _]
+    stackType @'[ManagedLedger.MintParams, store]
     -- update ledger
     ManagedLedger.creditTo
     -- Drop mint prameters
     drop
-    stackType @'[Storage' _]
+    stackType @'[store]
   cdr
-  stackType @'["value" :! Natural, Storage' _]
+  stackType @'["value" :! Natural, store]
   -- Now add the value to total minted field
   -- assuming totalSupply field to be updated by
   -- managedLedger's mint procedure.
-  dip $ do
-    dup
-    toField #fields; getField #totalMinted
+  dip $ stGetField #totalMinted
   fromNamed #value
   add
   -- Update storage
-  setField #totalMinted
-  setField #fields
+  stSetField #totalMinted
   finishNoOp
 
 -- | Mints tokens for an account
-mint :: forall fields. StorageFieldsC fields => Entrypoint MintParams fields
+mint :: forall store. StorageC store => Entrypoint MintParams store
 mint = do
   dip authorizeOperator
   mint_
 
 -- | Add a new operator to the set of Operators. Only admin is allowed to call this
 -- entrypoint.
-addOperator :: forall fields. StorageFieldsC fields => Entrypoint OperatorParams fields
+addOperator :: forall store. StorageC store => Entrypoint OperatorParams store
 addOperator = addRemoveOperator AddOperator
 
 -- | Add an operator from the set of Operators. Only admin is allowed to call this
 -- entrypoint.
-removeOperator :: StorageFieldsC fields => Entrypoint OperatorParams fields
+removeOperator :: StorageC store => Entrypoint OperatorParams store
 removeOperator = addRemoveOperator RemoveOperator
 
 -- | A type to indicate required action to the `addRemoveOperator` function.
 data OperatorAction = AddOperator | RemoveOperator
 
 -- | Adds or remove an operator.
-addRemoveOperator :: StorageFieldsC fields => OperatorAction -> Entrypoint OperatorParams fields
+addRemoveOperator
+  :: forall store.
+      StorageC store
+  => OperatorAction -> Entrypoint OperatorParams store
 addRemoveOperator ar = do
   dip authorizeAdmin
-  stackType @'[OperatorParams, Storage' _]
+  stackType @'[OperatorParams, store]
   -- Unwrap operator address
   fromNamed #operator
   -- Get set of operators from storage...
   dip $ do
-    getField #fields
-    getField #operators
+    stGetField #operators
     push $ case ar of
       AddOperator -> True
       RemoveOperator -> False
@@ -182,108 +178,90 @@ addRemoveOperator ar = do
   -- on the value of boolean flag ar
   update
   -- Update storage with the new operator set
-  setField #operators
-  setField #fields
+  stSetField #operators
   finishNoOp
 
 -- | Entry point handler to set redeem address
 setRedeemAddress
-  :: StorageFieldsC fields
-  => Entrypoint SetRedeemAddressParams fields
+  :: StorageC store
+  => Entrypoint SetRedeemAddressParams store
 setRedeemAddress = do
   dip authorizeAdmin
   -- Unwrap operator address
   fromNamed #redeem
-  dip (getField #fields)
   -- Set redeem address
-  setField #redeemAddress
-  setField #fields
+  stSetField #redeemAddress
   finishNoOp
 
 -- | Start the transfer of ownership to a new owner. This stores the
 -- address of the new owenr in the `newOwner` field in storage. Only
 -- admin is allowed to make this call.
 transferOwnership
-  :: StorageFieldsC fields
-  => Entrypoint TransferOwnershipParams fields
+  :: StorageC store
+  => Entrypoint TransferOwnershipParams store
 transferOwnership = do
   dip authorizeAdmin
   -- Unwrap new owner address
   fromNamed #newOwner
-  dip (getField #fields)
   -- Make a `Some` value and..
   some
   -- set it as newOwner field.
-  setField #newOwner
-  setField #fields
+  stSetField #newOwner
   finishNoOp
-
--- | Set inner `fields` value of the storage.
-setFields :: (StorageFieldsC fields) => Entrypoint fields fields
-setFields = do
-  setField #fields
-  nil
-  pair
 
 -- | Accept ownership of the contract. This is only callable by
 -- the address in `newOwner` field, if it contains one.
-acceptOwnership :: StorageFieldsC fields => Entrypoint () fields
+acceptOwnership :: StorageC store => Entrypoint () store
 acceptOwnership = do
   dip authorizeNewOwner
   drop
   -- Get `newOwner` address from storage
-  getField #fields
-  getField #newOwner
+  stGetField #newOwner
   ifSome (do
-    setField #admin
+    stSetField #admin
     none
-    setField #newOwner -- Reset newOwner field to None.
-    setField #fields) (failUsing NotInTransferOwnershipMode)
+    stSetField #newOwner -- Reset newOwner field to None.
+    ) (failUsing NotInTransferOwnershipMode)
   finishNoOp
 
 -- | This accepts a `MigrationManager` (a proxy contract address) and
 -- stores it in the storage field `MigrationManagerOut'.
 startMigrateTo
-  :: forall fields. StorageFieldsC fields
-  => Entrypoint StartMigrateToParams fields
+  :: forall store. StorageC store
+  => Entrypoint StartMigrateToParams store
 startMigrateTo = do
   dip $ do
     authorizeAdmin
     ensurePaused
   fromNamed #migrationManager
-  stackType @'[MigrationManager, Storage' _]
-  dip $ do
-    getField #fields
+  stackType @'[MigrationManager, store]
   some;
-  setField #migrationManagerOut
-  setFields
+  stSetField #migrationManagerOut
+  finishNoOp
 
 -- | This accepts a `MigrationManager` (a proxy contract address) and stores it
 -- in the `MigrationManagerIn` storage field.
 startMigrateFrom
-  :: forall fields. StorageFieldsC fields
-  => Entrypoint StartMigrateFromParams fields
+  :: forall store. StorageC store
+  => Entrypoint StartMigrateFromParams store
 startMigrateFrom = do
   dip authorizeAdmin
   fromNamed #migrationManager
   some
-  dip $ getField #fields
-  setField #migrationManagerIn
-  setField #fields
+  stSetField #migrationManagerIn
   finishNoOp
 
 -- Check the existence of migration agent and if it is equal to the
 -- sender and mints tokens in this contract for the address in parameter
 mintForMigration
-  :: forall fields. StorageFieldsC fields
-  => Entrypoint MintForMigrationParams fields
+  :: forall store. StorageC store
+  => Entrypoint MintForMigrationParams store
 mintForMigration = do
   dip ensureMigrationAgent
   mint_
   where
     ensureMigrationAgent = do
-      getField #fields
-      toField #migrationManagerIn
+      stGetField #migrationManagerIn
       ifSome (do address; sender # eq) (failUsing MigrationNotEnabled)
       if_ nop $ failUsing SenderIsNotAgent
 
@@ -292,51 +270,49 @@ mintForMigration = do
 -- migrating all the account's credits. It also burns all tokens for the sender
 -- in this contract. This entrypoint require contract to be running as it
 -- is an end user call.
-migrate :: forall fields. StorageFieldsC fields => Entrypoint MigrateParams fields
+migrate :: forall store. StorageC store => Entrypoint MigrateParams store
 migrate = do
   dip ensureNotPaused
   drop
   dup
-  toField #ledger;
   sender
-  get
+  stGet #ledger
   if IsSome then do
     toField #balance
     dup; int
     if IsZero
       then failUsing NoBalanceToMigrate
       else do
-        stackType @'[Natural, Storage' fields]
+        stackType @'[Natural, store]
         toNamed #value
-        stackType @'["value" :! Natural, Storage' fields]
+        stackType @'["value" :! Natural, store]
         sender
         swap
         dip $ toNamed #from
-        stackType @'["value" :! Natural, "from" :! Address, Storage' fields]
+        stackType @'["value" :! Natural, "from" :! Address, store]
         dup
         dip $ do
           pair
           burn_
           unpair
           drop
-        stackType @'["value" :! Natural, Storage' fields]
+        stackType @'["value" :! Natural, store]
         fromNamed #value
-        stackType @'[Natural, Storage' fields]
+        stackType @'[Natural, store]
         doMigrate
     else failUsing NoBalanceToMigrate
   where
-    doMigrate :: '[Natural, Storage' fields] :-> '[([Operation], Storage' fields)]
+    doMigrate :: '[Natural, store] :-> '[([Operation], store)]
     doMigrate = do
-      stackType @'[Natural, Storage' fields]
+      stackType @'[Natural, store]
       dip $ do
-        getField #fields
-        toField #migrationManagerOut
+        stGetField #migrationManagerOut
         if IsSome then do
-          stackType @'[MigrationManager, Storage' fields]
+          stackType @'[MigrationManager, store]
           nop
         else
           failUsing MigrationNotEnabled
-      stackType @'[Natural, MigrationManager, Storage' fields]
+      stackType @'[Natural, MigrationManager, store]
       sender
       pair
       push (toMutez 0)
@@ -348,16 +324,17 @@ migrate = do
       pair
 
 -- | Pause end user actions. This is callable only by the operator.
-pause :: StorageFieldsC fields => Entrypoint () fields
+pause :: StorageC store => Entrypoint () store
 pause = do
   dip authorizeOperator
   drop
   push True
-  dip (getField #fields); setField #paused; setFields
+  stSetField #paused
+  finishNoOp
 
 -- | Resume end user actions if the contract is in a paused state.
 -- This is callable only by the admin.
-unpause :: StorageFieldsC fields => Entrypoint () fields
+unpause :: StorageC store => Entrypoint () store
 unpause = do
   drop
   push False
@@ -365,19 +342,19 @@ unpause = do
 
 -- | Check that the sender is admin
 authorizeAdmin
-  :: StorageFieldsC fields
-  => Storage' fields : s :-> Storage' fields : s
+  :: StorageC store
+  => store : s :-> store : s
 authorizeAdmin = do
-  getField #fields; toField #admin; sender; eq
+  stGetField #admin; sender; eq
   if_ nop (failUsing SenderIsNotAdmin)
 
 -- | Check that the address of the sender is an address that is
 -- present in the `newOwner` storage field.
 authorizeNewOwner
-  :: StorageFieldsC fields
-  => Storage' fields : s :-> Storage' fields : s
+  :: StorageC store
+  => store : s :-> store : s
 authorizeNewOwner = do
-  getField #fields; toField #newOwner;
+  stGetField #newOwner;
   if IsSome then do
     sender
     eq
@@ -386,26 +363,26 @@ authorizeNewOwner = do
 
 -- | Check that the sender is an operator
 authorizeOperator
-  :: StorageFieldsC fields
-  => Storage' fields : s :-> Storage' fields : s
+  :: StorageC store
+  => store : s :-> store : s
 authorizeOperator = do
-  getField #fields; toField #operators; sender; mem;
+  stGetField #operators; sender; mem;
   assert SenderIsNotOperator
 
 -- | Check that the contract is paused
 ensurePaused
-  :: forall fields. StorageFieldsC fields
-  => '[Storage' fields] :-> '[Storage' fields]
+  :: forall store. StorageC store
+  => '[store] :-> '[store]
 ensurePaused = do
-  getField #fields; toField #paused
+  stGetField #paused
   if_ (nop) (failUsing ContractIsNotPaused)
 
 -- | Check that the contract is NOT paused
 ensureNotPaused
-  :: forall fields. StorageFieldsC fields
-  => '[Storage' fields] :-> '[Storage' fields]
+  :: forall store. StorageC store
+  => '[store] :-> '[store]
 ensureNotPaused = do
-  getField #fields; toField #paused
+  stGetField #paused
   if_ (failUsing ContractIsPaused) (nop)
 
 -- | Finish with an empty list of operations
