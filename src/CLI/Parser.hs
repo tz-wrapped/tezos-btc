@@ -26,6 +26,7 @@ import Util.Named
 -- | Represents the Cmd line commands with inputs/arguments.
 data CmdLnArgs
   = CmdMint MintParams
+  | CmdMintForMigrations MintForMigrationParams
   | CmdBurn BurnParams
   | CmdTransfer TransferParams
   | CmdApprove ApproveParams
@@ -55,7 +56,7 @@ data TestScenarioOptions = TestScenarioOptions
 
 argParser :: Opt.Parser CmdLnArgs
 argParser = hsubparser $
-  mintCmd <> burnCmd <> transferCmd <> approveCmd
+  mintCmd <> mintForMigrationsCmd <> burnCmd <> transferCmd <> approveCmd
   <> getAllowanceCmd <> getBalanceCmd <> addOperatorCmd
   <> removeOperatorCmd <> pauseCmd <> unpauseCmd
   <> setRedeemAddressCmd <> transferOwnershipCmd
@@ -113,6 +114,12 @@ argParser = hsubparser $
          "mint"
          (CmdMint <$> mintParamParser)
          "Mint tokens for an account")
+    mintForMigrationsCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
+    mintForMigrationsCmd =
+      (mkCommandParser
+         "mintForMigrations"
+         (CmdMintForMigrations <$> mintForMigrationsParamParser)
+         "Mint tokens for an account during migration")
     burnCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     burnCmd =
       (mkCommandParser
@@ -200,6 +207,11 @@ argParser = hsubparser $
 
 mintParamParser :: Opt.Parser MintParams
 mintParamParser =
+  (,) <$> (getParser "Address to mint to")
+       <*> (getParser "Amount to mint")
+
+mintForMigrationsParamParser :: Opt.Parser MintParams
+mintForMigrationsParamParser =
   (,) <$> (getParser "Address to mint to")
        <*> (getParser "Amount to mint")
 
