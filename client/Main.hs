@@ -100,6 +100,12 @@ readConfigFromFile filepath = do
     Just config -> return $ Right config
     Nothing -> return $ Left TzbtcClientConfigError
 
+requestSignature :: InternalByteString -> IO Signature
+requestSignature bs = do
+  putStrLn $ "Please, sign the following operation: " <> "0x03" <> formatByteString bs
+  putStrLn ("Paste your signature:" :: Text)
+  unsafeParseSignature <$> getLine
+
 runTransaction :: Parameter -> IO ()
 runTransaction param = do
   manager' <- newManager $ defaultManagerSettings { managerModifyRequest = fixRequest }
@@ -128,7 +134,8 @@ runTransaction param = do
                             , toFee = calcFees consumedGas storageSize
                             }]
     }
-  let signature' = signOperationHex ccUserSecretKey hex
+  signature' <- requestSignature hex
+  -- let signature' = signOperationHex ccUserSecretKey hex
   opHash <- throwClientError $ injectOp clientEnv $ prepareForInjection hex signature'
   putStrLn $ "Operation hash: " <> opHash
 
