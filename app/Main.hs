@@ -32,6 +32,7 @@ main = do
   cmd <- execParser programInfo
   case cmd of
     CmdMint mintParams -> printParam (Mint mintParams)
+    CmdMintForMigrations params -> printParam (MintForMigration params)
     CmdBurn burnParams -> printParam (Burn burnParams)
     CmdTransfer transferParams -> printParam (Transfer transferParams)
     CmdApprove approveParams -> printParam (Approve approveParams)
