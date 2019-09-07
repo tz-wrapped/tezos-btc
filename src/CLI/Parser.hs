@@ -47,6 +47,7 @@ data CmdLnArgs
   | CmdPrintAgentContract Bool (Maybe FilePath)
   | CmdParseParameter Text
   | CmdTestScenario TestScenarioOptions
+  | CmdTest
 
 data TestScenarioOptions = TestScenarioOptions
   { tsoMaster :: !Address
@@ -63,7 +64,7 @@ argParser = hsubparser $
   <> startMigrateFromCmd <> startMigrateToCmd
   <> migrateCmd <> printCmd
   <> printAgentCmd <> printInitialStorageCmd
-  <> parseParameterCmd <> testScenarioCmd
+  <> parseParameterCmd <> testScenarioCmd <> testCmd
   where
     mkCommandParser ::
          String
@@ -107,6 +108,12 @@ argParser = hsubparser $
       (mkCommandParser
           "testScenario"
           (CmdTestScenario <$> testScenarioOptions)
+          "Print parameters for smoke tests")
+    testCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
+    testCmd =
+      (mkCommandParser
+          "test"
+          (pure CmdTest)
           "Print parameters for smoke tests")
     mintCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     mintCmd =

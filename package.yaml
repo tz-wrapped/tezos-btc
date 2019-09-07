@@ -47,6 +47,13 @@ executables:
       - optparse-applicative
       - safe-exceptions
       - tzbtc
+      #######
+      - typed-process
+      - bytestring
+      - temporary
+      - singletons
+      - attoparsec
+      - text
 
 tests:
   tzbtc-test:
