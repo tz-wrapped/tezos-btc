@@ -6,7 +6,7 @@
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 
 module Lorentz.Contracts.TZBTC.Agent
-  ( Parameter
+  ( Parameter(..)
   , StorageFields(..)
   , agentContract
   , Error(..)

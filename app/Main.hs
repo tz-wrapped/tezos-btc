@@ -25,7 +25,7 @@ import Lorentz.Contracts.TZBTC
   (Parameter(..), agentContract, mkStorage, tzbtcCompileWay, tzbtcContract)
 
 import Michelson.Typed (HasNoOp, IsoValue, ToT)
-import Lorentz (NoOperation, NoBigMap, CanHaveBigMap, ContractAddr(..), Contract)
+import Lorentz (NoOperation, View(..), NoBigMap, CanHaveBigMap, ContractAddr(..), Contract)
 import Tezos.Address
 import System.Process.Typed
 import qualified Data.ByteString.Lazy as BSL
@@ -152,7 +152,7 @@ doTest = do
   -- Add an operator
   callContract v1 (AddOperator (#operator .! operatorAddress)) adminAddress
   -- Mint some coins for alice
-  callContract v1 (Mint (#to .! alice, #value .! 500)) operatorAddress
+  callContract v1 (Mint (#to .! alice, #value .! 763)) operatorAddress
   -- Deploy V2
   v2 <-
     alphanetOriginate
@@ -178,8 +178,12 @@ doTest = do
   callContract v2 (StartMigrateFrom (#migrationManager .! manager) ) adminAddress
   -- Unpause v1
   callContract v1 (Unpause ()) adminAddress
-  -- Alice migrates her coins
+  -- Alice migrates her coins : Step 1
   callContract v1 (Migrate ()) alice
+  -- Alice migrates her coins : Step 2
+  callContract manager (Agent.ForwardTokens ()) alice
+  -- Check balance of alice in V2
+  callContract v2 (GetBalance (View alice (ContractAddr $ unsafeParseAddress "KT19JjUrQr7A4CM9FmwtcYJvXvTjguvi4XaS"))) adminAddress
 
 alphanetOriginate
   :: forall cp st.
