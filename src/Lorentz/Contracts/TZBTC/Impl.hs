@@ -360,7 +360,7 @@ migrate = do
       pair
       push (toMutez 0)
       swap
-      transferTokens
+      undefined --transferTokens
       nil
       swap
       cons

@@ -38,10 +38,11 @@ import Data.Set (Set)
 
 import Lorentz
 import qualified Lorentz.Contracts.ManagedLedger.Types as ManagedLedger
+import qualified Lorentz.Contracts.TZBTC.Agent as Agent
 import Lorentz.Contracts.ManagedLedger.Types (Storage'(..), mkStorage')
 import Util.Instances ()
 
-type MigrationManager = ContractAddr (Address, Natural)
+type MigrationManager = ContractAddr Agent.Parameter
 type BurnParams = ("value" :! Natural)
 type OperatorParams = ("operator" :! Address)
 type TransferViaProxyParams = ("sender" :! Address, ManagedLedger.TransferParams)

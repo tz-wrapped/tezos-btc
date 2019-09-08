@@ -167,7 +167,7 @@ doTest = do
   -- Deploy Manager
   manager <- alphanetOriginate
     agentContract
-    (Agent.StorageFields (unContractAddress v1) v2)
+    (Agent.mkStorage (unContractAddress v1) v2)
     "Manager"
     adminAddress
   -- Pause v1
