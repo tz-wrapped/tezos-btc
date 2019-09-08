@@ -42,6 +42,7 @@ import Data.Vinyl.Derived (Label)
 
 import Lorentz
 import Lorentz.Contracts.TZBTC.Types hiding (AddOperator, RemoveOperator)
+import qualified Lorentz.Contracts.TZBTC.Agent as Agent
 import qualified Lorentz.Contracts.ManagedLedger.Impl as ManagedLedger
 import qualified Lorentz.Contracts.ManagedLedger.Types as ManagedLedger
 
@@ -358,9 +359,10 @@ migrate = do
       stackType @'[Natural, MigrationManager, Storage' fields]
       sender
       pair
+      wrap_ @Agent.Parameter #cCacheTokens
       push (toMutez 0)
       swap
-      undefined --transferTokens
+      transferTokens
       nil
       swap
       cons

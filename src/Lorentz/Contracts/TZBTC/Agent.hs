@@ -45,6 +45,7 @@ data Storage tp = Storage
 data Error
   = MigrationBadOrigin
   | CacheExists
+  | NoCache
   deriving stock (Eq, Generic)
 
 deriveCustomError ''Error
@@ -67,32 +68,27 @@ agentContract = do
     , #cForwardTokens /-> forwardTokens
     )
 
+-- | Cache tokens from old contract in first step of migration.
 cacheTokens ::
   forall cp.  Entrypoint CacheTokenParams cp
 cacheTokens = do
-  stackType @((Address, Natural): Storage cp : _)
   dip $ do
     ensureOldContract
-  stackType @((Address, Natural): Storage cp : _)
+  -- Check if an entry exists for user
+  -- if yes, throw error or else fetch cache from storage
   dup
   dip $ do
-    stackType @((Address, Natural) : Storage cp : _)
     car
-    stackType @(Address : Storage cp : _)
     dip $ getField #cache
-    stackType @(Address : BigMap Address Natural : Storage cp : _)
     get
-    stackType @(Maybe Natural : Storage cp : _)
     if IsSome
       then failUsing CacheExists
       else do
-        stackType @(Storage cp : _)
         getField #cache
-  stackType @((Address, Natural): BigMap Address Natural : Storage cp : _)
+  -- Set token count for address
   unpair
   dip some
   update
-  stackType @(BigMap Address Natural : Storage cp : _)
   setField #cache
   finishNoOp
     where
@@ -104,60 +100,75 @@ cacheTokens = do
           nop
         else failUsing MigrationBadOrigin
 
-
-forwardTokens ::
-  Entrypoint ForwardTokenParams cp
-forwardTokens = undefined
+-- | Forward cached tokens from first step of migration and mint
+-- them in new version of contract.
+forwardTokens
+  :: forall parameter.
+     ( InstrWrapC parameter "cMintForMigration"
+     , AppendCtorField
+         (GetCtorField parameter "cMintForMigration") '[]
+       ~ '[("to" :! Address, "value" :! Natural)]
+     , KnownValue parameter, NoOperation parameter, NoBigMap parameter
+     ) => Entrypoint ForwardTokenParams parameter
+forwardTokens = do
+  drop
+  sender
+  dup
+  dip $ do
+    dip $ getField #cache
+    get
+    stackType @(Maybe Natural : Storage parameter: '[])
+    if IsSome
+      then do
+        stackType @(Natural : Storage parameter: '[])
+      else failUsing NoCache
+  stackType @(Address : Natural : Storage parameter: '[])
+  -- burn all cached tokens for sender
+  dup
+  stackType @(Address : Address : Natural : Storage parameter: '[])
+  dip $ do
+    swap
+    stackType @(Natural : Address : Storage parameter: '[])
+    dip $ do
+      stackType @(Address : Storage parameter: '[])
+      dip $ do
+        getField #cache
+        none
+      stackType @(Address : Maybe Natural : BigMap Address Natural : Storage parameter: '[])
+      update
+      stackType @(BigMap Address Natural : Storage parameter: '[])
+      setField #cache
+  -- Mint tokens in new version
+  stackType @(Address : Natural : Storage parameter: '[])
+  toNamed #to
+  dip $ toNamed #value
+  pair
+  stackType @(("to" :! Address , "value" :! Natural) : Storage parameter: '[])
+  swap
+  stackType @(Storage parameter: ("to" :! Address , "value" :! Natural) : '[])
+  dip $ do
+    wrap_ @parameter #cMintForMigration
+    stackType @('[parameter])
+  dup
+  stackType @('[Storage parameter, Storage parameter, parameter])
+  dip $ do
+    swap
+    dip $ do
+      toField #fields
+      toField #newVersion
+    stackType @(parameter ': ContractAddr parameter ': '[])
+    dip $ do
+      push (toMutez 0)
+    stackType @(parameter ': Mutez ': ContractAddr parameter ': '[])
+    transferTokens
+    dip nil; cons;
+  swap
+  pair
 
 -- | Finish with an empty list of operations
 finishNoOp :: '[st] :-> (ContractOut st)
 finishNoOp = do nil;pair
 
+-- | Make storage for migration manager contract
 mkStorage :: Address -> ContractAddr cp -> Storage cp
 mkStorage a1 a2 = Storage mempty (StorageFields a1 a2)
-
--- | A migration agent that can migrate to any contract as long as the
--- target contract have a constructor/entrypoint `MintForMigration` with field
--- ("to" :! Address, "value" :! Natural)
---agentContract
---  :: forall parameter.
---  ( InstrWrapC parameter "cMintForMigration"
---  , AppendCtorField
---      (GetCtorField parameter "cMintForMigration") '[]
---    ~ '[("to" :! Address, "value" :! Natural)]
---  , KnownValue parameter, NoOperation parameter, NoBigMap parameter
---  ) => Contract Parameter (StorageFields parameter)
---agentContract = do
---  -- Pack input into parameter of target contract
---  stackType @('[((Address, Natural), StorageFields parameter)])
---  unpair
---  dip ensureOldContract
---  stackType @('[(Address, Natural), StorageFields parameter])
---  unpair
---  toNamed #to
---  dip $ toNamed #value
---  pair
---  stackType @('[("to" :! Address, "value" :! Natural), StorageFields parameter])
---  swap
---  dip $ do
---    wrap_ @parameter #cMintForMigration
---    stackType @('[parameter])
---  swap
---  stackType @('[parameter, StorageFields parameter])
---  -- Get new contract address from storage
---  -- and call it passing the input paramter
---  dip $ do
---    dup
---    toField #newVersion
---    push (toMutez 0)
---  stackType @('[parameter, Mutez, ContractAddr parameter, StorageFields parameter])
---  transferTokens
---  dip nil; cons;
---  pair
---    where
---      ensureOldContract = do
---        getField #oldVersion
---        sender
---        if IsEq then
---          nop
---        else failUsing MigrationBadOrigin
