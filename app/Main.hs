@@ -14,15 +14,14 @@ import Options.Applicative
 import Options.Applicative.Help.Pretty (Doc, linebreak)
 
 import Lorentz
-  (Address, CanHaveBigMap, Contract, KnownValue, NoBigMap, NoOperation,
+  (CanHaveBigMap, Contract, KnownValue, NoBigMap, NoOperation,
    parseLorentzValue, printLorentzContract, printLorentzValue, lcwDumb)
 import Lorentz.Common (showTestScenario)
 import Util.IO (writeFileUtf8)
 import Paths_tzbtc (version)
 
 import CLI.Parser
-import Lorentz.Contracts.TZBTC
-  (Parameter(..), agentContract, mkStorage, tzbtcCompileWay, tzbtcContract)
+import Lorentz.Contracts.TZBTC (Parameter(..), agentContract, mkStorage, tzbtcContract)
 import Lorentz.Contracts.TZBTC.Proxy (tzbtcProxyContract)
 import Lorentz.Contracts.TZBTC.Test (mkTestScenario)
 

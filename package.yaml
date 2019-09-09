@@ -24,12 +24,12 @@ library:
 
   dependencies:
     - aeson
+    - aeson-casing
     - bytestring
     - containers
     - hex-text
     - memory
     - morley
-    - lens
     - lorentz-contracts
     - morley-prelude
     - named
@@ -62,6 +62,7 @@ executables:
 
     dependencies:
       - aeson
+      - directory
       - fmt
       - http-client
       - lorentz-contracts

@@ -40,8 +40,8 @@ instance Buildable TzbtcClientError where
     "Invalid client configuration. Use 'tzbtc-client setupClient'"
 
   build (TzbtcRunFailed errs) =
-    "Transaction pre-apply have failed with " +| length errs |+ " errors:\n" +|
-    mconcat (map ((<> "\n") . build) errs) |+ ""
+    "Transaction run have failed with " +| length errs |+ " errors:\n" +|
+    mconcat (map ((<> "\n\n") . build) errs) |+ ""
 
 instance Show TzbtcClientError where
   show = pretty

@@ -51,7 +51,7 @@ if __name__ == '__main__':
         "originate", "contract", contract_alias, "for", owner, "transferring",
         "0", "from", owner, "running", "container:" + contract_tz,
         "--init", initial_storage.strip(),
-        "--burn-cap", "10",
+        "--burn-cap", "20",
         ]
     if args.dry_run:
         print(originate_cmd)

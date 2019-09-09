@@ -31,26 +31,36 @@ this executable performs transactions to the chain using remote
 tezos-node. In order to setup `tzbtc-client` you should use
 `tzbtc-client setupClient` command. Most of the commands (except
 `printContract`, `printInitialStorage`, `parseContractParameter`,
-`testScenario`) will perform a transaction and return operation hash
-which can later be checked in the block explorer.
+`testScenario`, `injectOperation`, `setupClient`) will perform forge
+and return an unsigned operation.
 
 `tzbtc-client` interacts with the tezos node using [RPC API](https://tezos.gitlab.io/master/api/rpc.html).
-Transaction execution takes place in several stages:
+Transaction forging takes place in several stages:
 
 * Get latest block hash, in which our transaction is going to be injected.
 * Get sender counter, so that we can construct correct transaction.
-* Forge transaction to get it hexademical representation and sign it using user
-secret key. This signature is required for preapplying and injection.
-* Preapply this transaction in order to get estimated consumed gas and storage size.
+* Dry-run this transaction in order to get estimated consumed gas and storage size.
 Also, on this stage transaction correctness is ensured.
-* Forge transaction once again, now with estimated consumed gas, storage size and fee.
-Hexademical representation of this transaction is once again signed using user
-secret key.
-* Inject transaction using hexademical representation and signature obtained during
-previous step.
+* Forge transaction with estimated consumed gas, storage size and fee.
+Hexadecimal representation of this transaction is returned to the stdout.
 
-As a result of injection we will have transaction hash, that can be checked in the
-block explorer.
+`injectOperation` command takes unsigned operation and signature (obtained from
+transaction sender) and perform injection to the chain. As a result, it returns
+operation hash, which can later be checked in the block explorer.
+
+`setupClient` command is required for setting up `tzbtc-client` and
+`/scripts/tzbtc.sh` environment. It takes information about node,
+user information (its address and name alias in the `tezos-client`)
+and contract address.
+
+`/scripts/tzbtc.sh` script combines `tzbtc-client` with `tezos-client`.
+It performs transaction forge using `tzbtc-client`, then signs it using
+`tezos-client` and finally injects it to the chain using `tzbtc-client`
+once again.
+
+So the workflow for interacting with the TZBTC contract on the chain is the following:
+* Use `tzbtc-client setupClient` to set up the environment.
+* Use `/scripts/tzbtc.sh` for submitting transactions to the chain.
 
 ## Issue Tracker [↑](#ZBTC)
 

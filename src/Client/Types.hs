@@ -17,15 +17,16 @@ module Client.Types
   ) where
 
 import Data.Aeson (FromJSON(..), ToJSON(..), object, withObject, (.=), (.:), (.:?), (.!=))
-import Data.Aeson.TH (defaultOptions, deriveJSON)
-import Fmt (Buildable(..), (+|), (|+), (+||))
+import Data.Aeson.Casing (aesonPrefix, snakeCase)
+import Data.Aeson.TH (deriveJSON)
+import Fmt (Buildable(..), (+|), (|+))
 import Tezos.Base16ByteString (Base16ByteString(..))
 import Tezos.Micheline
   (Expression(..), MichelinePrimAp(..), MichelinePrimitive(..))
 import Tezos.Json (TezosWord64(..))
 
-import Tezos.Address (Address, formatAddress)
-import Tezos.Crypto (SecretKey, Signature, encodeBase58Check, formatSignature)
+import Tezos.Address (Address)
+import Tezos.Crypto (Signature, encodeBase58Check)
 
 newtype MichelsonExpression = MichelsonExpression Expression
   deriving newtype FromJSON
@@ -62,13 +63,6 @@ data RunOperation = RunOperation
   , roSignature :: Signature
   }
 
-instance ToJSON RunOperation where
-  toJSON RunOperation{..} = object
-    [ "branch" .= toString roBranch
-    , "contents" .= toJSON roContents
-    , "signature" .= formatSignature roSignature
-    ]
-
 data RunRes = RunRes
   { rrOperationContents :: [OperationContent]
   }
@@ -101,21 +95,38 @@ instance FromJSON InternalOperation where
     InternalOperation <$> o .: "result"
 
 data RunError
-  = RunErrorId Text Text
-  | RunErrorValue Expression
+  = RuntimeError Address
+  | ScriptRejected MichelsonExpression
+  | BadContractParameter Address
+  | InvalidConstant MichelsonExpression MichelsonExpression
+  | InconsistentTypes MichelsonExpression MichelsonExpression
 
 instance FromJSON RunError where
-  parseJSON = withObject "preapply error" $ \o -> asum
-    [ RunErrorId <$> o .: "contract_handle" <*> o .: "id"
-    , RunErrorValue <$> o .: "with"
-    ]
+  parseJSON = withObject "preapply error" $ \o -> do
+    id' <- o .: "id"
+    case id' of
+      "proto.004-Pt24m4xi.michelson_v1.runtime_error" ->
+        RuntimeError <$> o .: "contract_handle"
+      "proto.004-Pt24m4xi.michelson_v1.script_rejected" ->
+        ScriptRejected <$> o .: "with"
+      "proto.004-Pt24m4xi.michelson_v1.bad_contract_parameter" ->
+        BadContractParameter <$> o .: "contract"
+      "proto.004-Pt24m4xi.michelson_v1.invalid_constant" ->
+        InvalidConstant <$> o .: "expected_type" <*> o .: "wrong_expression"
+      "proto.004-Pt24m4xi.michelson_v1.inconsistent_types" ->
+        InconsistentTypes <$> o .: "first_type" <*> o .: "other_type"
+      _ -> fail ("unknown id: " <> id')
 
 instance Buildable RunError where
-  build (RunErrorId contractHandle id') =
-    "Pre apply for contract '" +| contractHandle |+
-    "' failed with error: " +| id' |+ ""
-  build (RunErrorValue expr) =
-    "Pre apply failed with value '" +|| expr ||+ "'"
+  build = \case
+    RuntimeError addr -> "Runtime error for contract: " +| addr |+ ""
+    ScriptRejected expr -> "Script rejected with: " +| expr |+ ""
+    BadContractParameter addr -> "Bad contract parameter for: " +| addr |+ ""
+    InvalidConstant expectedType expr ->
+      "Invalid type: " +| expectedType |+ "\n" +|
+      "For: " +| expr |+ ""
+    InconsistentTypes type1 type2 ->
+      "Inconsistent types: " +| type1 |+ " and " +| type2 |+ ""
 
 data RunOperationResult
   = RunOperationApplied TezosWord64 TezosWord64
@@ -140,35 +151,27 @@ instance FromJSON RunOperationResult where
       _ -> fail ("unexpected status " ++ status)
 
 data TransactionOperation = TransactionOperation
-  { source :: Address
-  , fee :: TezosWord64
-  , counter :: TezosWord64
-  , gasLimit :: TezosWord64
-  , storageLimit :: TezosWord64
-  , amount :: TezosWord64
-  , destination :: Address
-  , parameters :: Expression
+  { toKind :: Text
+  , toSource :: Address
+  , toFee :: TezosWord64
+  , toCounter :: TezosWord64
+  , toGasLimit :: TezosWord64
+  , toStorageLimit :: TezosWord64
+  , toAmount :: TezosWord64
+  , toDestination :: Address
+  , toParameters :: Expression
   }
-
-instance ToJSON TransactionOperation where
-  toJSON TransactionOperation {..} = object
-    [ "kind" .= ("transaction" :: String)
-    , "source" .= formatAddress source
-    , "fee" .= toJSON fee
-    , "counter" .= toJSON counter
-    , "gas_limit" .= toJSON gasLimit
-    , "storage_limit" .= toJSON storageLimit
-    , "amount" .= toJSON amount
-    , "destination" .= formatAddress destination
-    , "parameters" .= toJSON parameters
-    ]
 
 data ClientConfig = ClientConfig
   { ccNodeAddress :: Text
   , ccNodePort :: Int
   , ccContractAddress :: Address
   , ccUserAddress :: Address
-  , ccUserSecretKey :: SecretKey
-  } deriving (Generic)
+  , ccUserAlias :: Text
+  , ccTzbtcExecutable :: FilePath
+  , ccTezosClientExecutable :: FilePath
+  }
 
-deriveJSON defaultOptions ''ClientConfig
+deriveJSON (aesonPrefix snakeCase) ''TransactionOperation
+deriveJSON (aesonPrefix snakeCase) ''ClientConfig
+deriveJSON (aesonPrefix snakeCase) ''RunOperation

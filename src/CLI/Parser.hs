@@ -68,6 +68,8 @@ argParser = hsubparser $
   <> printAgentCmd <> printProxyCmd
   <> printInitialStorageCmd <> parseParameterCmd <> testScenarioCmd
   where
+    singleLineSwitch =
+            switch (long "oneline" <> help "Single line output")
     printCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     printCmd =
       (mkCommandParser

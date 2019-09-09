@@ -18,6 +18,7 @@ import Network.HTTP.Client
   (ManagerSettings(..), Request(..), newManager, defaultManagerSettings)
 import Servant.Client
   (BaseUrl(..), ClientError, ClientEnv, Scheme(..), mkClientEnv, runClientM)
+import System.Directory (createDirectoryIfMissing, getHomeDirectory)
 import Tezos.Json (TezosWord64)
 
 import Lorentz (lcwDumb, parseLorentzValue, printLorentzContract, printLorentzValue)
@@ -38,6 +39,7 @@ import Client.Types
 import Client.Util
 import Lorentz.Contracts.TZBTC
   (Parameter(..), agentContract, mkStorage, tzbtcCompileWay, tzbtcContract)
+import Lorentz.Contracts.TZBTC.Proxy (tzbtcProxyContract)
 import Lorentz.Contracts.TZBTC.Test (mkTestScenario)
 
 stubSignature :: Signature
@@ -46,14 +48,15 @@ stubSignature = unsafeParseSignature
 
 dumbOp :: TransactionOperation
 dumbOp = TransactionOperation
-  { source = genesisAddress1
-  , fee = 50000
-  , counter = 0
-  , gasLimit = 800000
-  , storageLimit = 10000
-  , amount = 0
-  , destination = genesisAddress2
-  , parameters = paramToExpression $ Pause ()
+  { toKind = "transaction"
+  , toSource = genesisAddress1
+  , toFee = 50000
+  , toCounter = 0
+  , toGasLimit = 800000
+  , toStorageLimit = 10000
+  , toAmount = 0
+  , toDestination = genesisAddress2
+  , toParameters = paramToExpression $ Pause ()
   }
 
 fixRequest :: Request -> IO Request
@@ -90,36 +93,41 @@ getOperationHex env forgeOp = runClientM (forgeOperation forgeOp) env
 getLastBlockHash :: ClientEnv -> IO (Either ClientError Text)
 getLastBlockHash env = runClientM getLastBlock env
 
-injectOp :: ClientEnv -> Text -> IO (Either ClientError Text)
-injectOp env opToInject = runClientM (injectOperation (Just "main") opToInject) env
+injectOp :: Text -> Signature -> IO ()
+injectOp opToInject sign = do
+  config@ClientConfig{..} <- throwLeft $ readConfigFile
+  clientEnv <- getClientEnv config
+  opHash <- throwClientError $ runClientM
+    (injectOperation (Just "main") $ prepareForInjection opToInject sign) clientEnv
+  putStrLn $ "Operation hash: " <> opHash
+  pass
 
-readConfigFromFile :: FilePath -> IO (Either TzbtcClientError ClientConfig)
-readConfigFromFile filepath = do
-  mbConfig <- decodeFileStrict filepath
+readConfigFile :: IO (Either TzbtcClientError ClientConfig)
+readConfigFile = do
+  homeDir <- getHomeDirectory
+  let fullPath = homeDir <> directory
+  mbConfig <- decodeFileStrict (fullPath <> configPath)
   case mbConfig of
     Just config -> return $ Right config
     Nothing -> return $ Left TzbtcClientConfigError
 
-requestSignature :: InternalByteString -> IO Signature
-requestSignature bs = do
-  putStrLn $ "Please, sign the following operation: " <> "0x03" <> formatByteString bs
-  putStrLn ("Paste your signature:" :: Text)
-  unsafeParseSignature <$> getLine
+getClientEnv :: ClientConfig -> IO ClientEnv
+getClientEnv ClientConfig{..} = do
+  manager' <- newManager $ defaultManagerSettings { managerModifyRequest = fixRequest }
+  let nodeUrl = BaseUrl Http (toString ccNodeAddress) ccNodePort ""
+  return $ mkClientEnv manager' nodeUrl
 
 runTransaction :: Parameter -> IO ()
 runTransaction param = do
-  manager' <- newManager $ defaultManagerSettings { managerModifyRequest = fixRequest }
-  ClientConfig{..} <- throwLeft $ readConfigFromFile configPath
-  let nodeUrl = BaseUrl Http (toString ccNodeAddress) ccNodePort ""
-      clientEnv = mkClientEnv manager' nodeUrl
-      operation = param
+  config@ClientConfig{..} <- throwLeft $ readConfigFile
+  clientEnv <- getClientEnv config
   lastBlockHash <- throwClientError $ getLastBlockHash clientEnv
   counter <- throwClientError $ getAddressCounter clientEnv ccUserAddress
   let opToRun = dumbOp
-        { counter = counter + 1
-        , destination = ccContractAddress
-        , source = ccUserAddress
-        , parameters = paramToExpression $ operation
+        { toCounter = counter + 1
+        , toDestination = ccContractAddress
+        , toSource = ccUserAddress
+        , toParameters = paramToExpression $ param
         }
   let runOp = RunOperation
         { roBranch = lastBlockHash
@@ -129,28 +137,31 @@ runTransaction param = do
   (consumedGas, storageSize) <- throwLeft $ getCosts clientEnv runOp
   hex <- throwClientError $ getOperationHex clientEnv ForgeOperation
     { foBranch = lastBlockHash
-    , foContents = [opToRun { toGasLimit = consumedGas + 100
+    , foContents = [opToRun { toGasLimit = consumedGas + 200
                             , toStorageLimit = storageSize + 20
                             , toFee = calcFees consumedGas storageSize
                             }]
     }
-  signature' <- requestSignature hex
-  -- let signature' = signOperationHex ccUserSecretKey hex
-  opHash <- throwClientError $ injectOp clientEnv $ prepareForInjection hex signature'
-  putStrLn $ "Operation hash: " <> opHash
+  putStrLn $ formatByteString hex
 
-configPath :: FilePath
+directory, configPath :: FilePath
+directory = "/.tzbtc/"
 configPath = "config.json"
 
 setupClient :: ClientConfig -> IO ()
 setupClient config = do
-  encodeFile configPath config
+  homeDir <- getHomeDirectory
+  let fullPath = homeDir <> directory
+  createDirectoryIfMissing True fullPath
+  encodeFile (fullPath <> configPath) config
 
 main :: IO ()
 main = do
   cmd <- execParser programInfo
   case cmd of
     CmdSetupClient config -> setupClient config
+    CmdInjectOperation unsignedOp signature' ->
+      injectOp unsignedOp signature'
     CmdTransaction arg -> case arg of
       CmdMint mintParams -> runTransaction $ Mint mintParams
       CmdBurn burnParams -> runTransaction $ Burn burnParams
@@ -177,6 +188,9 @@ main = do
       CmdPrintAgentContract singleLine mbFilePath ->
         maybe putStrLn writeFileUtf8 mbFilePath $
         printLorentzContract singleLine lcwDumb (agentContract @Parameter)
+      CmdPrintProxyContract singleLine mbFilePath ->
+        maybe putStrLn writeFileUtf8 mbFilePath $
+        printLorentzContract singleLine lcwDumb tzbtcProxyContract
       CmdPrintInitialStorage adminAddress redeemAddress ->
         putStrLn $ printLorentzValue True (mkStorage adminAddress redeemAddress mempty mempty)
       CmdParseParameter t ->
@@ -209,8 +223,12 @@ main = do
       , "USAGE EXAMPLE:", linebreak
       , "  tzbtc-client mint --to tz1U1h1YzBJixXmaTgpwDpZnbrYHX3fMSpvb --value 100500", linebreak
       , linebreak
-      , "  This command will return perform transaction that", linebreak
-      , "  will mint given amout of token to the given address.", linebreak
-      , "  As a result, this command returns operation hash,", linebreak
-      , "  which later can be checked in the block explorer"
+      , "  This command will return perform transaction forge", linebreak
+      , "  As a result, this command returns unsigned operation", linebreak
+      , "  in the hexademical form.", linebreak
+      , linebreak
+      , "Once the operation is signed, you can use:", linebreak
+      , "  tzbtc-client injectOperation <unsigned_operation> <signature>", linebreak
+      , linebreak
+      , "  Thus give operation will be injected to the chain (in case of correct signature)"
       ]

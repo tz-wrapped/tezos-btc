@@ -18,9 +18,9 @@ import Tezos.Crypto (Signature(..), parseSignature)
 formatByteString :: InternalByteString -> Text
 formatByteString (InternalByteString bs) = encodeHex bs
 
-prepareForInjection :: InternalByteString -> Signature -> Text
-prepareForInjection (InternalByteString operationHex) (Signature signature') =
-  encodeHex operationHex <> (encodeHex . BA.convert) signature'
+prepareForInjection :: Text -> Signature -> Text
+prepareForInjection operationHex (Signature signature') =
+  operationHex <> (encodeHex . BA.convert) signature'
 
 unsafeParseSignature :: HasCallStack => Text -> Signature
 unsafeParseSignature = either (error . pretty) id . parseSignature
