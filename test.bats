@@ -97,7 +97,7 @@
 
 @test "invoking tzbts 'printInitialStorage'" {
   result="$(stack exec -- tzbtc printInitialStorage tz1f1S7V2hZJ3mhj47djb5j1saek8c2yB2Cx tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV)"
-  [ "$result" == '(Pair { } (Pair (Pair (Pair "tz1f1S7V2hZJ3mhj47djb5j1saek8c2yB2Cx" False) (Pair 0 (Pair 0 0))) (Pair (Pair None { }) (Pair None (Pair None "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV")))))' ]
+  [ "$result" == '(Pair { } (Pair (Pair (Pair "tz1f1S7V2hZJ3mhj47djb5j1saek8c2yB2Cx" (Pair False 0)) (Pair 0 (Pair 0 None))) (Pair (Pair { } (Pair None None)) (Pair "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" (Pair "ZBTC" "TZBTC")))))' ]
 }
 
 @test "invoking 'parseContractParameter' to parse burn parameter" {
