@@ -14,13 +14,13 @@
 @test "invoking tzbtc 'mint' command" {
   result="$(stack exec -- tzbtc mint\
           --to "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" --value 100)"
-  [ "$result" == '(Left (Right (Right (Left (Pair "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" 100)))))' ]
+  [ "$result" == '(Left (Right (Right (Right (Left (Pair "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" 100))))))' ]
 
 }
 
 @test "invoking tzbtc 'burn' command" {
   result="$(stack exec -- tzbtc burn --value 100)"
-  [ "$result" == '(Left (Right (Right (Right (Left 100)))))' ]
+  [ "$result" == '(Left (Right (Right (Right (Right 100)))))' ]
 }
 
 @test "invoking tzbtc 'transfer' command" {
@@ -48,28 +48,28 @@
 @test "invoking tzbtc 'addOperator' command" {
   result="$(stack exec -- tzbtc addOperator\
     --operator "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV")"
-  [ "$result" == '(Left (Right (Right (Right (Right "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV")))))' ]
+  [ "$result" == '(Right (Left (Left (Left "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"))))' ]
 }
 
 @test "invoking tzbtc 'removeOperator' command" {
   result="$(stack exec -- tzbtc removeOperator\
     --operator "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV")"
-  [ "$result" == '(Right (Left (Right (Left "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"))))' ]
+  [ "$result" == '(Right (Left (Left (Right "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"))))' ]
 }
 
 @test "invoking tzbtc 'pause' command" {
   result="$(stack exec -- tzbtc pause)"
-  [ "$result" == '(Right (Left (Right (Right (Right Unit)))))' ]
+  [ "$result" == '(Right (Left (Right (Right (Left Unit)))))' ]
 }
 
 @test "invoking tzbtc 'unpause' command" {
   result="$(stack exec -- tzbtc unpause)"
-  [ "$result" == '(Right (Left (Right (Right (Left Unit)))))' ]
+  [ "$result" == '(Right (Left (Right (Right (Right Unit)))))' ]
 }
 
 @test "invoking tzbtc 'setRedeemAddress' command" {
   result="$(stack exec -- tzbtc setRedeemAddress "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV")"
-  [ "$result" == '(Right (Left (Left (Right "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"))))' ]
+  [ "$result" == '(Right (Left (Right (Left "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"))))' ]
 }
 
 @test "invoking tzbtc 'startMigrateFrom' command" {
@@ -79,7 +79,7 @@
 
 @test "invoking tzbtc 'startMigrateTo' command" {
   result="$(stack exec -- tzbtc startMigrateTo "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV")"
-  [ "$result" == '(Right (Right (Left (Right "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"))))' ]
+  [ "$result" == '(Right (Right (Left (Right (Right "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV")))))' ]
 }
 
 @test "invoking tzbtc 'migrate' command" {
@@ -105,7 +105,7 @@
 
 @test "invoking tzbts 'printInitialStorage' command" {
   result="$(stack exec -- tzbtc printInitialStorage tz1f1S7V2hZJ3mhj47djb5j1saek8c2yB2Cx tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV)"
-  [ "$result" == '(Pair { } (Pair (Pair (Pair "tz1f1S7V2hZJ3mhj47djb5j1saek8c2yB2Cx" False) (Pair 0 (Pair 0 0))) (Pair (Pair None { }) (Pair "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" (Pair None None)))))' ]
+  [ "$result" == '(Pair { } (Pair (Pair (Pair "tz1f1S7V2hZJ3mhj47djb5j1saek8c2yB2Cx" (Pair False 0)) (Pair 0 (Pair 0 None))) (Pair (Pair { } (Pair "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" "ZBTC")) (Pair "TZBTC" (Pair None None)))))' ]
 }
 
 @test "invoking 'parseContractParameter' command to parse burn parameter" {

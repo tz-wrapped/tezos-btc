@@ -59,12 +59,6 @@ type StorageFieldsC fields =
 type Entrypoint param fields
   = '[ param, Storage' fields ] :-> ContractOut (Storage' fields)
 
-stub :: StorageFieldsC fields => Entrypoint a fields
-stub = do
-  dip authorizeAdmin
-  drop
-  finishNoOp
-
 getTotal
   :: forall fields a.
     (fields `HasFieldsOfType` '[a := Natural])
