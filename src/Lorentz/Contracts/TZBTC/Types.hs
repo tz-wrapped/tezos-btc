@@ -55,7 +55,9 @@ data StorageFields = StorageFields
   , migrateFrom :: Maybe Address
   , migrateTo   :: Maybe Address
   , redeemAddress :: Address
-  } deriving stock Generic -- @TODO Is TokenName required here?
+  , code :: MText
+  , tokenname :: MText
+  } deriving stock Generic
     deriving anyclass IsoValue
 
 data Error
@@ -99,4 +101,6 @@ mkStorage adminAddress redeem balances operators = mkStorage' balances $
   , migrateFrom = Nothing
   , migrateTo = Nothing
   , redeemAddress = redeem
+  , code = [mt|ZBTC|]
+  , tokenname = [mt|TZBTC|]
   }
