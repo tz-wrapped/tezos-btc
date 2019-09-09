@@ -19,6 +19,7 @@ module Lorentz.Contracts.TZBTC.Impl
   , acceptOwnership
   , addOperator
   , burn
+  , getTotal
   , mint
   , migrate
   , pause
@@ -33,6 +34,7 @@ module Lorentz.Contracts.TZBTC.Impl
 import Prelude hiding (drop, get, some, swap, (>>))
 
 import Data.Set (Set)
+import Data.Vinyl.Derived (Label)
 
 import Lorentz
 import Lorentz.Contracts.TZBTC.Types
@@ -59,6 +61,12 @@ stub = do
   dip authorizeAdmin
   drop
   finishNoOp
+
+getTotal
+  :: forall fields a.
+    (fields `HasFieldsOfType` '[a := Natural])
+  => Label a -> Entrypoint (View () Natural) fields
+getTotal bp = view_ (do cdr; toField #fields; toField bp)
 
 -- | Burn the specified amount of tokens from redeem address. Since it
 -- is not possible to burn from any other address, this entry point does
