@@ -13,6 +13,7 @@ module Test.TZBTC
   , test_mint
   , test_pause
   , test_unpause_
+  , test_bookkeeping
   ) where
 
 import Fmt (pretty)
@@ -24,11 +25,13 @@ import qualified Data.Set as Set
 import Named (arg)
 
 import Lorentz
+import Lorentz.Contracts.Consumer
 import Lorentz.Contracts.TZBTC
 import Lorentz.Contracts.TZBTC.Types
+import Lorentz.Test.Integrational
 import Michelson.Interpret (ContractEnv(..), MichelsonFailed(..))
-import Michelson.Runtime.GState
-import Michelson.Test (ContractPropValidator, contractProp, dummyContractEnv)
+import Michelson.Test
+  ( ContractPropValidator, contractProp, dummyContractEnv)
 import Michelson.Text (mt)
 import Michelson.Typed (Instr, ToTs, Value, Value'(..))
 import Util.Named
@@ -391,3 +394,29 @@ test_unpause_ = testGroup "TZBTC contract `unpause` permission test"
             "Contract's `unpause` operation executed with out error"
              False
              (paused $ fields $ (fromVal rstorage :: Storage))
+
+test_bookkeeping :: TestTree
+test_bookkeeping = testGroup "TZBTC contract bookkeeping views test"
+  [ testCase
+      "calling book keeping views returns expected result" $
+        integrationalTestExpectation $ do
+          v1 <- originateContract
+          consumer <- lOriginateEmpty contractConsumer "consumer"
+          withSender newOperatorAddress $ do
+            -- Mint and burn some tokens
+            lCall v1 (Mint (#to .! alice, #value .! 130))
+            lCall v1 (Burn (#value .! 20))
+          lCall v1 $ GetTotalSupply (View () consumer)
+          lCall v1 $ GetTotalMinted (View () consumer)
+          lCall v1 $ GetTotalBurned (View () consumer)
+          -- Check expectations
+          validate . Right $
+            lExpectViewConsumerStorage consumer [610, 630, 20]
+  ]
+  where
+    originateContract :: IntegrationalScenarioM (ContractAddr Parameter)
+    originateContract =
+      lOriginate tzbtcContract "TZBTC Contract" st (toMutez 1000)
+    st :: Storage
+    st = mkStorage adminAddress redeemAddress_
+        (Map.fromList [(redeemAddress_, initialSupply)]) (Set.fromList [newOperatorAddress])

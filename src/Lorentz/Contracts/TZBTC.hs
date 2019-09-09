@@ -33,6 +33,8 @@ data Parameter
   | GetAllowance        !(View GetAllowanceParams Natural)
   | GetBalance          !(View Address Natural)
   | GetTotalSupply      !(View () Natural)
+  | GetTotalMinted      !(View () Natural)
+  | GetTotalBurned      !(View () Natural)
   | SetAdministrator    !Address
   | GetAdministrator    !(View () Address)
   | Mint                !MintParams
@@ -63,6 +65,10 @@ instance Buildable Parameter where
       "Get balance for " +| addr |+ ""
     GetTotalSupply _ ->
       "Get total supply"
+    GetTotalMinted _ ->
+      "Get total minted"
+    GetTotalBurned _ ->
+      "Get total burned"
     SetAdministrator addr ->
       "Set administrator to " +| addr |+ ""
     GetAdministrator _ ->
@@ -96,7 +102,6 @@ instance Buildable Parameter where
 -- Implementation
 ----------------------------------------------------------------------------
 
-
 tzbtcContract :: Contract Parameter Storage
 tzbtcContract = do
   unpair
@@ -105,7 +110,9 @@ tzbtcContract = do
     , #cApprove /-> approve
     , #cGetAllowance /-> getAllowance
     , #cGetBalance /-> getBalance
-    , #cGetTotalSupply /-> getTotalSupply
+    , #cGetTotalSupply /-> getTotal #totalSupply
+    , #cGetTotalMinted /-> getTotal #totalMinted
+    , #cGetTotalBurned /-> getTotal #totalBurned
     , #cSetAdministrator /-> setAdministrator
     , #cGetAdministrator /-> getAdministrator
     , #cMint /-> mint
