@@ -17,8 +17,6 @@ module Test.TZBTC
   , test_transferOwnership
   , test_unpause_
   , test_bookkeeping
-  , test_migration
-  , test_migrationManager
   , test_proxyCheck
   ) where
 
