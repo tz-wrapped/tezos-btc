@@ -150,15 +150,15 @@ mint = do
   mint_
 
 transferViaProxy
-  :: forall fields. StorageFieldsC fields
-  => Entrypoint TransferViaProxyParams fields
+  :: forall store. StorageC store
+  => Entrypoint TransferViaProxyParams store
 transferViaProxy = do
   dip authorizeProxy
   ManagedLedger.transfer'
 
 approveViaProxy
-  :: forall fields. StorageFieldsC fields
-  => Entrypoint ApproveViaProxyParams fields
+  :: forall store. StorageC store
+  => Entrypoint ApproveViaProxyParams store
 approveViaProxy = do
   dip authorizeProxy
   coerce_
@@ -359,19 +359,17 @@ unpause = do
   push False
   ManagedLedger.setPause
 
-setProxy :: StorageFieldsC fields => Entrypoint SetProxyParams fields
+setProxy :: StorageC store => Entrypoint SetProxyParams store
 setProxy = do
   -- Check sender
   dip $ do
-    getField #fields
-    toField #proxy
+    stGetField #proxy
     ifLeft
       (do sender; if IsEq then nop else failUsing NotAllowedToSetProxy)
       (failUsing ProxyAlreadySet)
   right @Address
-  dip $ getField #fields
-  setField #proxy
-  setFields
+  stSetField #proxy
+  finishNoOp
 
 -- | Check that the sender is admin
 authorizeAdmin
@@ -416,15 +414,14 @@ ensureNotPaused
   => '[store] :-> '[store]
 ensureNotPaused = do
   stGetField #paused
-  if_ (failUsing ContractIsPaused) (nop)
+  if_ (failUsing OperationsArePaused) (nop)
 
 -- | Check that the sender is proxy
 authorizeProxy
-  :: StorageFieldsC fields
-  => Storage' fields ': s :-> Storage' fields ': s
+  :: StorageC store
+  => store ': s :-> store ': s
 authorizeProxy = do
-  getField #fields
-  toField #proxy
+  stGetField #proxy
   ifLeft (failUsing ProxyIsNotSet) $ do
     sender
     if IsEq then nop else failUsing CallerIsNotProxy
