@@ -102,6 +102,10 @@ data StorageFields = StorageFields
   } deriving stock Generic
     deriving anyclass IsoValue
 
+instance HasFieldOfType StorageFields name field =>
+         StoreHasField StorageFields name field where
+  storeFieldOps = storeFieldOpsADT
+
 data Error
   = UnsafeAllowanceChange Natural
     -- ^ Attempt to change allowance from non-zero to a non-zero value.
