@@ -28,7 +28,7 @@ import Michelson.Typed (HasNoOp, IsoValue, ToT)
 import Lorentz (NoOperation, NoBigMap, CanHaveBigMap, ContractAddr(..), Contract)
 import Tezos.Address
 import System.Process.Typed
-import qualified Data.ByteString.Lazy as BSL
+import qualified Data.ByteString.Lazy.Char8 as BSL
 import System.IO.Temp
 import qualified Data.Text.Lazy as T
 import qualified Data.Text as ST
@@ -36,7 +36,6 @@ import Data.Singletons (SingI(..))
 import Data.Attoparsec.ByteString
 import qualified Data.Attoparsec.ByteString as AP
 import Data.Attoparsec.ByteString.Char8
-import Lorentz.Test.Integrational
 import qualified Lorentz.Contracts.TZBTC.Agent as Agent
 
 -- Here in main function we will just accept commands from user
@@ -211,8 +210,7 @@ callContract
   :: forall cp.
      ( Each '[Typeable, SingI] '[ToT cp]
      , HasNoOp (ToT cp)
-     , IsoValue cp
-     , Each '[NoOperation] '[cp], NoBigMap cp)
+     , IsoValue cp)
   => ContractAddr cp -> cp -> Address -> IO ()
 callContract addr param caller = do
   putStrLn $ (addrToStr caller) ++ " Calling contract " ++ (addrToStr $ unContractAddress addr) ++ " with " ++ (T.unpack $ printLorentzValue True param)
@@ -230,7 +228,7 @@ callContract addr param caller = do
 
 deployOutputParser :: Parser Address
 deployOutputParser = do
-  manyTill anyWord8 $ string "New contract"
+  void $ manyTill anyWord8 $ string "New contract"
   skipMany space
   ca <- AP.takeTill isSpace_w8
   skipMany space
