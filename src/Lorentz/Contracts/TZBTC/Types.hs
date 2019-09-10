@@ -6,7 +6,6 @@ module Lorentz.Contracts.TZBTC.Types
   ( AcceptOwnershipParams
   , ApproveViaProxyParams
   , BurnParams
-  , Error(..)
   , GetBalanceParams
   , ManagedLedger.AllowanceParams
   , ManagedLedger.ApproveParams
@@ -116,49 +115,6 @@ instance HasFieldOfType StorageFields name field =>
          StoreHasField StorageFields name field where
   storeFieldOps = storeFieldOpsADT
 
-data Error
-  = UnsafeAllowanceChange Natural
-    -- ^ Attempt to change allowance from non-zero to a non-zero value.
-  | SenderIsNotAdmin
-    -- ^ Contract initiator has not enough rights to perform this operation.
-  | NotEnoughBalance ("required" :! Natural, "present" :! Natural)
-    -- ^ Insufficient balance.
-  | NotEnoughAllowance ("required" :! Natural, "present" :! Natural)
-    -- ^ Insufficient allowance to transfer funds.
-  | OperationsArePaused
-    -- ^ Operation is unavailable until resume by token admin.
-  | NotInTransferOwnershipMode
-    -- ^ For the `acceptOwnership` entry point, if the contract's `newOwner`
-    -- field is None.
-  | SenderIsNotNewOwner
-    -- ^ For the `acceptOwnership` entry point, if the sender is not the
-    -- address in the `newOwner` field.
-  | SenderIsNotOperator
-    -- ^ For the burn/mint/pause entry point, if the sender is not one
-    -- of the operators.
-  | UnauthorizedMigrateFrom
-    -- ^ For migration calls if the contract does not have previous
-    -- version field set.
-  | NoBalanceToMigrate
-    -- ^ For migration calls if there is nothing to migrate.
-  | MigrationNotEnabled
-    -- ^ For migrate calls to contracts don't have migration manager set.
-  | SenderIsNotAgent
-    -- ^ For `mintForMigration` calls from address other than that of the
-    -- migration agent.
-  | ContractIsNotPaused
-    -- ^ For `startMigrateTo` calls when the contract is in a running state
-  | ProxyIsNotSet
-    -- ^ For FA1.2.1 compliance endpoints that are callable via a proxy
-  | CallerIsNotProxy
-    -- ^ For FA1.2.1 compliance endpoints that are callable via a proxy
-  | NotAllowedToSetProxy
-    -- ^ For setProxy entry point if Left value in `proxy` field does not
-    -- match the sender's address
-  | ProxyAlreadySet
-    -- ^ For setProxy entry point if Proxy is set already
-  deriving stock (Eq, Generic)
-
 instance Buildable Parameter where
   build = \case
     Transfer (arg #from -> from, arg #to -> to, arg #value -> value) ->
@@ -212,8 +168,6 @@ instance Buildable Parameter where
     Migrate _ ->
       "Migrate"
 
-deriveCustomError ''Error
-
 type Storage = Storage' StorageFields
 
 -- | Create a default storage with ability to set some balances to
@@ -235,3 +189,49 @@ mkStorage adminAddress redeem balances operators = mkStorage' balances $
   , migrationManagerIn = Nothing
   , proxy = Left adminAddress
   }
+
+----------------------------------------------------------------------------
+-- Errors
+----------------------------------------------------------------------------
+
+-- | For the `acceptOwnership` entry point, if the contract's `newOwner`
+-- field is None.
+type instance ErrorArg "notInTransferOwnershipMode" = ()
+
+-- | For the `acceptOwnership` entry point, if the sender is not the
+-- address in the `newOwner` field.
+type instance ErrorArg "senderIsNotNewOwner" = ()
+
+-- | For the burn/mint/pause entry point, if the sender is not one
+-- of the operators.
+type instance ErrorArg "senderIsNotOperator" = ()
+
+-- | For migration calls if the contract does not have previous
+-- version field set.
+type instance ErrorArg "unauthorizedMigrateFrom" = ()
+
+-- | For migration calls if there is nothing to migrate.
+type instance ErrorArg "noBalanceToMigrate" = ()
+
+-- | For migrate calls to contracts don't have migration manager set.
+type instance ErrorArg "migrationNotEnabled" = ()
+
+-- | For `mintForMigration` calls from address other than that of the
+-- migration agent.
+type instance ErrorArg "senderIsNotAgent" = ()
+
+-- | For `startMigrateTo` calls when the contract is in a running state
+type instance ErrorArg "tokenOperationsAreNotPaused" = ()
+
+-- | For FA1.2.1 compliance endpoints that are callable via a proxy
+type instance ErrorArg "proxyIsNotSet" = ()
+
+-- | For FA1.2.1 compliance endpoints that are callable via a proxy
+type instance ErrorArg "callerIsNotProxy" = ()
+
+-- | For setProxy entry point if Left value in `proxy` field does not
+-- match the sender's address
+type instance ErrorArg "notAllowedToSetProxy" = ()
+
+-- | For setProxy entry point if Proxy is set already
+type instance ErrorArg "proxyAlreadySet" = ()

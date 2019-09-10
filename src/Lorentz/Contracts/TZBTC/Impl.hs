@@ -240,7 +240,7 @@ acceptOwnership = do
     stSetField #admin
     none
     stSetField #newOwner -- Reset newOwner field to None.
-    ) (failUsing NotInTransferOwnershipMode)
+    ) (failCustom_ #notInTransferOwnershipMode)
   finishNoOp
 
 -- | This accepts a `MigrationManager` (a proxy contract address) and
@@ -281,8 +281,8 @@ mintForMigration = do
   where
     ensureMigrationAgent = do
       stGetField #migrationManagerIn
-      ifSome (do address; sender # eq) (failUsing MigrationNotEnabled)
-      if_ nop $ failUsing SenderIsNotAgent
+      ifSome (do address; sender # eq) (failCustom_ #migrationNotEnabled)
+      if_ nop $ failCustom_ #senderIsNotAgent
 
 -- | This entry point just fetches the migration manager from storage
 -- (MigrationManagerOut) and calls it passing senders address and balance,
@@ -300,7 +300,7 @@ migrate = do
     toField #balance
     dup; int
     if IsZero
-      then failUsing NoBalanceToMigrate
+      then failCustom_ #noBalanceToMigrate
       else do
         stackType @'[Natural, store]
         toNamed #value
@@ -319,7 +319,7 @@ migrate = do
         fromNamed #value
         stackType @'[Natural, store]
         doMigrate
-    else failUsing NoBalanceToMigrate
+    else failCustom_ #noBalanceToMigrate
   where
     doMigrate :: '[Natural, store] :-> '[([Operation], store)]
     doMigrate = do
@@ -330,7 +330,7 @@ migrate = do
           stackType @'[MigrationManager, store]
           nop
         else
-          failUsing MigrationNotEnabled
+          failCustom_ #migrationNotEnabled
       stackType @'[Natural, MigrationManager, store]
       sender
       pair
@@ -365,8 +365,8 @@ setProxy = do
   dip $ do
     stGetField #proxy
     ifLeft
-      (do sender; if IsEq then nop else failUsing NotAllowedToSetProxy)
-      (failUsing ProxyAlreadySet)
+      (do sender; if IsEq then nop else failCustom_ #notAllowedToSetProxy)
+      (failCustom_ #proxyAlreadySet)
   right @Address
   stSetField #proxy
   finishNoOp
@@ -377,7 +377,7 @@ authorizeAdmin
   => store : s :-> store : s
 authorizeAdmin = do
   stGetField #admin; sender; eq
-  if_ nop (failUsing SenderIsNotAdmin)
+  if_ nop (failCustom_ #senderIsNotAdmin)
 
 -- | Check that the address of the sender is an address that is
 -- present in the `newOwner` storage field.
@@ -389,8 +389,8 @@ authorizeNewOwner = do
   if IsSome then do
     sender
     eq
-    if_ nop (failUsing SenderIsNotNewOwner)
-    else (failUsing NotInTransferOwnershipMode)
+    if_ nop (failCustom_ #senderIsNotNewOwner)
+    else (failCustom_ #notInTransferOwnershipMode)
 
 -- | Check that the sender is an operator
 authorizeOperator
@@ -398,7 +398,7 @@ authorizeOperator
   => store : s :-> store : s
 authorizeOperator = do
   stGetField #operators; sender; mem;
-  assert SenderIsNotOperator
+  assert (CustomError #senderIsNotOperator)
 
 -- | Check that the contract is paused
 ensurePaused
@@ -406,7 +406,7 @@ ensurePaused
   => '[store] :-> '[store]
 ensurePaused = do
   stGetField #paused
-  if_ (nop) (failUsing ContractIsNotPaused)
+  if_ (nop) (failCustom_ #tokenOperationsAreNotPaused)
 
 -- | Check that the contract is NOT paused
 ensureNotPaused
@@ -414,7 +414,7 @@ ensureNotPaused
   => '[store] :-> '[store]
 ensureNotPaused = do
   stGetField #paused
-  if_ (failUsing OperationsArePaused) (nop)
+  if_ (failCustom_ #tokenOperationsArePaused) (nop)
 
 -- | Check that the sender is proxy
 authorizeProxy
@@ -422,9 +422,9 @@ authorizeProxy
   => store ': s :-> store ': s
 authorizeProxy = do
   stGetField #proxy
-  ifLeft (failUsing ProxyIsNotSet) $ do
+  ifLeft (failCustom_ #proxyIsNotSet) $ do
     sender
-    if IsEq then nop else failUsing CallerIsNotProxy
+    if IsEq then nop else failCustom_ #callerIsNotProxy
 
 -- | Finish with an empty list of operations
 finishNoOp :: '[st] :-> (ContractOut st)

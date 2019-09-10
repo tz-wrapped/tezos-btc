@@ -6,10 +6,10 @@ module Test.Proxy
   ( test_proxy
   ) where
 
-import Test.Tasty (TestTree, testGroup)
-import Test.Tasty.HUnit (testCase)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+import Test.Tasty (TestTree, testGroup)
+import Test.Tasty.HUnit (testCase)
 
 import Lorentz
 import Lorentz.Contracts.Consumer
@@ -18,10 +18,9 @@ import Lorentz.Test.Integrational
 import Michelson.Test (IntegrationalScenarioM)
 import Util.Named
 
-import qualified Lorentz.Contracts.TZBTC.Proxy as Proxy
-import Lorentz.Contracts.TZBTC.Proxy (fromSaneParameter, SaneParameter(..))
 import qualified Lorentz.Contracts.TZBTC as TZBTC
-import Lorentz.Contracts.TZBTC.Types
+import Lorentz.Contracts.TZBTC.Proxy (SaneParameter(..), fromSaneParameter)
+import qualified Lorentz.Contracts.TZBTC.Proxy as Proxy
 
 originateContract :: IntegrationalScenarioM (ContractAddr Parameter)
 originateContract =
@@ -164,7 +163,7 @@ test_proxy = testGroup "TZBTC contract proxy origination test"
             (fromSaneParameter $
               STransfer (#from .! redeemAddress_, #to .! alice, #value 100))
           validate . Left $
-            lExpectError (== OperationsArePaused)
+            lExpectCustomError_ #tokenOperationsArePaused
   , testCase
       "Approve via Proxy entrypoints respect paused status" $
         integrationalTestExpectation $ do
@@ -176,6 +175,5 @@ test_proxy = testGroup "TZBTC contract proxy origination test"
             (fromSaneParameter $
               SApprove (#spender .! bob, #value 20))
           validate . Left $
-            lExpectError (== OperationsArePaused)
+            lExpectCustomError_ #tokenOperationsArePaused
   ]
-
