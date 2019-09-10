@@ -109,7 +109,7 @@ data StorageFields = StorageFields
   , migrationManagerIn :: Maybe MigrationManager
   , migrationManagerOut :: Maybe MigrationManager
   , proxy :: Either Address Address
-  } deriving stock Generic -- @TODO Is TokenName required here?
+  } deriving stock Generic
     deriving anyclass IsoValue
 
 instance HasFieldOfType StorageFields name field =>
