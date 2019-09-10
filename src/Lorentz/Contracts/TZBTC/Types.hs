@@ -16,12 +16,11 @@ module Lorentz.Contracts.TZBTC.Types
   , ManagedLedger.Storage' (..)
   , ManagedLedger.TransferParams
   , MigrateParams
-  , MigrationManager
+  , MigrationScript
   , MintForMigrationParams
   , OperatorParams
   , Parameter(..)
   , PauseParams
-  , SetMigrationAgentParams
   , SetProxyParams
   , SetRedeemAddressParams
   , StartMigrateFromParams
@@ -41,7 +40,7 @@ import qualified Lorentz.Contracts.ManagedLedger.Types as ManagedLedger
 import Lorentz.Contracts.ManagedLedger.Types (Storage'(..), mkStorage')
 import Util.Instances ()
 
-type MigrationManager = ContractAddr (Address, Natural)
+type MigrationScript = Lambda (Address, Natural) Operation
 type BurnParams = ("value" :! Natural)
 type OperatorParams = ("operator" :! Address)
 type TransferViaProxyParams = ("sender" :! Address, ManagedLedger.TransferParams)
@@ -50,12 +49,11 @@ type GetBalanceParams = Address
 type SetRedeemAddressParams = ("redeem" :! Address)
 type PauseParams = Bool
 type TransferOwnershipParams = ("newOwner" :! Address)
-type StartMigrateToParams = ("migrationManager" :! MigrationManager)
-type StartMigrateFromParams = ("migrationManager" :! MigrationManager)
-type MintForMigrationParams = ("to" :! Address, "value" :! Natural)
+type StartMigrateToParams = ("migrationScript" :! MigrationScript)
+type StartMigrateFromParams = ("previousVersion" :! Address)
+type MintForMigrationParams = (Address, Natural)
 type AcceptOwnershipParams = ()
 type MigrateParams = ()
-type SetMigrationAgentParams = ("migrationAgent" :! MigrationManager)
 type SetProxyParams = Address
 
 ----------------------------------------------------------------------------
@@ -106,9 +104,9 @@ data StorageFields = StorageFields
   , redeemAddress :: Address
   , code :: MText
   , tokenname :: MText
-  , migrationManagerIn :: Maybe MigrationManager
-  , migrationManagerOut :: Maybe MigrationManager
+  , migrationScript :: Maybe MigrationScript
   , proxy :: Either Address Address
+  , previousVersion :: Maybe Address
   } deriving stock Generic
     deriving anyclass IsoValue
 
@@ -185,7 +183,7 @@ instance Buildable Parameter where
       "Get administrator"
     Mint (arg #to -> to, arg #value -> value) ->
       "Mint to " +| to |+ ", value = " +| value |+ ""
-    MintForMigration (arg #to -> to, arg #value -> value) ->
+    MintForMigration (to, value) ->
       "MintForMigration to " +| to |+ ", value = " +| value |+ ""
     Burn (arg #value -> value) ->
       "Burn, value = " +| value |+ ""
@@ -203,10 +201,10 @@ instance Buildable Parameter where
       "Transfer ownership to " +| newOwner |+ ""
     AcceptOwnership _ ->
       "Accept ownership"
-    StartMigrateTo (arg #migrationManager -> migrateTo) ->
-      "Start migrate to " +| migrateTo |+ ""
-    StartMigrateFrom (arg #migrationManager -> migrateFrom) ->
-      "Start migrate from " +| migrateFrom |+ ""
+    StartMigrateTo (arg #migrationScript -> migrateTo) ->
+      "Start migration"
+    StartMigrateFrom (arg #previousVersion -> address) ->
+      "Start migrate from " +| address |+ ""
     SetProxy address_ ->
       "Set proxy " +| address_ |+ ""
     Migrate _ ->
@@ -231,7 +229,7 @@ mkStorage adminAddress redeem balances operators = mkStorage' balances $
   , redeemAddress = redeem
   , code = [mt|ZBTC|]
   , tokenname = [mt|TZBTC|]
-  , migrationManagerOut = Nothing
-  , migrationManagerIn = Nothing
+  , migrationScript = Nothing
   , proxy = Left adminAddress
+  , previousVersion = Nothing
   }

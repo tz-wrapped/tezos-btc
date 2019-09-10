@@ -61,7 +61,7 @@ argParser = hsubparser $
   <> getAllowanceCmd <> getBalanceCmd <> addOperatorCmd
   <> removeOperatorCmd <> pauseCmd <> unpauseCmd
   <> setRedeemAddressCmd <> transferOwnershipCmd
-  <> startMigrateFromCmd <> startMigrateToCmd
+  <> startMigrateFromCmd
   <> migrateCmd <> printCmd
   <> printAgentCmd <> printInitialStorageCmd
   <> parseParameterCmd <> testScenarioCmd <> testCmd
@@ -123,10 +123,10 @@ argParser = hsubparser $
          "Mint tokens for an account")
     mintForMigrationsCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     mintForMigrationsCmd =
-      (mkCommandParser
-         "mintForMigrations"
-         (CmdMintForMigrations <$> mintForMigrationsParamParser)
-         "Mint tokens for an account during migration")
+      mkCommandParser
+      "mintForMigrations"
+      (CmdMintForMigrations <$> mintForMigrationsParamParser)
+      "Mint tokens for an account during migration"
     burnCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     burnCmd =
       (mkCommandParser
@@ -199,12 +199,6 @@ argParser = hsubparser $
          "startMigrateFrom"
          (CmdStartMigrateFrom <$> startMigrateFromParamsParser)
          "Start contract migration")
-    startMigrateToCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
-    startMigrateToCmd =
-      (mkCommandParser
-         "startMigrateTo"
-         (CmdStartMigrateTo <$> startMigrateToParamsParser)
-         "Start contract migration")
     migrateCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     migrateCmd =
       (mkCommandParser
@@ -217,10 +211,10 @@ mintParamParser =
   (,) <$> (getParser "Address to mint to")
        <*> (getParser "Amount to mint")
 
-mintForMigrationsParamParser :: Opt.Parser MintParams
+mintForMigrationsParamParser :: Opt.Parser (Address, Natural)
 mintForMigrationsParamParser =
-  (,) <$> (getParser "Address to mint to")
-       <*> (getParser "Amount to mint")
+  (,) <$> (addressArgument "Address to mint to")
+      <*> (argument getReader $ mconcat [ metavar "VALUE" ])
 
 burnParamsParser :: Opt.Parser BurnParams
 burnParamsParser = getParser "Amount to burn"
@@ -260,12 +254,8 @@ transferOwnershipParamsParser = #newOwner
   <.!> addressArgument "Address of the new owner"
 
 startMigrateFromParamsParser :: Opt.Parser StartMigrateFromParams
-startMigrateFromParamsParser = #migrationManager <.!>
-  (ContractAddr <$> addressArgument "Source contract address")
-
-startMigrateToParamsParser :: Opt.Parser StartMigrateToParams
-startMigrateToParamsParser = #migrationManager <.!>
-  (ContractAddr <$> addressArgument "Manager contract address")
+startMigrateFromParamsParser = #previousVersion <.!>
+  (addressArgument "Source contract address")
 
 -- Maybe add default value and make sure it will be shown in help message.
 maybeAddDefault :: Opt.HasValue f => (a -> String) -> Maybe a -> Opt.Mod f a

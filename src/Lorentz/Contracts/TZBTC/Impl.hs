@@ -24,6 +24,7 @@ module Lorentz.Contracts.TZBTC.Impl
   , mint
   , mintForMigration
   , migrate
+  , mkMigrationScriptFor
   , pause
   , removeOperator
   , setProxy
@@ -44,6 +45,8 @@ import Lorentz
 import qualified Lorentz.Contracts.ManagedLedger.Impl as ManagedLedger
 import qualified Lorentz.Contracts.ManagedLedger.Types as ManagedLedger
 import Lorentz.Contracts.TZBTC.Types hiding (AddOperator, RemoveOperator)
+import Michelson.Typed.Value (Value'(..))
+import Michelson.Typed.Haskell.Instr.Sum
 
 type StorageC store = StorageContains store
   [ "admin" := Address
@@ -54,10 +57,10 @@ type StorageC store = StorageContains store
   , "operators" := Set Address
   , "redeemAddress" := Address
   , "newOwner" := Maybe Address
-  , "migrationManagerIn" := Maybe MigrationManager
-  , "migrationManagerOut" := Maybe MigrationManager
+  , "migrationScript" := Maybe MigrationScript
   , "ledger" := Address ~> LedgerValue
   , "proxy" := Either Address Address
+  , "previousVersion" := Maybe Address
   ]
 
 type Entrypoint param store
@@ -252,10 +255,10 @@ startMigrateTo = do
   dip $ do
     authorizeAdmin
     ensurePaused
-  fromNamed #migrationManager
-  stackType @'[MigrationManager, store]
+  fromNamed #migrationScript
+  stackType @'[MigrationScript, store]
   some;
-  stSetField #migrationManagerOut
+  stSetField #migrationScript
   finishNoOp
 
 -- | This accepts a `MigrationManager` (a proxy contract address) and stores it
@@ -265,10 +268,27 @@ startMigrateFrom
   => Entrypoint StartMigrateFromParams store
 startMigrateFrom = do
   dip authorizeAdmin
-  fromNamed #migrationManager
+  fromNamed #previousVersion
   some
-  stSetField #migrationManagerIn
+  stSetField #previousVersion
   finishNoOp
+
+mkMigrationScriptFor
+  :: forall parameter.
+  ( InstrWrapC parameter "cMintForMigration"
+  , AppendCtorField
+      (GetCtorField parameter "cMintForMigration") '[]
+    ~ '[(Address, Natural)]
+  , KnownValue parameter, NoOperation parameter, NoBigMap parameter
+  ) => ContractAddr parameter -> Lambda (Address, Natural) Operation
+mkMigrationScriptFor caddr = do
+  stackType @('[(Address, Natural)])
+  wrap_ @parameter #cMintForMigration
+  stackType @('[parameter])
+  dip $ do
+    push caddr
+    push (toMutez 0)
+  transferTokens
 
 -- Check the existence of migration agent and if it is equal to the
 -- sender and mints tokens in this contract for the address in parameter
@@ -277,11 +297,15 @@ mintForMigration
   => Entrypoint MintForMigrationParams store
 mintForMigration = do
   dip ensureMigrationAgent
+  unpair
+  toNamed #to
+  dip $ toNamed #value
+  pair
   mint_
   where
     ensureMigrationAgent = do
-      stGetField #migrationManagerIn
-      ifSome (do address; sender # eq) (failUsing MigrationNotEnabled)
+      stGetField #previousVersion
+      ifSome (sender # eq) (failUsing MigrationNotEnabled)
       if_ nop $ failUsing SenderIsNotAgent
 
 -- | This entry point just fetches the migration manager from storage
@@ -325,18 +349,16 @@ migrate = do
     doMigrate = do
       stackType @'[Natural, store]
       dip $ do
-        stGetField #migrationManagerOut
+        stGetField #migrationScript
         if IsSome then do
-          stackType @'[MigrationManager, store]
+          stackType @'[MigrationScript, store]
           nop
         else
           failUsing MigrationNotEnabled
-      stackType @'[Natural, MigrationManager, store]
+      stackType @'[Natural, MigrationScript, store]
       sender
       pair
-      push (toMutez 0)
-      swap
-      transferTokens
+      exec
       nil
       swap
       cons

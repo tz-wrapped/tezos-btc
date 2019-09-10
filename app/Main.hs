@@ -22,7 +22,7 @@ import Paths_tzbtc (version)
 
 import CLI.Parser
 import Lorentz.Contracts.TZBTC
-  (Parameter(..), agentContract, mkStorage, tzbtcCompileWay, tzbtcContract)
+  (Parameter(..), agentContract, mkStorage, mkMigrationScriptFor, tzbtcCompileWay, tzbtcContract)
 
 import Michelson.Typed (HasNoOp, IsoValue, ToT)
 import Lorentz (NoOperation, NoBigMap, CanHaveBigMap, ContractAddr(..), Contract)
@@ -67,15 +67,6 @@ main = do
     CmdPrintContract singleLine mbFilePath ->
       maybe putStrLn writeFileUtf8 mbFilePath $
         printLorentzContract singleLine tzbtcCompileWay tzbtcContract
-    CmdPrintAgentContract singleLine mbFilePath ->
-      maybe putStrLn writeFileUtf8 mbFilePath $
-        printLorentzContract singleLine lcwDumb (agentContract @Parameter)
-        -- Here agentContract that is printed is the one that target a
-        -- contract with the parameter `Parameter`. If we can obtain
-        -- runtime witness or type class dictionaries for the constraints
-        -- `agentContract` require it might be possible to read a contract
-        -- from a file, and printout an agent contract that can migrate
-        -- to it, or print out an error if it is incompatible.
     CmdPrintInitialStorage adminAddress redeemAddress ->
       putStrLn $ printLorentzValue True (mkStorage adminAddress redeemAddress mempty mempty)
     CmdParseParameter t ->
@@ -163,18 +154,13 @@ doTest = do
         mempty)
       "TZBTC_V2"
       adminAddress
-  -- Deploy Manager
-  manager <- alphanetOriginate
-    agentContract
-    (Agent.StorageFields (unContractAddress v1) v2)
-    "Manager"
-    adminAddress
+  let migrationScript = mkMigrationScriptFor v1
   -- Pause v1
   callContract v1 (Pause ()) operatorAddress
   -- Start migrationTo in V1
-  callContract v1 (StartMigrateTo (#migrationManager .! manager) ) adminAddress
+  callContract v1 (StartMigrateTo (#migrationScript .! migrationScript) ) adminAddress
   -- Start migrationFrom in V2
-  callContract v2 (StartMigrateFrom (#migrationManager .! manager) ) adminAddress
+  callContract v2 (StartMigrateFrom (#previousVersion .! (unContractAddress v1)) ) adminAddress
   -- Unpause v1
   callContract v1 (Unpause ()) adminAddress
   -- Alice migrates her coins

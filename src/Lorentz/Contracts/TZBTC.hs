@@ -7,6 +7,7 @@
 
 module Lorentz.Contracts.TZBTC
   ( mkStorage
+  , mkMigrationScriptFor
   , Parameter(..)
   , Storage
   , StorageFields(..)
