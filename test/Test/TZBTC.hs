@@ -3,19 +3,21 @@
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
 module Test.TZBTC
-  ( test_adminCheck
+  ( test_acceptOwnership
   , test_addOperator
-  , test_removeOperator
-  , test_setRedeemAddress
-  , test_transferOwnership
-  , test_acceptOwnership
+  , test_adminCheck
   , test_burn
-  , test_mint
-  , test_pause
-  , test_unpause_
-  , test_bookkeeping
   , test_migration
   , test_migrationManager
+  , test_mint
+  , test_pause
+  , test_removeOperator
+  , test_setProxy
+  , test_setRedeemAddress
+  , test_transferOwnership
+  , test_unpause_
+  , test_bookkeeping
+  , test_proxyCheck
   ) where
 
 import Fmt (pretty)
@@ -97,6 +99,28 @@ assertFailureMessage res msg tstMsg = case res of
     MichelsonFailedWith (VPair ((VC (CvString t)), _)) -> do
       assertEqual tstMsg msg t
     a -> assertFailure $ "Unexpected contract failure: " <> pretty a
+
+test_proxyCheck :: TestTree
+test_proxyCheck = testGroup "TZBTC contract proxy endpoints check"
+  [ testCase "Fails with `ProxyIsNotSet` if one of the proxy serving endpoints is called and proxy is not set" $
+      contractPropWithSender bob validate'
+        (TransferViaProxy (#sender .! bob, (#from .! bob, #to .! alice, #value .! 100))) storage
+  , testCase
+      "Fails with `CallerIsNotProxy` if the caller to a proxy endpoint is not known proxy address." $
+      integrationalTestExpectation $ do
+        c <- lOriginate tzbtcContract "TZBTC Contract" storage (toMutez 1000)
+        withSender adminAddress $ lCall c (SetProxy contractAddress)
+        withSender bob $
+          lCall c (TransferViaProxy (#sender .! bob, (#from .! bob, #to .! alice, #value .! 100)))
+        validate . Left $
+          lExpectError (== CallerIsNotProxy)
+  ]
+  where
+    validate' :: ContractPropValidator (ToT Storage) Assertion
+    validate' (res, _) =
+      assertFailureMessage
+        res [mt|ProxyIsNotSet|]
+        "Contract did not fail with 'ProxyIsNotSet' message"
 
 test_adminCheck :: TestTree
 test_adminCheck = testGroup "TZBTC contract admin check test"
@@ -447,6 +471,46 @@ test_bookkeeping = testGroup "TZBTC contract bookkeeping views test"
     st = mkStorage adminAddress redeemAddress_
         (Map.fromList [(redeemAddress_, initialSupply)]) (Set.fromList [newOperatorAddress])
 
+test_setProxy :: TestTree
+test_setProxy = testGroup "TZBTC contract `setProxy` test"
+  [ testCase
+      "Call to `setProxy` from random address gets denied with `NotAllowedToSetProxy`" $
+      contractPropWithSender bob
+        validateFail_ (SetProxy contractAddress) storageWithOperator
+  , testCase
+      "Call to `setProxy` from expected address sets proxy" $
+      contractPropWithSender adminAddress
+        validate_ (SetProxy contractAddress) storageWithOperator
+  , testCase
+      "Call to `setProxy` in contract with proxy set fails with `ProxyAlreadySet` error" $
+      integrationalTestExpectation $ do
+        c <- lOriginate tzbtcContract "TZBTC Contract" storageWithOperator (toMutez 1000)
+        withSender adminAddress $ do
+          lCall c (SetProxy contractAddress)
+          lCall c (SetProxy contractAddress)
+        validate . Left $
+          lExpectError (== ProxyAlreadySet)
+  ]
+  where
+    storageWithOperator =
+      mkStorage adminAddress redeemAddress_
+        (Map.fromList [(redeemAddress_, initialSupply)])
+        (Set.fromList [newOperatorAddress])
+    validateFail_ :: ContractPropValidator (ToT Storage) Assertion
+    validateFail_ (res, _) =
+      assertFailureMessage
+        res [mt|NotAllowedToSetProxy|]
+        "Contract did not fail with 'NotAllowedToSetProxy' message"
+    validate_ :: ContractPropValidator (ToT Storage) Assertion
+    validate_ (res, _) =
+      case res of
+        Left err -> assertFailure $ "Unexpected contract failure: " <> pretty err
+        Right (_operations, rstorage) ->
+          assertEqual
+            "Contract's `proxy` is set as expected"
+             (Right contractAddress)
+             (proxy $ fields $ (fromVal rstorage :: Storage))
+
 -- Migration tests
 
 storageV1 :: Storage
@@ -503,8 +567,9 @@ test_migration = testGroup "TZBTC contract migration tests"
           v2 <- originateV2
           agent <- originateAgent (unContractAddress v1) v2
           withSender newOperatorAddress $ lCall v1 (Pause ())
-          withSender adminAddress $ lCall v1 (StartMigrateTo (#migrationManager .! agent) )
-          withSender adminAddress $ lCall v1 (Unpause ())
+          withSender adminAddress $ do
+            lCall v1 (StartMigrateTo (#migrationManager .! agent) )
+            lCall v1 (Unpause ())
           withSender bob $ lCall v1 (Migrate ())
           validate . Left $
             lExpectError (== NoBalanceToMigrate)
@@ -535,8 +600,9 @@ test_migration = testGroup "TZBTC contract migration tests"
          v2 <- originateV2
          agent <- originateAgent (unContractAddress v1) v2
          withSender newOperatorAddress $ lCall v1 (Pause ())
-         withSender adminAddress $ lCall v1 (StartMigrateTo $ (#migrationManager .! agent))
-         withSender adminAddress $ lCall v1 (Unpause ())
+         withSender adminAddress $ do
+           lCall v1 (StartMigrateTo $ (#migrationManager .! agent))
+           lCall v1 (Unpause ())
          validate . Right $
            lExpectStorageConst v1 $ let
             oldFields = fields storageV1
@@ -559,9 +625,10 @@ test_migration = testGroup "TZBTC contract migration tests"
          agent <- originateAgent (unContractAddress v2) v1
          agent2 <- originateAgent (unContractAddress v1) v2
          withSender newOperatorAddress $ lCall v1 (Pause ())
-         withSender adminAddress $ lCall v1 (StartMigrateTo $ (#migrationManager .! agent))
-         withSender adminAddress $ lCall v1 (StartMigrateTo $ (#migrationManager .! agent2))
-         withSender adminAddress $ lCall v1 (Unpause ())
+         withSender adminAddress $ do
+           lCall v1 (StartMigrateTo $ (#migrationManager .! agent))
+           lCall v1 (StartMigrateTo $ (#migrationManager .! agent2))
+           lCall v1 (Unpause ())
          validate . Right $
            lExpectStorageConst v1 $ let
             oldFields = fields storageV1
@@ -586,8 +653,9 @@ test_migration = testGroup "TZBTC contract migration tests"
          v2 <- originateV2
          agent <- originateAgent (unContractAddress v2) v1
          agent2 <- originateAgent (unContractAddress v1) v2
-         withSender adminAddress $ lCall v2 (StartMigrateFrom $ (#migrationManager .! agent))
-         withSender adminAddress $ lCall v2 (StartMigrateFrom $ (#migrationManager .! agent2))
+         withSender adminAddress $ do
+           lCall v2 (StartMigrateFrom $ (#migrationManager .! agent))
+           lCall v2 (StartMigrateFrom $ (#migrationManager .! agent2))
          validate . Right $
            lExpectStorageConst v2 $ let
             oldFields = fields storageV2
@@ -656,9 +724,10 @@ test_migrationManager = testGroup "TZBTC migration manager tests"
           agent <- originateAgent (unContractAddress v1) v2
           consumer <- lOriginateEmpty contractConsumer "consumer"
           withSender newOperatorAddress $ lCall v1 (Pause ())
-          withSender adminAddress $ lCall v1 (StartMigrateTo $ (#migrationManager .! agent))
-          withSender adminAddress $ lCall v2 (StartMigrateFrom $ (#migrationManager .! agent))
-          withSender adminAddress $ lCall v1 (Unpause ())
+          withSender adminAddress $ do
+            lCall v1 (StartMigrateTo $ (#migrationManager .! agent))
+            lCall v2 (StartMigrateFrom $ (#migrationManager .! agent))
+            lCall v1 (Unpause ())
           lCall v1 $ GetBalance (View alice consumer)
           lCall v2 $ GetBalance (View alice consumer)
           withSender alice $ lCall v1 (Migrate ())
@@ -667,15 +736,17 @@ test_migrationManager = testGroup "TZBTC migration manager tests"
           validate . Right $
             lExpectViewConsumerStorage consumer [500, 0, 0, 500]
   , testCase
-      "calling migrate on paused contract fails with `ContractIsPaused` error" $
+      "calling migrate on paused contract fails with `OperationsArePaused` error" $
         integrationalTestExpectation $ do
           v1 <- originateV1
           v2 <- originateV2
           agent <- originateAgent (unContractAddress v1) v2
-          withSender newOperatorAddress $ lCall v1 (Pause ())
-          withSender adminAddress $ lCall v1 (StartMigrateTo $ (#migrationManager .! agent))
-          withSender adminAddress $ lCall v2 (StartMigrateFrom $ (#migrationManager .! agent))
+          withSender newOperatorAddress $ do
+            lCall v1 (Pause ())
+          withSender adminAddress $ do
+            lCall v1 (StartMigrateTo $ (#migrationManager .! agent))
+            lCall v2 (StartMigrateFrom $ (#migrationManager .! agent))
           withSender alice $ lCall v1 (Migrate ())
           validate . Left $
-            lExpectError (== ContractIsPaused)
+            lExpectError (== OperationsArePaused)
   ]

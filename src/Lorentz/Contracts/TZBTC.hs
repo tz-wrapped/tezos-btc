@@ -33,7 +33,9 @@ tzbtcContract = do
   unpair
   caseT @Parameter
     ( #cTransfer /-> transfer
+    , #cTransferViaProxy /-> transferViaProxy
     , #cApprove /-> approve
+    , #cApproveViaProxy /-> approveViaProxy
     , #cGetAllowance /-> getAllowance
     , #cGetBalance /-> getBalance
     , #cGetTotalSupply /-> getTotal #totalSupply
@@ -54,6 +56,7 @@ tzbtcContract = do
     , #cStartMigrateFrom /-> startMigrateFrom
     , #cMintForMigration /-> mintForMigration
     , #cMigrate /-> migrate
+    , #cSetProxy /-> setProxy
     )
 
 tzbtcCompileWay :: LorentzCompilationWay Parameter Storage

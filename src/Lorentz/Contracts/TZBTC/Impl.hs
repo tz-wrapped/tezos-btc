@@ -18,17 +18,20 @@ module Lorentz.Contracts.TZBTC.Impl
   , ManagedLedger.transfer'
   , acceptOwnership
   , addOperator
+  , approveViaProxy
   , burn
   , getTotal
   , mint
-  , migrate
   , mintForMigration
+  , migrate
   , pause
   , removeOperator
+  , setProxy
   , setRedeemAddress
   , startMigrateFrom
   , startMigrateTo
   , transferOwnership
+  , transferViaProxy
   , unpause
   ) where
 
@@ -54,6 +57,7 @@ type StorageC store = StorageContains store
   , "migrationManagerIn" := Maybe MigrationManager
   , "migrationManagerOut" := Maybe MigrationManager
   , "ledger" := Address ~> LedgerValue
+  , "proxy" := Either Address Address
   ]
 
 type Entrypoint param store
@@ -144,6 +148,21 @@ mint :: forall store. StorageC store => Entrypoint MintParams store
 mint = do
   dip authorizeOperator
   mint_
+
+transferViaProxy
+  :: forall store. StorageC store
+  => Entrypoint TransferViaProxyParams store
+transferViaProxy = do
+  dip authorizeProxy
+  ManagedLedger.transfer'
+
+approveViaProxy
+  :: forall store. StorageC store
+  => Entrypoint ApproveViaProxyParams store
+approveViaProxy = do
+  dip authorizeProxy
+  coerce_
+  ManagedLedger.approve'
 
 -- | Add a new operator to the set of Operators. Only admin is allowed to call this
 -- entrypoint.
@@ -340,6 +359,18 @@ unpause = do
   push False
   ManagedLedger.setPause
 
+setProxy :: StorageC store => Entrypoint SetProxyParams store
+setProxy = do
+  -- Check sender
+  dip $ do
+    stGetField #proxy
+    ifLeft
+      (do sender; if IsEq then nop else failUsing NotAllowedToSetProxy)
+      (failUsing ProxyAlreadySet)
+  right @Address
+  stSetField #proxy
+  finishNoOp
+
 -- | Check that the sender is admin
 authorizeAdmin
   :: StorageC store
@@ -383,7 +414,17 @@ ensureNotPaused
   => '[store] :-> '[store]
 ensureNotPaused = do
   stGetField #paused
-  if_ (failUsing ContractIsPaused) (nop)
+  if_ (failUsing OperationsArePaused) (nop)
+
+-- | Check that the sender is proxy
+authorizeProxy
+  :: StorageC store
+  => store ': s :-> store ': s
+authorizeProxy = do
+  stGetField #proxy
+  ifLeft (failUsing ProxyIsNotSet) $ do
+    sender
+    if IsEq then nop else failUsing CallerIsNotProxy
 
 -- | Finish with an empty list of operations
 finishNoOp :: '[st] :-> (ContractOut st)
