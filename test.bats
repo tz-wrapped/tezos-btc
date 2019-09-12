@@ -105,6 +105,14 @@
   stack exec -- tzbtc printAgentContract --oneline
 }
 
+@test "invoking tzbtc 'printProxyContract' command" {
+  stack exec -- tzbtc printProxyContract
+}
+
+@test "invoking tzbtc 'printProxyContract' command with --oneline flag" {
+  stack exec -- tzbtc printProxyContract --oneline
+}
+
 @test "invoking tzbts 'printInitialStorage' command" {
   result="$(stack exec -- tzbtc printInitialStorage tz1f1S7V2hZJ3mhj47djb5j1saek8c2yB2Cx tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV)"
   [ "$result" == '(Pair { } (Pair (Pair (Pair "tz1f1S7V2hZJ3mhj47djb5j1saek8c2yB2Cx" (Pair False 0)) (Pair 0 (Pair 0 None))) (Pair (Pair { } (Pair "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" "ZBTC")) (Pair (Pair "TZBTC" None) (Pair None (Left "tz1f1S7V2hZJ3mhj47djb5j1saek8c2yB2Cx"))))))' ]
