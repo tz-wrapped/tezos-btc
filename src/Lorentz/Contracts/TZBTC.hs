@@ -13,10 +13,16 @@ module Lorentz.Contracts.TZBTC
   , agentContract
   , tzbtcContract
   , tzbtcCompileWay
+  , tzbtcDoc
   ) where
 
-
+import Prelude (LText)
 import Lorentz
+
+import qualified Data.Text as T (concat)
+
+import Michelson.Typed.Doc
+  (DComment(..), DDescription(..), DName(..), SomeDocItem(..), contractDocToMarkdown)
 
 import Lorentz.Contracts.TZBTC.Agent (agentContract)
 import Lorentz.Contracts.TZBTC.Impl
@@ -31,7 +37,7 @@ import Lorentz.Contracts.TZBTC.Types
 tzbtcContract :: Contract Parameter Storage
 tzbtcContract = do
   unpair
-  caseT @Parameter
+  entryCase @Parameter (Proxy @TzbtcEntryPointKind)
     ( #cTransfer /-> transfer
     , #cTransferViaProxy /-> transferViaProxy
     , #cApprove /-> approve
@@ -61,3 +67,25 @@ tzbtcContract = do
 
 tzbtcCompileWay :: LorentzCompilationWay Parameter Storage
 tzbtcCompileWay = lcwEntryPoints
+
+data TzbtcEntryPointKind
+
+instance DocItem (DEntryPoint TzbtcEntryPointKind) where
+  type DocItemPosition (DEntryPoint TzbtcEntryPointKind) = 1001
+  docItemSectionName = Just "Entry-points of TZBTC contract"
+  docItemSectionDescription = Nothing
+  docItemToMarkdown = diEntryPointToMarkdown
+
+tzbtcDoc :: LText
+tzbtcDoc = contractDocToMarkdown . buildLorentzDoc $ do
+  -- License info
+  doc $ DComment $ T.concat
+    [ "- SP"
+    , "DX-FileCopyrightText: 2019 Bitcoin Suisse\n"
+    , "-\n"
+    , "- SP"
+    , "DX-License-Identifier: LicenseRef-Proprietary"
+    ]
+  docGroup (SomeDocItem . DName "TZBTC") $ do
+    doc $ DDescription "This contract is implemented using Lorentz language"
+    tzbtcContract
