@@ -14,7 +14,9 @@ import Options.Applicative
   (execParser, footerDoc, fullDesc, header, help, helper, info, infoOption, long, progDesc)
 import Options.Applicative.Help.Pretty (Doc, linebreak)
 
-import Lorentz (Address, parseLorentzValue, printLorentzContract, printLorentzValue, lcwDumb)
+import Lorentz
+  (Address, CanHaveBigMap, Contract, KnownValue, NoBigMap, NoOperation,
+   parseLorentzValue, printLorentzContract, printLorentzValue, lcwDumb)
 import Lorentz.Common (TestScenario, showTestScenario)
 import Util.Named ((.!))
 import Util.IO (writeFileUtf8)
@@ -22,7 +24,8 @@ import Paths_tzbtc (version)
 
 import CLI.Parser
 import Lorentz.Contracts.TZBTC
-  (Parameter(..), agentContract, mkStorage, tzbtcCompileWay, tzbtcContract)
+  (Parameter(..), agentContract, mkStorage, tzbtcContract)
+import Lorentz.Contracts.TZBTC.Proxy (tzbtcProxyContract)
 
 -- Here in main function we will just accept commands from user
 -- and print the smart contract parameter by using `printLorentzValue`
@@ -50,17 +53,17 @@ main = do
     CmdStartMigrateFrom p -> printParam (StartMigrateFrom p)
     CmdMigrate p -> printParam (Migrate p)
     CmdPrintContract singleLine mbFilePath ->
-      maybe putStrLn writeFileUtf8 mbFilePath $
-        printLorentzContract singleLine tzbtcCompileWay tzbtcContract
+      printContract singleLine mbFilePath tzbtcContract
     CmdPrintAgentContract singleLine mbFilePath ->
-      maybe putStrLn writeFileUtf8 mbFilePath $
-        printLorentzContract singleLine lcwDumb (agentContract @Parameter)
+      printContract singleLine mbFilePath (agentContract @Parameter)
         -- Here agentContract that is printed is the one that target a
         -- contract with the parameter `Parameter`. If we can obtain
         -- runtime witness or type class dictionaries for the constraints
         -- `agentContract` require it might be possible to read a contract
         -- from a file, and printout an agent contract that can migrate
         -- to it, or print out an error if it is incompatible.
+    CmdPrintProxyContract singleLine mbFilePath ->
+      printContract singleLine mbFilePath tzbtcProxyContract
     CmdPrintInitialStorage adminAddress redeemAddress ->
       putStrLn $ printLorentzValue True (mkStorage adminAddress redeemAddress mempty mempty)
     CmdParseParameter t ->
@@ -71,6 +74,14 @@ main = do
         (maybe putStrLn writeFileUtf8 tsoOutput) $
         showTestScenario <$> mkTestScenario tsoMaster tsoAddresses
   where
+    printContract
+      :: ( KnownValue parameter, KnownValue storage
+         , NoOperation parameter, NoOperation storage
+         , NoBigMap parameter, CanHaveBigMap storage)
+      => Bool -> Maybe FilePath -> Contract parameter storage -> IO ()
+    printContract singleLine mbFilePath contract =
+      maybe putStrLn writeFileUtf8 mbFilePath $
+        printLorentzContract singleLine lcwDumb contract
     printParam :: Parameter -> IO ()
     printParam = putStrLn . printLorentzValue True
     programInfo =

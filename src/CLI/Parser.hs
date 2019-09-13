@@ -44,6 +44,7 @@ data CmdLnArgs
   | CmdPrintInitialStorage Address Address
   | CmdPrintContract Bool (Maybe FilePath)
   | CmdPrintAgentContract Bool (Maybe FilePath)
+  | CmdPrintProxyContract Bool (Maybe FilePath)
   | CmdParseParameter Text
   | CmdTestScenario TestScenarioOptions
 
@@ -61,8 +62,8 @@ argParser = hsubparser $
   <> setRedeemAddressCmd <> transferOwnershipCmd
   <> startMigrateFromCmd <> startMigrateToCmd
   <> migrateCmd <> printCmd
-  <> printAgentCmd <> printInitialStorageCmd
-  <> parseParameterCmd <> testScenarioCmd
+  <> printAgentCmd <> printProxyCmd
+  <> printInitialStorageCmd <> parseParameterCmd <> testScenarioCmd
   where
     mkCommandParser ::
          String
@@ -71,22 +72,26 @@ argParser = hsubparser $
       -> Opt.Mod Opt.CommandFields CmdLnArgs
     mkCommandParser commandName parser desc =
       command commandName $ info parser $ progDesc desc
+    singleLineSwitch =
+            switch (long "oneline" <> help "Single line output")
     printCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     printCmd =
-      let singleLineSwitch =
-            switch (long "oneline" <> help "Single line output")
-       in (mkCommandParser
-             "printContract"
-             (CmdPrintContract <$> singleLineSwitch <*> outputOption)
-             "Print token contract")
+      (mkCommandParser
+        "printContract"
+        (CmdPrintContract <$> singleLineSwitch <*> outputOption)
+        "Print token contract")
     printAgentCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     printAgentCmd =
-      let singleLineSwitch =
-            switch (long "oneline" <> help "Single line output")
-       in (mkCommandParser
-             "printAgentContract"
-             (CmdPrintAgentContract <$> singleLineSwitch <*> outputOption)
-             "Print migration agent contract")
+      (mkCommandParser
+        "printAgentContract"
+        (CmdPrintAgentContract <$> singleLineSwitch <*> outputOption)
+        "Print migration agent contract")
+    printProxyCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
+    printProxyCmd =
+      (mkCommandParser
+        "printProxyContract"
+        (CmdPrintProxyContract <$> singleLineSwitch <*> outputOption)
+        "Print proxy contract")
     printInitialStorageCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     printInitialStorageCmd =
       (mkCommandParser
