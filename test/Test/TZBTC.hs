@@ -113,7 +113,7 @@ test_proxyCheck = testGroup "TZBTC contract proxy endpoints check"
         withSender bob $
           lCall c (TransferViaProxy (#sender .! bob, (#from .! bob, #to .! alice, #value .! 100)))
         validate . Left $
-          lExpectError (== CallerIsNotProxy)
+          lExpectCustomError_ #callerIsNotProxy
   ]
   where
     validate' :: ContractPropValidator (ToT Storage) Assertion
@@ -489,7 +489,7 @@ test_setProxy = testGroup "TZBTC contract `setProxy` test"
           lCall c (SetProxy contractAddress)
           lCall c (SetProxy contractAddress)
         validate . Left $
-          lExpectError (== ProxyAlreadySet)
+          lExpectCustomError_ #proxyAlreadySet
   ]
   where
     storageWithOperator =
@@ -559,7 +559,7 @@ test_migration = testGroup "TZBTC contract migration tests"
           v1 <- originateV1
           withSender alice $ lCall v1 (Migrate ())
           validate . Left $
-            lExpectError (== MigrationNotEnabled)
+            lExpectCustomError_ #migrationNotEnabled
   , testCase
       "call to `migrate` from an empty accounts address fails" $
         integrationalTestExpectation $ do
@@ -572,7 +572,7 @@ test_migration = testGroup "TZBTC contract migration tests"
             lCall v1 (Unpause ())
           withSender bob $ lCall v1 (Migrate ())
           validate . Left $
-            lExpectError (== NoBalanceToMigrate)
+            lExpectCustomError_ #noBalanceToMigrate
  , testCase
      "call `startMigrateTo` to from non admin address fails" $
        integrationalTestExpectation $ do
@@ -583,7 +583,7 @@ test_migration = testGroup "TZBTC contract migration tests"
          withSender bob $ lCall v1 (StartMigrateTo $ (#migrationManager .! agent))
          withSender adminAddress $ lCall v1 (Unpause ())
          validate . Left $
-           lExpectError (== SenderIsNotAdmin)
+           lExpectCustomError_ #senderIsNotAdmin
  , testCase
      "call `startMigrateFrom` to from non admin address fails" $
        integrationalTestExpectation $ do
@@ -592,7 +592,7 @@ test_migration = testGroup "TZBTC contract migration tests"
          agent <- originateAgent (unContractAddress v1) v2
          withSender bob $ lCall v2 (StartMigrateFrom $ (#migrationManager .! agent))
          validate . Left $
-           lExpectError (== SenderIsNotAdmin)
+           lExpectCustomError_ #senderIsNotAdmin
  , testCase
      "call `startMigrateTo` from admin saves the address of migration manager proxy" $
        integrationalTestExpectation $ do
@@ -616,7 +616,7 @@ test_migration = testGroup "TZBTC contract migration tests"
          agent <- originateAgent (unContractAddress v1) v2
          withSender adminAddress $ lCall v1 (StartMigrateTo $ (#migrationManager .! agent))
          validate . Left $
-           lExpectError (== ContractIsNotPaused)
+           lExpectCustomError_ #tokenOperationsAreNotPaused
  , testCase
      "multple calls `startMigrateTo` from admin stores the address of the last call" $
        integrationalTestExpectation $ do
@@ -670,7 +670,7 @@ test_migration = testGroup "TZBTC contract migration tests"
          withSender adminAddress $ lCall v2 (StartMigrateFrom $ (#migrationManager .! agent))
          withSender bob $ lCall v2 (MintForMigration $ (#to .! alice, #value .! 100))
          validate . Left $
-           lExpectError (== SenderIsNotAgent)
+           lExpectCustomError_ #senderIsNotAgent
 
  , testCase
      "call `mintForMigration` from agent address to new contract mints tokens" $
@@ -690,7 +690,7 @@ test_migration = testGroup "TZBTC contract migration tests"
          v2 <- originateV2
          withSender bob $ lCall v2 (MintForMigration $ (#to .! alice, #value .! 100))
          validate . Left $
-           lExpectError (== MigrationNotEnabled)
+           lExpectCustomError_ #migrationNotEnabled
   ]
 
 test_migrationManager :: TestTree
@@ -715,7 +715,7 @@ test_migrationManager = testGroup "TZBTC migration manager tests"
           agent <- originateAgent (unContractAddress v1) v2
           withSender bob $ lCall agent (alice, 100)
           validate . Left $
-            lExpectError (== Agent.MigrationBadOrigin)
+            lExpectCustomError_ #migrationBadOrigin
   , testCase
       "calling migrate on old version burns tokens in old version and mint them in new" $
         integrationalTestExpectation $ do
@@ -748,5 +748,5 @@ test_migrationManager = testGroup "TZBTC migration manager tests"
             lCall v2 (StartMigrateFrom $ (#migrationManager .! agent))
           withSender alice $ lCall v1 (Migrate ())
           validate . Left $
-            lExpectError (== OperationsArePaused)
+            lExpectCustomError_ #tokenOperationsArePaused
   ]

@@ -9,7 +9,6 @@ module Lorentz.Contracts.TZBTC.Agent
   ( Parameter
   , StorageFields(..)
   , agentContract
-  , Error(..)
   ) where
 
 import Lorentz
@@ -26,11 +25,7 @@ data StorageFields tp = StorageFields
   } deriving stock Generic
     deriving anyclass IsoValue
 
-data Error
-  = MigrationBadOrigin
-  deriving stock (Eq, Generic)
-
-deriveCustomError ''Error
+type instance ErrorArg "migrationBadOrigin" = ()
 
 -- | A migration agent that can migrate to any contract as long as the
 -- target contract have a constructor/entrypoint `MintForMigration` with field
@@ -76,4 +71,4 @@ agentContract = do
         sender
         if IsEq then
           nop
-        else failUsing MigrationBadOrigin
+        else failCustom_ #migrationBadOrigin
