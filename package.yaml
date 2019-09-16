@@ -42,6 +42,11 @@ library:
     - universum
     - optparse-applicative
     - vinyl
+    - hex-text
+    - bytestring
+    - aeson
+    - aeson-casing
+    - singletons
 
 executables:
   tzbtc:
@@ -97,3 +102,5 @@ tests:
     - lorentz-contracts
     - named
     - tezos-bake-monitor-lib
+    - hex-text
+    - hspec

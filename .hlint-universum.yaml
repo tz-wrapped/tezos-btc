@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2016-2017, Stephen Diehl, 2017, Serokell
 #
-# SPDX-License-Identifier: LicenseRef-MIT
+# SPDX-License-Identifier: LicenseRef-MIT-Diehl
 #
 # This is a custom hlint config with rules that suggest
 # using Universum functions whenever it has a suitable
