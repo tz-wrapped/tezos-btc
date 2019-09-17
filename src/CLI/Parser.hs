@@ -62,7 +62,7 @@ argParser = hsubparser $
   mintCmd <> burnCmd <> transferCmd <> approveCmd
   <> getAllowanceCmd <> getBalanceCmd <> addOperatorCmd
   <> removeOperatorCmd <> pauseCmd <> unpauseCmd
-  <> setRedeemAddressCmd <> transferOwnershipCmd
+  <> setRedeemAddressCmd <> transferOwnershipCmd <> acceptOwnershipCmd
   <> startMigrateFromCmd <> startMigrateToCmd
   <> migrateCmd <> printCmd
   <> printAgentCmd <> printProxyCmd
@@ -180,6 +180,12 @@ argParser = hsubparser $
          "transferOwnership"
          (CmdTransferOwnership <$> transferOwnershipParamsParser)
          "Transfer ownership")
+    acceptOwnershipCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
+    acceptOwnershipCmd =
+      (mkCommandParser
+         "acceptOwnership"
+         (pure $ CmdAcceptOwnership ())
+         "Accept ownership")
     startMigrateFromCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     startMigrateFromCmd =
       (mkCommandParser
