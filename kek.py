@@ -3,10 +3,11 @@
 # SPDX-License-Identifier: LicenseRef-Proprietary
 #
 
-license =
-"- SPDX-FileCopyrightText: 2019 Example\n" +
-"- SPDX-License-Identifier: LicenseRef-Proprietary"
+license_copyright_text = "SPDX-FileCopyrightText: 2019 Example"
+license_identifier = "SPDX-License-Identifier: LicenseRef-Proprietary"
 
 fout = open('out.txt', 'w')
-fout.write(license)
+fout.write(license_copyright_text)
+fout.write('\n')
+fout.write(license_identifier)
 fout.close()
