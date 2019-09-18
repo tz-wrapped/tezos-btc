@@ -91,7 +91,9 @@ tests:
     - tasty-hunit
     - morley
     - fmt
+    - bytestring
     - containers
     - singletons
     - lorentz-contracts
     - named
+    - tezos-bake-monitor-lib

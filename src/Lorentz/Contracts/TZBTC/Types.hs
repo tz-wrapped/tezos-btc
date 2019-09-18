@@ -87,7 +87,7 @@ data Parameter
   | MintForMigration    !MintForMigrationParams
   | Migrate             !MigrateParams
   | SetProxy            !SetProxyParams
-  deriving stock Generic
+  deriving stock (Eq, Show, Generic)
   deriving anyclass IsoValue
 
 ----------------------------------------------------------------------------

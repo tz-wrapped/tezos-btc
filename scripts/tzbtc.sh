@@ -42,6 +42,7 @@ then
 else
     res=$($our_exe "${args[@]}")
     signature=$($tezos -A $node_url -P $node_port sign bytes "0x03$res" for $address_alias 2>/dev/null | cut -c 12- | tr -d '[:space:]')
+    echo $signature
     op_hash=$($our_exe injectOperation $res $signature)
     echo $op_hash
 fi
