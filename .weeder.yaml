@@ -25,4 +25,9 @@
     - message:
       - name: Redundant build-depends entry
       - depends: base-noprelude
+  - section:
+    - name: exe:tzbtc-client
+    - message:
+      - name: Redundant build-depends entry
+      - depends: base-noprelude
 
