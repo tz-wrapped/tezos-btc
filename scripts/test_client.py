@@ -26,9 +26,6 @@ if __name__ == '__main__':
     parser.add_argument('--our-exe',
         default='stack exec -- tzbtc-client',
         help="How to launch our executable")
-    parser.add_argument('--our-script',
-        default='./scripts/tzbtc.sh',
-        help="Wrapper script")
     parser.add_argument('--tezos-client',
         default='./tezos_client',
         help='How to run tezos_client')
@@ -38,7 +35,6 @@ if __name__ == '__main__':
     owner_alias = args.owner_alias
     contract_addr = args.contract
     our_exe = args.our_exe.split()
-    our_script = args.our_script.split()
     tezos_client = args.tezos_client.split()
     addresses = args.address
 
@@ -51,8 +47,8 @@ if __name__ == '__main__':
     ]
 
     for command in test_scenario:
-        print(' '.join(our_script), ' '.join(command))
-        subprocess.run(our_script + command)
+        print(' '.join(our_exe), ' '.join(command))
+        subprocess.run(our_exe + command)
         # Sleep to wait for the next block, so we don't duplicate sender counter
         time.sleep(40)
 

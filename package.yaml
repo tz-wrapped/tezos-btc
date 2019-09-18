@@ -74,6 +74,7 @@ executables:
       - morley-prelude
       - morley
       - optparse-applicative
+      - process
       - safe-exceptions
       - servant-client
       - servant-client-core

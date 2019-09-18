@@ -8,7 +8,9 @@ module Main
 
 import Control.Exception.Safe (throwString)
 import Data.Aeson (decodeFileStrict, encodeFile)
+import Data.Char (isAlpha, isDigit)
 import Data.List ((!!))
+import Data.Text as T (breakOn, strip, takeWhile)
 import Data.Version (showVersion)
 import Fmt (pretty)
 import Options.Applicative
@@ -19,6 +21,8 @@ import Network.HTTP.Client
 import Servant.Client
   (BaseUrl(..), ClientError, ClientEnv, Scheme(..), mkClientEnv, runClientM)
 import System.Directory (createDirectoryIfMissing, getHomeDirectory)
+import System.Exit (ExitCode(..))
+import System.Process (readProcessWithExitCode)
 import Tezos.Json (TezosWord64)
 
 import Lorentz (lcwDumb, parseLorentzValue, printLorentzContract, printLorentzValue)
@@ -142,7 +146,23 @@ runTransaction param = do
                             , toFee = calcFees consumedGas storageSize
                             }]
     }
-  putStrLn $ formatByteString hex
+  (exitCode, stdout', stderr') <- readProcessWithExitCode ccTezosClientExecutable
+    [ "-A", toString ccNodeAddress, "-P", show ccNodePort
+    , "sign", "bytes", toString $ "0x03" <> formatByteString hex
+    , "for", toString ccUserAlias
+    ] ""
+  case exitCode of
+    ExitSuccess -> do
+      -- Tezos signature always has `edsig` prefix and uses base58 alphabet
+      let signature' = T.takeWhile isBase58Char . snd . breakOn "edsig" . strip . toText $ stdout'
+      injectOp (formatByteString hex) (unsafeParseSignature signature')
+    ExitFailure _ -> do
+      putStrLn ("Operation signing failed" :: Text)
+      putStrLn stderr'
+   where
+     isBase58Char :: Char -> Bool
+     isBase58Char c =
+       (isDigit c && c /= '0') || (isAlpha c && c /= 'O' && c /= 'I' && c /= 'l')
 
 directory, configPath :: FilePath
 directory = "/.tzbtc/"
@@ -160,8 +180,6 @@ main = do
   cmd <- execParser programInfo
   case cmd of
     CmdSetupClient config -> setupClient config
-    CmdInjectOperation unsignedOp signature' ->
-      injectOp unsignedOp signature'
     CmdTransaction arg -> case arg of
       CmdMint mintParams -> runTransaction $ Mint mintParams
       CmdBurn burnParams -> runTransaction $ Burn burnParams
@@ -225,12 +243,7 @@ main = do
       , "USAGE EXAMPLE:", linebreak
       , "  tzbtc-client mint --to tz1U1h1YzBJixXmaTgpwDpZnbrYHX3fMSpvb --value 100500", linebreak
       , linebreak
-      , "  This command will return perform transaction forge", linebreak
-      , "  As a result, this command returns unsigned operation", linebreak
-      , "  in the hexademical form.", linebreak
-      , linebreak
-      , "Once the operation is signed, you can use:", linebreak
-      , "  tzbtc-client injectOperation <unsigned_operation> <signature>", linebreak
-      , linebreak
-      , "  Thus give operation will be injected to the chain (in case of correct signature)"
+      , "  This command will perform transaction insertion", linebreak
+      , "  to the chain.", linebreak
+      , "  Operation hash is returned as a result.", linebreak
       ]

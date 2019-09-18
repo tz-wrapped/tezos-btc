@@ -7,12 +7,9 @@ module Client.Parser
   , clientArgParser
   ) where
 
-import Fmt (pretty)
 import Options.Applicative
-  (argument, auto, eitherReader, help, metavar, str)
+  (argument, auto, help, metavar, str)
 import qualified Options.Applicative as Opt
-
-import Tezos.Crypto (Signature, parseSignature)
 
 import CLI.Parser
 import Client.Types
@@ -20,11 +17,10 @@ import Client.Types
 data ClientArgs
   = CmdTransaction CmdLnArgs
   | CmdSetupClient ClientConfig
-  | CmdInjectOperation Text Signature
 
 clientArgParser :: Opt.Parser ClientArgs
 clientArgParser =
-  (Opt.hsubparser $ setupUserCmd <> injectOperationCmd) <|>
+  (Opt.hsubparser setupUserCmd) <|>
   CmdTransaction <$> argParser
   where
     setupUserCmd :: Opt.Mod Opt.CommandFields ClientArgs
@@ -38,35 +34,14 @@ clientArgParser =
                       addressArgument "User's address" <*>
                       (argument str $ mconcat
                        [metavar "ADDRESS_ALIAS", help "tezos-client alias"])
-                      <*> filePathArgument "TZBTC-client executable"
                       <*> filePathArgument "tezos-client executable"
                      ))
                      ("Setup client using node url, node port, contract address, user " <>
                       "address and user address alias"))
-    injectOperationCmd :: Opt.Mod Opt.CommandFields ClientArgs
-    injectOperationCmd = (mkCommandParser
-                          "injectOperation"
-                          (CmdInjectOperation <$>
-                           unsignedOperation <*>
-                           signatureArgument)
-                          ("Inject given unsigned operation by signing it with given signature"))
 
 urlArgument :: String -> Opt.Parser Text
 urlArgument hInfo = argument str $
   mconcat [metavar "URL", help hInfo]
-
-unsignedOperation :: Opt.Parser Text
-unsignedOperation = argument str $
-  mconcat [metavar "UNSIGNED_OPERATION"]
-
-signatureArgument :: Opt.Parser Signature
-signatureArgument = argument (eitherReader parseSignatureDo) $ mconcat
-  [ metavar "SIGNATURE"]
-
-parseSignatureDo :: String -> Either String Signature
-parseSignatureDo sig =
-  either (Left . mappend "Failed to parse signature: " . pretty) Right $
-  parseSignature $ toText sig
 
 intArgument :: String -> Opt.Parser Int
 intArgument hInfo = argument auto $
