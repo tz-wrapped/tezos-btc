@@ -30,7 +30,8 @@ Also you can use `tzbtc-client` executable. Unlike the `tzbtc`
 this executable performs transactions to the chain using remote
 tezos-node. In order to setup `tzbtc-client` you should use
 `tzbtc-client setupClient` command. Most of the commands (except
-`printContract`, `printInitialStorage`, `parseContractParameter`,
+`printContract`, `printInitialStorage`, `printContractDoc`,
+`printProxyContract`, `printAgentContract`, `parseContractParameter`,
 `testScenario`, `injectOperation`, `setupClient`) will perform forge
 and return an unsigned operation.
 
@@ -61,6 +62,10 @@ once again.
 So the workflow for interacting with the TZBTC contract on the chain is the following:
 * Use `tzbtc-client setupClient` to set up the environment.
 * Use `/scripts/tzbtc.sh` for submitting transactions to the chain.
+
+## Contract documentation
+
+Contract documentation is located in [ContractDoc.md](ContractDoc.md).
 
 ## Issue Tracker [↑](#ZBTC)
 

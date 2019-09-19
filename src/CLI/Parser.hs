@@ -48,6 +48,7 @@ data CmdLnArgs
   | CmdPrintContract Bool (Maybe FilePath)
   | CmdPrintAgentContract Bool (Maybe FilePath)
   | CmdPrintProxyContract Bool (Maybe FilePath)
+  | CmdPrintDoc (Maybe FilePath)
   | CmdParseParameter Text
   | CmdTestScenario TestScenarioOptions
 
@@ -66,7 +67,8 @@ argParser = hsubparser $
   <> startMigrateFromCmd <> startMigrateToCmd
   <> migrateCmd <> printCmd
   <> printAgentCmd <> printProxyCmd
-  <> printInitialStorageCmd <> parseParameterCmd <> testScenarioCmd
+  <> printInitialStorageCmd <> printDoc
+  <> parseParameterCmd <> testScenarioCmd
   where
     singleLineSwitch =
             switch (long "oneline" <> help "Single line output")
@@ -96,6 +98,12 @@ argParser = hsubparser $
             <$> addressArgument "Administrator's address"
             <*> addressArgument "Redeem address")
          "Print initial contract storage")
+    printDoc :: Opt.Mod Opt.CommandFields CmdLnArgs
+    printDoc =
+      (mkCommandParser
+        "printContractDoc"
+        (CmdPrintDoc <$> outputOption)
+        "Print tzbtc contract documentation")
     parseParameterCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     parseParameterCmd =
       (mkCommandParser

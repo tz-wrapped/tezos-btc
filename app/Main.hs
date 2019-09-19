@@ -21,7 +21,8 @@ import Util.IO (writeFileUtf8)
 import Paths_tzbtc (version)
 
 import CLI.Parser
-import Lorentz.Contracts.TZBTC (Parameter(..), agentContract, mkStorage, tzbtcContract)
+import Lorentz.Contracts.TZBTC
+  (Parameter(..), agentContract, mkStorage, tzbtcContract, tzbtcDoc)
 import Lorentz.Contracts.TZBTC.Proxy (tzbtcProxyContract)
 import Lorentz.Contracts.TZBTC.Test (mkTestScenario)
 
@@ -64,6 +65,8 @@ main = do
       printContract singleLine mbFilePath tzbtcProxyContract
     CmdPrintInitialStorage adminAddress redeemAddress ->
       putStrLn $ printLorentzValue True (mkStorage adminAddress redeemAddress mempty mempty)
+    CmdPrintDoc mbFilePath ->
+      maybe putStrLn writeFileUtf8 mbFilePath $ tzbtcDoc
     CmdParseParameter t ->
       either (throwString . pretty) (putTextLn . pretty) $
       parseLorentzValue @Parameter t

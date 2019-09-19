@@ -39,6 +39,9 @@ import Prelude hiding (drop, get, some, swap, (>>))
 
 import Data.Set (Set)
 import Data.Vinyl.Derived (Label)
+import Fmt (Builder)
+
+import Util.Markdown (mdTicked)
 
 import Lorentz
 import qualified Lorentz.Contracts.ManagedLedger.Impl as ManagedLedger
@@ -75,6 +78,7 @@ getTotal bp = view_ $ do cdr; stToField bp
 -- point.
 burn :: forall store. StorageC store => Entrypoint BurnParams store
 burn = do
+  doc $ DDescription "Burn some tokens from the `redeem` address."
   dip authorizeOperator
   -- Get redeem address from storage
   dip $ do
@@ -146,6 +150,7 @@ mint_ = do
 -- | Mints tokens for an account
 mint :: forall store. StorageC store => Entrypoint MintParams store
 mint = do
+  doc $ DDescription "Mint tokens to the given address."
   dip authorizeOperator
   mint_
 
@@ -153,6 +158,7 @@ transferViaProxy
   :: forall store. StorageC store
   => Entrypoint TransferViaProxyParams store
 transferViaProxy = do
+  doc $ DDescription "Proxy version of Transfer entrypoint."
   dip authorizeProxy
   ManagedLedger.transfer'
 
@@ -160,6 +166,7 @@ approveViaProxy
   :: forall store. StorageC store
   => Entrypoint ApproveViaProxyParams store
 approveViaProxy = do
+  doc $ DDescription "Proxy version of Approve entrypoint."
   dip authorizeProxy
   coerce_
   ManagedLedger.approve'
@@ -167,12 +174,16 @@ approveViaProxy = do
 -- | Add a new operator to the set of Operators. Only admin is allowed to call this
 -- entrypoint.
 addOperator :: forall store. StorageC store => Entrypoint OperatorParams store
-addOperator = addRemoveOperator AddOperator
+addOperator = do
+  doc $ DDescription "Add operator with given address."
+  addRemoveOperator AddOperator
 
 -- | Add an operator from the set of Operators. Only admin is allowed to call this
 -- entrypoint.
 removeOperator :: StorageC store => Entrypoint OperatorParams store
-removeOperator = addRemoveOperator RemoveOperator
+removeOperator = do
+  doc $ DDescription "Remove operator with given address."
+  addRemoveOperator RemoveOperator
 
 -- | A type to indicate required action to the `addRemoveOperator` function.
 data OperatorAction = AddOperator | RemoveOperator
@@ -205,6 +216,7 @@ setRedeemAddress
   :: StorageC store
   => Entrypoint SetRedeemAddressParams store
 setRedeemAddress = do
+  doc $ DDescription "Update `redeem` address, from which tokens can be burned."
   dip authorizeAdmin
   -- Unwrap operator address
   fromNamed #redeem
@@ -213,12 +225,13 @@ setRedeemAddress = do
   finishNoOp
 
 -- | Start the transfer of ownership to a new owner. This stores the
--- address of the new owenr in the `newOwner` field in storage. Only
+-- address of the new owner in the `newOwner` field in storage. Only
 -- admin is allowed to make this call.
 transferOwnership
   :: StorageC store
   => Entrypoint TransferOwnershipParams store
 transferOwnership = do
+  doc $ DDescription "Start the transfer ownership to a new owner."
   dip authorizeAdmin
   -- Unwrap new owner address
   fromNamed #newOwner
@@ -232,6 +245,7 @@ transferOwnership = do
 -- the address in `newOwner` field, if it contains one.
 acceptOwnership :: StorageC store => Entrypoint () store
 acceptOwnership = do
+  doc $ DDescription "Accept the ownership of the contract."
   dip authorizeNewOwner
   drop
   -- Get `newOwner` address from storage
@@ -249,6 +263,7 @@ startMigrateTo
   :: forall store. StorageC store
   => Entrypoint StartMigrateToParams store
 startMigrateTo = do
+  doc $ DDescription "Initialize process of migration from the old contract."
   dip $ do
     authorizeAdmin
     ensurePaused
@@ -264,6 +279,7 @@ startMigrateFrom
   :: forall store. StorageC store
   => Entrypoint StartMigrateFromParams store
 startMigrateFrom = do
+  doc $ DDescription "Initialize process of migration from the new contract."
   dip authorizeAdmin
   fromNamed #migrationManager
   some
@@ -276,6 +292,7 @@ mintForMigration
   :: forall store. StorageC store
   => Entrypoint MintForMigrationParams store
 mintForMigration = do
+  doc $ DDescription "Mint tokens to the given address from the agent."
   dip ensureMigrationAgent
   mint_
   where
@@ -291,6 +308,9 @@ mintForMigration = do
 -- is an end user call.
 migrate :: forall store. StorageC store => Entrypoint MigrateParams store
 migrate = do
+  doc $ DDescription
+    "Migrate from one verstion of the contract to another. \
+    \Thus tokens in the old version is burned and minted in the new."
   dip ensureNotPaused
   drop
   dup
@@ -345,6 +365,8 @@ migrate = do
 -- | Pause end user actions. This is callable only by the operator.
 pause :: StorageC store => Entrypoint () store
 pause = do
+  doc $ DDescription
+    "Pause the contract, after the pause all end users actions are prohibited."
   dip authorizeOperator
   drop
   push True
@@ -355,12 +377,14 @@ pause = do
 -- This is callable only by the admin.
 unpause :: StorageC store => Entrypoint () store
 unpause = do
+  doc $ DDescription "Unpause the contract and resume end users actions."
   drop
   push False
   ManagedLedger.setPause
 
 setProxy :: StorageC store => Entrypoint SetProxyParams store
 setProxy = do
+  doc $ DDescription "Set address of the proxy contract."
   -- Check sender
   dip $ do
     stGetField #proxy
@@ -371,11 +395,20 @@ setProxy = do
   stSetField #proxy
   finishNoOp
 
+data DRequireRole = DRequireRole Builder
+
+instance DocItem DRequireRole where
+  type DocItemPosition DRequireRole = 53
+  docItemSectionName = Nothing
+  docItemToMarkdown _ (DRequireRole role) =
+    "The sender has to be the " <> mdTicked role <> "."
+
 -- | Check that the sender is admin
 authorizeAdmin
   :: StorageC store
   => store : s :-> store : s
 authorizeAdmin = do
+  doc $ DRequireRole "admin"
   stGetField #admin; sender; eq
   if_ nop (failCustom_ #senderIsNotAdmin)
 
@@ -386,6 +419,7 @@ authorizeNewOwner
   => store : s :-> store : s
 authorizeNewOwner = do
   stGetField #newOwner;
+  doc $ DRequireRole "new owner"
   if IsSome then do
     sender
     eq
@@ -397,6 +431,7 @@ authorizeOperator
   :: StorageC store
   => store : s :-> store : s
 authorizeOperator = do
+  doc $ DRequireRole "operator"
   stGetField #operators; sender; mem;
   assert (CustomError #senderIsNotOperator)
 
@@ -421,6 +456,7 @@ authorizeProxy
   :: StorageC store
   => store ': s :-> store ': s
 authorizeProxy = do
+  doc $ DRequireRole "proxy"
   stGetField #proxy
   ifLeft (failCustom_ #proxyIsNotSet) $ do
     sender

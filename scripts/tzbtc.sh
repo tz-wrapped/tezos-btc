@@ -23,7 +23,7 @@ do
         break
     fi
     case $arg in
-        --help|--version|printContract|printAgentContract|printProxyContract|printInitialStorage|parseContractParameter|testScenario|setupClient )
+        --help|--version|printContract|printAgentContract|printContractDoc|printProxyContract|printInitialStorage|parseContractParameter|testScenario|setupClient )
             dry_run_flag=true
             ;;
         injectOperation )
