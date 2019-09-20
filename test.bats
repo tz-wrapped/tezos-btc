@@ -118,7 +118,8 @@
 }
 
 @test "invoking tzbtc 'printInitialStorage' command" {
-  result="$(stack exec -- tzbtc printInitialStorage tz1f1S7V2hZJ3mhj47djb5j1saek8c2yB2Cx tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV)"
+  result="$(stack exec -- tzbtc printInitialStorage --admin-address tz1f1S7V2hZJ3mhj47djb5j1saek8c2yB2Cx \
+  \--redeem-address tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV)"
   [ "$result" == 'Pair { } (Pair (Pair (Pair "tz1f1S7V2hZJ3mhj47djb5j1saek8c2yB2Cx" (Pair False 0)) (Pair 0 (Pair 0 None))) (Pair (Pair { } (Pair "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" "ZBTC")) (Pair (Pair "TZBTC" None) (Pair None (Left "tz1f1S7V2hZJ3mhj47djb5j1saek8c2yB2Cx")))))' ]
 }
 

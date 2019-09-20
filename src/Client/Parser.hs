@@ -8,7 +8,7 @@ module Client.Parser
   ) where
 
 import Options.Applicative
-  (argument, auto, help, metavar, str)
+  (argument, auto, help, long, metavar, option, str)
 import qualified Options.Applicative as Opt
 
 import CLI.Parser
@@ -30,14 +30,19 @@ clientArgParser =
                      (ClientConfig <$>
                       urlArgument "Node url" <*>
                       intArgument "Node port" <*>
-                      addressArgument "Contract's address" <*>
-                      addressArgument "User's address" <*>
-                      (argument str $ mconcat
-                       [metavar "ADDRESS_ALIAS", help "tezos-client alias"])
-                      <*> filePathArgument "tezos-client executable"
+                      namedAddressOption Nothing "contract-address"
+                      "Contract's address" <*>
+                      namedAddressOption Nothing "user-address" "User's address" <*>
+                      (option str $ mconcat
+                       [ long "alias"
+                       , metavar "ADDRESS_ALIAS"
+                       , help "tezos-client alias"
+                       ])
+                      <*> namedFilePathOption "tezos-client" "tezos-client executable"
                      ))
-                     ("Setup client using node url, node port, contract address, user " <>
-                      "address and user address alias"))
+                    ("Setup client using node url, node port, contract address, \
+                     \user address, user address alias and \
+                     \filepath to the tezos-client executable"))
 
 urlArgument :: String -> Opt.Parser Text
 urlArgument hInfo = argument str $
@@ -47,6 +52,6 @@ intArgument :: String -> Opt.Parser Int
 intArgument hInfo = argument auto $
   mconcat [metavar "PORT", help hInfo]
 
-filePathArgument :: String -> Opt.Parser FilePath
-filePathArgument hInfo = argument str $
-  mconcat [metavar "FILEPATH", help hInfo]
+namedFilePathOption :: String -> String -> Opt.Parser FilePath
+namedFilePathOption name hInfo = option str $
+  mconcat [long name, metavar "FILEPATH", help hInfo]
