@@ -27,20 +27,24 @@ library:
     - aeson-casing
     - bytestring
     - containers
+    - directory
     - hex-text
+    - http-client
+    - fmt
     - memory
     - morley
     - lorentz-contracts
     - morley-prelude
     - named
-    - fmt
+    - optparse-applicative
+    - process
     - servant
     - servant-client
     - servant-client-core
     - text
     - tezos-bake-monitor-lib
     - universum
-    - optparse-applicative
+    - safe-exceptions
     - vinyl
     - hex-text
     - bytestring
@@ -66,20 +70,12 @@ executables:
     source-dirs: client
 
     dependencies:
-      - aeson
-      - directory
       - fmt
-      - http-client
       - lorentz-contracts
       - morley-prelude
       - morley
       - optparse-applicative
-      - process
       - safe-exceptions
-      - servant-client
-      - servant-client-core
-      - text
-      - tezos-bake-monitor-lib
       - tzbtc
 
 tests:
