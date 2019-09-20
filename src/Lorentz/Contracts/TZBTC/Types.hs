@@ -27,18 +27,25 @@ module Lorentz.Contracts.TZBTC.Types
   , StartMigrateToParams
   , Storage
   , StorageFields(..)
+  , ToUnpackEnv(..)
   , TransferOwnershipParams
   , TransferViaProxyParams
   , mkStorage
+  , mkEnv
   ) where
 
 import Fmt (Buildable(..), (+|), (|+))
 import Data.Set (Set)
+import Data.Singletons
+import qualified Data.Map as Map
 
 import Lorentz
 import qualified Lorentz.Contracts.ManagedLedger.Types as ManagedLedger
 import Lorentz.Contracts.ManagedLedger.Types (Storage'(..), mkStorage')
 import Util.Instances ()
+import Michelson.TypeCheck.TypeCheck (TcOriginatedContracts)
+import Michelson.Typed.Extract
+import Michelson.Typed.Sing (Sing(..), fromSingT)
 
 type MigrationManager = ContractAddr (Address, Natural)
 type BurnParams = ("value" :! Natural)
@@ -56,6 +63,7 @@ type AcceptOwnershipParams = ()
 type MigrateParams = ()
 type SetMigrationAgentParams = ("migrationAgent" :! MigrationManager)
 type SetProxyParams = Address
+
 
 ----------------------------------------------------------------------------
 -- Parameter
@@ -119,12 +127,15 @@ instance Buildable Parameter where
   build = \case
     Transfer (arg #from -> from, arg #to -> to, arg #value -> value) ->
       "Transfer from " +| from |+ " to " +| to |+ ", value = " +| value |+ ""
-    TransferViaProxy (arg #sender -> sender_, (arg #from -> from, arg #to -> to, arg #value -> value)) ->
-      "Transfer via proxy from sender " +| sender_ |+ ", from" +| from |+ " to " +| to |+ ", value = " +| value |+ ""
+    TransferViaProxy
+      (arg #sender -> sender_, (arg #from -> from, arg #to -> to, arg #value -> value)) ->
+      "Transfer via proxy from sender " +| sender_ |+ ", from" +| from |+ " to "
+      +| to |+ ", value = " +| value |+ ""
     Approve (arg #spender -> spender, arg #value -> value) ->
       "Approve for " +| spender |+ ", value = " +| value |+ ""
     ApproveViaProxy (arg #sender -> sender_, (arg #spender -> spender, arg #value -> value)) ->
-      "Approve via proxy for sender " +| sender_ |+ ", spender ="+| spender |+ ", value = " +| value |+ ""
+      "Approve via proxy for sender "
+        +| sender_ |+ ", spender =" +| spender |+ ", value = " +| value |+ ""
     GetAllowance (View (arg #owner -> owner, arg #spender -> spender) _) ->
       "Get allowance for " +| owner |+ " from " +| spender |+ ""
     GetBalance (View addr _) ->
@@ -235,3 +246,27 @@ type instance ErrorArg "notAllowedToSetProxy" = ()
 
 -- | For setProxy entry point if Proxy is set already
 type instance ErrorArg "proxyAlreadySet" = ()
+
+class ToUnpackEnv a where
+  toUnpackEnv :: ContractAddr a -> a -> TcOriginatedContracts
+
+instance ToUnpackEnv Parameter where
+  toUnpackEnv = mkEnv
+
+mkEnv :: ContractAddr Parameter -> Parameter -> TcOriginatedContracts
+mkEnv caddr param = case param of
+  GetAllowance v -> addToEnv v
+  GetBalance v -> addToEnv v
+  GetTotalSupply v -> addToEnv v
+  GetTotalMinted v -> addToEnv v
+  GetTotalBurned v -> addToEnv v
+  GetAdministrator v -> addToEnv v
+  _ -> defEnv
+  where
+    addToEnv :: forall a r. (SingI (ToT r)) => View a r -> TcOriginatedContracts
+    addToEnv (View _ ca) =
+      Map.insert (unContractAddress ca)
+        (toUType $ fromSingT (sing :: Sing (ToT r))) defEnv
+    defEnv = Map.singleton
+      (unContractAddress caddr)
+      (toUType $ fromSingT (sing :: Sing (ToT Parameter)))

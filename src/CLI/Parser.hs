@@ -342,7 +342,6 @@ outputOption = Opt.optional $ Opt.strOption $ mconcat
   , Opt.help "Output file"
   ]
 
-
 callBackAddressOption :: Opt.Parser (ContractAddr a)
 callBackAddressOption = ContractAddr <$> caddr
   where
