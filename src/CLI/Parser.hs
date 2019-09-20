@@ -29,21 +29,21 @@ import Util.Named
 
 -- | Represents the Cmd line commands with inputs/arguments.
 data CmdLnArgs
-  = CmdMint MintParams
-  | CmdBurn BurnParams
+  = CmdMint MintParams (Maybe FilePath)
+  | CmdBurn BurnParams (Maybe FilePath)
   | CmdTransfer TransferParams
   | CmdApprove ApproveParams
   | CmdGetAllowance (View GetAllowanceParams Natural)
   | CmdGetBalance (View GetBalanceParams Natural)
-  | CmdAddOperator OperatorParams
-  | CmdRemoveOperator OperatorParams
-  | CmdPause
-  | CmdUnpause
-  | CmdSetRedeemAddress SetRedeemAddressParams
-  | CmdTransferOwnership TransferOwnershipParams
+  | CmdAddOperator OperatorParams (Maybe FilePath)
+  | CmdRemoveOperator OperatorParams (Maybe FilePath)
+  | CmdPause (Maybe FilePath)
+  | CmdUnpause (Maybe FilePath)
+  | CmdSetRedeemAddress SetRedeemAddressParams (Maybe FilePath)
+  | CmdTransferOwnership TransferOwnershipParams (Maybe FilePath)
   | CmdAcceptOwnership AcceptOwnershipParams
-  | CmdStartMigrateTo StartMigrateToParams
-  | CmdStartMigrateFrom StartMigrateFromParams
+  | CmdStartMigrateTo StartMigrateToParams (Maybe FilePath)
+  | CmdStartMigrateFrom StartMigrateFromParams (Maybe FilePath)
   | CmdMigrate MigrateParams
   | CmdPrintInitialStorage Address Address
   | CmdPrintContract Bool (Maybe FilePath)
@@ -73,6 +73,12 @@ argParser = hsubparser $
   where
     singleLineSwitch =
             switch (long "oneline" <> help "Single line output")
+    multisigOption =
+      Opt.optional $ Opt.strOption $ mconcat
+      [ long "multisig"
+      , metavar "FILEPATH"
+      , help "Create package for multisig transaction and write it to the given file"
+      ]
     printCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     printCmd =
       (mkCommandParser
@@ -122,13 +128,13 @@ argParser = hsubparser $
     mintCmd =
       (mkCommandParser
          "mint"
-         (CmdMint <$> mintParamParser)
+         (CmdMint <$> mintParamParser <*> multisigOption)
          "Mint tokens for an account")
     burnCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     burnCmd =
       (mkCommandParser
          "burn"
-         (CmdBurn <$> burnParamsParser)
+         (CmdBurn <$> burnParamsParser <*> multisigOption)
          "Burn tokens from an account")
     transferCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     transferCmd =
@@ -158,37 +164,37 @@ argParser = hsubparser $
     addOperatorCmd =
       (mkCommandParser
          "addOperator"
-         (CmdAddOperator <$> operatorParamsParser)
+         (CmdAddOperator <$> operatorParamsParser <*> multisigOption)
          "Add an operator")
     removeOperatorCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     removeOperatorCmd =
       (mkCommandParser
          "removeOperator"
-         (CmdRemoveOperator <$> operatorParamsParser)
+         (CmdRemoveOperator <$> operatorParamsParser <*> multisigOption)
          "Remove an operator")
     pauseCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     pauseCmd =
       (mkCommandParser
          "pause"
-         (pure CmdPause)
+         (CmdPause <$> multisigOption)
          "Pause the contract")
     unpauseCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     unpauseCmd =
       (mkCommandParser
          "unpause"
-         (pure CmdUnpause)
+         (CmdUnpause <$> multisigOption)
          "Unpause the contract")
     setRedeemAddressCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     setRedeemAddressCmd =
       (mkCommandParser
          "setRedeemAddress"
-         (CmdSetRedeemAddress <$> setRedeemAddressParamsParser)
+         (CmdSetRedeemAddress <$> setRedeemAddressParamsParser <*> multisigOption)
          "Set redeem address")
     transferOwnershipCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     transferOwnershipCmd =
       (mkCommandParser
          "transferOwnership"
-         (CmdTransferOwnership <$> transferOwnershipParamsParser)
+         (CmdTransferOwnership <$> transferOwnershipParamsParser <*> multisigOption)
          "Transfer ownership")
     acceptOwnershipCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     acceptOwnershipCmd =
@@ -200,13 +206,13 @@ argParser = hsubparser $
     startMigrateFromCmd =
       (mkCommandParser
          "startMigrateFrom"
-         (CmdStartMigrateFrom <$> startMigrateFromParamsParser)
+         (CmdStartMigrateFrom <$> startMigrateFromParamsParser <*> multisigOption)
          "Start contract migration")
     startMigrateToCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     startMigrateToCmd =
       (mkCommandParser
          "startMigrateTo"
-         (CmdStartMigrateTo <$> startMigrateToParamsParser)
+         (CmdStartMigrateTo <$> startMigrateToParamsParser <*> multisigOption)
          "Start contract migration")
     migrateCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     migrateCmd =

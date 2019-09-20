@@ -148,6 +148,8 @@ instance FromJSON RunOperationResult where
     case status of
       "applied" -> RunOperationApplied <$> o .: "consumed_gas" <*> o .: "storage_size"
       "failed" -> RunOperationFailed <$> o .: "errors"
+      "backtracked" ->
+        RunOperationFailed <$> o .: "errors"
       _ -> fail ("unexpected status " ++ status)
 
 data TransactionOperation = TransactionOperation
@@ -166,6 +168,7 @@ data ClientConfig = ClientConfig
   { ccNodeAddress :: Text
   , ccNodePort :: Int
   , ccContractAddress :: Address
+  , ccMultisigAddress :: Address
   , ccUserAddress :: Address
   , ccUserAlias :: Text
   , ccTezosClientExecutable :: FilePath

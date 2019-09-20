@@ -3,8 +3,12 @@
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
 module Client.IO
-  ( runTzbtcContract
+  ( createMultisigPackage
+  , getPackageFromFile
+  , runTzbtcContract
+  , runMultisigContract
   , setupClient
+  , writePackageToFile
   ) where
 
 import Data.Aeson (decodeFileStrict, encodeFile)
@@ -15,15 +19,17 @@ import Servant.Client
   (BaseUrl(..), ClientError, ClientEnv, Scheme(..), mkClientEnv, runClientM)
 import System.Directory (createDirectoryIfMissing, getAppUserDataDirectory)
 import System.Exit (ExitCode(..))
+import System.IO (readLn)
 import System.Process (readProcessWithExitCode)
+import Text.Hex (encodeHex, decodeHex)
 import Tezos.Json (TezosWord64)
 
-import Lorentz.Constraints (KnownValue, NoBigMap, NoOperation)
 import Michelson.Runtime.GState (genesisAddress1, genesisAddress2)
-import Michelson.Typed.Haskell.Value (IsoValue)
+import Michelson.Typed.Haskell.Value (ContractAddr(..))
 import Michelson.Untyped (InternalByteString(..))
 import Tezos.Address (Address, formatAddress)
-import Tezos.Crypto (Signature)
+import Tezos.Crypto (PublicKey, Signature)
+import Util.IO (readFileUtf8, writeFileUtf8)
 
 import Client.API
 import Client.Crypto
@@ -32,6 +38,9 @@ import Client.Parser
 import Client.Types
 import Client.Util
 import Lorentz.Contracts.TZBTC (Parameter(..))
+import Lorentz.Contracts.TZBTC.Types
+import qualified Lorentz.Contracts.TZBTC.MultiSig as MSig
+import Util.MultiSig
 
 appName, configFile :: FilePath
 appName = "tzbtc"
@@ -83,6 +92,41 @@ readConfigFile = do
     Just config -> return $ Right config
     Nothing -> return $ Left TzbtcClientConfigError
 
+getPackageFromFile :: FilePath -> IO (Either Text Package)
+getPackageFromFile packageFilePath = do
+  fileContents <- readFileUtf8 packageFilePath
+  return $ case decodeHex fileContents of
+    Nothing -> Left
+      "Failed to decode multisig package: Invalid hex encoding"
+    Just bs -> case decodePackage bs of
+      Left err -> Left $ "Failed to decode multisig package: " <> fromString err
+      Right package -> Right package
+
+writePackageToFile :: Package -> FilePath -> IO ()
+writePackageToFile package fileToWrite =
+  writeFileUtf8 fileToWrite $ encodeHex $ encodePackage package
+
+createMultisigPackage
+  :: (ParamConstraints param, ToUnpackEnv param)
+  => FilePath -> param -> IO ()
+createMultisigPackage packagePath param = do
+  ClientConfig{..} <- throwLeft $ readConfigFile
+  putStrLn ("Enter multisig counter:" :: Text)
+  -- (counter, _) <- getMultisigStorage ccMultisigAddress config
+  counter <- readLn
+  let package = mkPackage ccMultisigAddress counter
+        (ContractAddr ccContractAddress) param
+  writePackageToFile package packagePath
+
+
+-- Not used for now
+_getMultisigStorage :: Address -> ClientConfig -> IO MSig.Storage
+_getMultisigStorage addr config@ClientConfig{..} = do
+  clientEnv <- getClientEnv config
+  mSigStorageRaw <- throwClientError $
+    runClientM (getStorage $ formatAddress addr) clientEnv
+  throwLeft $ pure $ exprToMultisigStorage mSigStorageRaw
+
 getCosts
   :: ClientEnv -> RunOperation
   -> IO (Either TzbtcClientError (TezosWord64, TezosWord64))
@@ -119,7 +163,7 @@ injectOp opToInject sign config = do
   putStrLn $ "Operation hash: " <> opHash
 
 runTransaction
-  :: (IsoValue param, KnownValue param, NoBigMap param, NoOperation param)
+  :: (ParamConstraints param)
   => Address -> param -> ClientConfig -> IO ()
 runTransaction to param config@ClientConfig{..} = do
   clientEnv <- getClientEnv config
@@ -177,3 +221,11 @@ runTzbtcContract :: Parameter -> IO ()
 runTzbtcContract param = do
   config@ClientConfig{..} <- throwLeft $ readConfigFile
   runTransaction ccContractAddress param config
+
+runMultisigContract :: NonEmpty Package -> [PublicKey] -> IO ()
+runMultisigContract packages keys' = do
+  config <- throwLeft $ readConfigFile
+  package <- throwLeft $ pure $ mergePackages packages
+  multisigAddr <- throwLeft $ pure (fst <$> getToSign package)
+  (_, multisigParam) <- throwLeft $ pure $ mkMultiSigParam keys' packages
+  runTransaction multisigAddr multisigParam config
