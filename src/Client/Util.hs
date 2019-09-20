@@ -15,14 +15,20 @@ import Tezos.Binary (decode)
 import Tezos.Json (TezosWord64)
 import Tezos.Micheline (Expression)
 
+import Lorentz.Constraints (KnownValue, NoBigMap, NoOperation)
 import Michelson.Interpret.Pack (packValue')
 import Michelson.Typed.Haskell.Value (IsoValue(..))
+import Michelson.Typed.Scope (forbiddenBigMap, forbiddenOp)
 
 import Client.Error (TzbtcClientError(..))
-import Lorentz.Contracts.TZBTC (Parameter(..))
 
-paramToExpression :: Parameter -> Expression
-paramToExpression = decode . BS.drop 1 . packValue' . toVal
+paramToExpression
+  :: forall param.
+     (IsoValue param, KnownValue param, NoBigMap param, NoOperation param)
+  => param -> Expression
+paramToExpression param = decode . BS.drop 1 $
+  forbiddenOp @(ToT param) $ forbiddenBigMap @(ToT param) $
+  packValue' $ toVal param
 
 calcFees :: TezosWord64 -> TezosWord64 -> TezosWord64
 calcFees consumedGas storageSize =

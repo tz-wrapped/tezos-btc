@@ -3,7 +3,7 @@
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
 module Client.IO
-  ( runTransaction
+  ( runTzbtcContract
   , setupClient
   ) where
 
@@ -20,7 +20,9 @@ import System.Exit (ExitCode(..))
 import System.Process (readProcessWithExitCode)
 import Tezos.Json (TezosWord64)
 
+import Lorentz.Constraints (KnownValue, NoBigMap, NoOperation)
 import Michelson.Runtime.GState (genesisAddress1, genesisAddress2)
+import Michelson.Typed.Haskell.Value (IsoValue)
 import Michelson.Untyped (InternalByteString(..))
 import Tezos.Address (Address, formatAddress)
 import Tezos.Crypto (Signature)
@@ -117,15 +119,16 @@ injectOp opToInject sign config = do
     (injectOperation (Just "main") $ prepareForInjection opToInject sign) clientEnv
   putStrLn $ "Operation hash: " <> opHash
 
-runTransaction :: Parameter -> IO ()
-runTransaction param = do
-  config@ClientConfig{..} <- throwLeft $ readConfigFile
+runTransaction
+  :: (IsoValue param, KnownValue param, NoBigMap param, NoOperation param)
+  => Address -> param -> ClientConfig -> IO ()
+runTransaction to param config@ClientConfig{..} = do
   clientEnv <- getClientEnv config
   lastBlockHash <- throwClientError $ getLastBlockHash clientEnv
   counter <- throwClientError $ getAddressCounter clientEnv ccUserAddress
   let opToRun = dumbOp
         { toCounter = counter + 1
-        , toDestination = ccContractAddress
+        , toDestination = to
         , toSource = ccUserAddress
         , toParameters = paramToExpression $ param
         }
@@ -177,3 +180,8 @@ setupClient config = do
   (appPath, configPath) <- getFullAppAndConfigPath
   createDirectoryIfMissing True appPath
   encodeFile configPath config
+
+runTzbtcContract :: Parameter -> IO ()
+runTzbtcContract param = do
+  config@ClientConfig{..} <- throwLeft $ readConfigFile
+  runTransaction ccContractAddress param config

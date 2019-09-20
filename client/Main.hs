@@ -32,25 +32,25 @@ main = do
   case cmd of
     CmdSetupClient config -> setupClient config
     CmdTransaction arg -> case arg of
-      CmdMint mintParams -> runTransaction $ Mint mintParams
-      CmdBurn burnParams -> runTransaction $ Burn burnParams
-      CmdTransfer transferParams -> runTransaction $ Transfer transferParams
-      CmdApprove approveParams -> runTransaction $ Approve approveParams
-      CmdGetAllowance getAllowanceParams -> runTransaction $
+      CmdMint mintParams -> runTzbtcContract $ Mint mintParams
+      CmdBurn burnParams -> runTzbtcContract $ Burn burnParams
+      CmdTransfer transferParams -> runTzbtcContract $ Transfer transferParams
+      CmdApprove approveParams -> runTzbtcContract $ Approve approveParams
+      CmdGetAllowance getAllowanceParams -> runTzbtcContract $
         GetAllowance getAllowanceParams
-      CmdGetBalance getBalanceParams -> runTransaction $ GetBalance getBalanceParams
-      CmdAddOperator operatorParams -> runTransaction $ AddOperator operatorParams
-      CmdRemoveOperator operatorParams -> runTransaction $
+      CmdGetBalance getBalanceParams -> runTzbtcContract $ GetBalance getBalanceParams
+      CmdAddOperator operatorParams -> runTzbtcContract $ AddOperator operatorParams
+      CmdRemoveOperator operatorParams -> runTzbtcContract $
         RemoveOperator operatorParams
-      CmdPause -> runTransaction $ Pause ()
-      CmdUnpause -> runTransaction $ Unpause ()
-      CmdSetRedeemAddress setRedeemAddressParams -> runTransaction $
+      CmdPause -> runTzbtcContract $ Pause ()
+      CmdUnpause -> runTzbtcContract $ Unpause ()
+      CmdSetRedeemAddress setRedeemAddressParams -> runTzbtcContract $
         SetRedeemAddress setRedeemAddressParams
-      CmdTransferOwnership p -> runTransaction $ TransferOwnership p
-      CmdAcceptOwnership p -> runTransaction $ AcceptOwnership p
-      CmdStartMigrateTo p -> runTransaction $ StartMigrateTo p
-      CmdStartMigrateFrom p -> runTransaction $ StartMigrateFrom p
-      CmdMigrate p -> runTransaction $ Migrate p
+      CmdTransferOwnership p -> runTzbtcContract $ TransferOwnership p
+      CmdAcceptOwnership p -> runTzbtcContract $ AcceptOwnership p
+      CmdStartMigrateTo p -> runTzbtcContract $ StartMigrateTo p
+      CmdStartMigrateFrom p -> runTzbtcContract $ StartMigrateFrom p
+      CmdMigrate p -> runTzbtcContract $ Migrate p
       CmdPrintContract singleLine mbFilePath ->
         maybe putStrLn writeFileUtf8 mbFilePath $
         printLorentzContract singleLine tzbtcCompileWay tzbtcContract
