@@ -20,6 +20,7 @@ import Util.Named ((.!))
 import Client.Parser (parseSignatureFromOutput)
 import Client.Util (paramToExpression)
 import Lorentz.Contracts.TZBTC (Parameter(..))
+import Lorentz.Contracts.TZBTC.Types
 
 (@??) :: (Show a, HasCallStack) => a -> (a -> Bool) -> Assertion
 (@??) val predicate =
@@ -34,8 +35,8 @@ test_paramToExpression = testGroup "Test converting Parameter to Micheline expre
     parameterRoundTrip (Mint (#to .! genesisAddress1, #value .! 10)) @?=
     Right (Mint (#to .! genesisAddress1, #value .! 10))
   , testCase "RemoveOperator" $
-    parameterRoundTrip (RemoveOperator (#operator .! genesisAddress1)) @?=
-    Right (RemoveOperator (#operator .! genesisAddress1))
+    parameterRoundTrip (toParameter $ RemoveOperator (#operator .! genesisAddress1)) @?=
+    Right (toParameter $ RemoveOperator (#operator .! genesisAddress1))
   ]
 
 parameterRoundTrip :: Parameter -> Either UnpackError Parameter

@@ -29,19 +29,30 @@ tzbtcProxyContract = do
     ( #cTransfer /-> do
         sender; toNamed #sender
         pair
-        wrap_ #cTransferViaProxy
+        wrap_ #cStoredTransferViaProxy
+        wrap_ #cStoredEntrypoints
         callTzbtc
     , #cParameter0 /-> caseT
         ( #cApprove /-> do
             sender; toNamed #sender
             pair
-            wrap_ #cApproveViaProxy
+            wrap_ #cStoredApproveViaProxy
+            wrap_ #cStoredEntrypoints
             callTzbtc
         , #cParameter1 /-> caseT
-          ( #cGetAllowance /-> wrap_ #cGetAllowance >> callTzbtc
+          ( #cGetAllowance /-> do
+              wrap_ #cStoredGetAllowance
+              wrap_ #cStoredEntrypoints
+              callTzbtc
           , #cParameter2 /-> caseT
-            ( #cGetBalance /-> wrap_ #cGetBalance >> callTzbtc
-            , #cGetTotalSupply /-> wrap_ #cGetTotalSupply >> callTzbtc
+            ( #cGetBalance /-> do
+                wrap_ #cStoredGetBalance
+                wrap_ #cStoredEntrypoints
+                callTzbtc
+            , #cGetTotalSupply /-> do
+                wrap_ #cStoredGetTotalSupply
+                wrap_ #cStoredEntrypoints
+                callTzbtc
             )
           )
         )

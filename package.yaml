@@ -103,3 +103,7 @@ tests:
     - tezos-bake-monitor-lib
     - hex-text
     - hspec
+    - attoparsec
+    - text
+    - temporary
+    - typed-process

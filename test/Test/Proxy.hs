@@ -4,7 +4,8 @@
  -}
 module Test.Proxy
   ( test_proxy
-  ) where
+  )
+where
 
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -61,7 +62,7 @@ originateAndSetProxy
 originateAndSetProxy = do
   c <- originateContract
   p <- originateProxy c
-  withSender adminAddress $ lCall c (SetProxy $ unContractAddress p)
+  withSender adminAddress $ lCall c (toParameter $ SetProxy $ unContractAddress p)
   pure (c, p)
 
 test_proxy :: TestTree
@@ -91,12 +92,12 @@ test_proxy = testGroup "TZBTC contract proxy origination test"
           -- Call contract directly to get balance in redeemAddress_ and alice
           -- accounts.
           lCall c
-            (GetBalance (View redeemAddress_ consumer))
+            (toParameter $ GetBalance (View redeemAddress_ consumer))
           lCall c
-            (GetBalance (View alice consumer))
+            (toParameter $ GetBalance (View alice consumer))
           -- Call contract directly to get total supply
           lCall c
-            (GetTotalSupply (View () consumer))
+            (toParameter $ GetTotalSupply (View () consumer))
           validate . Right $
             lExpectViewConsumerStorage consumer [400, 100, 500, 400, 100, 500]
   , testCase
@@ -143,13 +144,13 @@ test_proxy = testGroup "TZBTC contract proxy origination test"
           -- Call contract to get balance in alice and bob
           -- accounts.
           lCall c
-            (GetBalance (View alice consumer))
+            (toParameter $ GetBalance (View alice consumer))
           lCall c
-            (GetBalance (View bob consumer))
+            (toParameter $ GetBalance (View bob consumer))
 
           -- Again, call contract to get allowance for alice to bob transfer
           lCall c
-            (GetAllowance (View (#owner .! alice, #spender .! bob) consumer))
+            (toParameter $ GetAllowance (View (#owner .! alice, #spender .! bob) consumer))
           validate . Right $
             lExpectViewConsumerStorage consumer [20, 85, 15, 5, 85, 15, 5]
   , testCase

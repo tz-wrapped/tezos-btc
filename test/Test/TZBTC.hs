@@ -27,13 +27,13 @@ import qualified Data.Map as Map
 import Data.Set
 import Data.Singletons (SingI(..))
 import qualified Data.Set as Set
-import Named (arg)
+--import Named (arg)
+--import qualified Data.ByteString as BS
 
 import Lorentz
 import Lorentz.Contracts.Consumer
 import Lorentz.Contracts.TZBTC
 import qualified Lorentz.Contracts.TZBTC.Agent as Agent
-import Lorentz.Contracts.TZBTC.Types
 import Lorentz.Test.Integrational
 import Michelson.Interpret (ContractEnv(..), MichelsonFailed(..))
 import Michelson.Test
@@ -86,7 +86,7 @@ contractPropWithSender address_ check param initSt =
     (dummyContractEnv { ceSender = address_ })
     param
     initSt
-
+--
 assertFailureMessage
   :: Either MichelsonFailed ([Operation], Value (ToT Storage))
   -> MText
@@ -102,26 +102,25 @@ assertFailureMessage res msg tstMsg = case res of
 
 test_proxyCheck :: TestTree
 test_proxyCheck = testGroup "TZBTC contract proxy endpoints check"
-  [ testCase "Fails with `ProxyIsNotSet` if one of the proxy serving endpoints is called and proxy is not set" $
-      contractPropWithSender bob validate'
-        (TransferViaProxy (#sender .! bob, (#from .! bob, #to .! alice, #value .! 100))) storage
+  [ testCase
+      "Fails with `ProxyIsNotSet` if one of the proxy serving endpoints is called and proxy is not set" $
+      integrationalTestExpectation $ do
+        c <- lOriginate tzbtcContract "TZBTC Contract" storage (toMutez 1000)
+        withSender bob $
+          lCall c (toParameter $ TransferViaProxy (#sender .! bob, (#from .! bob, #to .! alice, #value .! 100)))
+        validate . Left $
+          lExpectCustomError_ #proxyIsNotSet
   , testCase
       "Fails with `CallerIsNotProxy` if the caller to a proxy endpoint is not known proxy address." $
       integrationalTestExpectation $ do
         c <- lOriginate tzbtcContract "TZBTC Contract" storage (toMutez 1000)
-        withSender adminAddress $ lCall c (SetProxy contractAddress)
+        withSender adminAddress $ lCall c (toParameter $ SetProxy contractAddress)
         withSender bob $
-          lCall c (TransferViaProxy (#sender .! bob, (#from .! bob, #to .! alice, #value .! 100)))
+          lCall c (toParameter $ TransferViaProxy (#sender .! bob, (#from .! bob, #to .! alice, #value .! 100)))
         validate . Left $
           lExpectCustomError_ #callerIsNotProxy
   ]
-  where
-    validate' :: ContractPropValidator (ToT Storage) Assertion
-    validate' (res, _) =
-      assertFailureMessage
-        res [mt|ProxyIsNotSet|]
-        "Contract did not fail with 'ProxyIsNotSet' message"
-
+--
 test_adminCheck :: TestTree
 test_adminCheck = testGroup "TZBTC contract admin check test"
   [ testCase "Fails with `SenderNotAdmin` if sender is not administrator for `addOperator` call" $
@@ -130,7 +129,7 @@ test_adminCheck = testGroup "TZBTC contract admin check test"
   , testCase
       "Fails with `SenderNotAdmin` if sender is not administrator for `removeOperator` call" $
       contractPropWithSender bob validate'
-        (RemoveOperator (#operator .! newOperatorAddress)) storage
+        (toParameter $ RemoveOperator (#operator .! newOperatorAddress)) storage
   , testCase
       "Fails with `SenderNotAdmin` if sender is not administrator for `startMigrateFrom` call" $
       contractPropWithSender bob validate'
@@ -138,11 +137,11 @@ test_adminCheck = testGroup "TZBTC contract admin check test"
   , testCase
       "Fails with `SenderNotAdmin` if sender is not administrator for `transferOwnership` call" $
       contractPropWithSender bob validate'
-        (TransferOwnership (#newOwner .! adminAddress)) storage
+        (toParameter $ TransferOwnership (#newOwner .! adminAddress)) storage
   , testCase
       "Fails with `SenderNotAdmin` if sender is not administrator for `setRedeemAddress` call" $
       contractPropWithSender bob validate'
-        (SetRedeemAddress (#redeem .! redeemAddress_)) storage
+        (toParameter $ SetRedeemAddress (#redeem .! redeemAddress_)) storage
   ]
   where
     validate' :: ContractPropValidator (ToT Storage) Assertion
@@ -165,7 +164,7 @@ test_addOperator = testGroup "TZBTC contract `addOperator` test"
         Left err -> assertFailure $ "Unexpected contract failure: " <> pretty err
         Right (_operations, storage_) ->
           assertBool "Contract did not add operator address to the set" $
-            member newOperatorAddress ((operators.fields) $ fromVal storage_)
+            member newOperatorAddress (operators $ fields $ (fromVal storage_ :: Storage))
 
 test_removeOperator :: TestTree
 test_removeOperator = testGroup "TZBTC contract `removeOperator` test"
@@ -173,7 +172,7 @@ test_removeOperator = testGroup "TZBTC contract `removeOperator` test"
       "Call to `removeOperator` removes operator from the set of operators" $
       contractPropWithSender adminAddress
         validateRemove
-        (RemoveOperator (#operator .! operatorToRemove)) storageWithOperator
+        (toParameter $ RemoveOperator (#operator .! operatorToRemove)) storageWithOperator
   ]
   where
     operatorToRemove = replaceAddress
@@ -193,7 +192,7 @@ test_setRedeemAddress = testGroup "TZBTC contract `setRedeemAddress` test"
   [ testCase
       "Call to `setRedeemAddress` updates redeemAddress" $
       contractPropWithSender adminAddress
-        validate_ (SetRedeemAddress (#redeem .! newRedeemAddress)) storage
+        validate_ (toParameter $ SetRedeemAddress (#redeem .! newRedeemAddress)) storage
   ]
   where
     newRedeemAddress = replaceAddress
@@ -212,7 +211,7 @@ test_transferOwnership = testGroup "TZBTC contract `transferOwnership` test"
   [ testCase
       "Call to `transferOwnership` updates `newOwner`" $
       contractPropWithSender adminAddress
-        validate_ (TransferOwnership (#newOwner .! newOwnerAddress)) storage
+        validate_ (toParameter $ TransferOwnership (#newOwner .! newOwnerAddress)) storage
   ]
   where
     newOwnerAddress = replaceAddress
@@ -231,19 +230,19 @@ test_acceptOwnership = testGroup "TZBTC contract `acceptOwnership` test"
   [ testCase
       "Call to `acceptOwnership` get denied on contract that is not in transfer mode" $
       contractPropWithSender newOwnerAddress
-        validateNotInTransfer (AcceptOwnership ()) storage
+        validateNotInTransfer (toParameter $ AcceptOwnership ()) storage
   , testCase
       "Call to `acceptOwnership` fails for random caller" $
       contractPropWithSender badSenderAddress
-        validateBadSender (AcceptOwnership ()) storageInTranferOwnership
+        validateBadSender (toParameter $ AcceptOwnership ()) storageInTranferOwnership
   , testCase
       "Call to `acceptOwnership` fails for current admin" $
       contractPropWithSender adminAddress
-        validateBadSender (AcceptOwnership ()) storageInTranferOwnership
+        validateBadSender (toParameter $ AcceptOwnership ()) storageInTranferOwnership
   , testCase
       "Call to `acceptOwnership` updates admin with address of new owner and resets `newOwner` field" $
       contractPropWithSender newOwnerAddress
-        validateGoodOwner (AcceptOwnership ()) storageInTranferOwnership
+        validateGoodOwner (toParameter $ AcceptOwnership ()) storageInTranferOwnership
   ]
   where
     newOwnerAddress = replaceAddress
@@ -282,96 +281,83 @@ test_burn :: TestTree
 test_burn = testGroup "TZBTC contract `burn` test"
   [ testCase
       "Call to `burn` from admin gets denied with `SenderIsNotOperator`" $
-      contractPropWithSender adminAddress
-        validateFail_ (Burn (#value .! 100)) storageWithOperator
+      integrationalTestExpectation $ do
+        c <- lOriginate tzbtcContract "TZBTC Contract" storageWithOperator (toMutez 1000)
+        withSender adminAddress $
+          lCall c (Burn (#value .! 100))
+        validate . Left $
+          lExpectCustomError_ #senderIsNotOperator
   , testCase
       "Call to `burn` from random address gets denied with `SenderIsNotOperator`" $
-      contractPropWithSender bob
-        validateFail_ (Burn (#value .! 100)) storageWithOperator
+      integrationalTestExpectation $ do
+        c <- lOriginate tzbtcContract "TZBTC Contract" storageWithOperator (toMutez 1000)
+        withSender bob $
+          lCall c (Burn (#value .! 100))
+        validate . Left $
+          lExpectCustomError_ #senderIsNotOperator
 
   , testCase
       "Call to `burn` from operator, burns from `redeemAddress` and update `totalBurned` \
-      \ and `totalSupply` fields correctly" $
-      contractPropWithSender newOperatorAddress
-        validate_ (Burn (#value .! 100)) storageWithOperator
+       \ and `totalSupply` fields correctly" $
+      integrationalTestExpectation $ do
+        c <- lOriginate tzbtcContract "TZBTC Contract" storageWithOperator (toMutez 1000)
+        consumer <- lOriginateEmpty contractConsumer "consumer"
+        withSender newOperatorAddress $
+          lCall c (Burn (#value .! 100))
+        lCall c $ toParameter $ GetBalance (View redeemAddress_ consumer)
+        lCall c $ toParameter $ GetTotalSupply (View () consumer)
+        lCall c $ toParameter $ GetTotalMinted (View () consumer)
+        lCall c $ toParameter $ GetTotalBurned (View () consumer)
+        -- Check expectations
+        validate . Right $
+          lExpectViewConsumerStorage consumer [400, 400, 500, 100]
   ]
   where
     storageWithOperator =
       mkStorage adminAddress redeemAddress_
         (Map.fromList [(redeemAddress_, initialSupply)])
           (Set.fromList [newOperatorAddress])
-    validateFail_ :: ContractPropValidator (ToT Storage) Assertion
-    validateFail_ (res, _) =
-      assertFailureMessage
-        res [mt|SenderIsNotOperator|]
-          "Contract did not fail with 'SenderIsNotOperator' message"
-
-    validate_ :: ContractPropValidator (ToT Storage) Assertion
-    validate_ (res, _) =
-      case res of
-        Left err -> assertFailure $ "Unexpected contract failure: " <> pretty err
-        Right (_operations, rstorage) -> do
-          assertEqual
-            "Contract's `burn` operation reduced the balance in redeem address by expected amount"
-             (Just 400  :: Maybe Natural)
-             (((arg #balance) . fst)
-                <$> (Map.lookup redeemAddress_ $ unBigMap $
-                  ledger $ (fromVal rstorage :: Storage)))
-          assertEqual
-            "Contract's `burn` operation did not update `totalBurned` field correctly."
-             100
-             (totalBurned $ fields $ (fromVal rstorage :: Storage))
-          assertEqual
-            "Contract's `burn` operation did not update `totalSupply` field correctly"
-             400
-             (totalSupply $ fields $ (fromVal rstorage :: Storage))
 
 test_mint :: TestTree
 test_mint = testGroup "TZBTC contract `mint` test"
   [ testCase
       "Call to `mint` from admin gets denied with `SenderIsNotOperator`" $
-      contractPropWithSender adminAddress
-        validateFail_ (Burn (#value .! 100)) storageWithOperator
+      integrationalTestExpectation $ do
+        c <- lOriginate tzbtcContract "TZBTC Contract" storageWithOperator (toMutez 1000)
+        withSender adminAddress $
+          lCall c (Mint (#to .! alice , #value .! 100))
+        validate . Left $
+          lExpectCustomError_ #senderIsNotOperator
   , testCase
       "Call to `mint` from random address gets denied with `SenderIsNotOperator`" $
-      contractPropWithSender bob
-        validateFail_ (Burn (#value .! 100)) storageWithOperator
+      integrationalTestExpectation $ do
+        c <- lOriginate tzbtcContract "TZBTC Contract" storageWithOperator (toMutez 1000)
+        withSender bob $
+          lCall c (Mint (#to .! alice , #value .! 100))
+        validate . Left $
+          lExpectCustomError_ #senderIsNotOperator
+
   , testCase
-      "Call to `mint` adds value to `to` parameter in input and update `totalMinted` \
-      \ and `totalSupply` fields correctly" $
-      contractPropWithSender newOperatorAddress
-        validate_ (Mint (#to .! alice, #value .! 200)) storageWithOperator
+      "Call to `mint` from operator, burns from `redeemAddress` and update `totalBurned` \
+       \ and `totalSupply` fields correctly" $
+      integrationalTestExpectation $ do
+        c <- lOriginate tzbtcContract "TZBTC Contract" storageWithOperator (toMutez 1000)
+        consumer <- lOriginateEmpty contractConsumer "consumer"
+        withSender newOperatorAddress $
+          lCall c (Mint (#to .! alice, #value .! 200))
+        lCall c $ toParameter $ GetBalance (View alice consumer)
+        lCall c $ toParameter $ GetTotalSupply (View () consumer)
+        lCall c $ toParameter $ GetTotalMinted (View () consumer)
+        lCall c $ toParameter $ GetTotalBurned (View () consumer)
+        -- Check expectations
+        validate . Right $
+          lExpectViewConsumerStorage consumer [200, 700, 700, 0]
   ]
   where
     storageWithOperator =
       mkStorage adminAddress redeemAddress_
         (Map.fromList [(redeemAddress_, initialSupply)])
-        (Set.fromList [newOperatorAddress])
-    validateFail_ :: ContractPropValidator (ToT Storage) Assertion
-    validateFail_ (res, _) =
-      assertFailureMessage
-        res [mt|SenderIsNotOperator|]
-          "Contract did not fail with 'SenderIsNotOperator' message"
-
-    validate_ :: ContractPropValidator (ToT Storage) Assertion
-    validate_ (res, _) =
-      case res of
-        Left err -> assertFailure $ "Unexpected contract failure: " <> pretty err
-        Right (_operations, rstorage) -> do
-          assertEqual
-            "Contract's `mint` operation credited the target account with the  expected amount"
-             (Just 200  :: Maybe Natural)
-             (((arg #balance) . fst)
-                <$> (Map.lookup alice $ unBigMap $
-                  ledger $ (fromVal rstorage :: Storage)))
-          assertEqual
-            "Contract's `mint` operation did not update `totalMinted` field correctly."
-             700
-             (totalMinted $ fields $ (fromVal rstorage :: Storage))
-          assertEqual
-            "Contract's `mint` operation did not update `totalSupply` field correctly"
-             700
-             (totalSupply $ fields $ (fromVal rstorage :: Storage))
+          (Set.fromList [newOperatorAddress])
 
 test_pause :: TestTree
 test_pause = testGroup "TZBTC contract `pause` permission test"
@@ -456,17 +442,16 @@ test_bookkeeping = testGroup "TZBTC contract bookkeeping views test"
             -- Mint and burn some tokens
             lCall v1 (Mint (#to .! alice, #value .! 130))
             lCall v1 (Burn (#value .! 20))
-          lCall v1 $ GetTotalSupply (View () consumer)
-          lCall v1 $ GetTotalMinted (View () consumer)
-          lCall v1 $ GetTotalBurned (View () consumer)
+          lCall v1 $ toParameter $ GetTotalSupply (View () consumer)
+          lCall v1 $ toParameter $ GetTotalMinted (View () consumer)
+          lCall v1 $ toParameter $ GetTotalBurned (View () consumer)
           -- Check expectations
           validate . Right $
             lExpectViewConsumerStorage consumer [610, 630, 20]
   ]
   where
     originateContract :: IntegrationalScenarioM (ContractAddr Parameter)
-    originateContract =
-      lOriginate tzbtcContract "TZBTC Contract" st (toMutez 1000)
+    originateContract = lOriginate tzbtcContract "TZBTC Contract" st (toMutez 1000)
     st :: Storage
     st = mkStorage adminAddress redeemAddress_
         (Map.fromList [(redeemAddress_, initialSupply)]) (Set.fromList [newOperatorAddress])
@@ -476,18 +461,18 @@ test_setProxy = testGroup "TZBTC contract `setProxy` test"
   [ testCase
       "Call to `setProxy` from random address gets denied with `NotAllowedToSetProxy`" $
       contractPropWithSender bob
-        validateFail_ (SetProxy contractAddress) storageWithOperator
+        validateFail_ (toParameter $ SetProxy contractAddress) storageWithOperator
   , testCase
       "Call to `setProxy` from expected address sets proxy" $
       contractPropWithSender adminAddress
-        validate_ (SetProxy contractAddress) storageWithOperator
+        validate_ (toParameter $ SetProxy contractAddress) storageWithOperator
   , testCase
       "Call to `setProxy` in contract with proxy set fails with `ProxyAlreadySet` error" $
       integrationalTestExpectation $ do
         c <- lOriginate tzbtcContract "TZBTC Contract" storageWithOperator (toMutez 1000)
         withSender adminAddress $ do
-          lCall c (SetProxy contractAddress)
-          lCall c (SetProxy contractAddress)
+          lCall c (toParameter $ SetProxy contractAddress)
+          lCall c (toParameter $ SetProxy contractAddress)
         validate . Left $
           lExpectCustomError_ #proxyAlreadySet
   ]
@@ -681,7 +666,7 @@ test_migration = testGroup "TZBTC contract migration tests"
          withSender adminAddress $ lCall v2 (StartMigrateFrom $ (#migrationManager .! agent))
          withSender (unContractAddress agent) $ lCall v2 (MintForMigration $ (#to .! alice, #value .! 250))
          consumer <- lOriginateEmpty contractConsumer "consumer"
-         lCall v2 $ GetBalance (View alice consumer)
+         lCall v2 $ toParameter $ GetBalance (View alice consumer)
          validate . Right $
            lExpectViewConsumerStorage consumer [250]
  , testCase
@@ -728,11 +713,11 @@ test_migrationManager = testGroup "TZBTC migration manager tests"
             lCall v1 (StartMigrateTo $ (#migrationManager .! agent))
             lCall v2 (StartMigrateFrom $ (#migrationManager .! agent))
             lCall v1 (Unpause ())
-          lCall v1 $ GetBalance (View alice consumer)
-          lCall v2 $ GetBalance (View alice consumer)
+          lCall v1 $ toParameter $ GetBalance (View alice consumer)
+          lCall v2 $ toParameter $ GetBalance (View alice consumer)
           withSender alice $ lCall v1 (Migrate ())
-          lCall v1 $ GetBalance (View alice consumer)
-          lCall v2 $ GetBalance (View alice consumer)
+          lCall v1 $ toParameter $ GetBalance (View alice consumer)
+          lCall v2 $ toParameter $ GetBalance (View alice consumer)
           validate . Right $
             lExpectViewConsumerStorage consumer [500, 0, 0, 500]
   , testCase

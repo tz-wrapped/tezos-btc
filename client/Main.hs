@@ -22,7 +22,6 @@ import CLI.Parser
 import Client.IO
 import Client.Parser
 import Lorentz.Contracts.TZBTC
-  (Parameter(..), agentContract, mkStorage, tzbtcCompileWay, tzbtcContract, tzbtcDoc)
 import Lorentz.Contracts.TZBTC.Proxy (tzbtcProxyContract)
 import Lorentz.Contracts.TZBTC.Test (mkTestScenario)
 import Util.MultiSig
@@ -63,22 +62,22 @@ main = do
         runMultisigTzbtcContract mbMultisig $ Mint mintParams
       CmdBurn burnParams mbMultisig ->
         runMultisigTzbtcContract mbMultisig $ Burn burnParams
-      CmdTransfer transferParams -> runTzbtcContract $ Transfer transferParams
-      CmdApprove approveParams -> runTzbtcContract $ Approve approveParams
+      CmdTransfer transferParams -> runTzbtcContract $ toParameter $ Transfer transferParams
+      CmdApprove approveParams -> runTzbtcContract $ toParameter $ Approve approveParams
       CmdGetAllowance getAllowanceParams -> runTzbtcContract $
-        GetAllowance getAllowanceParams
-      CmdGetBalance getBalanceParams -> runTzbtcContract $ GetBalance getBalanceParams
+        toParameter $ GetAllowance getAllowanceParams
+      CmdGetBalance getBalanceParams -> runTzbtcContract $ toParameter $ GetBalance getBalanceParams
       CmdAddOperator operatorParams mbMultisig ->
         runMultisigTzbtcContract mbMultisig $ AddOperator operatorParams
       CmdRemoveOperator operatorParams mbMultisig ->
-        runMultisigTzbtcContract mbMultisig $ RemoveOperator operatorParams
+        runMultisigTzbtcContract mbMultisig $ toParameter $ RemoveOperator operatorParams
       CmdPause mbMultisig -> runMultisigTzbtcContract mbMultisig $ Pause ()
       CmdUnpause mbMultisig -> runMultisigTzbtcContract mbMultisig $ Unpause ()
       CmdSetRedeemAddress setRedeemAddressParams mbMultisig ->
-        runMultisigTzbtcContract mbMultisig $ SetRedeemAddress setRedeemAddressParams
+        runMultisigTzbtcContract mbMultisig $ toParameter $ SetRedeemAddress setRedeemAddressParams
       CmdTransferOwnership p mbMultisig ->
-        runMultisigTzbtcContract mbMultisig $ TransferOwnership p
-      CmdAcceptOwnership p -> runTzbtcContract $ AcceptOwnership p
+        runMultisigTzbtcContract mbMultisig $ toParameter $ TransferOwnership p
+      CmdAcceptOwnership p -> runTzbtcContract $ toParameter $ AcceptOwnership p
       CmdStartMigrateTo p mbMultisig ->
         runMultisigTzbtcContract mbMultisig $ StartMigrateTo p
       CmdStartMigrateFrom p mbMultisig ->

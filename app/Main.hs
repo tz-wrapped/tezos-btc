@@ -22,7 +22,6 @@ import Paths_tzbtc (version)
 
 import CLI.Parser
 import Lorentz.Contracts.TZBTC
-  (Parameter(..), agentContract, mkStorage, tzbtcContract, tzbtcDoc)
 import Lorentz.Contracts.TZBTC.Proxy (tzbtcProxyContract)
 import Lorentz.Contracts.TZBTC.Test (mkTestScenario)
 
@@ -35,19 +34,19 @@ main = do
   case cmd of
     CmdMint mintParams _ -> printParam (Mint mintParams)
     CmdBurn burnParams _ -> printParam (Burn burnParams)
-    CmdTransfer transferParams -> printParam (Transfer transferParams)
-    CmdApprove approveParams -> printParam (Approve approveParams)
+    CmdTransfer transferParams -> printParam (toParameter $ Transfer transferParams)
+    CmdApprove approveParams -> printParam (toParameter $ Approve approveParams)
     CmdGetAllowance getAllowanceParams ->
-      printParam (GetAllowance getAllowanceParams)
-    CmdGetBalance getBalanceParams -> printParam (GetBalance getBalanceParams)
+      printParam (toParameter $ GetAllowance getAllowanceParams)
+    CmdGetBalance getBalanceParams -> printParam (toParameter $ GetBalance getBalanceParams)
     CmdAddOperator operatorParams _ -> printParam (AddOperator operatorParams)
-    CmdRemoveOperator operatorParams _ -> printParam (RemoveOperator operatorParams)
+    CmdRemoveOperator operatorParams _ -> printParam (toParameter $ RemoveOperator operatorParams)
     CmdPause _ -> printParam $ Pause ()
     CmdUnpause _ -> printParam $ Unpause ()
     CmdSetRedeemAddress setRedeemAddressParams _ ->
-      printParam (SetRedeemAddress setRedeemAddressParams)
-    CmdTransferOwnership p _ -> printParam (TransferOwnership p)
-    CmdAcceptOwnership p -> printParam (AcceptOwnership p)
+      printParam (toParameter $ SetRedeemAddress setRedeemAddressParams)
+    CmdTransferOwnership p _ -> printParam (toParameter $ TransferOwnership p)
+    CmdAcceptOwnership p -> printParam (toParameter $ AcceptOwnership p)
     CmdStartMigrateTo p _ -> printParam (StartMigrateTo p)
     CmdStartMigrateFrom p _ -> printParam (StartMigrateFrom p)
     CmdMigrate p -> printParam (Migrate p)

@@ -16,11 +16,14 @@ module Lorentz.Contracts.TZBTC.Impl
   , ManagedLedger.setAdministrator
   , ManagedLedger.transfer
   , ManagedLedger.transfer'
+  , Handler
   , acceptOwnership
   , addOperator
   , approveViaProxy
   , burn
+  , fetchFromStorageAndExec
   , getTotal
+  , mkPackedEntrypoint
   , mint
   , mintForMigration
   , migrate
@@ -30,9 +33,11 @@ module Lorentz.Contracts.TZBTC.Impl
   , setRedeemAddress
   , startMigrateFrom
   , startMigrateTo
+  , storeEntryPoint
   , transferOwnership
   , transferViaProxy
   , unpause
+  , stub
   ) where
 
 import Prelude hiding (drop, get, some, swap, (>>))
@@ -40,10 +45,12 @@ import Prelude hiding (drop, get, some, swap, (>>))
 import Data.Set (Set)
 import Data.Vinyl.Derived (Label)
 import Fmt (Builder)
+import Data.Singletons (SingI)
 
 import Util.Markdown (mdTicked)
 
 import Lorentz
+import Michelson.Interpret.Pack (packValue')
 import qualified Lorentz.Contracts.ManagedLedger.Impl as ManagedLedger
 import qualified Lorentz.Contracts.ManagedLedger.Types as ManagedLedger
 import Lorentz.Contracts.TZBTC.Types hiding (AddOperator, RemoveOperator)
@@ -61,10 +68,15 @@ type StorageC store = StorageContains store
   , "migrationManagerOut" := Maybe MigrationManager
   , "ledger" := Address ~> LedgerValue
   , "proxy" := Either Address Address
+  , "packedEntrypoints" := MText ~> ByteString
   ]
 
-type Entrypoint param store
-  = '[ param, store ] :-> ContractOut store
+mkPackedEntrypoint
+  :: forall a store.
+  ( Typeable (ToT a), Typeable (ToT store)
+  , SingI (ToT a), SingI (ToT store))
+  => Entrypoint a store -> ByteString
+mkPackedEntrypoint e = packValue' $ toVal $ (unpair # e)
 
 getTotal
   :: forall store a.
@@ -73,6 +85,37 @@ getTotal
 getTotal bp entrypointDoc = do
   doc $ DDescription entrypointDoc
   view_ $ do cdr; stToField bp
+
+storeEntryPoint
+  :: Entrypoint StoreEntrypointParameter Storage
+storeEntryPoint = do
+  dip authorizeAdmin
+  unpair
+  stackType @'[("entrypointName" :! MText), ("entrypointCode" :! ByteString), Storage]
+  fromNamed #entrypointName
+  stackType @'[MText, ("entrypointCode" :! ByteString), Storage]
+  dip $ do
+    fromNamed #entrypointCode
+  stackType @'[MText, ByteString, Storage]
+  stInsert #packedEntrypoints
+  finishNoOp
+
+fetchFromStorageAndExec
+  :: forall ei . (Typeable (ToT ei), SingI (ToT ei))
+  => MText -> Entrypoint ei Storage
+fetchFromStorageAndExec epName = do
+  dip $ do
+    push epName
+    dip dup
+    stGet #packedEntrypoints
+    if IsSome then nop else (failCustom_ #entrypointCodeNotFound)
+  stackType @'[ei, ByteString, Storage]
+  dip $ do
+    unpack
+    if IsSome then nop else (failCustom_ #entrypointUnpackError)
+    swap
+  pair
+  exec
 
 -- | Burn the specified amount of tokens from redeem address. Since it
 -- is not possible to burn from any other address, this entry point does
@@ -467,3 +510,8 @@ authorizeProxy = do
 -- | Finish with an empty list of operations
 finishNoOp :: '[st] :-> (ContractOut st)
 finishNoOp = do nil;pair
+
+stub :: Entrypoint a fields
+stub = do
+  drop
+  finishNoOp
