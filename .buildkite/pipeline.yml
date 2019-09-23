@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: LicenseRef-Proprietary
 
 env:
-  NIX_PATH: nixpkgs=channel:nixos-unstable
+  NIX_PATH: nixpkgs=https://github.com/nixos/nixpkgs/archive/b640dbd00877f51616750e347a32fbcb49d2968c.tar.gz
 
 steps:
  - command: nix run nixpkgs.{gnumake,hlint,ncurses} -c make lint
