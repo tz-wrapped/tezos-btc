@@ -37,6 +37,7 @@ library:
     - morley-prelude
     - named
     - optparse-applicative
+    - megaparsec
     - process
     - servant
     - servant-client

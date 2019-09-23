@@ -9,8 +9,6 @@ module Client.IO
 
 import Data.Aeson (decodeFileStrict, encodeFile)
 import Data.ByteString (cons)
-import Data.Char (isAlpha, isDigit)
-import Data.Text as T (breakOn, strip, takeWhile)
 import Network.HTTP.Client
   (ManagerSettings(..), Request(..), newManager, defaultManagerSettings)
 import Servant.Client
@@ -30,6 +28,7 @@ import Tezos.Crypto (Signature)
 import Client.API
 import Client.Crypto
 import Client.Error
+import Client.Parser
 import Client.Types
 import Client.Util
 import Lorentz.Contracts.TZBTC (Parameter(..))
@@ -164,16 +163,9 @@ signWithTezosClient bs ClientConfig{..} = do
     ] ""
   case exitCode of
     ExitSuccess -> do
-      let rawSignature =
-            T.takeWhile isBase58Char . snd . breakOn "edsig" . strip . toText $
-            stdout'
-      return $ Right $ unsafeParseSignature rawSignature
+      Right <$> (throwLeft $ pure $ parseSignatureFromOutput (fromString stdout'))
     ExitFailure _ -> return . Left . fromString $
       "Operation signing failed: " <> stderr'
-  where
-     isBase58Char :: Char -> Bool
-     isBase58Char c =
-       (isDigit c && c /= '0') || (isAlpha c && c /= 'O' && c /= 'I' && c /= 'l')
 
 setupClient :: ClientConfig -> IO ()
 setupClient config = do

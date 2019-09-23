@@ -5,11 +5,21 @@
 module Client.Parser
   ( ClientArgs(..)
   , clientArgParser
+  , parseSignatureFromOutput
   ) where
 
+import Data.Char (isAlpha, isDigit)
+import Fmt (pretty)
 import Options.Applicative
   (argument, auto, help, long, metavar, option, str)
 import qualified Options.Applicative as Opt
+import qualified Text.Megaparsec as P
+  (Parsec, customFailure, many, parse, satisfy)
+import Text.Megaparsec.Char (space)
+import Text.Megaparsec.Char.Lexer (symbol)
+import Text.Megaparsec.Error (ParseErrorBundle, ShowErrorComponent(..))
+
+import Tezos.Crypto (Signature, parseSignature)
 
 import CLI.Parser
 import Client.Types
@@ -55,3 +65,29 @@ intArgument hInfo = argument auto $
 namedFilePathOption :: String -> String -> Opt.Parser FilePath
 namedFilePathOption name hInfo = option str $
   mconcat [long name, metavar "FILEPATH", help hInfo]
+
+-- Tezos-client sign bytes output parser
+data OutputParseError = OutputParseError Text
+  deriving stock (Eq, Show, Ord)
+
+instance ShowErrorComponent OutputParseError where
+  showErrorComponent (OutputParseError err) = toString $
+    "Failed to parse signature: " <> err
+
+type Parser = P.Parsec OutputParseError Text
+
+tezosClientSignatureParser :: Parser Signature
+tezosClientSignatureParser = do
+  void $ symbol space "Signature:"
+  rawSignature <- P.many (P.satisfy isBase58Char)
+  case parseSignature (fromString rawSignature) of
+    Left err -> P.customFailure $ OutputParseError $ pretty err
+    Right sign -> return sign
+  where
+    isBase58Char :: Char -> Bool
+    isBase58Char c =
+      (isDigit c && c /= '0') || (isAlpha c && c /= 'O' && c /= 'I' && c /= 'l')
+
+parseSignatureFromOutput ::
+  Text -> Either (ParseErrorBundle Text OutputParseError) Signature
+parseSignatureFromOutput output = P.parse tezosClientSignatureParser "" output
