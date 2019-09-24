@@ -14,9 +14,9 @@ import Lorentz hiding (SomeContract)
 import Lorentz.Contracts.TZBTC as TZBTC
 import Lorentz.Contracts.GenericMultisig as MSig
 import Lorentz.Test.Integrational
-import Michelson.Runtime (prepareContract)
 import Michelson.Test (originate)
 import Michelson.Typed.Convert
+import Michelson.Typed.Haskell.Value (ContractAddr(..))
 import qualified Michelson.Untyped as U
 import Text.Hex (decodeHex)
 import Tezos.Crypto
@@ -49,11 +49,10 @@ withMultiSigContract
   -> (Address -> IntegrationalScenario)
   -> Expectation
 withMultiSigContract counter thresh pkList callback = do
-  m <- prepareContract (Just "contracts/MultiSigGeneric.tz")
   integrationalTestExpectation $ do
-    msig <- originate m "Multisig Contract"
-      (untypeValue $ toVal (MSig.mkStorage counter thresh pkList)) (toMutez 0)
-    callback msig
+    msig <- lOriginate MSig.genericMultisigContract "Multisig Contract"
+      (MSig.mkStorage counter thresh pkList) (toMutez 0)
+    callback $ unContractAddress msig
 
 sign_ :: SecretKey -> Text -> Signature
 sign_ sk bs = case decodeHex (T.drop 2 bs) of
@@ -188,7 +187,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           lExpectMichelsonFailed (const True) (ContractAddr msig)
   , testCase "Test signed bundle created for one msig contract does not work on other" $ do
 
-      a <- prepareContract (Just "contracts/MultiSigGeneric.tz")
+      let a = convertContract $ compileLorentz MSig.genericMultisigContract
       -- Add some nop instructions to the contract so that we can
       -- originate a duplicate.
       let mClone = a { U.code = (U.PrimEx (U.DUP U.noAnn)):(U.PrimEx U.DROP):(U.code a) }
