@@ -28,6 +28,7 @@ import Tezos.Micheline
 import Michelson.Runtime.GState (genesisAddress1, genesisAddress2)
 import Michelson.Typed.Haskell.Value (ContractAddr(..))
 import Michelson.Untyped (InternalByteString(..))
+import qualified Lorentz.Contracts.GenericMultisig as MSig
 import Tezos.Address (Address, formatAddress)
 import Tezos.Crypto (PublicKey, Signature, parsePublicKey)
 
@@ -38,7 +39,6 @@ import Client.Parser
 import Client.Types
 import Client.Util
 import Lorentz.Contracts.TZBTC (Parameter(..))
-import qualified Lorentz.Contracts.TZBTC.MultiSig as MSig
 import Util.MultiSig
 
 appName, configFile :: FilePath

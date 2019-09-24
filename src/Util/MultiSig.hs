@@ -32,7 +32,7 @@ import Text.Hex (encodeHex, decodeHex)
 import qualified Text.Show (show)
 
 import Lorentz
-import Lorentz.Contracts.TZBTC.MultiSig as MSig
+import Lorentz.Contracts.GenericMultisig as MSig
 import Lorentz.Contracts.TZBTC as TZBTC
 import Michelson.Interpret.Pack
 import Michelson.Interpret.Unpack

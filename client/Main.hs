@@ -15,6 +15,7 @@ import Options.Applicative.Help.Pretty (Doc, linebreak)
 
 import Lorentz (lcwDumb, parseLorentzValue, printLorentzContract, printLorentzValue)
 import Lorentz.Common (showTestScenario)
+import Lorentz.Contracts.GenericMultisig (genericMultisigContract)
 import Paths_tzbtc (version)
 import Util.IO (writeFileUtf8)
 
@@ -94,6 +95,9 @@ main = do
       CmdPrintProxyContract singleLine mbFilePath ->
         maybe putStrLn writeFileUtf8 mbFilePath $
         printLorentzContract singleLine lcwDumb tzbtcProxyContract
+      CmdPrintMultisigContract singleLine mbFilePath ->
+        maybe putStrLn writeFileUtf8 mbFilePath $
+        printLorentzContract singleLine lcwDumb genericMultisigContract
       CmdPrintInitialStorage adminAddress redeemAddress ->
         putStrLn $ printLorentzValue True (mkStorage adminAddress redeemAddress mempty mempty)
       CmdPrintDoc mbFilePath ->

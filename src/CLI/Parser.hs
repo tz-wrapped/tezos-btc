@@ -49,6 +49,7 @@ data CmdLnArgs
   | CmdPrintContract Bool (Maybe FilePath)
   | CmdPrintAgentContract Bool (Maybe FilePath)
   | CmdPrintProxyContract Bool (Maybe FilePath)
+  | CmdPrintMultisigContract Bool (Maybe FilePath)
   | CmdPrintDoc (Maybe FilePath)
   | CmdParseParameter Text
   | CmdTestScenario TestScenarioOptions
@@ -67,7 +68,7 @@ argParser = hsubparser $
   <> setRedeemAddressCmd <> transferOwnershipCmd <> acceptOwnershipCmd
   <> startMigrateFromCmd <> startMigrateToCmd
   <> migrateCmd <> printCmd
-  <> printAgentCmd <> printProxyCmd
+  <> printAgentCmd <> printProxyCmd <> printMultisigCmd
   <> printInitialStorageCmd <> printDoc
   <> parseParameterCmd <> testScenarioCmd
   where
@@ -97,6 +98,12 @@ argParser = hsubparser $
         "printProxyContract"
         (CmdPrintProxyContract <$> singleLineSwitch <*> outputOption)
         "Print proxy contract")
+    printMultisigCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
+    printMultisigCmd =
+      (mkCommandParser
+        "printMultisigContract"
+        (CmdPrintMultisigContract <$> singleLineSwitch <*> outputOption)
+        "Print generic multisig contract")
     printInitialStorageCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     printInitialStorageCmd =
       (mkCommandParser

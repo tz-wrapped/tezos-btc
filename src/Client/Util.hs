@@ -17,13 +17,13 @@ import Tezos.Json (TezosWord64)
 import Tezos.Micheline (Expression)
 
 import Lorentz.Constraints (KnownValue, NoBigMap, NoOperation)
+import qualified Lorentz.Contracts.GenericMultisig as MSig (Storage)
 import Michelson.Interpret.Pack (packValue')
 import Michelson.Interpret.Unpack (UnpackError, dummyUnpackEnv, unpackValue')
 import Michelson.Typed.Haskell.Value (IsoValue(..))
 import Michelson.Typed.Scope (forbiddenBigMap, forbiddenOp)
 
 import Client.Error (TzbtcClientError(..))
-import qualified Lorentz.Contracts.TZBTC.MultiSig as MSig (Storage)
 
 paramToExpression
   :: forall param.
