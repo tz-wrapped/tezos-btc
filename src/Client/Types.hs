@@ -6,6 +6,7 @@ module Client.Types
   ( ClientConfig (..)
   , ForgeOperation (..)
   , InternalOperation (..)
+  , MichelsonExpression (..)
   , OperationContent (..)
   , RunError (..)
   , RunMetadata (..)
@@ -149,7 +150,7 @@ instance FromJSON RunOperationResult where
       "applied" -> RunOperationApplied <$> o .: "consumed_gas" <*> o .: "storage_size"
       "failed" -> RunOperationFailed <$> o .: "errors"
       "backtracked" ->
-        RunOperationFailed <$> o .: "errors"
+        RunOperationFailed <$> o .:? "errors" .!= []
       _ -> fail ("unexpected status " ++ status)
 
 data TransactionOperation = TransactionOperation

@@ -32,7 +32,7 @@ data ClientArgs
   | CmdGetPackageDescription FilePath
   | CmdGetBytesToSign FilePath
   | CmdAddSignature PublicKey Signature FilePath
-  | CmdCallMultisig (NonEmpty FilePath) [PublicKey]
+  | CmdCallMultisig (NonEmpty FilePath)
 
 clientArgParser :: Opt.Parser ClientArgs
 clientArgParser =
@@ -98,8 +98,8 @@ clientArgParser =
       mkCommandParser
       "callMultisig"
       (CmdCallMultisig <$>
-       nonEmptyParser (namedFilePathOption "package" "Package filepath") <*>
-       many publicKeyOption)
+       nonEmptyParser (namedFilePathOption "package" "Package filepath")
+      )
       "Call multisig contract with the given packages"
 
 urlArgument :: String -> Opt.Parser Text

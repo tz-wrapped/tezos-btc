@@ -11,6 +11,8 @@ import Servant.Client.Core (ClientError(..), Response, ResponseF(..))
 import Servant.Client.Core.Request (RequestF(..))
 import qualified Text.Show (show)
 
+import Tezos.Crypto (CryptoParseError (..))
+
 import Client.Types
 
 data TzbtcClientError
@@ -18,6 +20,8 @@ data TzbtcClientError
   | TzbtcClientConfigError
   | TzbtcRunFailed [RunError]
   | TzbtcUnexpectedRunResult Text
+  | TzbtcUnexpectedMultisigStorage MichelsonExpression
+  | TzbtcPublicKeyParseError Text CryptoParseError
 
 instance Buildable TzbtcClientError where
   build (TzbtcServantError err) = case err of
@@ -46,6 +50,13 @@ instance Buildable TzbtcClientError where
 
   build (TzbtcUnexpectedRunResult msg) =
     "Unexpected result of transaction preliminary run: " +| msg |+ ""
+
+  build (TzbtcUnexpectedMultisigStorage stor) =
+    "Multisig contract has unexpected storage: " +| stor |+ "\n" <>
+    "Expecting the following storage (counter, (treshold, [keys]))"
+
+  build (TzbtcPublicKeyParseError pk err) =
+    "Failed to parse public key " +| pk |+ " with: " +| err |+ ""
 
 instance Show TzbtcClientError where
   show = pretty

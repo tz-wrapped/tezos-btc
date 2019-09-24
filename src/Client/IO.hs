@@ -13,22 +13,24 @@ module Client.IO
 
 import Data.Aeson (decodeFileStrict, encodeFile)
 import Data.ByteString (cons)
+import Data.Sequence (Seq(..))
 import Network.HTTP.Client
   (ManagerSettings(..), Request(..), newManager, defaultManagerSettings)
 import Servant.Client
   (BaseUrl(..), ClientError, ClientEnv, Scheme(..), mkClientEnv, runClientM)
 import System.Directory (createDirectoryIfMissing, getAppUserDataDirectory)
 import System.Exit (ExitCode(..))
-import System.IO (readLn)
 import System.Process (readProcessWithExitCode)
 import Text.Hex (encodeHex, decodeHex)
-import Tezos.Json (TezosWord64)
+import Tezos.Json (TezosWord64(..))
+import Tezos.Micheline
+  (Expression(..), MichelinePrimAp(..), MichelinePrimitive(..))
 
 import Michelson.Runtime.GState (genesisAddress1, genesisAddress2)
 import Michelson.Typed.Haskell.Value (ContractAddr(..))
 import Michelson.Untyped (InternalByteString(..))
 import Tezos.Address (Address, formatAddress)
-import Tezos.Crypto (PublicKey, Signature)
+import Tezos.Crypto (PublicKey, Signature, parsePublicKey)
 import Util.IO (readFileUtf8, writeFileUtf8)
 
 import Client.API
@@ -110,22 +112,52 @@ createMultisigPackage
   :: (ParamConstraints param, ToUnpackEnv param)
   => FilePath -> param -> IO ()
 createMultisigPackage packagePath param = do
-  ClientConfig{..} <- throwLeft $ readConfigFile
-  putStrLn ("Enter multisig counter:" :: Text)
-  -- (counter, _) <- getMultisigStorage ccMultisigAddress config
-  counter <- readLn
+  config@ClientConfig{..} <- throwLeft $ readConfigFile
+  (counter, _) <- throwLeft $ getMultisigStorage ccMultisigAddress config
   let package = mkPackage ccMultisigAddress counter
         (ContractAddr ccContractAddress) param
   writePackageToFile package packagePath
 
 
--- Not used for now
-_getMultisigStorage :: Address -> ClientConfig -> IO MSig.Storage
-_getMultisigStorage addr config@ClientConfig{..} = do
+-- Quite ugly patternmatching, but at least such approach
+-- works for multisig storage extraction. As soon as https://issues.serokell.io/issue/TM-140
+-- is resolved, this function should be changed.
+getMultisigStorage
+  :: Address -> ClientConfig -> IO (Either TzbtcClientError MSig.Storage)
+getMultisigStorage addr config@ClientConfig{..} = do
   clientEnv <- getClientEnv config
   mSigStorageRaw <- throwClientError $
     runClientM (getStorage $ formatAddress addr) clientEnv
-  throwLeft $ pure $ exprToMultisigStorage mSigStorageRaw
+  return $ case mSigStorageRaw of
+    Expression_Prim
+      (MichelinePrimAp
+       { _michelinePrimAp_prim = MichelinePrimitive "Pair"
+       , _michelinePrimAp_args =
+         Expression_Int (TezosWord64 {unTezosWord64 = counter}) :<|
+         Expression_Prim
+         (MichelinePrimAp
+           { _michelinePrimAp_prim = MichelinePrimitive "Pair"
+           , _michelinePrimAp_args =
+             Expression_Int (TezosWord64 {unTezosWord64 = threshold}) :<|
+             Expression_Seq keySequence :<|
+             Empty
+            }
+         ) :<|
+         Empty
+       }
+      ) -> do
+      case traverse (extractKey mSigStorageRaw) $ toList keySequence of
+        Left err -> Left err
+        Right keys' -> Right $ (fromIntegral counter, (fromIntegral threshold, keys'))
+    _ -> Left $ TzbtcUnexpectedMultisigStorage $ MichelsonExpression mSigStorageRaw
+
+  where
+    extractKey :: Expression -> Expression -> Either TzbtcClientError PublicKey
+    extractKey rawStor = \case
+      Expression_String pubKeyRaw ->
+        either (Left . TzbtcPublicKeyParseError pubKeyRaw) Right $
+        parsePublicKey pubKeyRaw
+      _ -> Left $ TzbtcUnexpectedMultisigStorage $ MichelsonExpression rawStor
 
 getCosts
   :: ClientEnv -> RunOperation
@@ -222,10 +254,11 @@ runTzbtcContract param = do
   config@ClientConfig{..} <- throwLeft $ readConfigFile
   runTransaction ccContractAddress param config
 
-runMultisigContract :: NonEmpty Package -> [PublicKey] -> IO ()
-runMultisigContract packages keys' = do
+runMultisigContract :: NonEmpty Package -> IO ()
+runMultisigContract packages = do
   config <- throwLeft $ readConfigFile
   package <- throwLeft $ pure $ mergePackages packages
   multisigAddr <- throwLeft $ pure (fst <$> getToSign package)
+  (_, (_, keys')) <- throwLeft $ getMultisigStorage multisigAddr config
   (_, multisigParam) <- throwLeft $ pure $ mkMultiSigParam keys' packages
   runTransaction multisigAddr multisigParam config

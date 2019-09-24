@@ -53,11 +53,11 @@ main = do
         Left err -> putStrLn err
         Right package ->
           writePackageToFile (addSignature' package (pk, sign)) packageFilePath
-    CmdCallMultisig packagesFilePaths publicKeys -> do
+    CmdCallMultisig packagesFilePaths -> do
       pkgs <- fmap sequence $ mapM getPackageFromFile packagesFilePaths
       case pkgs of
         Left err -> putStrLn err
-        Right packages -> runMultisigContract packages publicKeys
+        Right packages -> runMultisigContract packages
     CmdTransaction arg -> case arg of
       CmdMint mintParams mbMultisig ->
         runMultisigTzbtcContract mbMultisig $ Mint mintParams
