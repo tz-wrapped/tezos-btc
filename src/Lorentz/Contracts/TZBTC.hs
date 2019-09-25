@@ -82,7 +82,7 @@ storedEntrypointsHandler = caseT @StoredEntrypointsParam
   )
 
 tzbtcCompileWay :: LorentzCompilationWay Parameter Storage
-tzbtcCompileWay = lcwDumb
+tzbtcCompileWay = lcwEntryPoints
 
 -- | Create a default storage with ability to set some balances to
 -- non-zero values.
