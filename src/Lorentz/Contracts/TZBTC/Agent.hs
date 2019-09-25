@@ -3,7 +3,7 @@
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
 {-# LANGUAGE RebindableSyntax #-}
-{-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
+{-# OPTIONS_GHC -fno-warn-unused-do-bind -Wno-orphans #-}
 
 module Lorentz.Contracts.TZBTC.Agent
   ( Parameter
@@ -26,6 +26,10 @@ data StorageFields tp = StorageFields
     deriving anyclass IsoValue
 
 type instance ErrorArg "migrationBadOrigin" = ()
+
+instance CustomErrorHasDoc "migrationBadOrigin" where
+  customErrDocMdCause =
+    "Old version contract address doesn't match with transaction origin address"
 
 -- | A migration agent that can migrate to any contract as long as the
 -- target contract have a constructor/entrypoint `MintForMigration` with field

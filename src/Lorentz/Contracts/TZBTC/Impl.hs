@@ -69,8 +69,10 @@ type Entrypoint param store
 getTotal
   :: forall store a.
     (StoreHasField store a Natural)
-  => Label a -> Entrypoint (View () Natural) store
-getTotal bp = view_ $ do cdr; stToField bp
+  => Label a -> Markdown -> Entrypoint (View () Natural) store
+getTotal bp entrypointDoc = do
+  doc $ DDescription entrypointDoc
+  view_ $ do cdr; stToField bp
 
 -- | Burn the specified amount of tokens from redeem address. Since it
 -- is not possible to burn from any other address, this entry point does

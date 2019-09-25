@@ -23,6 +23,7 @@ import qualified Data.Text as T (concat)
 
 import Michelson.Typed.Doc
   (DComment(..), DDescription(..), DName(..), SomeDocItem(..), contractDocToMarkdown)
+import Lorentz.Contracts.ManagedLedger.Doc (getTotalSupplyDoc)
 
 import Lorentz.Contracts.TZBTC.Agent (agentContract)
 import Lorentz.Contracts.TZBTC.Impl
@@ -45,8 +46,11 @@ tzbtcContract = do
     , #cGetAllowance /-> getAllowance
     , #cGetBalance /-> getBalance
     , #cGetTotalSupply /-> getTotal #totalSupply
+      getTotalSupplyDoc
     , #cGetTotalMinted /-> getTotal #totalMinted
+      "Return total number of minted tokens"
     , #cGetTotalBurned /-> getTotal #totalBurned
+      "Return total number of burned tokens"
     , #cSetAdministrator /-> setAdministrator
     , #cGetAdministrator /-> getAdministrator
     , #cMint /-> mint
