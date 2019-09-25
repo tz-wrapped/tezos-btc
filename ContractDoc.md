@@ -41,6 +41,13 @@ Pass resulting value as parameter to the contract.
 
 **Pausable:** Cannot be executed when token operations are paused.
 
+**Possible errors:**
+* [`TokenOperationsArePaused`](#errors-TokenOperationsArePaused) — Token functionality (`transfer` and similar entrypoints) is suspended.
+
+* [`NotEnoughAllowance`](#errors-NotEnoughAllowance) — Not enough funds allowance to perform the operation.
+
+* [`NotEnoughBalance`](#errors-NotEnoughBalance) — Not enough funds to perform the operation.
+
 
 
 ---
@@ -69,6 +76,17 @@ Pass resulting value as parameter to the contract.
 The sender has to be the `proxy`.
 
 **Pausable:** Cannot be executed when token operations are paused.
+
+**Possible errors:**
+* [`ProxyIsNotSet`](#errors-ProxyIsNotSet) — Cannot call proxy entrypoint because proxy address is not set
+
+* [`CallerIsNotProxy`](#errors-CallerIsNotProxy) — Sender has to be the proxy to call proxy entrypoints
+
+* [`TokenOperationsArePaused`](#errors-TokenOperationsArePaused) — Token functionality (`transfer` and similar entrypoints) is suspended.
+
+* [`NotEnoughAllowance`](#errors-NotEnoughAllowance) — Not enough funds allowance to perform the operation.
+
+* [`NotEnoughBalance`](#errors-NotEnoughBalance) — Not enough funds to perform the operation.
 
 
 
@@ -106,6 +124,11 @@ Pass resulting value as parameter to the contract.
 
 **Pausable:** Cannot be executed when token operations are paused.
 
+**Possible errors:**
+* [`TokenOperationsArePaused`](#errors-TokenOperationsArePaused) — Token functionality (`transfer` and similar entrypoints) is suspended.
+
+* [`UnsafeAllowanceChange`](#errors-UnsafeAllowanceChange) — Allowance change from non-zero value to non-zero value is performed.
+
 
 
 ---
@@ -134,6 +157,15 @@ Pass resulting value as parameter to the contract.
 The sender has to be the `proxy`.
 
 **Pausable:** Cannot be executed when token operations are paused.
+
+**Possible errors:**
+* [`ProxyIsNotSet`](#errors-ProxyIsNotSet) — Cannot call proxy entrypoint because proxy address is not set
+
+* [`CallerIsNotProxy`](#errors-CallerIsNotProxy) — Sender has to be the proxy to call proxy entrypoints
+
+* [`TokenOperationsArePaused`](#errors-TokenOperationsArePaused) — Token functionality (`transfer` and similar entrypoints) is suspended.
+
+* [`UnsafeAllowanceChange`](#errors-UnsafeAllowanceChange) — Allowance change from non-zero value to non-zero value is performed.
 
 
 
@@ -191,6 +223,8 @@ Pass resulting value as parameter to the contract.
 
 ### `GetTotalSupply`
 
+Returns total number of tokens.
+
 **Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
 
 <details>
@@ -214,6 +248,8 @@ Pass resulting value as parameter to the contract.
 
 ### `GetTotalMinted`
 
+Return total number of minted tokens
+
 **Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
 
 <details>
@@ -236,6 +272,8 @@ Pass resulting value as parameter to the contract.
 ---
 
 ### `GetTotalBurned`
+
+Return total number of burned tokens
 
 **Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
 
@@ -280,6 +318,9 @@ Pass resulting value as parameter to the contract.
 
 
 **Authorization:** The sender has to be `administrator`.
+
+**Possible errors:**
+* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
 
 
 
@@ -333,6 +374,9 @@ Pass resulting value as parameter to the contract.
 
 The sender has to be the `operator`.
 
+**Possible errors:**
+* [`SenderIsNotOperator`](#errors-SenderIsNotOperator) — Sender has to be an operator to call this entrypoint
+
 
 
 ---
@@ -359,6 +403,11 @@ Pass resulting value as parameter to the contract.
 
 
 The sender has to be the `operator`.
+
+**Possible errors:**
+* [`SenderIsNotOperator`](#errors-SenderIsNotOperator) — Sender has to be an operator to call this entrypoint
+
+* [`NotEnoughBalance`](#errors-NotEnoughBalance) — Not enough funds to perform the operation.
 
 
 
@@ -387,6 +436,9 @@ Pass resulting value as parameter to the contract.
 
 The sender has to be the `admin`.
 
+**Possible errors:**
+* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+
 
 
 ---
@@ -413,6 +465,9 @@ Pass resulting value as parameter to the contract.
 
 
 The sender has to be the `admin`.
+
+**Possible errors:**
+* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
 
 
 
@@ -441,6 +496,9 @@ Pass resulting value as parameter to the contract.
 
 The sender has to be the `admin`.
 
+**Possible errors:**
+* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+
 
 
 ---
@@ -467,6 +525,9 @@ Pass resulting value as parameter to the contract.
 
 
 The sender has to be the `operator`.
+
+**Possible errors:**
+* [`SenderIsNotOperator`](#errors-SenderIsNotOperator) — Sender has to be an operator to call this entrypoint
 
 
 
@@ -499,6 +560,9 @@ Pass resulting value as parameter to the contract.
 
 **Authorization:** The sender has to be `administrator`.
 
+**Possible errors:**
+* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+
 
 
 ---
@@ -525,6 +589,9 @@ Pass resulting value as parameter to the contract.
 
 
 The sender has to be the `admin`.
+
+**Possible errors:**
+* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
 
 
 
@@ -553,6 +620,11 @@ Pass resulting value as parameter to the contract.
 
 The sender has to be the `new owner`.
 
+**Possible errors:**
+* [`NotInTransferOwnershipMode`](#errors-NotInTransferOwnershipMode) — Cannot accept ownership before transfer process has been initiated by calling transferOwnership entrypoint
+
+* [`SenderIsNotNewOwner`](#errors-SenderIsNotNewOwner) — Cannot accept ownership because the sender address is different from the address passed to the transferOwnership entrypoint previously
+
 
 
 ---
@@ -579,6 +651,11 @@ Pass resulting value as parameter to the contract.
 
 
 The sender has to be the `admin`.
+
+**Possible errors:**
+* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+
+* [`TokenOperationsAreNotPaused`](#errors-TokenOperationsAreNotPaused) — This operation is only available when token operations are paused
 
 
 
@@ -607,6 +684,9 @@ Pass resulting value as parameter to the contract.
 
 The sender has to be the `admin`.
 
+**Possible errors:**
+* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+
 
 
 ---
@@ -631,6 +711,11 @@ Pass resulting value as parameter to the contract.
 <p>
 
 
+
+**Possible errors:**
+* [`MigrationNotEnabled`](#errors-MigrationNotEnabled) — Cannot migrate when migration manager hasn't been set up
+
+* [`SenderIsNotAgent`](#errors-SenderIsNotAgent) — Sender has to be a migration manager to call this entrypoint
 
 
 
@@ -657,6 +742,15 @@ Pass resulting value as parameter to the contract.
 
 
 
+**Possible errors:**
+* [`TokenOperationsArePaused`](#errors-TokenOperationsArePaused) — Token functionality (`transfer` and similar entrypoints) is suspended.
+
+* [`NoBalanceToMigrate`](#errors-NoBalanceToMigrate) — Cannot migrate zero tokens to the new contract version
+
+* [`NotEnoughBalance`](#errors-NotEnoughBalance) — Not enough funds to perform the operation.
+
+* [`MigrationNotEnabled`](#errors-MigrationNotEnabled) — Cannot migrate when migration manager hasn't been set up
+
 
 
 ---
@@ -681,6 +775,11 @@ Pass resulting value as parameter to the contract.
 <p>
 
 
+
+**Possible errors:**
+* [`NotAllowedToSetProxy`](#errors-NotAllowedToSetProxy) — Cannot set proxy address because Left value in `proxy` field does not match the sender's address
+
+* [`ProxyAlreadySet`](#errors-ProxyAlreadySet) — Cannot set proxy address because it was already set up
 
 
 
@@ -778,6 +877,19 @@ Unsigned number.
 
 
 
+<a name="types-Text"></a>
+
+---
+
+### `Text`
+
+Michelson string.
+Not every text literal is valid string, see list of constraints in the [Official Michelson documentation](http://tezos.gitlab.io/zeronet/whitedoc/michelson.html#constants).
+
+**Final Michelson representation:** `string`
+
+
+
 <a name="types-View"></a>
 
 ---
@@ -790,3 +902,201 @@ Read more in [A1 conventions document](https://gitlab.com/tzip/tzip/blob/master/
 **Structure (example):** `View () Integer` = ([`()`](#types-lparenrparen), [`ContractAddr`](#types-Contract) [`Integer`](#types-Integer))
 
 **Final Michelson representation (example):** `View () Integer` = `pair unit (contract int)`
+
+
+
+## Errors
+
+Our contract implies the possibility of error scenarios, this section enlists
+all values which the contract can produce via calling `FAILWITH` instruction
+on them. In case of error, no changes to contract state will be applied.
+
+Each entrypoint also contains a list of errors which can be raised during its
+execution; only for no-throw entrypoints this list will be omitted.
+Errors in these lists are placed in the order in which the corresponding
+properties are checked unless the opposite is specified. I.e., if for a
+given entrypoint call two different errors may take place, the one which
+appears in the list first will be thrown.
+
+Most of the errors are represented according to the same
+`(error name, error argument)` pattern. See the list of errors below
+for details.
+
+<a name="errors-CallerIsNotProxy"></a>
+
+---
+
+### `CallerIsNotProxy`
+
+**Fires if:** Sender has to be the proxy to call proxy entrypoints
+
+**Representation:** `("CallerIsNotProxy", ())`.
+
+<a name="errors-InternalError"></a>
+
+---
+
+### `InternalError`
+
+**Fires if:** Internal error occured.
+In ideal case such error should never be thrown, but contract user has to make sure that he is able to handle such case.
+
+If an internal error is thrown, please report it to the contract author.
+
+**Representation:** Textual error message, see [`Text`](#types-Text).
+
+<a name="errors-MigrationNotEnabled"></a>
+
+---
+
+### `MigrationNotEnabled`
+
+**Fires if:** Cannot migrate when migration manager hasn't been set up
+
+**Representation:** `("MigrationNotEnabled", ())`.
+
+<a name="errors-NoBalanceToMigrate"></a>
+
+---
+
+### `NoBalanceToMigrate`
+
+**Fires if:** Cannot migrate zero tokens to the new contract version
+
+**Representation:** `("NoBalanceToMigrate", ())`.
+
+<a name="errors-NotAllowedToSetProxy"></a>
+
+---
+
+### `NotAllowedToSetProxy`
+
+**Fires if:** Cannot set proxy address because Left value in `proxy` field does not match the sender's address
+
+**Representation:** `("NotAllowedToSetProxy", ())`.
+
+<a name="errors-NotEnoughAllowance"></a>
+
+---
+
+### `NotEnoughAllowance`
+
+**Fires if:** Not enough funds allowance to perform the operation.
+
+**Representation:** `("NotEnoughAllowance", <error argument>)`.
+
+Provided error argument will be of type (***required*** : [`Natural`](#types-Natural), ***present*** : [`Natural`](#types-Natural)).
+
+<a name="errors-NotEnoughBalance"></a>
+
+---
+
+### `NotEnoughBalance`
+
+**Fires if:** Not enough funds to perform the operation.
+
+**Representation:** `("NotEnoughBalance", <error argument>)`.
+
+Provided error argument will be of type (***required*** : [`Natural`](#types-Natural), ***present*** : [`Natural`](#types-Natural)).
+
+<a name="errors-NotInTransferOwnershipMode"></a>
+
+---
+
+### `NotInTransferOwnershipMode`
+
+**Fires if:** Cannot accept ownership before transfer process has been initiated by calling transferOwnership entrypoint
+
+**Representation:** `("NotInTransferOwnershipMode", ())`.
+
+<a name="errors-ProxyAlreadySet"></a>
+
+---
+
+### `ProxyAlreadySet`
+
+**Fires if:** Cannot set proxy address because it was already set up
+
+**Representation:** `("ProxyAlreadySet", ())`.
+
+<a name="errors-ProxyIsNotSet"></a>
+
+---
+
+### `ProxyIsNotSet`
+
+**Fires if:** Cannot call proxy entrypoint because proxy address is not set
+
+**Representation:** `("ProxyIsNotSet", ())`.
+
+<a name="errors-SenderIsNotAdmin"></a>
+
+---
+
+### `SenderIsNotAdmin`
+
+**Fires if:** Entrypoint executed not by its administrator.
+
+**Representation:** `("SenderIsNotAdmin", ())`.
+
+<a name="errors-SenderIsNotAgent"></a>
+
+---
+
+### `SenderIsNotAgent`
+
+**Fires if:** Sender has to be a migration manager to call this entrypoint
+
+**Representation:** `("SenderIsNotAgent", ())`.
+
+<a name="errors-SenderIsNotNewOwner"></a>
+
+---
+
+### `SenderIsNotNewOwner`
+
+**Fires if:** Cannot accept ownership because the sender address is different from the address passed to the transferOwnership entrypoint previously
+
+**Representation:** `("SenderIsNotNewOwner", ())`.
+
+<a name="errors-SenderIsNotOperator"></a>
+
+---
+
+### `SenderIsNotOperator`
+
+**Fires if:** Sender has to be an operator to call this entrypoint
+
+**Representation:** `("SenderIsNotOperator", ())`.
+
+<a name="errors-TokenOperationsAreNotPaused"></a>
+
+---
+
+### `TokenOperationsAreNotPaused`
+
+**Fires if:** This operation is only available when token operations are paused
+
+**Representation:** `("TokenOperationsAreNotPaused", ())`.
+
+<a name="errors-TokenOperationsArePaused"></a>
+
+---
+
+### `TokenOperationsArePaused`
+
+**Fires if:** Token functionality (`transfer` and similar entrypoints) is suspended.
+
+**Representation:** `("TokenOperationsArePaused", ())`.
+
+<a name="errors-UnsafeAllowanceChange"></a>
+
+---
+
+### `UnsafeAllowanceChange`
+
+**Fires if:** Allowance change from non-zero value to non-zero value is performed. This contract does not allow such an update, see the [corresponding attack vector](https://docs.google.com/document/d/1YLPtQxZu1UAvO9cZ1O2RPXBbT0mooh4DYKjA_jp-RLM) for explanation.
+
+**Representation:** `("UnsafeAllowanceChange", <error argument>)`.
+
+Provided error argument will be of type [`Natural`](#types-Natural) and stand for the previous value of approval.

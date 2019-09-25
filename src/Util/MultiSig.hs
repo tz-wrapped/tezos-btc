@@ -25,7 +25,7 @@ import Data.Aeson.Casing (aesonPrefix, camelCase)
 import Data.Aeson.TH (deriveJSON)
 import Data.ByteString.Lazy as LBS (toStrict)
 import Data.List (lookup)
-import Fmt (Buildable(..), (+|), (|+))
+import Fmt (Builder, Buildable(..), (+|), (|+))
 import Text.Hex (encodeHex, decodeHex)
 
 import Lorentz

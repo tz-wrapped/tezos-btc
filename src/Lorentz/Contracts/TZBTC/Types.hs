@@ -2,6 +2,7 @@
  -
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
+{-# OPTIONS_GHC -Wno-orphans #-}
 module Lorentz.Contracts.TZBTC.Types
   ( AcceptOwnershipParams
   , ApproveViaProxyParams
@@ -247,6 +248,57 @@ type instance ErrorArg "notAllowedToSetProxy" = ()
 
 -- | For setProxy entry point if Proxy is set already
 type instance ErrorArg "proxyAlreadySet" = ()
+
+instance CustomErrorHasDoc "notInTransferOwnershipMode" where
+  customErrDocMdCause =
+    "Cannot accept ownership before transfer process has been initiated \
+    \by calling transferOwnership entrypoint"
+
+instance CustomErrorHasDoc "senderIsNotNewOwner" where
+  customErrDocMdCause =
+    "Cannot accept ownership because the sender address is different from \
+    \the address passed to the transferOwnership entrypoint previously"
+
+instance CustomErrorHasDoc "senderIsNotOperator" where
+  customErrDocMdCause =
+    "Sender has to be an operator to call this entrypoint"
+
+instance CustomErrorHasDoc "unauthorizedMigrateFrom" where
+  customErrDocMdCause =
+    "Previous contract version address hasn't been set up"
+
+instance CustomErrorHasDoc "noBalanceToMigrate" where
+  customErrDocMdCause =
+    "Cannot migrate zero tokens to the new contract version"
+
+instance CustomErrorHasDoc "migrationNotEnabled" where
+  customErrDocMdCause =
+    "Cannot migrate when migration manager hasn't been set up"
+
+instance CustomErrorHasDoc "senderIsNotAgent" where
+  customErrDocMdCause =
+    "Sender has to be a migration manager to call this entrypoint"
+
+instance CustomErrorHasDoc "tokenOperationsAreNotPaused" where
+  customErrDocMdCause =
+    "This operation is only available when token operations are paused"
+
+instance CustomErrorHasDoc "proxyIsNotSet" where
+  customErrDocMdCause =
+    "Cannot call proxy entrypoint because proxy address is not set"
+
+instance CustomErrorHasDoc "callerIsNotProxy" where
+  customErrDocMdCause =
+    "Sender has to be the proxy to call proxy entrypoints"
+
+instance CustomErrorHasDoc "notAllowedToSetProxy" where
+  customErrDocMdCause =
+    "Cannot set proxy address because Left value in `proxy` field does not \
+    \match the sender's address"
+
+instance CustomErrorHasDoc "proxyAlreadySet" where
+  customErrDocMdCause =
+    "Cannot set proxy address because it was already set up"
 
 class ToUnpackEnv a where
   toUnpackEnv :: ContractAddr a -> a -> TcOriginatedContracts
