@@ -27,8 +27,6 @@ import qualified Data.Map as Map
 import Data.Set
 import Data.Singletons (SingI(..))
 import qualified Data.Set as Set
---import Named (arg)
---import qualified Data.ByteString as BS
 
 import Lorentz
 import Lorentz.Contracts.Consumer

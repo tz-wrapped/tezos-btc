@@ -6,8 +6,7 @@
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 
 module Lorentz.Contracts.TZBTC.Impl
-  ( StorageC
-  , ManagedLedger.approve
+  ( ManagedLedger.approve
   , ManagedLedger.approve'
   , ManagedLedger.getAdministrator
   , ManagedLedger.getAllowance
@@ -16,7 +15,7 @@ module Lorentz.Contracts.TZBTC.Impl
   , ManagedLedger.setAdministrator
   , ManagedLedger.transfer
   , ManagedLedger.transfer'
-  , Handler
+  , StorageC
   , acceptOwnership
   , addOperator
   , approveViaProxy
@@ -37,7 +36,6 @@ module Lorentz.Contracts.TZBTC.Impl
   , transferOwnership
   , transferViaProxy
   , unpause
-  , stub
   ) where
 
 import Prelude hiding (drop, get, some, swap, (>>))
@@ -511,8 +509,3 @@ authorizeProxy = do
 -- | Finish with an empty list of operations
 finishNoOp :: '[st] :-> (ContractOut st)
 finishNoOp = do nil;pair
-
-stub :: Entrypoint a fields
-stub = do
-  drop
-  finishNoOp
