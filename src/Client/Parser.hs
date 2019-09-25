@@ -11,7 +11,7 @@ module Client.Parser
 import Data.Char (isAlpha, isDigit)
 import Fmt (pretty)
 import Options.Applicative
-  (argument, auto, help, long, metavar, option, str)
+  (argument, auto, help, long, metavar, option, showDefaultWith, str, value)
 import qualified Options.Applicative as Opt
 import qualified Text.Megaparsec as P
   (Parsec, customFailure, many, parse, satisfy)
@@ -48,7 +48,7 @@ clientArgParser =
                        , metavar "ADDRESS_ALIAS"
                        , help "tezos-client alias"
                        ])
-                      <*> namedFilePathOption "tezos-client" "tezos-client executable"
+                      <*> tezosClientFilePathOption
                      ))
                     ("Setup client using node url, node port, contract address, \
                      \user address, user address alias and \
@@ -62,9 +62,11 @@ intArgument :: String -> Opt.Parser Int
 intArgument hInfo = argument auto $
   mconcat [metavar "PORT", help hInfo]
 
-namedFilePathOption :: String -> String -> Opt.Parser FilePath
-namedFilePathOption name hInfo = option str $
-  mconcat [long name, metavar "FILEPATH", help hInfo]
+tezosClientFilePathOption :: Opt.Parser FilePath
+tezosClientFilePathOption = option str $
+  mconcat [ long "tezos-client", metavar "FILEPATH", help "tezos-client executable"
+          , value "tezos-client", showDefaultWith (<> " from $PATH")
+          ]
 
 -- Tezos-client sign bytes output parser
 data OutputParseError = OutputParseError Text
