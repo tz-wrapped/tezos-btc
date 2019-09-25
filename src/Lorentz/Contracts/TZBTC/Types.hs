@@ -46,6 +46,7 @@ import Util.Instances ()
 import Michelson.TypeCheck.TypeCheck (TcOriginatedContracts)
 import Michelson.Typed.Extract
 import Michelson.Typed.Sing (Sing(..), fromSingT)
+import Tezos.Address
 
 type MigrationManager = ContractAddr (Address, Natural)
 type BurnParams = ("value" :! Natural)
@@ -263,10 +264,14 @@ mkEnv caddr param = case param of
   GetAdministrator v -> addToEnv v
   _ -> defEnv
   where
+    contractAddrToHash x = case unContractAddress x of
+      ContractAddress hsh -> hsh
+      _ -> error "mkEnv : Unexpected non-contract address"
     addToEnv :: forall a r. (SingI (ToT r)) => View a r -> TcOriginatedContracts
     addToEnv (View _ ca) =
-      Map.insert (unContractAddress ca)
+      Map.insert
+        (contractAddrToHash ca)
         (toUType $ fromSingT (sing :: Sing (ToT r))) defEnv
     defEnv = Map.singleton
-      (unContractAddress caddr)
+      (contractAddrToHash caddr)
       (toUType $ fromSingT (sing :: Sing (ToT Parameter)))
