@@ -274,11 +274,11 @@ transferOwnershipParamsParser = #newOwner
 
 startMigrateFromParamsParser :: Opt.Parser StartMigrateFromParams
 startMigrateFromParamsParser = #migrationManager <.!>
-  (ContractAddr <$> addressArgument "Source contract address")
+  (addressArgument "Source contract address")
 
 startMigrateToParamsParser :: Opt.Parser StartMigrateToParams
 startMigrateToParamsParser = #migrationManager <.!>
-  (ContractAddr <$> addressArgument "Manager contract address")
+  (addressArgument "Manager contract address")
 
 -- Maybe add default value and make sure it will be shown in help message.
 maybeAddDefault :: Opt.HasValue f => (a -> String) -> Maybe a -> Opt.Mod f a

@@ -134,7 +134,7 @@ test_adminCheck = testGroup "TZBTC contract admin check test"
   , testCase
       "Fails with `SenderNotAdmin` if sender is not administrator for `startMigrateFrom` call" $
       contractPropWithSender bob validate'
-        (StartMigrateFrom (#migrationManager .! (ContractAddr contractAddress))) storage
+        (StartMigrateFrom (#migrationManager .! contractAddress)) storage
   , testCase
       "Fails with `SenderNotAdmin` if sender is not administrator for `transferOwnership` call" $
       contractPropWithSender bob validate'
@@ -538,11 +538,11 @@ originateAgent
   , KnownValue v2, NoOperation v2, NoBigMap v2)
   => Address
   -> ContractAddr v2
-  -> IntegrationalScenarioM (ContractAddr Agent.Parameter)
+  -> IntegrationalScenarioM Address
 originateAgent oldContract newContract =
   case checkOpPresence (sing @(ToT v2)) of
     OpAbsent ->
-      lOriginate (Agent.agentContract @v2) "Migration Agent" agentStorage (toMutez 1000)
+      unContractAddress <$> lOriginate (Agent.agentContract @v2) "Migration Agent" agentStorage (toMutez 1000)
     OpPresent ->
       error "Cannot originate contract with operations in parameter"
     where
@@ -679,7 +679,7 @@ test_migration = testGroup "TZBTC contract migration tests"
          v2 <- originateV2
          agent <- originateAgent (unContractAddress v1) v2
          withSender adminAddress $ lCall v2 (StartMigrateFrom $ (#migrationManager .! agent))
-         withSender (unContractAddress agent) $ lCall v2 (MintForMigration $ (#to .! alice, #value .! 250))
+         withSender agent $ lCall v2 (MintForMigration $ (#to .! alice, #value .! 250))
          consumer <- lOriginateEmpty contractConsumer "consumer"
          lCall v2 $ GetBalance (View alice consumer)
          validate . Right $
@@ -702,7 +702,7 @@ test_migrationManager = testGroup "TZBTC migration manager tests"
           v2 <- originateV2
           agent <- originateAgent (unContractAddress v1) v2
           validate . Right $
-            lExpectStorageConst agent $
+            lExpectStorageConst (ContractAddr agent) $
               Agent.StorageFields
                 { oldVersion = unContractAddress v1
                 , newVersion = v2
@@ -713,7 +713,7 @@ test_migrationManager = testGroup "TZBTC migration manager tests"
           v1 <- originateV1
           v2 <- originateV2
           agent <- originateAgent (unContractAddress v1) v2
-          withSender bob $ lCall agent (alice, 100)
+          withSender bob $ lCall (ContractAddr @Agent.Parameter agent) (alice, 100)
           validate . Left $
             lExpectCustomError_ #migrationBadOrigin
   , testCase

@@ -17,6 +17,7 @@ module Lorentz.Contracts.TZBTC.Types
   , ManagedLedger.TransferParams
   , MigrateParams
   , MigrationManager
+  , MigrationManagerCType
   , MintForMigrationParams
   , OperatorParams
   , Parameter(..)
@@ -49,7 +50,8 @@ import Michelson.Typed.Extract
 import Michelson.Typed.Sing (Sing(..), fromSingT)
 import Tezos.Address
 
-type MigrationManager = ContractAddr (Address, Natural)
+type MigrationManager = Address
+type MigrationManagerCType = ContractAddr (Address, Natural)
 type BurnParams = ("value" :! Natural)
 type OperatorParams = ("operator" :! Address)
 type TransferViaProxyParams = ("sender" :! Address, ManagedLedger.TransferParams)
@@ -249,6 +251,9 @@ type instance ErrorArg "notAllowedToSetProxy" = ()
 -- | For setProxy entry point if Proxy is set already
 type instance ErrorArg "proxyAlreadySet" = ()
 
+-- | If migration manager was found to be ill-typed
+type instance ErrorArg "illTypedMigrationManager" = ()
+
 instance CustomErrorHasDoc "notInTransferOwnershipMode" where
   customErrDocMdCause =
     "Cannot accept ownership before transfer process has been initiated \
@@ -299,6 +304,10 @@ instance CustomErrorHasDoc "notAllowedToSetProxy" where
 instance CustomErrorHasDoc "proxyAlreadySet" where
   customErrDocMdCause =
     "Cannot set proxy address because it was already set up"
+
+instance CustomErrorHasDoc "illTypedMigrationManager" where
+  customErrDocMdCause =
+    "Type checking on the stored migration manager address failed"
 
 class ToUnpackEnv a where
   toUnpackEnv :: ContractAddr a -> a -> TcOriginatedContracts
