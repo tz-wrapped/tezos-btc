@@ -168,7 +168,6 @@ data ClientConfig = ClientConfig
   , ccContractAddress :: Address
   , ccUserAddress :: Address
   , ccUserAlias :: Text
-  , ccTzbtcExecutable :: FilePath
   , ccTezosClientExecutable :: FilePath
   }
 

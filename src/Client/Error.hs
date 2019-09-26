@@ -17,6 +17,7 @@ data TzbtcClientError
   = TzbtcServantError ClientError
   | TzbtcClientConfigError
   | TzbtcRunFailed [RunError]
+  | TzbtcUnexpectedRunResult Text
 
 instance Buildable TzbtcClientError where
   build (TzbtcServantError err) = case err of
@@ -42,6 +43,9 @@ instance Buildable TzbtcClientError where
   build (TzbtcRunFailed errs) =
     "Transaction run have failed with " +| length errs |+ " errors:\n" +|
     mconcat (map ((<> "\n\n") . build) errs) |+ ""
+
+  build (TzbtcUnexpectedRunResult msg) =
+    "Unexpected result of transaction preliminary run: " +| msg |+ ""
 
 instance Show TzbtcClientError where
   show = pretty

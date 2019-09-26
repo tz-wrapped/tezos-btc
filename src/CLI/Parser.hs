@@ -9,6 +9,7 @@ module CLI.Parser
   , addressArgument
   , argParser
   , mkCommandParser
+  , namedAddressOption
   ) where
 
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
@@ -95,9 +96,10 @@ argParser = hsubparser $
       (mkCommandParser
          "printInitialStorage"
          (CmdPrintInitialStorage
-            <$> addressArgument "Administrator's address"
-            <*> addressArgument "Redeem address")
-         "Print initial contract storage")
+            <$> namedAddressOption Nothing "admin-address" "Administrator's address"
+            <*> namedAddressOption Nothing "redeem-address" "Redeem address")
+         "Print initial contract storage with the given administrator and \
+         \redeem addresses")
     printDoc :: Opt.Mod Opt.CommandFields CmdLnArgs
     printDoc =
       (mkCommandParser
@@ -323,6 +325,15 @@ addressOption defAddress hInfo =
   mconcat
     [ metavar "ADDRESS"
     , long "address"
+    , help hInfo
+    , maybeAddDefault pretty defAddress
+    ]
+
+namedAddressOption :: Maybe Address -> String -> String -> Opt.Parser Address
+namedAddressOption defAddress name hInfo = option (eitherReader parseAddrDo) $
+  mconcat
+    [ metavar "ADDRESS"
+    , long name
     , help hInfo
     , maybeAddDefault pretty defAddress
     ]
