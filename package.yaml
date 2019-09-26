@@ -99,6 +99,7 @@ tests:
     - singletons
     - lorentz-contracts
     - named
+    - text
     - tezos-bake-monitor-lib
     - hex-text
     - hspec

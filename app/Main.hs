@@ -33,23 +33,23 @@ main :: IO ()
 main = do
   cmd <- execParser programInfo
   case cmd of
-    CmdMint mintParams -> printParam (Mint mintParams)
-    CmdBurn burnParams -> printParam (Burn burnParams)
+    CmdMint mintParams _ -> printParam (Mint mintParams)
+    CmdBurn burnParams _ -> printParam (Burn burnParams)
     CmdTransfer transferParams -> printParam (Transfer transferParams)
     CmdApprove approveParams -> printParam (Approve approveParams)
     CmdGetAllowance getAllowanceParams ->
       printParam (GetAllowance getAllowanceParams)
     CmdGetBalance getBalanceParams -> printParam (GetBalance getBalanceParams)
-    CmdAddOperator operatorParams -> printParam (AddOperator operatorParams)
-    CmdRemoveOperator operatorParams -> printParam (RemoveOperator operatorParams)
-    CmdPause -> printParam $ Pause ()
-    CmdUnpause -> printParam $ Unpause ()
-    CmdSetRedeemAddress setRedeemAddressParams ->
+    CmdAddOperator operatorParams _ -> printParam (AddOperator operatorParams)
+    CmdRemoveOperator operatorParams _ -> printParam (RemoveOperator operatorParams)
+    CmdPause _ -> printParam $ Pause ()
+    CmdUnpause _ -> printParam $ Unpause ()
+    CmdSetRedeemAddress setRedeemAddressParams _ ->
       printParam (SetRedeemAddress setRedeemAddressParams)
-    CmdTransferOwnership p -> printParam (TransferOwnership p)
+    CmdTransferOwnership p _ -> printParam (TransferOwnership p)
     CmdAcceptOwnership p -> printParam (AcceptOwnership p)
-    CmdStartMigrateTo p -> printParam (StartMigrateTo p)
-    CmdStartMigrateFrom p -> printParam (StartMigrateFrom p)
+    CmdStartMigrateTo p _ -> printParam (StartMigrateTo p)
+    CmdStartMigrateFrom p _ -> printParam (StartMigrateFrom p)
     CmdMigrate p -> printParam (Migrate p)
     CmdPrintContract singleLine mbFilePath ->
       printContract singleLine mbFilePath tzbtcContract

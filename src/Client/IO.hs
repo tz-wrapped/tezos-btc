@@ -3,12 +3,17 @@
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
 module Client.IO
-  ( runTzbtcContract
+  ( createMultisigPackage
+  , getPackageFromFile
+  , runTzbtcContract
+  , runMultisigContract
   , setupClient
+  , writePackageToFile
   ) where
 
 import Data.Aeson (decodeFileStrict, encodeFile)
 import Data.ByteString (cons)
+import Data.Sequence (Seq(..))
 import Network.HTTP.Client
   (ManagerSettings(..), Request(..), newManager, defaultManagerSettings)
 import Servant.Client
@@ -16,14 +21,17 @@ import Servant.Client
 import System.Directory (createDirectoryIfMissing, getAppUserDataDirectory)
 import System.Exit (ExitCode(..))
 import System.Process (readProcessWithExitCode)
-import Tezos.Json (TezosWord64)
+import Text.Hex (encodeHex, decodeHex)
+import Tezos.Json (TezosWord64(..))
+import Tezos.Micheline
+  (Expression(..), MichelinePrimAp(..), MichelinePrimitive(..))
 
-import Lorentz.Constraints (KnownValue, NoBigMap, NoOperation)
 import Michelson.Runtime.GState (genesisAddress1, genesisAddress2)
-import Michelson.Typed.Haskell.Value (IsoValue)
+import Michelson.Typed.Haskell.Value (ContractAddr(..))
 import Michelson.Untyped (InternalByteString(..))
 import Tezos.Address (Address, formatAddress)
-import Tezos.Crypto (Signature)
+import Tezos.Crypto (PublicKey, Signature, parsePublicKey)
+import Util.IO (readFileUtf8, writeFileUtf8)
 
 import Client.API
 import Client.Crypto
@@ -32,6 +40,9 @@ import Client.Parser
 import Client.Types
 import Client.Util
 import Lorentz.Contracts.TZBTC (Parameter(..))
+import Lorentz.Contracts.TZBTC.Types
+import qualified Lorentz.Contracts.TZBTC.MultiSig as MSig
+import Util.MultiSig
 
 appName, configFile :: FilePath
 appName = "tzbtc"
@@ -83,6 +94,71 @@ readConfigFile = do
     Just config -> return $ Right config
     Nothing -> return $ Left TzbtcClientConfigError
 
+getPackageFromFile :: FilePath -> IO (Either Text Package)
+getPackageFromFile packageFilePath = do
+  fileContents <- readFileUtf8 packageFilePath
+  return $ case decodeHex fileContents of
+    Nothing -> Left
+      "Failed to decode multisig package: Invalid hex encoding"
+    Just bs -> case decodePackage bs of
+      Left err -> Left $ "Failed to decode multisig package: " <> fromString err
+      Right package -> Right package
+
+writePackageToFile :: Package -> FilePath -> IO ()
+writePackageToFile package fileToWrite =
+  writeFileUtf8 fileToWrite $ encodeHex $ encodePackage package
+
+createMultisigPackage
+  :: (ParamConstraints param, ToUnpackEnv param)
+  => FilePath -> param -> IO ()
+createMultisigPackage packagePath param = do
+  config@ClientConfig{..} <- throwLeft $ readConfigFile
+  (counter, _) <- throwLeft $ getMultisigStorage ccMultisigAddress config
+  let package = mkPackage ccMultisigAddress counter
+        (ContractAddr ccContractAddress) param
+  writePackageToFile package packagePath
+
+
+-- Quite ugly patternmatching, but at least such approach
+-- works for multisig storage extraction. As soon as https://issues.serokell.io/issue/TM-140
+-- is resolved, this function should be changed.
+getMultisigStorage
+  :: Address -> ClientConfig -> IO (Either TzbtcClientError MSig.Storage)
+getMultisigStorage addr config@ClientConfig{..} = do
+  clientEnv <- getClientEnv config
+  mSigStorageRaw <- throwClientError $
+    runClientM (getStorage $ formatAddress addr) clientEnv
+  return $ case mSigStorageRaw of
+    Expression_Prim
+      (MichelinePrimAp
+       { _michelinePrimAp_prim = MichelinePrimitive "Pair"
+       , _michelinePrimAp_args =
+         Expression_Int (TezosWord64 {unTezosWord64 = counter}) :<|
+         Expression_Prim
+         (MichelinePrimAp
+           { _michelinePrimAp_prim = MichelinePrimitive "Pair"
+           , _michelinePrimAp_args =
+             Expression_Int (TezosWord64 {unTezosWord64 = threshold}) :<|
+             Expression_Seq keySequence :<|
+             Empty
+            }
+         ) :<|
+         Empty
+       }
+      ) -> do
+      case traverse (extractKey mSigStorageRaw) $ toList keySequence of
+        Left err -> Left err
+        Right keys' -> Right $ (fromIntegral counter, (fromIntegral threshold, keys'))
+    _ -> Left $ TzbtcUnexpectedMultisigStorage $ MichelsonExpression mSigStorageRaw
+
+  where
+    extractKey :: Expression -> Expression -> Either TzbtcClientError PublicKey
+    extractKey rawStor = \case
+      Expression_String pubKeyRaw ->
+        either (Left . TzbtcPublicKeyParseError pubKeyRaw) Right $
+        parsePublicKey pubKeyRaw
+      _ -> Left $ TzbtcUnexpectedMultisigStorage $ MichelsonExpression rawStor
+
 getCosts
   :: ClientEnv -> RunOperation
   -> IO (Either TzbtcClientError (TezosWord64, TezosWord64))
@@ -119,7 +195,7 @@ injectOp opToInject sign config = do
   putStrLn $ "Operation hash: " <> opHash
 
 runTransaction
-  :: (IsoValue param, KnownValue param, NoBigMap param, NoOperation param)
+  :: (ParamConstraints param)
   => Address -> param -> ClientConfig -> IO ()
 runTransaction to param config@ClientConfig{..} = do
   clientEnv <- getClientEnv config
@@ -177,3 +253,12 @@ runTzbtcContract :: Parameter -> IO ()
 runTzbtcContract param = do
   config@ClientConfig{..} <- throwLeft $ readConfigFile
   runTransaction ccContractAddress param config
+
+runMultisigContract :: NonEmpty Package -> IO ()
+runMultisigContract packages = do
+  config <- throwLeft $ readConfigFile
+  package <- throwLeft $ pure $ mergePackages packages
+  multisigAddr <- throwLeft $ pure (fst <$> getToSign package)
+  (_, (_, keys')) <- throwLeft $ getMultisigStorage multisigAddr config
+  (_, multisigParam) <- throwLeft $ pure $ mkMultiSigParam keys' packages
+  runTransaction multisigAddr multisigParam config

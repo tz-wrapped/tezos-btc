@@ -5,6 +5,7 @@
 module Test.MultiSig (test_multisig) where
 
 import qualified Data.Set as Set
+import qualified Data.Text as T (drop)
 import Test.Tasty (TestTree, testGroup)
 import Test.Hspec (Expectation)
 import Test.Tasty.HUnit (assertEqual, testCase)
@@ -44,6 +45,11 @@ withMultiSigContract counter thresh pkList callback = do
       (untypeValue $ toVal (MSig.mkStorage counter thresh pkList)) (toMutez 0)
     callback msig
 
+sign_ :: SecretKey -> Text -> Signature
+sign_ sk bs = case decodeHex (T.drop 2 bs) of
+  Just dbs -> sign sk dbs
+  Nothing -> error "Error with making signatures"
+
 test_multisig :: TestTree
 test_multisig = testGroup "TZBTC contract multi-sig functionality test"
   [ testCase "Test call to multisig to add an operator by admin works" $ do
@@ -67,15 +73,13 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           addSignature_ e b = do
             d <- addSignature e b
             decodePackage d
-          sign_ sk bs = case decodeHex bs of
-            Just dbs -> formatSignature $ sign sk dbs
-            Nothing -> error "Error with making signatures"
-
         -- Signing the bytes
           alicePackage = fromRight_ "Adding signature failed" $
-            addSignature_ encodedPackage (alicePKRaw, sign_ aliceSK bytesToSign)
+            addSignature_ encodedPackage
+            (alicePKRaw, formatSignature $ sign_ aliceSK bytesToSign)
           carlosPackage = fromRight_ "Adding signature failed" $
-            addSignature_ encodedPackage (carlosPKRaw, sign_ carlosSK bytesToSign)
+            addSignature_ encodedPackage
+            (carlosPKRaw, formatSignature $ sign_ carlosSK bytesToSign)
           --Make multisig param
           (msaddr, mparam) = fromRight_ "Making multisig parameter failed" $
             MSig.mkMultiSigParam masterPKList ((alicePackage) :| [carlosPackage])
@@ -102,13 +106,10 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           addSignature_ e b = do
             d <- addSignature e b
             decodePackage d
-          sign_ sk bs = case decodeHex bs of
-            Just dbs -> formatSignature $ sign sk dbs
-            Nothing -> error "Error with making signatures"
-
-        -- Signing the bytes
+          -- Signing the bytes
           alicePackage = fromRight_ "Adding signature failed" $
-            addSignature_ encodedPackage (alicePKRaw, sign_ aliceSK bytesToSign)
+            addSignature_ encodedPackage
+            (alicePKRaw, formatSignature $ sign_ aliceSK bytesToSign)
           --Make multisig param. We use only one signature instead of
           --the require threshold of two signatures.
           (_, mparam) = fromRight_ "Making multisig parameter failed" $
@@ -136,16 +137,14 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           addSignature_ e b = do
             d <- addSignature e b
             decodePackage d
-          sign_ sk bs = case decodeHex bs of
-            Just dbs -> formatSignature $ sign sk dbs
-            Nothing -> error "Error with making signatures"
-
-        -- Signing the bytes
+          -- Signing the bytes
           alicePackage = fromRight_ "Adding signature failed" $
             -- Make a bad signature. Use Alice's public key but Bob's secret.
-            addSignature_ encodedPackage (alicePKRaw, sign_ bobSK bytesToSign)
+            addSignature_ encodedPackage
+            (alicePKRaw, formatSignature $ sign_ bobSK bytesToSign)
           carlosPackage = fromRight_ "Adding signature failed" $
-            addSignature_ encodedPackage (carlosPKRaw, sign_ carlosSK bytesToSign)
+            addSignature_ encodedPackage
+            (carlosPKRaw, formatSignature $ sign_ carlosSK bytesToSign)
           --Make multisig param
           (msaddr, mparam) = fromRight_ "Making multisig parameter failed" $
             MSig.mkMultiSigParam masterPKList ((alicePackage) :| [carlosPackage])
@@ -172,16 +171,14 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           addSignature_ e b = do
             d <- addSignature e b
             decodePackage d
-          sign_ sk bs = case decodeHex bs of
-            Just dbs -> formatSignature $ sign sk dbs
-            Nothing -> error "Error with making signatures"
-
-        -- Signing the bytes
+          -- Signing the bytes
           alicePackage = fromRight_ "Adding signature failed" $
             --Use Alice's public key but bob's secret.
-            addSignature_ encodedPackage (alicePKRaw, sign_ aliceSK bytesToSign)
+            addSignature_ encodedPackage
+            (alicePKRaw, formatSignature $ sign_ aliceSK bytesToSign)
           carlosPackage = fromRight_ "Adding signature failed" $
-            addSignature_ encodedPackage (carlosPKRaw, sign_ carlosSK bytesToSign)
+            addSignature_ encodedPackage
+            (carlosPKRaw, formatSignature $ sign_ carlosSK bytesToSign)
           --Make multisig param
           (msaddr, mparam) = fromRight_ "Making multisig parameter failed" $
             MSig.mkMultiSigParam masterPKList ((alicePackage) :| [carlosPackage])
@@ -219,16 +216,14 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           addSignature_ e b = do
             d <- addSignature e b
             decodePackage d
-          sign_ sk bs = case decodeHex bs of
-            Just dbs -> formatSignature $ sign sk dbs
-            Nothing -> error "Error with making signatures"
-
-        -- Signing the bytes
+          -- Signing the bytes
           alicePackage = fromRight_ "Adding signature failed" $
             --Use Alice's public key but bob's secret.
-            addSignature_ encodedPackage (alicePKRaw, sign_ aliceSK bytesToSign)
+            addSignature_ encodedPackage
+            (alicePKRaw, formatSignature $ sign_ aliceSK bytesToSign)
           carlosPackage = fromRight_ "Adding signature failed" $
-            addSignature_ encodedPackage (carlosPKRaw, sign_ carlosSK bytesToSign)
+            addSignature_ encodedPackage
+            (carlosPKRaw, formatSignature $ sign_ carlosSK bytesToSign)
           --Make multisig param
           (msaddr, mparam) = fromRight_ "Making multisig parameter failed" $
             MSig.mkMultiSigParam masterPKList ((alicePackage) :| [carlosPackage])
@@ -264,10 +259,6 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         addSignature_ e b = do
           d <- addSignature e b
           decodePackage d
-        sign_ sk bs = case decodeHex bs of
-          Just dbs -> sign sk dbs
-          Nothing -> error "Error with making signatures"
-
         -- Signing the bytes
         aliceSig = sign_ aliceSK bytesToSign
         carlosSig = sign_ carlosSK bytesToSign

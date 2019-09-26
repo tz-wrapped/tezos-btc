@@ -25,31 +25,64 @@ import Lorentz.Contracts.TZBTC
   (Parameter(..), agentContract, mkStorage, tzbtcCompileWay, tzbtcContract, tzbtcDoc)
 import Lorentz.Contracts.TZBTC.Proxy (tzbtcProxyContract)
 import Lorentz.Contracts.TZBTC.Test (mkTestScenario)
+import Util.MultiSig
 
 main :: IO ()
 main = do
   cmd <- execParser programInfo
   case cmd of
     CmdSetupClient config -> setupClient config
+    CmdGetOpDescription packageFilePath -> do
+      pkg <- getPackageFromFile packageFilePath
+      case pkg of
+        Left err -> putStrLn err
+        Right package -> putStrLn (pretty $ getOpDescription package :: Text)
+    CmdGetPackageDescription packageFilePath -> do
+      pkg <- getPackageFromFile packageFilePath
+      case pkg of
+        Left err -> putStrLn err
+        Right package -> putStrLn (pretty package :: Text)
+    CmdGetBytesToSign packageFilePath -> do
+      pkg <- getPackageFromFile packageFilePath
+      case pkg of
+        Left err -> putStrLn err
+        Right package -> putStrLn $ getBytesToSign package
+    CmdAddSignature pk sign packageFilePath -> do
+      pkg <- getPackageFromFile packageFilePath
+      case pkg of
+        Left err -> putStrLn err
+        Right package ->
+          writePackageToFile (addSignature' package (pk, sign)) packageFilePath
+    CmdCallMultisig packagesFilePaths -> do
+      pkgs <- fmap sequence $ mapM getPackageFromFile packagesFilePaths
+      case pkgs of
+        Left err -> putStrLn err
+        Right packages -> runMultisigContract packages
     CmdTransaction arg -> case arg of
-      CmdMint mintParams -> runTzbtcContract $ Mint mintParams
-      CmdBurn burnParams -> runTzbtcContract $ Burn burnParams
+      CmdMint mintParams mbMultisig ->
+        runMultisigTzbtcContract mbMultisig $ Mint mintParams
+      CmdBurn burnParams mbMultisig ->
+        runMultisigTzbtcContract mbMultisig $ Burn burnParams
       CmdTransfer transferParams -> runTzbtcContract $ Transfer transferParams
       CmdApprove approveParams -> runTzbtcContract $ Approve approveParams
       CmdGetAllowance getAllowanceParams -> runTzbtcContract $
         GetAllowance getAllowanceParams
       CmdGetBalance getBalanceParams -> runTzbtcContract $ GetBalance getBalanceParams
-      CmdAddOperator operatorParams -> runTzbtcContract $ AddOperator operatorParams
-      CmdRemoveOperator operatorParams -> runTzbtcContract $
-        RemoveOperator operatorParams
-      CmdPause -> runTzbtcContract $ Pause ()
-      CmdUnpause -> runTzbtcContract $ Unpause ()
-      CmdSetRedeemAddress setRedeemAddressParams -> runTzbtcContract $
-        SetRedeemAddress setRedeemAddressParams
-      CmdTransferOwnership p -> runTzbtcContract $ TransferOwnership p
+      CmdAddOperator operatorParams mbMultisig ->
+        runMultisigTzbtcContract mbMultisig $ AddOperator operatorParams
+      CmdRemoveOperator operatorParams mbMultisig ->
+        runMultisigTzbtcContract mbMultisig $ RemoveOperator operatorParams
+      CmdPause mbMultisig -> runMultisigTzbtcContract mbMultisig $ Pause ()
+      CmdUnpause mbMultisig -> runMultisigTzbtcContract mbMultisig $ Unpause ()
+      CmdSetRedeemAddress setRedeemAddressParams mbMultisig ->
+        runMultisigTzbtcContract mbMultisig $ SetRedeemAddress setRedeemAddressParams
+      CmdTransferOwnership p mbMultisig ->
+        runMultisigTzbtcContract mbMultisig $ TransferOwnership p
       CmdAcceptOwnership p -> runTzbtcContract $ AcceptOwnership p
-      CmdStartMigrateTo p -> runTzbtcContract $ StartMigrateTo p
-      CmdStartMigrateFrom p -> runTzbtcContract $ StartMigrateFrom p
+      CmdStartMigrateTo p mbMultisig ->
+        runMultisigTzbtcContract mbMultisig $ StartMigrateTo p
+      CmdStartMigrateFrom p mbMultisig ->
+        runMultisigTzbtcContract mbMultisig $ StartMigrateFrom p
       CmdMigrate p -> runTzbtcContract $ Migrate p
       CmdPrintContract singleLine mbFilePath ->
         maybe putStrLn writeFileUtf8 mbFilePath $
@@ -72,6 +105,11 @@ main = do
           (maybe putStrLn writeFileUtf8 tsoOutput) $
           showTestScenario <$> mkTestScenario tsoMaster tsoAddresses
   where
+    runMultisigTzbtcContract :: (Maybe FilePath) -> Parameter -> IO ()
+    runMultisigTzbtcContract mbMultisig param =
+      case mbMultisig of
+        Just fp -> createMultisigPackage fp param
+        Nothing -> runTzbtcContract param
     programInfo =
       info (helper <*> versionOption <*> clientArgParser) $
       mconcat

@@ -51,9 +51,9 @@ ledger interaction.
 
 `setupClient` command is required for setting up `tzbtc-client`
 environment. It takes information about node, user information
-(its address and name alias in the `tezos-client`), contract address
+(specifically address and name alias from the `tezos-client`), contract address
 and also path to the `tezos-client` executable, which is used for
-transaction signing.
+transaction signing and ledger interaction.
 
 `tzbtc-client` interacts with the tezos node using [RPC API](https://tezos.gitlab.io/master/api/rpc.html).
 Transaction forging takes place in several stages:
@@ -63,7 +63,6 @@ Transaction forging takes place in several stages:
 * Dry-run this transaction in order to get estimated consumed gas and storage size.
 Also, on this stage transaction correctness is ensured.
 * Forge transaction with estimated consumed gas, storage size and fee.
-Hexadecimal representation of this transaction is returned to the stdout.
 * Sign the transaction using `tezos-client`. If your secret key is stored on the
 ledger, you will have to open `Tezos Wallet` app and confirm this signing on
 your device.
@@ -74,6 +73,32 @@ on the previous steps.
 So the workflow for interacting with the TZBTC contract on the chain is the following:
 * Use `tzbtc-client setupClient` to set up the environment.
 * Use `tzbtc-client <subcommand>` to submit desired operation.
+
+`tzbtc-client` also provides multisig support.
+
+Multisig interaction based on [generic multisig contract](contracts/MultiSigGeneric.tz).
+This contract has threshold (minimal required amount of signatures) and list of signers
+public keys in its storage.
+
+`tzbtc-client` supports multisig for administrative operations (such as `mint`, `burn`,
+`add/removeOperator`, `pause`, `unpause`, `setRedeemAddress`, `transferOwnership`,
+`startMigrateTo/From`)
+In order to perform these actions make sure, that multisig contract's address is
+an admin/operator of the TZBTC contract.
+
+All administrative operations can be performed using multisig.
+In order to create multisig package you should provide `--multisig` flag.
+E.g. `tzbtc-client pause --multisig`. This command will return encoded multisig package.
+
+You can get operation description from this package using `tzbtc-client getOpDescription` command.
+
+In order to sign this package user have to extract bytes that needs to be signed using
+`tzbtc-client getBytesToSign` command. After these bytes are signed, the signature can be
+added using `tzbtc-client addSignature` command.
+
+Once multisig operation initiator have obtained enough signed packages he can start this
+operation using `tzbtc-client callMultisig` command.
+
 
 ## Contract documentation
 

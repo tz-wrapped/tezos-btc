@@ -4,23 +4,26 @@
  -}
 module Client.Util
   ( calcFees
+  , exprToMultisigStorage
   , paramToExpression
   , throwClientError
   , throwLeft
   ) where
 
-import qualified Data.ByteString as BS (drop)
+import qualified Data.ByteString as BS (cons, drop)
 import Servant.Client.Core (ClientError)
-import Tezos.Binary (decode)
+import Tezos.Binary (encode, decode)
 import Tezos.Json (TezosWord64)
 import Tezos.Micheline (Expression)
 
 import Lorentz.Constraints (KnownValue, NoBigMap, NoOperation)
 import Michelson.Interpret.Pack (packValue')
+import Michelson.Interpret.Unpack (UnpackError, dummyUnpackEnv, unpackValue')
 import Michelson.Typed.Haskell.Value (IsoValue(..))
 import Michelson.Typed.Scope (forbiddenBigMap, forbiddenOp)
 
 import Client.Error (TzbtcClientError(..))
+import qualified Lorentz.Contracts.TZBTC.MultiSig as MSig (Storage)
 
 paramToExpression
   :: forall param.
@@ -50,3 +53,7 @@ throwLeft =
   (>>= \case
       Left e -> throwM e
       Right x -> return x)
+
+exprToMultisigStorage :: Expression -> Either UnpackError MSig.Storage
+exprToMultisigStorage =
+  fmap fromVal . unpackValue' dummyUnpackEnv . BS.cons 0x05 . encode

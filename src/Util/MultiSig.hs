@@ -6,6 +6,7 @@
 
 module Util.MultiSig
   ( Package(..)
+  , ParamConstraints
   , addSignature
   , addSignature'
   , decodePackage
@@ -15,6 +16,7 @@ module Util.MultiSig
   , getOpDescription
   , mergePackages
   , getBytesToSign
+  , getToSign
   )
 where
 
@@ -25,8 +27,9 @@ import Data.Aeson.Casing (aesonPrefix, camelCase)
 import Data.Aeson.TH (deriveJSON)
 import Data.ByteString.Lazy as LBS (toStrict)
 import Data.List (lookup)
-import Fmt (Builder, Buildable(..), (+|), (|+))
+import Fmt (Buildable(..), Builder, pretty, (+|), (|+))
 import Text.Hex (encodeHex, decodeHex)
+import qualified Text.Show (show)
 
 import Lorentz
 import Lorentz.Contracts.TZBTC.MultiSig as MSig
@@ -121,11 +124,21 @@ mergeSignatures p1 p2 =
 
 mergePackages
   :: NonEmpty Package
-  -> Maybe Package
-mergePackages (p :| ps) = foldM mergeSignatures p ps
+  -> Either UnpackageError Package
+mergePackages (p :| ps) = maybeToRight PackageMergeFailure $
+  foldM mergeSignatures p ps
 
 getBytesToSign :: Package -> Text
-getBytesToSign = pkToSign
+getBytesToSign Package{..} = "0x" <> pkToSign
+
+getToSign :: Package -> Either UnpackageError ToSign
+getToSign Package{..} =
+  case decodeHex pkToSign of
+    Just hexDecoded ->
+      case fromVal @ToSign <$> unpackValue' (UnpackEnv pkUnpackEnv) hexDecoded of
+        Right toSign -> Right toSign
+        Left err -> Left $ UnpackFailure err
+    Nothing -> Left HexDecodingFailure
 
 -- | Errors that can happen when package is de-serialized back to the multi-sig
 -- contract param
@@ -139,6 +152,12 @@ instance Buildable UnpackageError where
     HexDecodingFailure -> "Error decoding hex encoded string"
     PackageMergeFailure -> "Provied packages had different action/enviroments"
     UnpackFailure err -> build err
+
+instance Show UnpackageError where
+  show = pretty
+
+instance Exception UnpackageError where
+  displayException = pretty
 
 -- | Encode package
 encodePackage
@@ -182,15 +201,10 @@ mkMultiSigParam
   :: [PublicKey]
   -> NonEmpty Package
   -> Either UnpackageError (ContractAddr MSig.Parameter, MSig.Parameter)
-mkMultiSigParam pks packages =
-  case (mergePackages packages) of
-    Just package -> case decodeHex $ pkToSign package of
-      Just hexDecoded -> case unpackValue' (UnpackEnv (pkUnpackEnv package)) hexDecoded of
-        Right toSignVal ->
-          Right $ mkParameter (fromVal toSignVal) (pkSignatures package)
-        Left uerr -> Left $ UnpackFailure uerr
-      Nothing -> Left HexDecodingFailure
-    Nothing -> Left PackageMergeFailure
+mkMultiSigParam pks packages = do
+  package <- mergePackages packages
+  toSign <- getToSign package
+  return $ mkParameter toSign (pkSignatures package)
   where
     mkParameter
       :: ToSign
