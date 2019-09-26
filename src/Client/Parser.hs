@@ -51,13 +51,14 @@ data ClientArgsRaw
   | CmdAcceptOwnership AcceptOwnershipParams
   | CmdStartMigrateTo AddrOrAlias (Maybe FilePath)
   | CmdStartMigrateFrom AddrOrAlias (Maybe FilePath)
+  | CmdSetupClient ClientConfigPartial
   | CmdMigrate MigrateParams
-  | CmdSetupClient ClientConfig
   | CmdGetOpDescription FilePath
   | CmdGetBytesToSign FilePath
   | CmdAddSignature PublicKey Signature FilePath
   | CmdSignPackage FilePath
   | CmdCallMultisig (NonEmpty FilePath)
+  | CmdConfig Bool ClientConfigPartial
 
 clientArgParser :: Opt.Parser ClientArgs
 clientArgParser = ClientArgs <$> clientArgRawParser <*> dryRunSwitch
@@ -75,6 +76,7 @@ clientArgRawParser = Opt.hsubparser $
   <> startMigrateFromCmd <> startMigrateToCmd
   <> migrateCmd <> setupUserCmd <> getOpDescriptionCmd <> getBytesToSignCmd
   <> addSignatureCmd <> signPackageCmd <> callMultisigCmd
+  <> addSignatureCmd <> callMultisigCmd <> configCmd
   where
     multisigOption =
       Opt.optional $ Opt.strOption $ mconcat
@@ -82,25 +84,49 @@ clientArgRawParser = Opt.hsubparser $
       , metavar "FILEPATH"
       , help "Create package for multisig transaction and write it to the given file"
       ]
+    configCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
+    configCmd =
+      mkCommandParser "config"
+        (CmdConfig <$> editSwitch <*> clientConfigParserEdit)
+        "Show or edit config. Use the --edit flag with required options to set indvidual fields."
+      where
+        editSwitch =
+          switch (long "edit" <>
+                  help "Edit config using command arguments")
+    clientConfigParser :: Opt.Parser ClientConfigPartial
+    clientConfigParser = ClientConfig <$>
+      (partialParser $ urlOption "node-url" "Node url") <*>
+      (partialParser $ intOption "node-port" "Node port") <*>
+      (partialParser $ namedAddressOption Nothing "contract-address"
+      "Contract's address") <*>
+      (optional $ namedAddressOption Nothing "multisig-address" "Multisig contract address") <*>
+      (partialParser $ namedAddressOption Nothing "user-address" "User's address") <*>
+      (partialParser $ option str $ mconcat
+       [ long "alias"
+       , metavar "ADDRESS_ALIAS"
+       , help "tezos-client alias for user."
+       ])
+      <*> (partialParser $ tezosClientFilePathOption)
+    clientConfigParserEdit :: Opt.Parser ClientConfigPartial
+    clientConfigParserEdit = ClientConfig <$>
+      (partialParser $ urlOption "node-url" "Node url") <*>
+      (partialParser $ intOption "node-port" "Node port") <*>
+      (partialParser $ namedAddressOption Nothing "contract-address"
+      "Contract's address") <*>
+      (optional $ namedAddressOption Nothing "multisig-address" "Multisig contract address") <*>
+      (partialParser $ namedAddressOption Nothing "user-address" "User's address") <*>
+      (partialParser $ option str $ mconcat
+       [ long "alias"
+       , metavar "ADDRESS_ALIAS"
+       , help "tezos-client alias for user."
+       ])
+      <*> (partialParser $ tezosClientFilePathOptionWithoutDefault)
     setupUserCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     setupUserCmd = (mkCommandParser
                     "setupClient"
-                    (CmdSetupClient <$>
-                     (ClientConfig <$>
-                      urlArgument "Node url" <*>
-                      intArgument "Node port" <*>
-                      namedAddressOption Nothing "contract-address"
-                      "Contract's address" <*>
-                      namedAddressOption Nothing "multisig-address" "Multisig contract address" <*>
-                      (option str $ mconcat
-                       [ long "alias"
-                       , metavar "ADDRESS_ALIAS"
-                       , help "tezos-client alias"
-                       ])
-                      <*> tezosClientFilePathOption
-                     ))
-                    ("Setup client using node url, node port, contract address, \
-                     \user address, user address alias and \
+                    (CmdSetupClient <$> clientConfigParser)
+                    ("Create a configuration file using node url, node port, contract address, \
+                     \multi-sig contract address(optional), user address, user address alias and \
                      \filepath to the tezos-client executable"))
     mintCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     mintCmd =
@@ -300,9 +326,9 @@ natOption name hInfo =
 burnParamsParser :: Opt.Parser BurnParams
 burnParamsParser = getParser "Amount to burn"
 
-urlArgument :: String -> Opt.Parser Text
-urlArgument hInfo = argument str $
-  mconcat [metavar "URL", help hInfo]
+urlOption :: String -> String -> Opt.Parser Text
+urlOption name hInfo = option str $
+  mconcat [long name, metavar "URL", help hInfo]
 
 signatureOption :: Opt.Parser Signature
 signatureOption = option (eitherReader parseSignatureDo) $ mconcat
@@ -322,15 +348,19 @@ parsePublicKeyDo pk =
   either (Left . mappend "Failed to parse signature: " . pretty) Right $
   parsePublicKey $ toText pk
 
-intArgument :: String -> Opt.Parser Int
-intArgument hInfo = argument auto $
-  mconcat [metavar "PORT", help hInfo]
+intOption :: String -> String -> Opt.Parser Int
+intOption name hInfo = option auto $
+  mconcat [long name, metavar "PORT", help hInfo]
 
 tezosClientFilePathOption :: Opt.Parser FilePath
 tezosClientFilePathOption = option str $
   mconcat [ long "tezos-client", metavar "FILEPATH", help "tezos-client executable"
           , value "tezos-client", showDefaultWith (<> " from $PATH")
           ]
+
+tezosClientFilePathOptionWithoutDefault :: Opt.Parser FilePath
+tezosClientFilePathOptionWithoutDefault = option str $
+  mconcat [ long "tezos-client", metavar "FILEPATH", help "tezos-client executable"]
 
 namedFilePathOption :: String -> String -> Opt.Parser FilePath
 namedFilePathOption name hInfo = option str $

@@ -25,6 +25,7 @@ library:
   dependencies:
     - aeson
     - aeson-casing
+    - aeson-pretty
     - bytestring
     - containers
     - directory

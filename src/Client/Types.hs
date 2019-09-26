@@ -3,12 +3,15 @@
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
 module Client.Types
-  ( ClientConfig (..)
+  ( ClientConfigP (..)
+  , ClientConfig
+  , ClientConfigPartial
   , ForgeOperation (..)
   , InternalOperation (..)
   , MichelsonExpression (..)
   , OperationContent (..)
   , ParametersInternal (..)
+  , Partial (..)
   , RunError (..)
   , RunMetadata (..)
   , RunOperation (..)
@@ -17,13 +20,20 @@ module Client.Types
   , RunRes (..)
   , TransactionOperation (..)
   , combineResults
+  , partialParser
+  , toConfigFilled
+  , isAvailable
+  , withDefault
   ) where
 
-import Data.Aeson (FromJSON(..), ToJSON(..), object, withObject, (.=), (.:), (.:?), (.!=))
+import Data.Aeson (FromJSON(..), ToJSON(..), object, withObject, genericParseJSON, genericToJSON, (.=), (.:), (.:?), (.!=))
 import Data.Aeson.Casing (aesonPrefix, snakeCase)
 import Data.Aeson.TH (deriveJSON)
 import Data.List (isSuffixOf)
+import Data.Text as T (isPrefixOf)
 import Fmt (Buildable(..), (+|), (|+))
+import GHC.TypeLits
+import Options.Applicative
 import Tezos.Base16ByteString (Base16ByteString(..))
 import Tezos.Micheline
   (Expression(..), MichelinePrimAp(..), MichelinePrimitive(..))
@@ -197,17 +207,81 @@ data TransactionOperation = TransactionOperation
   , toParameters :: ParametersInternal
   }
 
-data ClientConfig = ClientConfig
-  { ccNodeAddress :: Text
-  , ccNodePort :: Int
-  , ccContractAddress :: Address
-  , ccMultisigAddress :: Address
-  , ccUserAlias :: Text
-  , ccTezosClientExecutable :: FilePath
-  }
+data ConfigSt = ConfigFilled | ConfigPartial
+
+data Partial (label :: Symbol) a = Available a | Unavilable
+
+type family ConfigC (a :: ConfigSt) b (label :: Symbol) where
+  ConfigC 'ConfigFilled a _ = a
+  ConfigC 'ConfigPartial a label = Partial label a
+
+type ClientConfig = ClientConfigP 'ConfigFilled
+
+type ClientConfigPartial = ClientConfigP 'ConfigPartial
+
+data ClientConfigP f = ClientConfig
+  { ccNodeAddress :: ConfigC f Text "url to the tezos node"
+  , ccNodePort :: ConfigC f Int "`rpc port of the tezos node"
+  , ccContractAddress :: ConfigC f Address "contract address"
+  , ccMultisigAddress :: Maybe Address
+  , ccUserAddress :: ConfigC f Address "user address"
+  , ccUserAlias :: ConfigC f Text "user alias"
+  , ccTezosClientExecutable :: ConfigC f FilePath "tezos-client executable path"
+  } deriving Generic
+
+toPartial :: Maybe a -> Partial s a
+toPartial (Just a) = Available a
+toPartial Nothing = Unavilable
+
+isAvailable :: Partial s a -> Bool
+isAvailable (Available _) = True
+isAvailable _ = False
+
+partialParser :: Parser a -> Parser (Partial s a)
+partialParser p = toPartial <$> optional p
+
+withDefault :: a -> Partial s a -> a
+withDefault _ (Available a) = a
+withDefault a _ = a
+
+toConfigFilled :: ClientConfigPartial -> Maybe ClientConfig
+toConfigFilled p = ClientConfig
+  <$> (toMaybe $ ccNodeAddress p)
+  <*> (toMaybe $ ccNodePort p)
+  <*> (toMaybe $ ccContractAddress p)
+  <*> (pure $ ccMultisigAddress p)
+  <*> (toMaybe $ ccUserAddress p)
+  <*> (toMaybeText $ ccUserAlias p)
+  <*> (toMaybe $ ccTezosClientExecutable p)
+  where
+    toMaybe :: Partial s a -> Maybe a
+    toMaybe (Available a) = Just a
+    toMaybe _ = Nothing
+    toMaybeText :: Partial s Text -> Maybe Text
+    -- Check for place holders
+    toMaybeText (Available a) = if T.isPrefixOf "-- " a then Nothing else Just a
+    toMaybeText _ = Nothing
+
+instance {-# OVERLAPS #-} (ToJSON a, KnownSymbol l) => ToJSON (Partial l a) where
+  toJSON v = case v of
+    Available a -> toJSON a
+    Unavilable -> toJSON $ "-- Required field: " ++ (symbolVal (Proxy @l) ++ ", Replace this placeholder with proper value --")
+
+instance (ToJSON a, KnownSymbol l) => ToJSON (Partial l (Maybe a)) where
+  toJSON v = case v of
+    Available a -> toJSON a
+    Unavilable -> toJSON $ "-- Optional field: " ++ (symbolVal (Proxy @l) ++ ", Replace this placeholder with proper value or `null` if not required --")
+
+instance ToJSON ClientConfigPartial where
+  toJSON = genericToJSON (aesonPrefix snakeCase)
+
+instance ToJSON ClientConfig where
+  toJSON = genericToJSON (aesonPrefix snakeCase)
+
+instance FromJSON ClientConfig where
+  parseJSON = genericParseJSON (aesonPrefix snakeCase)
 
 deriveJSON (aesonPrefix snakeCase) ''ParametersInternal
 deriveJSON (aesonPrefix snakeCase) ''TransactionOperation
-deriveJSON (aesonPrefix snakeCase) ''ClientConfig
 deriveJSON (aesonPrefix snakeCase) ''RunOperationInternal
 deriveJSON (aesonPrefix snakeCase) ''RunOperation
