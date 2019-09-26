@@ -7,7 +7,9 @@ module Main
   ) where
 
 import Control.Exception.Safe (throwString)
-import Data.Aeson (decodeFileStrict, encodeFile)
+import Data.Aeson (decodeFileStrict)
+import Data.Aeson.Encode.Pretty (encodePretty)
+import qualified Data.ByteString.Lazy as BSL
 import Data.List ((!!))
 import Data.Version (showVersion)
 import Fmt (pretty)
@@ -18,7 +20,7 @@ import Network.HTTP.Client
   (ManagerSettings(..), Request(..), newManager, defaultManagerSettings)
 import Servant.Client
   (BaseUrl(..), ClientError, ClientEnv, Scheme(..), mkClientEnv, runClientM)
-import System.Directory (createDirectoryIfMissing, getHomeDirectory)
+import System.Directory (doesFileExist, createDirectoryIfMissing, getHomeDirectory)
 import Tezos.Json (TezosWord64)
 
 import Lorentz (lcwDumb, parseLorentzValue, printLorentzContract, printLorentzValue)
@@ -148,12 +150,36 @@ directory, configPath :: FilePath
 directory = "/.tzbtc/"
 configPath = "config.json"
 
-setupClient :: ClientConfig -> IO ()
-setupClient config = do
+-- | Write the configuration values to file as JSON in the following way.
+--
+-- 1. If none of the configuration values were provided, write the file
+-- with placeholders for missing values, and notify the user.
+--
+-- 2. If a configuration file exists alredy, do not overwrite it, no matter
+-- what.
+setupClient :: ClientConfigPartial -> IO ()
+setupClient configPartial = do
   homeDir <- getHomeDirectory
-  let fullPath = homeDir <> directory
-  createDirectoryIfMissing True fullPath
-  encodeFile (fullPath <> configPath) config
+  let
+    dirPath = homeDir <> directory
+    configFilePath = (dirPath <> configPath)
+  fileExists <- doesFileExist configFilePath
+  if fileExists  then
+    putStrLn $
+      "Not overwriting the existing config file at " <> configFilePath <>
+      ". Please remove the file and try again"
+  else do
+    createDirectoryIfMissing True dirPath
+    case toConfigFilled configPartial of
+      Just config -> do
+        BSL.writeFile configFilePath $ encodePretty config
+        putStrLn $ "Config file has been written to " <> configFilePath
+      Nothing -> do
+        BSL.writeFile configFilePath $ encodePretty configPartial
+        putStrLn $ "The required configuration values were missing from the command.\n\
+          \Use `tbtc-client --help` to see the command arguments. \n\n\
+          \A config file, with placeholders in place of missing values, has been \
+          \written to " <> configFilePath
 
 main :: IO ()
 main = do

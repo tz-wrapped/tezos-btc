@@ -67,6 +67,8 @@ executables:
 
     dependencies:
       - aeson
+      - aeson-pretty
+      - bytestring
       - directory
       - fmt
       - http-client

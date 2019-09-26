@@ -3,7 +3,9 @@
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
 module Client.Types
-  ( ClientConfig (..)
+  ( ClientConfigP (..)
+  , ClientConfig
+  , ClientConfigPartial
   , ForgeOperation (..)
   , InternalOperation (..)
   , OperationContent (..)
@@ -14,12 +16,16 @@ module Client.Types
   , RunRes (..)
   , TransactionOperation (..)
   , combineResults
+  , partialParser
+  , toConfigFilled
   ) where
 
-import Data.Aeson (FromJSON(..), ToJSON(..), object, withObject, (.=), (.:), (.:?), (.!=))
+import Data.Aeson (FromJSON(..), ToJSON(..), object, withObject, genericParseJSON, genericToJSON, (.=), (.:), (.:?), (.!=))
 import Data.Aeson.Casing (aesonPrefix, snakeCase)
 import Data.Aeson.TH (deriveJSON)
 import Fmt (Buildable(..), (+|), (|+))
+import GHC.TypeLits
+import Options.Applicative
 import Tezos.Base16ByteString (Base16ByteString(..))
 import Tezos.Micheline
   (Expression(..), MichelinePrimAp(..), MichelinePrimitive(..))
@@ -162,16 +168,62 @@ data TransactionOperation = TransactionOperation
   , toParameters :: Expression
   }
 
-data ClientConfig = ClientConfig
-  { ccNodeAddress :: Text
-  , ccNodePort :: Int
-  , ccContractAddress :: Address
-  , ccUserAddress :: Address
-  , ccUserAlias :: Text
-  , ccTzbtcExecutable :: FilePath
-  , ccTezosClientExecutable :: FilePath
-  }
+data ConfigSt = ConfigFilled | ConfigPartial
+
+data Partial (label :: Symbol) a = Available a | Unavilable
+
+toPartial :: Maybe a -> Partial s a
+toPartial (Just a) = Available a
+toPartial Nothing = Unavilable
+
+partialParser :: Parser a -> Parser (Partial s a)
+partialParser p = toPartial <$> (optional p)
+
+toConfigFilled :: ClientConfigPartial -> Maybe ClientConfig
+toConfigFilled p = ClientConfig
+  <$> (toMaybe $ ccNodeAddress p)
+  <*> (toMaybe $ ccNodePort p)
+  <*> (toMaybe $ ccContractAddress p)
+  <*> (toMaybe $ ccUserAddress p)
+  <*> (toMaybe $ ccUserAlias p)
+  <*> (toMaybe $ ccTzbtcExecutable p)
+  <*> (toMaybe $ ccTezosClientExecutable p)
+  where
+    toMaybe :: Partial s a -> Maybe a
+    toMaybe (Available a) = Just a
+    toMaybe _ = Nothing
+
+type family ConfigC a b (label :: Symbol) where
+  ConfigC 'ConfigFilled a _ = a
+  ConfigC 'ConfigPartial a label = Partial label a
+
+data ClientConfigP f = ClientConfig
+  { ccNodeAddress :: ConfigC f Text "node address"
+  , ccNodePort :: ConfigC f Int "node port"
+  , ccContractAddress :: ConfigC f Address "contract address"
+  , ccUserAddress :: ConfigC f Address "user address"
+  , ccUserAlias :: ConfigC f Text "user alias"
+  , ccTzbtcExecutable :: ConfigC f FilePath "tzbtc-path"
+  , ccTezosClientExecutable :: ConfigC f FilePath "tezos-client path"
+  } deriving (Generic)
+
+type ClientConfig = ClientConfigP 'ConfigFilled
+
+type ClientConfigPartial = ClientConfigP 'ConfigPartial
+
+instance (ToJSON a, KnownSymbol l) => ToJSON (Partial l a) where
+  toJSON v = case v of
+    Available a -> (toJSON a)
+    Unavilable -> toJSON ("-- Fill here with " ++ (symbolVal (Proxy @l)) ++ " --")
+
+instance ToJSON ClientConfigPartial where
+  toJSON = genericToJSON (aesonPrefix snakeCase)
+
+instance ToJSON ClientConfig where
+  toJSON = genericToJSON (aesonPrefix snakeCase)
+
+instance FromJSON ClientConfig where
+  parseJSON = genericParseJSON (aesonPrefix snakeCase)
 
 deriveJSON (aesonPrefix snakeCase) ''TransactionOperation
-deriveJSON (aesonPrefix snakeCase) ''ClientConfig
 deriveJSON (aesonPrefix snakeCase) ''RunOperation

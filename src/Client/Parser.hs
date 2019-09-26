@@ -19,7 +19,7 @@ import Client.Types
 
 data ClientArgs
   = CmdTransaction CmdLnArgs
-  | CmdSetupClient ClientConfig
+  | CmdSetupClient ClientConfigPartial
   | CmdInjectOperation Text Signature
 
 clientArgParser :: Opt.Parser ClientArgs
@@ -32,14 +32,14 @@ clientArgParser =
                     "setupClient"
                     (CmdSetupClient <$>
                      (ClientConfig <$>
-                      urlArgument "Node url" <*>
-                      intArgument "Node port" <*>
-                      addressArgument "Contract's address" <*>
-                      addressArgument "User's address" <*>
-                      (argument str $ mconcat
+                      (partialParser $ urlArgument "Node url") <*>
+                      (partialParser $ intArgument "Node port") <*>
+                      (partialParser $ addressArgument "Contract's address") <*>
+                      (partialParser $ addressArgument "User's address") <*>
+                      (partialParser $ argument str $ mconcat
                        [metavar "ADDRESS_ALIAS", help "tezos-client alias"])
-                      <*> filePathArgument "TZBTC-client executable"
-                      <*> filePathArgument "tezos-client executable"
+                      <*> (partialParser $ filePathArgument "TZBTC-client executable")
+                      <*> (partialParser $ filePathArgument "tezos-client executable")
                      ))
                      ("Setup client using node url, node port, contract address, user " <>
                       "address and user address alias"))
