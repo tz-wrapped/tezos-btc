@@ -300,7 +300,7 @@ mintForMigration = do
   where
     ensureMigrationAgent = do
       stGetField #migrationManagerIn
-      ifSome (do address; sender # eq) (failCustom_ #migrationNotEnabled)
+      ifSome (do sender # eq) (failCustom_ #migrationNotEnabled)
       if_ nop $ failCustom_ #senderIsNotAgent
 
 -- | This entry point just fetches the migration manager from storage
@@ -350,10 +350,15 @@ migrate = do
         stGetField #migrationManagerOut
         if IsSome then do
           stackType @'[MigrationManager, store]
-          nop
+          contract
+          stackType @'[Maybe MigrationManagerCType, store]
+          if IsSome then do
+            nop
+          else
+            failCustom_ #illTypedMigrationManager
         else
           failCustom_ #migrationNotEnabled
-      stackType @'[Natural, MigrationManager, store]
+      stackType @'[Natural, MigrationManagerCType, store]
       sender
       pair
       push (toMutez 0)
