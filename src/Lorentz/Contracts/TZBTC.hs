@@ -25,7 +25,6 @@ module Lorentz.Contracts.TZBTC
 import Prelude hiding ((>>))
 
 import qualified Data.Text as T (concat)
-import qualified Data.Map as M
 
 import Michelson.Typed.Doc
 import Lorentz
@@ -55,7 +54,7 @@ tzbtcContract = do
     , #cMintForMigration /-> mintForMigration
     , #cMigrate /-> migrate
     , #cStoreEntrypoint /-> storeEntryPoint
-    , #cStoredEntrypoints /-> fetchFromStorageAndExec [mt|storedEntrypoints|]
+    , #cStoredEntrypoints /-> fetchFromStorageAndExec
     )
 
 storedEntrypointsHandler :: Entrypoint StoredEntrypointsParam Storage
@@ -90,9 +89,8 @@ mkStorage :: Address -> Address -> Map Address Natural -> Set Address -> Storage
 mkStorage adminAddress redeem balances operators = Storage'
   { dataMap = mkUStore $ StorageTemplate
       { ledger = UStoreSubMap $ toLedgerValue <$> balances
-      , packedEntrypoints =
-          UStoreSubMap $
-            M.fromList [([mt|storedEntrypoints|], mkPackedEntrypoint storedEntrypointsHandler)]
+      , packedHandler =
+          UStoreField $ mkPackedEntrypoint storedEntrypointsHandler
       }
   , fields = StorageFields
       { admin = adminAddress

@@ -72,7 +72,7 @@ type AcceptOwnershipParams = ()
 type MigrateParams = ()
 type SetMigrationAgentParams = ("migrationAgent" :! MigrationManager)
 type SetProxyParams = Address
-type StoreEntrypointParameter = ("entrypointName" :! MText, "entrypointCode" :! ByteString)
+type StoreEntrypointParameter = ("entrypointCode" :! ByteString)
 
 ----------------------------------------------------------------------------
 -- Parameter
@@ -185,7 +185,7 @@ data StorageFields = StorageFields
 
 data StorageTemplate = StorageTemplate
   { ledger :: Address |~> ManagedLedger.LedgerValue
-  , packedEntrypoints :: MText |~> ByteString
+  , packedHandler :: UStoreField ByteString
   } deriving stock Generic
 
 data Storage' a = Storage'
@@ -201,19 +201,19 @@ instance
   StoreHasField StorageFields name field where
   storeFieldOps = storeFieldOpsADT
 
-instance
+instance {-# OVERLAPPABLE #-}
   (StoreHasField fields fname ftype, IsoValue fields) =>
   StoreHasField (Storage' fields) fname ftype where
   storeFieldOps = storeFieldOpsTopLevelStorage #fields
 
 instance
   IsoValue fields =>
-  StoreHasSubmap (Storage' fields) "ledger" Address ManagedLedger.LedgerValue where
-  storeSubmapOps = storeSubmapOpsTopLevelStorage #dataMap
+  StoreHasField (Storage' fields) "packedHandler" ByteString where
+  storeFieldOps = storeFieldOpsTopLevelStorage #dataMap
 
 instance
   IsoValue fields =>
-  StoreHasSubmap (Storage' fields) "packedEntrypoints" MText ByteString where
+  StoreHasSubmap (Storage' fields) "ledger" Address ManagedLedger.LedgerValue where
   storeSubmapOps = storeSubmapOpsTopLevelStorage #dataMap
 
 instance Buildable Parameter where
@@ -255,8 +255,8 @@ instance Buildable Parameter where
           "Accept ownership"
         StoredSetProxy address_ ->
           "Set proxy " +| address_ |+ ""
-    StoreEntrypoint (arg #entrypointName -> name, arg #entrypointCode -> _)  ->
-      "StoreEntrypoint with name " +| name |+ ""
+    StoreEntrypoint (arg #entrypointCode -> _)  ->
+      "Store entrypoint"
     Mint (arg #to -> to, arg #value -> value) ->
       "Mint to " +| to |+ ", value = " +| value |+ ""
     MintForMigration (arg #to -> to, arg #value -> value) ->

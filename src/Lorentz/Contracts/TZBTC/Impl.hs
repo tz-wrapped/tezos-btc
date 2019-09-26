@@ -66,7 +66,7 @@ type StorageC store = StorageContains store
   , "migrationManagerOut" := Maybe MigrationManager
   , "ledger" := Address ~> LedgerValue
   , "proxy" := Either Address Address
-  , "packedEntrypoints" := MText ~> ByteString
+  , "packedHandler" := ByteString
   ]
 
 -- | Make an packed representation of an entrypoint
@@ -79,31 +79,25 @@ mkPackedEntrypoint e = packValue' $ toVal $ (unpair # e)
 
 -- | Store an packed entrypoint in storage
 storeEntryPoint
-  :: Entrypoint StoreEntrypointParameter Storage
+  :: forall store. StorageC store => Entrypoint StoreEntrypointParameter store
 storeEntryPoint = do
   dip authorizeAdmin
-  unpair
-  stackType @'[("entrypointName" :! MText), ("entrypointCode" :! ByteString), Storage]
-  fromNamed #entrypointName
-  stackType @'[MText, ("entrypointCode" :! ByteString), Storage]
-  dip $ do
-    fromNamed #entrypointCode
-  stackType @'[MText, ByteString, Storage]
-  stInsert #packedEntrypoints
+  stackType @'[("entrypointCode" :! ByteString), store]
+  fromNamed #entrypointCode
+  stackType @'[ByteString, store]
+  stSetField #packedHandler
   finishNoOp
 
 -- | Fetch a packed handler from storage using a key and execute
 fetchFromStorageAndExec
-  :: forall ei . (Typeable (ToT ei), SingI (ToT ei))
-  => MText -> Entrypoint ei Storage
-fetchFromStorageAndExec epName = do
+  :: forall ei store . (Typeable (ToT ei), SingI (ToT ei), Typeable (ToT store), SingI (ToT store), StorageC store)
+  => Entrypoint ei store
+fetchFromStorageAndExec = do
+  stackType @'[ei, store]
   dip $ do
-    push epName
-    dip dup
-    stGet #packedEntrypoints
-    if IsSome then nop else (failCustom_ #entrypointCodeNotFound)
-  stackType @'[ei, ByteString, Storage]
-  dip $ do
+    stackType @'[store]
+    stGetField #packedHandler
+    stackType @'[ByteString, store]
     unpack
     if IsSome then nop else (failCustom_ #entrypointUnpackError)
     swap

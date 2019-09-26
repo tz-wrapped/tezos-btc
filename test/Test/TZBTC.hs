@@ -143,7 +143,7 @@ test_adminCheck = testGroup "TZBTC contract admin check test"
   , testCase
       "Fails with `SenderNotAdmin` if sender is not administrator for `storeEntrypoint` call" $
       contractPropWithSender bob validate'
-        (StoreEntrypoint (#entrypointName .! [mt|newEntrypoint|], #entrypointCode .! "")) storage
+        (StoreEntrypoint (#entrypointCode .! "")) storage
   ]
   where
     validate' :: ContractPropValidator (ToT Storage) Assertion
