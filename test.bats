@@ -128,3 +128,8 @@
   result=$(eval $exec_command)
   [ "$result" == 'Burn, value = 100500' ]
 }
+
+@test "invoking 'setupClient'" {
+  stack exec -- tzbtc-client setupClient jupiter.serokell.io 8732
+  cat $HOME/.tzbtc/config.json
+}
