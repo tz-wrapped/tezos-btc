@@ -187,12 +187,11 @@ getOperationHex env forgeOp = runClientM (forgeOperation forgeOp) env
 getLastBlockHash :: ClientEnv -> IO (Either ClientError Text)
 getLastBlockHash env = runClientM getLastBlock env
 
-injectOp :: Text -> Signature -> ClientConfig -> IO ()
+injectOp :: Text -> Signature -> ClientConfig -> IO Text
 injectOp opToInject sign config = do
   clientEnv <- getClientEnv config
-  opHash <- throwClientError $ runClientM
+  throwClientError $ runClientM
     (injectOperation (Just "main") $ prepareForInjection opToInject sign) clientEnv
-  putStrLn $ "Operation hash: " <> opHash
 
 runTransaction
   :: (ParamConstraints param)
@@ -223,25 +222,39 @@ runTransaction to param config@ClientConfig{..} = do
   signRes <- signWithTezosClient (addOperationPrefix hex) config
   case signRes of
     Left err -> putStrLn err
-    Right signature' -> injectOp (formatByteString hex) signature' config
+    Right signature' -> do
+      opHash <- injectOp (formatByteString hex) signature' config
+      putStrLn $ "Operation hash: " <> opHash
+      waitForOperationInclusion opHash config
 
 addOperationPrefix :: InternalByteString -> InternalByteString
 addOperationPrefix (InternalByteString bs) =
   InternalByteString $ cons 0x03 bs
 
 signWithTezosClient :: InternalByteString -> ClientConfig -> IO (Either Text Signature)
-signWithTezosClient bs ClientConfig{..} = do
+signWithTezosClient bs config@ClientConfig{..} = do
   (exitCode, stdout', stderr') <- readProcessWithExitCode ccTezosClientExecutable
-    [ "-A", toString ccNodeAddress, "-P", show ccNodePort
-    , "sign", "bytes", toString $ "0x" <> formatByteString bs
-    -- 0x prefix is required for bytestrings in tezos-client
-    , "for", toString ccUserAlias
-    ] ""
+    (tezosNodeArgs config <>
+     [ "sign", "bytes", toString $ "0x" <> formatByteString bs
+     -- 0x prefix is required for bytestrings in tezos-client
+     , "for", toString ccUserAlias
+     ]) ""
   case exitCode of
     ExitSuccess -> do
       Right <$> (throwLeft $ pure $ parseSignatureFromOutput (fromString stdout'))
     ExitFailure _ -> return . Left . fromString $
       "Operation signing failed: " <> stderr'
+
+tezosNodeArgs :: ClientConfig -> [String]
+tezosNodeArgs ClientConfig{..} = ["-A", toString ccNodeAddress, "-P", show ccNodePort]
+
+waitForOperationInclusion :: Text -> ClientConfig -> IO ()
+waitForOperationInclusion op config@ClientConfig{..} = do
+  (exitCode, stdout', stderr') <- readProcessWithExitCode ccTezosClientExecutable
+    (tezosNodeArgs config <> ["wait", "for", toString op, "to", "be", "included"]) ""
+  case exitCode of
+    ExitSuccess -> putStr stdout'
+    ExitFailure _ -> putStr stderr'
 
 setupClient :: ClientConfig -> IO ()
 setupClient config = do
