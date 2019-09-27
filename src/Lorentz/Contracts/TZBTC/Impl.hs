@@ -66,7 +66,7 @@ type StorageC store = StorageContains store
   , "migrationManagerOut" := Maybe MigrationManager
   , "ledger" := Address ~> LedgerValue
   , "proxy" := Either Address Address
-  , "packedHandler" := ByteString
+  , "packedHandler" := StoredHandlerField
   ]
 
 -- | Make an packed representation of an entrypoint
@@ -81,10 +81,19 @@ mkPackedEntrypoint e = packValue' $ toVal $ (unpair # e)
 storeEntryPoint
   :: forall store. StorageC store => Entrypoint StoreEntrypointParameter store
 storeEntryPoint = do
-  dip authorizeAdmin
+  dip $ do
+    -- Check if sender is allowed to set handler
+    stGetField #packedHandler
+    stackType @'[StoredHandlerField, store]
+    if IsLeft then nop else (failCustom_ #packedHandlerExists)
+    stackType @'[Address, store]
+    sender
+    stackType @'[Address, Address, store]
+    if IsEq then nop else (failCustom_ #notAllowedToSetHandler)
   stackType @'[("entrypointCode" :! ByteString), store]
   fromNamed #entrypointCode
   stackType @'[ByteString, store]
+  right
   stSetField #packedHandler
   finishNoOp
 
@@ -97,7 +106,8 @@ fetchFromStorageAndExec = do
   dip $ do
     stackType @'[store]
     stGetField #packedHandler
-    stackType @'[ByteString, store]
+    stackType @'[StoredHandlerField, store]
+    if IsLeft then (failCustom_ #entrypointUnpackError) else nop
     unpack
     if IsSome then nop else (failCustom_ #entrypointUnpackError)
     swap

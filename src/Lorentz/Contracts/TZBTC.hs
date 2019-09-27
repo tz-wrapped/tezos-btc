@@ -90,7 +90,7 @@ mkStorage adminAddress redeem balances operators = Storage'
   { dataMap = mkUStore $ StorageTemplate
       { ledger = UStoreSubMap $ toLedgerValue <$> balances
       , packedHandler =
-          UStoreField $ mkPackedEntrypoint storedEntrypointsHandler
+          UStoreField $ Right $ mkPackedEntrypoint storedEntrypointsHandler
       }
   , fields = StorageFields
       { admin = adminAddress

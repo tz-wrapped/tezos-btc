@@ -9,6 +9,7 @@ module Lorentz.Contracts.TZBTC.Types
   , BurnParams
   , SaneParameter(..)
   , StoredEntrypointsParam(..)
+  , StoredHandlerField
   , Entrypoint
   , GetBalanceParams
   , Handler
@@ -183,9 +184,11 @@ data StorageFields = StorageFields
   } deriving stock (Eq, Show, Generic)
     deriving anyclass IsoValue
 
+type StoredHandlerField = Either Address ByteString
+
 data StorageTemplate = StorageTemplate
   { ledger :: Address |~> ManagedLedger.LedgerValue
-  , packedHandler :: UStoreField ByteString
+  , packedHandler :: UStoreField StoredHandlerField
   } deriving stock Generic
 
 data Storage' a = Storage'
@@ -208,7 +211,7 @@ instance {-# OVERLAPPABLE #-}
 
 instance
   IsoValue fields =>
-  StoreHasField (Storage' fields) "packedHandler" ByteString where
+  StoreHasField (Storage' fields) "packedHandler" StoredHandlerField where
   storeFieldOps = storeFieldOpsTopLevelStorage #dataMap
 
 instance
@@ -327,6 +330,21 @@ type instance ErrorArg "entrypointUnpackError" = ()
 
 -- | For setProxy entry point if Proxy is set already
 type instance ErrorArg "proxyAlreadySet" = ()
+
+-- | For storeEntrypoint handler if it is set already
+type instance ErrorArg "packedHandlerExists" = ()
+
+-- | For storeEntrypoint handler the sender is bad
+type instance ErrorArg "notAllowedToSetHandler" = ()
+
+instance CustomErrorHasDoc "notAllowedToSetHandler" where
+  customErrDocMdCause =
+    "Sender is not allowed to set the stored entry point\
+     \because the address is different from what is in the Left\
+     \value in packedHandler field."
+
+instance CustomErrorHasDoc "packedHandlerExists" where
+  customErrDocMdCause = "Cannot overwrite existing handler"
 
 instance CustomErrorHasDoc "notInTransferOwnershipMode" where
   customErrDocMdCause =
