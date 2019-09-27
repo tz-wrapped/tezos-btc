@@ -36,7 +36,7 @@ main = do
       pkg <- getPackageFromFile packageFilePath
       case pkg of
         Left err -> putStrLn err
-        Right package -> putStrLn (pretty $ getOpDescription package :: Text)
+        Right package -> putStrLn (pretty package :: Text)
     CmdGetPackageDescription packageFilePath -> do
       pkg <- getPackageFromFile packageFilePath
       case pkg of
@@ -51,8 +51,9 @@ main = do
       pkg <- getPackageFromFile packageFilePath
       case pkg of
         Left err -> putStrLn err
-        Right package ->
-          writePackageToFile (addSignature' package (pk, sign)) packageFilePath
+        Right package -> case addSignature package (pk, sign) of
+          Right signedPackage -> writePackageToFile signedPackage  packageFilePath
+          Left err -> putStrLn err
     CmdCallMultisig packagesFilePaths -> do
       pkgs <- fmap sequence $ mapM getPackageFromFile packagesFilePaths
       case pkgs of

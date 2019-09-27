@@ -11,6 +11,7 @@ module Lorentz.Contracts.TZBTC
   , Storage
   , StorageFields(..)
   , agentContract
+  , ToUnpackEnv(..)
   , tzbtcContract
   , tzbtcCompileWay
   , tzbtcDoc
