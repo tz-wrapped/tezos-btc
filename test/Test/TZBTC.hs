@@ -18,6 +18,7 @@ module Test.TZBTC
   , test_unpause_
   , test_bookkeeping
   , test_proxyCheck
+  , test_storeEntrypointHandler
   ) where
 
 import Fmt (pretty)
@@ -140,10 +141,6 @@ test_adminCheck = testGroup "TZBTC contract admin check test"
       "Fails with `SenderNotAdmin` if sender is not administrator for `setRedeemAddress` call" $
       contractPropWithSender bob validate'
         (toParameter $ SetRedeemAddress (#redeem .! redeemAddress_)) storage
-  , testCase
-      "Fails with `SenderNotAdmin` if sender is not administrator for `storeEntrypoint` call" $
-      contractPropWithSender bob validate'
-        (StoreEntrypoint (#entrypointCode .! "")) storage
   ]
   where
     validate' :: ContractPropValidator (ToT Storage) Assertion
@@ -499,7 +496,7 @@ test_setProxy = testGroup "TZBTC contract `setProxy` test"
              (proxy $ fields $ (fromVal rstorage :: Storage))
 
 -- Migration tests
-
+--
 storageV1 :: Storage
 storageV1 =
   mkStorage adminAddress redeemAddress_
@@ -517,6 +514,16 @@ originateV1 =
 originateV2 :: IntegrationalScenarioM (ContractAddr Parameter)
 originateV2 =
   lOriginate tzbtcContract "UserUpgradeable V2" storageV2 (toMutez 1000)
+
+originateV1EmptyHandler :: IntegrationalScenarioM (ContractAddr Parameter)
+originateV1EmptyHandler =
+  lOriginate tzbtcContract "UserUpgradeable V1" storageV1EmptyHandler (toMutez 1000)
+  where
+    storageV1EmptyHandler :: Storage
+    storageV1EmptyHandler =
+      mkStorage' adminAddress redeemAddress_
+        (Map.fromList [(alice, initialSupply)])
+              (Set.fromList [newOperatorAddress])
 
 originateAgent
   :: forall v2.
@@ -736,4 +743,27 @@ test_migrationManager = testGroup "TZBTC migration manager tests"
           withSender alice $ lCall v1 (Migrate ())
           validate . Left $
             lExpectCustomError_ #tokenOperationsArePaused
+  ]
+
+test_storeEntrypointHandler :: TestTree
+test_storeEntrypointHandler = testGroup "TZBTC migration manager tests"
+  [ testCase
+      "Random address cannot set entry point handler" $
+        integrationalTestExpectation $ do
+          v1 <- originateV1EmptyHandler
+          withSender bob $ lCall v1 (StoreEntrypoint $ (#entrypointCode .! mkPackedEntrypoint storedEntrypointsHandler))
+          validate . Left $ lExpectCustomError_ #notAllowedToSetHandler
+  , testCase
+      "Admin can set entry point handler" $
+        integrationalTestExpectation $ do
+          v1 <- originateV1EmptyHandler
+          withSender adminAddress $ lCall v1 (StoreEntrypoint $ (#entrypointCode .! mkPackedEntrypoint storedEntrypointsHandler))
+          validate $ Right expectAnySuccess
+  , testCase
+      "Admin can set entry point handler once" $
+        integrationalTestExpectation $ do
+          v1 <- originateV1EmptyHandler
+          withSender adminAddress $ lCall v1 (StoreEntrypoint $ (#entrypointCode .! mkPackedEntrypoint storedEntrypointsHandler))
+          withSender adminAddress $ lCall v1 (StoreEntrypoint $ (#entrypointCode .! mkPackedEntrypoint storedEntrypointsHandler))
+          validate . Left $ lExpectCustomError_ #packedHandlerExists
   ]
