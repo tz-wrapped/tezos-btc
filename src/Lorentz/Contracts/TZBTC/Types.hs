@@ -321,10 +321,7 @@ type instance ErrorArg "notAllowedToSetProxy" = ()
 
 -- | For dynamically loaded entrypoints
 type instance ErrorArg "entrypointCodeNotFound" = ()
---
--- | For dynamically loaded entrypoints
-type instance ErrorArg "unknownEntrypoint" = ()
---
+
 -- | For dynamically loaded entrypoints
 type instance ErrorArg "entrypointUnpackError" = ()
 
