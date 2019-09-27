@@ -7,6 +7,7 @@
 
 module Lorentz.Contracts.TZBTC
   ( mkStorage
+  , mkStorage'
   , mkPackedEntrypoint
   , SaneParameter(..)
   , Parameter(..)
@@ -84,13 +85,40 @@ tzbtcCompileWay :: LorentzCompilationWay Parameter Storage
 tzbtcCompileWay = lcwEntryPoints
 
 -- | Create a default storage with ability to set some balances to
--- non-zero values.
+-- non-zero values. Populate the packed entrypoint as well.
 mkStorage :: Address -> Address -> Map Address Natural -> Set Address -> Storage
 mkStorage adminAddress redeem balances operators = Storage'
   { dataMap = mkUStore $ StorageTemplate
       { ledger = UStoreSubMap $ toLedgerValue <$> balances
       , packedHandler =
           UStoreField $ Right $ mkPackedEntrypoint storedEntrypointsHandler
+      }
+  , fields = StorageFields
+      { admin = adminAddress
+      , paused = False
+      , totalSupply = sum $ balances
+      , totalBurned = 0
+      , totalMinted = sum balances
+      , newOwner = Nothing
+      , operators = operators
+      , redeemAddress = redeem
+      , code = [mt|ZBTC|]
+      , tokenname = [mt|TZBTC|]
+      , migrationManagerOut = Nothing
+      , migrationManagerIn = Nothing
+      , proxy = Left adminAddress
+      }
+  }
+  where
+    toLedgerValue initBal = (#balance .! initBal, #approvals .! mempty)
+
+-- | Make storage with packed entry point uninitialized
+mkStorage' :: Address -> Address -> Map Address Natural -> Set Address -> Storage
+mkStorage' adminAddress redeem balances operators = Storage'
+  { dataMap = mkUStore $ StorageTemplate
+      { ledger = UStoreSubMap $ toLedgerValue <$> balances
+      , packedHandler =
+          UStoreField $ Left adminAddress
       }
   , fields = StorageFields
       { admin = adminAddress
