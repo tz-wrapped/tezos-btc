@@ -44,7 +44,7 @@ data ParamAction
   deriving anyclass IsoValue
 
 type ParamManage
-  = (Natural, [KeyHash])
+  = (Natural, [PublicKey])
 
 type ParamSignatures = [Maybe Signature]
 

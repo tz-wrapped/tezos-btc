@@ -8,7 +8,7 @@ import qualified Data.Set as Set
 import qualified Data.Text as T (drop)
 import Test.Tasty (TestTree, testGroup)
 import Test.Hspec (Expectation)
-import Test.Tasty.HUnit (assertEqual, testCase)
+import Test.Tasty.HUnit (assertBool, assertEqual, testCase)
 
 import Lorentz hiding (SomeContract)
 import Lorentz.Contracts.TZBTC as TZBTC
@@ -31,6 +31,16 @@ unsafeParsePublicKey x = either (error . show) id $ parsePublicKey x
 
 unsafeParseSecretKey :: Text -> SecretKey
 unsafeParseSecretKey x = either (error . show) id $ parseSecretKey x
+
+addSignature_ :: ByteString -> (Text, Text) -> Either String Package
+addSignature_ e (pk, sig) = do
+  case parsePublicKey pk of
+    Right pubk -> case parseSignature sig of
+      Right sig_ -> do
+        f <- decodePackage e :: Either String Package
+        addSignature f (pubk, sig_)
+      _ -> Left "Error"
+    _ -> Left "Error"
 
 withMultiSigContract
   :: Natural
@@ -70,9 +80,6 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           package = MSig.mkPackage msig 0 tzbtc tzbtcParam
           bytesToSign = getBytesToSign package
           encodedPackage = MSig.encodePackage package
-          addSignature_ e b = do
-            d <- addSignature e b
-            decodePackage d
         -- Signing the bytes
           alicePackage = fromRight_ "Adding signature failed" $
             addSignature_ encodedPackage
@@ -103,9 +110,6 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           package = MSig.mkPackage msig 0 tzbtc tzbtcParam
           bytesToSign = getBytesToSign package
           encodedPackage = MSig.encodePackage package
-          addSignature_ e b = do
-            d <- addSignature e b
-            decodePackage d
           -- Signing the bytes
           alicePackage = fromRight_ "Adding signature failed" $
             addSignature_ encodedPackage
@@ -134,9 +138,6 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           package = MSig.mkPackage msig 0 tzbtc tzbtcParam
           bytesToSign = getBytesToSign package
           encodedPackage = MSig.encodePackage package
-          addSignature_ e b = do
-            d <- addSignature e b
-            decodePackage d
           -- Signing the bytes
           alicePackage = fromRight_ "Adding signature failed" $
             -- Make a bad signature. Use Alice's public key but Bob's secret.
@@ -168,9 +169,6 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           package = MSig.mkPackage msig 0 tzbtc tzbtcParam
           bytesToSign = getBytesToSign package
           encodedPackage = MSig.encodePackage package
-          addSignature_ e b = do
-            d <- addSignature e b
-            decodePackage d
           -- Signing the bytes
           alicePackage = fromRight_ "Adding signature failed" $
             --Use Alice's public key but bob's secret.
@@ -213,9 +211,6 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           package = MSig.mkPackage msig 0 tzbtc tzbtcParam
           bytesToSign = getBytesToSign package
           encodedPackage = MSig.encodePackage package
-          addSignature_ e b = do
-            d <- addSignature e b
-            decodePackage d
           -- Signing the bytes
           alicePackage = fromRight_ "Adding signature failed" $
             --Use Alice's public key but bob's secret.
@@ -256,9 +251,6 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         package = MSig.mkPackage msig 0 tzbtc tzbtcParam
         bytesToSign = getBytesToSign package
         encodedPackage = MSig.encodePackage package
-        addSignature_ e b = do
-          d <- addSignature e b
-          decodePackage d
         -- Signing the bytes
         aliceSig = sign_ aliceSK bytesToSign
         carlosSig = sign_ carlosSK bytesToSign
@@ -285,6 +277,22 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           [Just aliceSig, Nothing, Just carlosSig]
           sigList
         _ -> error "Unexpected multisig param"
+
+  , testCase "Test user is not allowed to sign a bad package" $ do
+      let
+        msig = unsafeParseAddress "KT19rTTBPeG1JAvrECgoQ8LJj1mJrN7gsdaH"
+        tzbtc = ContractAddr $ unsafeParseAddress "KT1XXJWcjrwfcPL4n3vjmwCBsvkazDt8scYY"
+
+        tzbtcParam = TZBTC.AddOperator (#operator .! operatorAddress)
+        tzbtcParamBadParam = TZBTC.RemoveOperator (#operator .! operatorAddress)
+        package = MSig.mkPackage msig 0 tzbtc tzbtcParam
+        package2 = MSig.mkPackage msig 0 tzbtc tzbtcParamBadParam
+
+        -- replace operation with bad operation
+        badPackage = package { pkToSign = pkToSign package2 } :: Package
+        bytesToSign = getBytesToSign package
+        aliceSig = sign_ aliceSK bytesToSign
+      assertBool "User was able to sign bad package" (isLeft $ addSignature badPackage (alicePK, aliceSig))
   ]
 
   where

@@ -12,7 +12,7 @@ module Client.IO
   ) where
 
 import Data.Aeson (decodeFileStrict, encodeFile)
-import Data.ByteString (cons)
+import Data.ByteString (cons, readFile, writeFile)
 import Data.Sequence (Seq(..))
 import Network.HTTP.Client
   (ManagerSettings(..), Request(..), newManager, defaultManagerSettings)
@@ -21,7 +21,6 @@ import Servant.Client
 import System.Directory (createDirectoryIfMissing, getAppUserDataDirectory)
 import System.Exit (ExitCode(..))
 import System.Process (readProcessWithExitCode)
-import Text.Hex (encodeHex, decodeHex)
 import Tezos.Json (TezosWord64(..))
 import Tezos.Micheline
   (Expression(..), MichelinePrimAp(..), MichelinePrimitive(..))
@@ -31,7 +30,6 @@ import Michelson.Typed.Haskell.Value (ContractAddr(..))
 import Michelson.Untyped (InternalByteString(..))
 import Tezos.Address (Address, formatAddress)
 import Tezos.Crypto (PublicKey, Signature, parsePublicKey)
-import Util.IO (readFileUtf8, writeFileUtf8)
 
 import Client.API
 import Client.Crypto
@@ -40,7 +38,6 @@ import Client.Parser
 import Client.Types
 import Client.Util
 import Lorentz.Contracts.TZBTC (Parameter(..))
-import Lorentz.Contracts.TZBTC.Types
 import qualified Lorentz.Contracts.TZBTC.MultiSig as MSig
 import Util.MultiSig
 
@@ -96,21 +93,16 @@ readConfigFile = do
 
 getPackageFromFile :: FilePath -> IO (Either Text Package)
 getPackageFromFile packageFilePath = do
-  fileContents <- readFileUtf8 packageFilePath
-  return $ case decodeHex fileContents of
-    Nothing -> Left
-      "Failed to decode multisig package: Invalid hex encoding"
-    Just bs -> case decodePackage bs of
-      Left err -> Left $ "Failed to decode multisig package: " <> fromString err
-      Right package -> Right package
+  fileContents <- readFile packageFilePath
+  return $ case decodePackage fileContents of
+    Left err -> Left $ "Failed to decode multisig package: " <> fromString err
+    Right package -> Right package
 
 writePackageToFile :: Package -> FilePath -> IO ()
 writePackageToFile package fileToWrite =
-  writeFileUtf8 fileToWrite $ encodeHex $ encodePackage package
+  writeFile fileToWrite $ encodePackage package
 
-createMultisigPackage
-  :: (ParamConstraints param, ToUnpackEnv param)
-  => FilePath -> param -> IO ()
+createMultisigPackage :: FilePath -> Parameter -> IO ()
 createMultisigPackage packagePath param = do
   config@ClientConfig{..} <- throwLeft $ readConfigFile
   (counter, _) <- throwLeft $ getMultisigStorage ccMultisigAddress config
