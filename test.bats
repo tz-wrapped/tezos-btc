@@ -4,6 +4,78 @@
 # SPDX-License-Identifier: LicenseRef-Proprietary
 #
 
+@test "invoking tzbtc-client 'approve' command" {
+  stack exec -- tzbtc-client approve\
+          --spender "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" --value 100 --dry-run
+
+}
+
+@test "invoking tzbtc-client 'mint' command" {
+  stack exec -- tzbtc-client mint\
+          --to "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" --value 100 --dry-run
+}
+
+@test "invoking tzbtc-client 'burn' command" {
+  stack exec -- tzbtc-client burn --value 100 --dry-run
+}
+
+@test "invoking tzbtc-client 'transfer' command" {
+  stack exec -- tzbtc-client transfer\
+    --to "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"\
+    --from "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" --value 100 --dry-run
+}
+
+@test "invoking tzbtc-client 'getAllowance' command" {
+  stack exec -- tzbtc-client getAllowance\
+    --owner "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"\
+    --spender "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx"\
+    --callback "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46" --dry-run
+}
+
+@test "invoking tzbtc-client 'getBalance' command" {
+  stack exec -- tzbtc-client getBalance\
+    --address "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"\
+    --callback "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46" --dry-run
+}
+
+@test "invoking tzbtc-client 'addOperator' command" {
+  stack exec -- tzbtc-client addOperator\
+    --operator "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --dry-run
+}
+
+@test "invoking tzbtc-client 'removeOperator' command" {
+  stack exec -- tzbtc-client removeOperator\
+    --operator "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --dry-run
+}
+
+@test "invoking tzbtc-client 'pause' command" {
+  stack exec -- tzbtc-client pause --dry-run
+}
+
+@test "invoking tzbtc-client 'unpause' command" {
+  stack exec -- tzbtc-client unpause --dry-run
+}
+
+@test "invoking tzbtc-client 'setRedeemAddress' command" {
+  stack exec -- tzbtc-client setRedeemAddress "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --dry-run
+}
+
+@test "invoking tzbtc-client 'startMigrateFrom' command" {
+  stack exec -- tzbtc-client startMigrateFrom "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --dry-run
+}
+
+@test "invoking tzbtc-client 'startMigrateTo' command" {
+  stack exec -- tzbtc-client startMigrateTo "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --dry-run
+}
+
+@test "invoking tzbtc-client 'migrate' command" {
+  stack exec -- tzbtc-client migrate --dry-run
+}
+
+@test "invoking multisig package creation" {
+  stack exec -- tzbtc-client addOperator --operator "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --multisig package.txt --dry-run
+}
+
 @test "invoking tzbtc 'printContract' command" {
   stack exec -- tzbtc printContract
 }

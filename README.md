@@ -77,6 +77,10 @@ So the workflow for interacting with the TZBTC contract on the chain is the foll
 * Use `tzbtc-client setupClient` to set up the environment.
 * Use `tzbtc-client <subcommand>` to submit desired operation.
 
+All `tzbtc-client` commands can be performed with `--dry-run` flag, thus they won't
+interact with the chain at all. This flag is basically used for testing purposes in
+order to check that argument parser is sane.
+
 `tzbtc-client` also provides multisig support.
 
 Multisig interaction based on [generic multisig contract](contracts/MultiSigGeneric.tz).

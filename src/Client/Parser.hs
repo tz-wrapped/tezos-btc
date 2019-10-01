@@ -4,6 +4,7 @@
  -}
 module Client.Parser
   ( ClientArgs(..)
+  , ClientArgsRaw(..)
   , clientArgParser
   , parseSignatureFromOutput
   ) where
@@ -12,7 +13,7 @@ import Data.Char (isAlpha, isDigit)
 import Fmt (pretty)
 import Options.Applicative
   (argument, auto, eitherReader, help, long, metavar, option,
-  showDefaultWith, str, value)
+  showDefaultWith, str, switch, value)
 import qualified Options.Applicative as Opt
 import qualified Text.Megaparsec as P
   (Parsec, customFailure, many, parse, satisfy)
@@ -29,7 +30,10 @@ import CLI.Parser
 import Client.Types
 import Lorentz.Contracts.TZBTC.Types
 
-data ClientArgs
+-- | Client argument with optional dry-run flag
+data ClientArgs = ClientArgs ClientArgsRaw Bool
+
+data ClientArgsRaw
   = CmdMint MintParams (Maybe FilePath)
   | CmdBurn BurnParams (Maybe FilePath)
   | CmdTransfer TransferParams
@@ -54,7 +58,14 @@ data ClientArgs
   | CmdCallMultisig (NonEmpty FilePath)
 
 clientArgParser :: Opt.Parser ClientArgs
-clientArgParser = Opt.hsubparser $
+clientArgParser = ClientArgs <$> clientArgRawParser <*> dryRunSwitch
+  where
+    dryRunSwitch =
+      switch (long "dry-run" <>
+              help "Dry run command to ensure correctness of the arguments")
+
+clientArgRawParser :: Opt.Parser ClientArgsRaw
+clientArgRawParser = Opt.hsubparser $
   mintCmd <> burnCmd <> transferCmd <> approveCmd
   <> getAllowanceCmd <> getBalanceCmd <> addOperatorCmd
   <> removeOperatorCmd <> pauseCmd <> unpauseCmd
@@ -70,7 +81,7 @@ clientArgParser = Opt.hsubparser $
       , metavar "FILEPATH"
       , help "Create package for multisig transaction and write it to the given file"
       ]
-    setupUserCmd :: Opt.Mod Opt.CommandFields ClientArgs
+    setupUserCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     setupUserCmd = (mkCommandParser
                     "setupClient"
                     (CmdSetupClient <$>
@@ -91,125 +102,125 @@ clientArgParser = Opt.hsubparser $
                     ("Setup client using node url, node port, contract address, \
                      \user address, user address alias and \
                      \filepath to the tezos-client executable"))
-    mintCmd :: Opt.Mod Opt.CommandFields ClientArgs
+    mintCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     mintCmd =
       (mkCommandParser
          "mint"
          (CmdMint <$> mintParamParser <*> multisigOption)
          "Mint tokens for an account")
-    burnCmd :: Opt.Mod Opt.CommandFields ClientArgs
+    burnCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     burnCmd =
       (mkCommandParser
          "burn"
          (CmdBurn <$> burnParamsParser <*> multisigOption)
          "Burn tokens from an account")
-    transferCmd :: Opt.Mod Opt.CommandFields ClientArgs
+    transferCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     transferCmd =
       (mkCommandParser
          "transfer"
          (CmdTransfer <$> transferParamParser)
          "Transfer tokens from one account to another")
-    approveCmd :: Opt.Mod Opt.CommandFields ClientArgs
+    approveCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     approveCmd =
       (mkCommandParser
          "approve"
          (CmdApprove <$> approveParamsParser)
          "Approve transfer of tokens from one account to another")
-    getAllowanceCmd :: Opt.Mod Opt.CommandFields ClientArgs
+    getAllowanceCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     getAllowanceCmd =
       (mkCommandParser
          "getAllowance"
          (CmdGetAllowance <$> getAllowanceParamsParser)
          "Get allowance for an account")
-    getBalanceCmd :: Opt.Mod Opt.CommandFields ClientArgs
+    getBalanceCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     getBalanceCmd =
       (mkCommandParser
          "getBalance"
          (CmdGetBalance <$> getBalanceParamsParser)
          "Get balance for an account")
-    addOperatorCmd :: Opt.Mod Opt.CommandFields ClientArgs
+    addOperatorCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     addOperatorCmd =
       (mkCommandParser
          "addOperator"
          (CmdAddOperator <$> operatorParamsParser <*> multisigOption)
          "Add an operator")
-    removeOperatorCmd :: Opt.Mod Opt.CommandFields ClientArgs
+    removeOperatorCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     removeOperatorCmd =
       (mkCommandParser
          "removeOperator"
          (CmdRemoveOperator <$> operatorParamsParser <*> multisigOption)
          "Remove an operator")
-    pauseCmd :: Opt.Mod Opt.CommandFields ClientArgs
+    pauseCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     pauseCmd =
       (mkCommandParser
          "pause"
          (CmdPause <$> multisigOption)
          "Pause the contract")
-    unpauseCmd :: Opt.Mod Opt.CommandFields ClientArgs
+    unpauseCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     unpauseCmd =
       (mkCommandParser
          "unpause"
          (CmdUnpause <$> multisigOption)
          "Unpause the contract")
-    setRedeemAddressCmd :: Opt.Mod Opt.CommandFields ClientArgs
+    setRedeemAddressCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     setRedeemAddressCmd =
       (mkCommandParser
          "setRedeemAddress"
          (CmdSetRedeemAddress <$> setRedeemAddressParamsParser <*> multisigOption)
          "Set redeem address")
-    transferOwnershipCmd :: Opt.Mod Opt.CommandFields ClientArgs
+    transferOwnershipCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     transferOwnershipCmd =
       (mkCommandParser
          "transferOwnership"
          (CmdTransferOwnership <$> transferOwnershipParamsParser <*> multisigOption)
          "Transfer ownership")
-    acceptOwnershipCmd :: Opt.Mod Opt.CommandFields ClientArgs
+    acceptOwnershipCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     acceptOwnershipCmd =
       (mkCommandParser
          "acceptOwnership"
          (pure $ CmdAcceptOwnership ())
          "Accept ownership")
-    startMigrateFromCmd :: Opt.Mod Opt.CommandFields ClientArgs
+    startMigrateFromCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     startMigrateFromCmd =
       (mkCommandParser
          "startMigrateFrom"
          (CmdStartMigrateFrom <$> startMigrateFromParamsParser <*> multisigOption)
          "Start contract migration")
-    startMigrateToCmd :: Opt.Mod Opt.CommandFields ClientArgs
+    startMigrateToCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     startMigrateToCmd =
       (mkCommandParser
          "startMigrateTo"
          (CmdStartMigrateTo <$> startMigrateToParamsParser <*> multisigOption)
          "Start contract migration")
-    migrateCmd :: Opt.Mod Opt.CommandFields ClientArgs
+    migrateCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     migrateCmd =
       (mkCommandParser
          "migrate"
          (pure $ CmdMigrate ())
          "Migrate contract")
 
-    getOpDescriptionCmd :: Opt.Mod Opt.CommandFields ClientArgs
+    getOpDescriptionCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     getOpDescriptionCmd =
       mkCommandParser
       "getOpDescription"
       (CmdGetOpDescription <$> namedFilePathOption "package" "Package filepath")
       "Get operation description from given multisig package"
 
-    getPackageDescriptionCmd :: Opt.Mod Opt.CommandFields ClientArgs
+    getPackageDescriptionCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     getPackageDescriptionCmd =
       mkCommandParser
       "getPackageDescription"
       (CmdGetPackageDescription <$> namedFilePathOption "package" "Package filepath")
       "Get human-readable description for given multisig package"
 
-    getBytesToSignCmd :: Opt.Mod Opt.CommandFields ClientArgs
+    getBytesToSignCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     getBytesToSignCmd =
       mkCommandParser
       "getBytesToSign"
       (CmdGetBytesToSign <$> namedFilePathOption "package" "Package filepath")
       "Get bytes that need to be signed from given multisig package"
 
-    addSignatureCmd :: Opt.Mod Opt.CommandFields ClientArgs
+    addSignatureCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     addSignatureCmd =
       mkCommandParser
       "addSignature"
@@ -218,7 +229,7 @@ clientArgParser = Opt.hsubparser $
       )
       "Add signature assosiated with the given public key to the given package"
 
-    callMultisigCmd :: Opt.Mod Opt.CommandFields ClientArgs
+    callMultisigCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     callMultisigCmd =
       mkCommandParser
       "callMultisig"

@@ -21,62 +21,64 @@ import Util.MultiSig
 
 main :: IO ()
 main = do
-  cmd <- execParser programInfo
-  case cmd of
-    CmdSetupClient config -> setupClient config
-    CmdMint mintParams mbMultisig ->
-      runMultisigTzbtcContract mbMultisig $ Mint mintParams
-    CmdBurn burnParams mbMultisig ->
-      runMultisigTzbtcContract mbMultisig $ Burn burnParams
-    CmdTransfer transferParams -> runTzbtcContract $ Transfer transferParams
-    CmdApprove approveParams -> runTzbtcContract $ Approve approveParams
-    CmdGetAllowance getAllowanceParams -> runTzbtcContract $
-      GetAllowance getAllowanceParams
-    CmdGetBalance getBalanceParams -> runTzbtcContract $
-      GetBalance getBalanceParams
-    CmdAddOperator operatorParams mbMultisig ->
-      runMultisigTzbtcContract mbMultisig $ AddOperator operatorParams
-    CmdRemoveOperator operatorParams mbMultisig ->
-      runMultisigTzbtcContract mbMultisig $ RemoveOperator operatorParams
-    CmdPause mbMultisig -> runMultisigTzbtcContract mbMultisig $ Pause ()
-    CmdUnpause mbMultisig -> runMultisigTzbtcContract mbMultisig $ Unpause ()
-    CmdSetRedeemAddress setRedeemAddressParams mbMultisig ->
-      runMultisigTzbtcContract mbMultisig $ SetRedeemAddress setRedeemAddressParams
-    CmdTransferOwnership p mbMultisig ->
-      runMultisigTzbtcContract mbMultisig $ TransferOwnership p
-    CmdAcceptOwnership p -> runTzbtcContract $ AcceptOwnership p
-    CmdStartMigrateTo p mbMultisig ->
-      runMultisigTzbtcContract mbMultisig $ StartMigrateTo p
-    CmdStartMigrateFrom p mbMultisig ->
-      runMultisigTzbtcContract mbMultisig $ StartMigrateFrom p
-    CmdMigrate p -> runTzbtcContract $ Migrate p
-    CmdGetOpDescription packageFilePath -> do
-      pkg <- getPackageFromFile packageFilePath
-      case pkg of
-        Left err -> putStrLn err
-        Right package -> putStrLn (pretty package :: Text)
-    CmdGetPackageDescription packageFilePath -> do
-      pkg <- getPackageFromFile packageFilePath
-      case pkg of
-        Left err -> putStrLn err
-        Right package -> putStrLn (pretty package :: Text)
-    CmdGetBytesToSign packageFilePath -> do
-      pkg <- getPackageFromFile packageFilePath
-      case pkg of
-        Left err -> putStrLn err
-        Right package -> putStrLn $ getBytesToSign package
-    CmdAddSignature pk sign packageFilePath -> do
-      pkg <- getPackageFromFile packageFilePath
-      case pkg of
-        Left err -> putStrLn err
-        Right package -> case addSignature package (pk, sign) of
-          Right signedPackage -> writePackageToFile signedPackage  packageFilePath
+  ClientArgs cmd dryRunFlag <- execParser programInfo
+  case dryRunFlag of
+    True -> pass
+    False -> case cmd of
+      CmdSetupClient config -> setupClient config
+      CmdMint mintParams mbMultisig ->
+        runMultisigTzbtcContract mbMultisig $ Mint mintParams
+      CmdBurn burnParams mbMultisig ->
+        runMultisigTzbtcContract mbMultisig $ Burn burnParams
+      CmdTransfer transferParams -> runTzbtcContract $ Transfer transferParams
+      CmdApprove approveParams -> runTzbtcContract $ Approve approveParams
+      CmdGetAllowance getAllowanceParams -> runTzbtcContract $
+        GetAllowance getAllowanceParams
+      CmdGetBalance getBalanceParams -> runTzbtcContract $
+        GetBalance getBalanceParams
+      CmdAddOperator operatorParams mbMultisig ->
+        runMultisigTzbtcContract mbMultisig $ AddOperator operatorParams
+      CmdRemoveOperator operatorParams mbMultisig ->
+        runMultisigTzbtcContract mbMultisig $ RemoveOperator operatorParams
+      CmdPause mbMultisig -> runMultisigTzbtcContract mbMultisig $ Pause ()
+      CmdUnpause mbMultisig -> runMultisigTzbtcContract mbMultisig $ Unpause ()
+      CmdSetRedeemAddress setRedeemAddressParams mbMultisig ->
+        runMultisigTzbtcContract mbMultisig $ SetRedeemAddress setRedeemAddressParams
+      CmdTransferOwnership p mbMultisig ->
+        runMultisigTzbtcContract mbMultisig $ TransferOwnership p
+      CmdAcceptOwnership p -> runTzbtcContract $ AcceptOwnership p
+      CmdStartMigrateTo p mbMultisig ->
+        runMultisigTzbtcContract mbMultisig $ StartMigrateTo p
+      CmdStartMigrateFrom p mbMultisig ->
+        runMultisigTzbtcContract mbMultisig $ StartMigrateFrom p
+      CmdMigrate p -> runTzbtcContract $ Migrate p
+      CmdGetOpDescription packageFilePath -> do
+        pkg <- getPackageFromFile packageFilePath
+        case pkg of
           Left err -> putStrLn err
-    CmdCallMultisig packagesFilePaths -> do
-      pkgs <- fmap sequence $ mapM getPackageFromFile packagesFilePaths
-      case pkgs of
-        Left err -> putStrLn err
-        Right packages -> runMultisigContract packages
+          Right package -> putStrLn (pretty package :: Text)
+      CmdGetPackageDescription packageFilePath -> do
+        pkg <- getPackageFromFile packageFilePath
+        case pkg of
+          Left err -> putStrLn err
+          Right package -> putStrLn (pretty package :: Text)
+      CmdGetBytesToSign packageFilePath -> do
+        pkg <- getPackageFromFile packageFilePath
+        case pkg of
+          Left err -> putStrLn err
+          Right package -> putStrLn $ getBytesToSign package
+      CmdAddSignature pk sign packageFilePath -> do
+        pkg <- getPackageFromFile packageFilePath
+        case pkg of
+          Left err -> putStrLn err
+          Right package -> case addSignature package (pk, sign) of
+            Right signedPackage -> writePackageToFile signedPackage  packageFilePath
+            Left err -> putStrLn err
+      CmdCallMultisig packagesFilePaths -> do
+        pkgs <- fmap sequence $ mapM getPackageFromFile packagesFilePaths
+        case pkgs of
+          Left err -> putStrLn err
+          Right packages -> runMultisigContract packages
   where
     runMultisigTzbtcContract :: (Maybe FilePath) -> Parameter -> IO ()
     runMultisigTzbtcContract mbMultisig param =
