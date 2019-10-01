@@ -57,6 +57,7 @@ data ClientArgsRaw
   | CmdGetPackageDescription FilePath
   | CmdGetBytesToSign FilePath
   | CmdAddSignature PublicKey Signature FilePath
+  | CmdSignPackage FilePath
   | CmdCallMultisig (NonEmpty FilePath)
 
 clientArgParser :: Opt.Parser ClientArgs
@@ -75,7 +76,7 @@ clientArgRawParser = Opt.hsubparser $
   <> startMigrateFromCmd <> startMigrateToCmd
   <> migrateCmd <> setupUserCmd <> getOpDescriptionCmd
   <> getPackageDescriptionCmd <> getBytesToSignCmd
-  <> addSignatureCmd <> callMultisigCmd
+  <> addSignatureCmd <> signPackageCmd <> callMultisigCmd
   where
     multisigOption =
       Opt.optional $ Opt.strOption $ mconcat
@@ -262,6 +263,16 @@ clientArgRawParser = Opt.hsubparser $
        namedFilePathOption "package" "Package filepath"
       )
       "Add signature assosiated with the given public key to the given package"
+
+    signPackageCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
+    signPackageCmd =
+      mkCommandParser
+      "signPackage"
+      (CmdSignPackage <$> namedFilePathOption "package" "Package filepath"
+      )
+      "Sign given multisig package using secret key from `tezos-client` \
+      \assotiated with the user alias from ClientConfig and add signature \
+      \to the package."
 
     callMultisigCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     callMultisigCmd =

@@ -31,6 +31,7 @@ import Fmt (Buildable(..), Builder, blockListF, pretty, (|+))
 import Text.Hex (encodeHex, decodeHex)
 import qualified Text.Show (show)
 
+import Client.Util (addTezosBytesPrefix)
 import Lorentz
 import Lorentz.Contracts.TZBTC.MultiSig as MSig
 import Lorentz.Contracts.TZBTC as TZBTC
@@ -170,7 +171,7 @@ mergePackages (p :| ps) = maybeToRight PackageMergeFailure $
   foldM mergeSignatures p ps
 
 getBytesToSign :: (PackagePoly p) -> Text
-getBytesToSign Package{..} = "0x" <> pkToSign
+getBytesToSign Package{..} = addTezosBytesPrefix pkToSign
 
 getToSign :: (PackagePoly p) -> Either UnpackageError ToSign
 getToSign Package{..} =
