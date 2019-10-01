@@ -178,7 +178,6 @@ data ClientConfig = ClientConfig
   , ccNodePort :: Int
   , ccContractAddress :: Address
   , ccMultisigAddress :: Address
-  , ccUserAddress :: Address
   , ccUserAlias :: Text
   , ccTezosClientExecutable :: FilePath
   }

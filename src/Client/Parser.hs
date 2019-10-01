@@ -93,7 +93,6 @@ clientArgRawParser = Opt.hsubparser $
                       namedAddressOption Nothing "contract-address"
                       "Contract's address" <*>
                       namedAddressOption Nothing "multisig-address" "Multisig contract address" <*>
-                      namedAddressOption Nothing "user-address" "User's address" <*>
                       (option str $ mconcat
                        [ long "alias"
                        , metavar "ADDRESS_ALIAS"

@@ -195,11 +195,12 @@ runTransaction
 runTransaction to param config@ClientConfig{..} = do
   clientEnv <- getClientEnv config
   lastBlockHash <- throwClientError $ getLastBlockHash clientEnv
-  counter <- throwClientError $ getAddressCounter clientEnv ccUserAddress
+  sourceAddr <- throwLeft $ getAddressForAlias ccUserAlias config
+  counter <- throwClientError $ getAddressCounter clientEnv sourceAddr
   let opToRun = dumbOp
         { toCounter = counter + 1
         , toDestination = to
-        , toSource = ccUserAddress
+        , toSource = sourceAddr
         , toParameters = paramToExpression $ param
         }
   let runOp = RunOperation
