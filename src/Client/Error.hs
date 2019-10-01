@@ -22,6 +22,7 @@ data TzbtcClientError
   | TzbtcUnexpectedRunResult Text
   | TzbtcUnexpectedMultisigStorage MichelsonExpression
   | TzbtcPublicKeyParseError Text CryptoParseError
+  | TzbtcUnknownAliasError Text
 
 instance Buildable TzbtcClientError where
   build (TzbtcServantError err) = case err of
@@ -57,6 +58,9 @@ instance Buildable TzbtcClientError where
 
   build (TzbtcPublicKeyParseError pk err) =
     "Failed to parse public key " +| pk |+ " with: " +| err |+ ""
+
+  build (TzbtcUnknownAliasError alias) =
+    "Unknown alias: " +| alias |+ ""
 
 instance Show TzbtcClientError where
   show = pretty
