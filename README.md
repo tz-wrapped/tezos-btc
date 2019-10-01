@@ -81,6 +81,10 @@ All `tzbtc-client` commands can be performed with `--dry-run` flag, thus they wo
 interact with the chain at all. This flag is basically used for testing purposes in
 order to check that argument parser is sane.
 
+Note that instead of plain addresses you can use `tezos-client` aliases as an arguments
+in `tzbtc-client`. E.g. `tzbtc-client mint --to alice --value 500` (assuming that
+`alice` is an alias for some address in `tezos-client`).
+
 `tzbtc-client` also provides multisig support.
 
 Multisig interaction based on [generic multisig contract](contracts/MultiSigGeneric.tz).
