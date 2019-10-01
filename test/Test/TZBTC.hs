@@ -102,11 +102,14 @@ assertFailureMessage res msg tstMsg = case res of
 
 test_proxyCheck :: TestTree
 test_proxyCheck = testGroup "TZBTC contract proxy endpoints check"
-  [ testCase "Fails with `ProxyIsNotSet` if one of the proxy serving endpoints is called and proxy is not set" $
+  [ testCase
+      "Fails with `ProxyIsNotSet` if one of the proxy serving endpoints is called and \
+      \proxy is not set" $
       contractPropWithSender bob validate'
         (TransferViaProxy (#sender .! bob, (#from .! bob, #to .! alice, #value .! 100))) storage
   , testCase
-      "Fails with `CallerIsNotProxy` if the caller to a proxy endpoint is not known proxy address." $
+      "Fails with `CallerIsNotProxy` if the caller to a proxy endpoint is not \
+      \known proxy address." $
       integrationalTestExpectation $ do
         c <- lOriginate tzbtcContract "TZBTC Contract" storage (toMutez 1000)
         withSender adminAddress $ lCall c (SetProxy contractAddress)
@@ -241,7 +244,8 @@ test_acceptOwnership = testGroup "TZBTC contract `acceptOwnership` test"
       contractPropWithSender adminAddress
         validateBadSender (AcceptOwnership ()) storageInTranferOwnership
   , testCase
-      "Call to `acceptOwnership` updates admin with address of new owner and resets `newOwner` field" $
+      "Call to `acceptOwnership` updates admin with address of new owner \
+      \and resets `newOwner` field" $
       contractPropWithSender newOwnerAddress
         validateGoodOwner (AcceptOwnership ()) storageInTranferOwnership
   ]
@@ -534,7 +538,9 @@ originateV2 =
 originateAgent
   :: forall v2.
   ( InstrWrapC v2 "cMintForMigration"
-  , AppendCtorField (GetCtorField v2 "cMintForMigration") '[] ~ '[("to" :! Address, "value" :! Natural)]
+  , AppendCtorField
+      (GetCtorField v2 "cMintForMigration")
+      '[] ~ '[("to" :! Address, "value" :! Natural)]
   , KnownValue v2, NoOperation v2, NoBigMap v2)
   => Address
   -> ContractAddr v2
@@ -542,7 +548,9 @@ originateAgent
 originateAgent oldContract newContract =
   case checkOpPresence (sing @(ToT v2)) of
     OpAbsent ->
-      unContractAddress <$> lOriginate (Agent.agentContract @v2) "Migration Agent" agentStorage (toMutez 1000)
+      unContractAddress <$>
+        lOriginate (Agent.agentContract @v2)
+        "Migration Agent" agentStorage (toMutez 1000)
     OpPresent ->
       error "Cannot originate contract with operations in parameter"
     where
