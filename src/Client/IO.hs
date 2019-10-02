@@ -70,7 +70,10 @@ dumbOp = TransactionOperation
   , toStorageLimit = 10000
   , toAmount = 0
   , toDestination = genesisAddress2
-  , toParameters = paramToExpression $ Pause ()
+  , toParameters = ParametersInternal
+    { piEntrypoint = "default"
+    , piValue = paramToExpression $ Pause ()
+    }
   }
 
 -- | Add header, required by the Tezos RPC interface
@@ -185,6 +188,9 @@ getOperationHex env forgeOp = runClientM (forgeOperation forgeOp) env
 getLastBlockHash :: ClientEnv -> IO (Either ClientError Text)
 getLastBlockHash env = runClientM getLastBlock env
 
+getCurrentChainId :: ClientEnv -> IO (Either ClientError Text)
+getCurrentChainId env = runClientM getMainChainId env
+
 injectOp :: Text -> Signature -> ClientConfig -> IO Text
 injectOp opToInject sign config = do
   clientEnv <- getClientEnv config
@@ -198,17 +204,25 @@ runTransaction to param config@ClientConfig{..} = do
   clientEnv <- getClientEnv config
   lastBlockHash <- throwClientError $ getLastBlockHash clientEnv
   (sourceAddr, _) <- throwLeft $ getAddressAndPKForAlias ccUserAlias config
+  chainId <- throwClientError $ getCurrentChainId clientEnv
   counter <- throwClientError $ getAddressCounter clientEnv sourceAddr
   let opToRun = dumbOp
         { toCounter = counter + 1
         , toDestination = to
         , toSource = sourceAddr
-        , toParameters = paramToExpression $ param
+        , toParameters = ParametersInternal
+          { piEntrypoint = "default"
+          , piValue = paramToExpression $ param
+          }
         }
   let runOp = RunOperation
-        { roBranch = lastBlockHash
-        , roContents = [opToRun]
-        , roSignature = stubSignature
+        { roOperation =
+          RunOperationInternal
+          { roiBranch = lastBlockHash
+          , roiContents = [opToRun]
+          , roiSignature = stubSignature
+          }
+        , roChainId = chainId
         }
   (consumedGas, storageSize) <- throwLeft $ getCosts clientEnv runOp
   hex <- throwClientError $ getOperationHex clientEnv ForgeOperation

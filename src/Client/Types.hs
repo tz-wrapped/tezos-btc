@@ -8,9 +8,11 @@ module Client.Types
   , InternalOperation (..)
   , MichelsonExpression (..)
   , OperationContent (..)
+  , ParametersInternal (..)
   , RunError (..)
   , RunMetadata (..)
   , RunOperation (..)
+  , RunOperationInternal (..)
   , RunOperationResult (..)
   , RunRes (..)
   , TransactionOperation (..)
@@ -59,10 +61,15 @@ instance ToJSON ForgeOperation where
     , "contents" .= toJSON foContents
     ]
 
+data RunOperationInternal = RunOperationInternal
+  { roiBranch :: Text
+  , roiContents :: [TransactionOperation]
+  , roiSignature :: Signature
+  }
+
 data RunOperation = RunOperation
-  { roBranch :: Text
-  , roContents :: [TransactionOperation]
-  , roSignature :: Signature
+  { roOperation :: RunOperationInternal
+  , roChainId :: Text
   }
 
 data RunRes = RunRes
@@ -103,6 +110,8 @@ data RunError
   | InvalidConstant MichelsonExpression MichelsonExpression
   | InconsistentTypes MichelsonExpression MichelsonExpression
   | InvalidPrimitive [Text] Text
+  | InvalidSyntacticConstantError MichelsonExpression MichelsonExpression
+  | UnexpectedContract
 
 instance FromJSON RunError where
   parseJSON = withObject "preapply error" $ \o -> do
@@ -120,6 +129,10 @@ instance FromJSON RunError where
           InconsistentTypes <$> o .: "first_type" <*> o .: "other_type"
       x | "invalid_primitive" `isSuffixOf` x ->
           InvalidPrimitive <$> o .: "expected_primitive_names" <*> o .: "wrong_primitive_name"
+      x | "invalidSyntacticConstantError" `isSuffixOf` x ->
+          InvalidSyntacticConstantError <$> o .: "expectedForm" <*> o .: "wrongExpression"
+      x | "unexpected_contract" `isSuffixOf` x ->
+          pure UnexpectedContract
       _ -> fail ("unknown id: " <> id')
 
 instance Buildable RunError where
@@ -136,6 +149,12 @@ instance Buildable RunError where
       "Invalid primitive: " +| wrongPrimitive |+ "\n" +|
       "Expecting on of: " +|
       mconcat (map ((<> " ") . build) expectedPrimitives) |+ ""
+    InvalidSyntacticConstantError expectedForm wrongExpression ->
+      "Invalid syntatic constant error, expecting: " +| expectedForm |+ "\n" +|
+      "But got: " +| wrongExpression |+ ""
+    UnexpectedContract ->
+      build ("When parsing script, a contract type was found in \
+             \the storage or parameter field." :: Text)
 
 data RunOperationResult
   = RunOperationApplied TezosWord64 TezosWord64
@@ -161,6 +180,11 @@ instance FromJSON RunOperationResult where
         RunOperationFailed <$> o .:? "errors" .!= []
       _ -> fail ("unexpected status " ++ status)
 
+data ParametersInternal = ParametersInternal
+  { piEntrypoint :: Text
+  , piValue :: Expression
+  }
+
 data TransactionOperation = TransactionOperation
   { toKind :: Text
   , toSource :: Address
@@ -170,7 +194,7 @@ data TransactionOperation = TransactionOperation
   , toStorageLimit :: TezosWord64
   , toAmount :: TezosWord64
   , toDestination :: Address
-  , toParameters :: Expression
+  , toParameters :: ParametersInternal
   }
 
 data ClientConfig = ClientConfig
@@ -182,6 +206,8 @@ data ClientConfig = ClientConfig
   , ccTezosClientExecutable :: FilePath
   }
 
+deriveJSON (aesonPrefix snakeCase) ''ParametersInternal
 deriveJSON (aesonPrefix snakeCase) ''TransactionOperation
 deriveJSON (aesonPrefix snakeCase) ''ClientConfig
+deriveJSON (aesonPrefix snakeCase) ''RunOperationInternal
 deriveJSON (aesonPrefix snakeCase) ''RunOperation
