@@ -20,6 +20,7 @@ module Client.Types
 import Data.Aeson (FromJSON(..), ToJSON(..), object, withObject, (.=), (.:), (.:?), (.!=))
 import Data.Aeson.Casing (aesonPrefix, snakeCase)
 import Data.Aeson.TH (deriveJSON)
+import Data.List (isSuffixOf)
 import Fmt (Buildable(..), (+|), (|+))
 import Tezos.Base16ByteString (Base16ByteString(..))
 import Tezos.Micheline
@@ -101,21 +102,24 @@ data RunError
   | BadContractParameter Address
   | InvalidConstant MichelsonExpression MichelsonExpression
   | InconsistentTypes MichelsonExpression MichelsonExpression
+  | InvalidPrimitive [Text] Text
 
 instance FromJSON RunError where
   parseJSON = withObject "preapply error" $ \o -> do
     id' <- o .: "id"
     case id' of
-      "proto.004-Pt24m4xi.michelson_v1.runtime_error" ->
-        RuntimeError <$> o .: "contract_handle"
-      "proto.004-Pt24m4xi.michelson_v1.script_rejected" ->
-        ScriptRejected <$> o .: "with"
-      "proto.004-Pt24m4xi.michelson_v1.bad_contract_parameter" ->
-        BadContractParameter <$> o .: "contract"
-      "proto.004-Pt24m4xi.michelson_v1.invalid_constant" ->
-        InvalidConstant <$> o .: "expected_type" <*> o .: "wrong_expression"
-      "proto.004-Pt24m4xi.michelson_v1.inconsistent_types" ->
-        InconsistentTypes <$> o .: "first_type" <*> o .: "other_type"
+      x | "runtime_error" `isSuffixOf` x ->
+          RuntimeError <$> o .: "contract_handle"
+      x | "script_rejected" `isSuffixOf` x ->
+          ScriptRejected <$> o .: "with"
+      x | "bad_contract_parameter" `isSuffixOf` x ->
+          BadContractParameter <$> o .: "contract"
+      x | "invalid_constant" `isSuffixOf` x ->
+          InvalidConstant <$> o .: "expected_type" <*> o .: "wrong_expression"
+      x | "inconsistent_types" `isSuffixOf` x ->
+          InconsistentTypes <$> o .: "first_type" <*> o .: "other_type"
+      x | "invalid_primitive" `isSuffixOf` x ->
+          InvalidPrimitive <$> o .: "expected_primitive_names" <*> o .: "wrong_primitive_name"
       _ -> fail ("unknown id: " <> id')
 
 instance Buildable RunError where
@@ -128,6 +132,10 @@ instance Buildable RunError where
       "For: " +| expr |+ ""
     InconsistentTypes type1 type2 ->
       "Inconsistent types: " +| type1 |+ " and " +| type2 |+ ""
+    InvalidPrimitive expectedPrimitives wrongPrimitive ->
+      "Invalid primitive: " +| wrongPrimitive |+ "\n" +|
+      "Expecting on of: " +|
+      mconcat (map ((<> " ") . build) expectedPrimitives) |+ ""
 
 data RunOperationResult
   = RunOperationApplied TezosWord64 TezosWord64

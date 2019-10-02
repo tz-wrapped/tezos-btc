@@ -4,89 +4,76 @@
 # SPDX-License-Identifier: LicenseRef-Proprietary
 #
 
-@test "invoking tzbtc 'approve' command" {
-  result="$(stack exec -- tzbtc approve\
-          --spender "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" --value 100)"
-  [ "$result" == 'Left (Left (Left (Right (Right (Pair "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" 100)))))' ]
+@test "invoking tzbtc-client 'approve' command" {
+  stack exec -- tzbtc-client approve\
+          --spender "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" --value 100 --dry-run
 
 }
 
-@test "invoking tzbtc 'mint' command" {
-  result="$(stack exec -- tzbtc mint\
-          --to "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" --value 100)"
-  [ "$result" == 'Left (Right (Right (Right (Right (Pair "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" 100)))))' ]
-
+@test "invoking tzbtc-client 'mint' command" {
+  stack exec -- tzbtc-client mint\
+          --to "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" --value 100 --dry-run
 }
 
-@test "invoking tzbtc 'burn' command" {
-  result="$(stack exec -- tzbtc burn --value 100)"
-  [ "$result" == 'Right (Left (Left (Left 100)))' ]
+@test "invoking tzbtc-client 'burn' command" {
+  stack exec -- tzbtc-client burn --value 100 --dry-run
 }
 
-@test "invoking tzbtc 'transfer' command" {
-  result="$(stack exec -- tzbtc transfer\
+@test "invoking tzbtc-client 'transfer' command" {
+  stack exec -- tzbtc-client transfer\
     --to "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"\
-    --from "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" --value 100)"
-  [ "$result" == 'Left (Left (Left (Left (Pair "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" (Pair "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" 100)))))' ]
+    --from "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" --value 100 --dry-run
 }
 
-@test "invoking tzbtc 'getAllowance' command" {
-  result="$(stack exec -- tzbtc getAllowance\
+@test "invoking tzbtc-client 'getAllowance' command" {
+  stack exec -- tzbtc-client getAllowance\
     --owner "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"\
     --spender "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx"\
-    --callback "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46")"
-  [ "$result" == 'Left (Left (Right (Right (Left (Pair (Pair "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx") "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46")))))' ]
+    --callback "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46" --dry-run
 }
 
-@test "invoking tzbtc 'getBalance' command" {
-  result="$(stack exec -- tzbtc getBalance\
+@test "invoking tzbtc-client 'getBalance' command" {
+  stack exec -- tzbtc-client getBalance\
     --address "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"\
-    --callback "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46")"
-  [ "$result" == 'Left (Left (Right (Right (Right (Pair "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46")))))' ]
+    --callback "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46" --dry-run
 }
 
-@test "invoking tzbtc 'addOperator' command" {
-  result="$(stack exec -- tzbtc addOperator\
-    --operator "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV")"
-  [ "$result" == 'Right (Left (Left (Right (Left "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"))))' ]
+@test "invoking tzbtc-client 'addOperator' command" {
+  stack exec -- tzbtc-client addOperator\
+    --operator "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --dry-run
 }
 
-@test "invoking tzbtc 'removeOperator' command" {
-  result="$(stack exec -- tzbtc removeOperator\
-    --operator "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV")"
-  [ "$result" == 'Right (Left (Left (Right (Right "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"))))' ]
+@test "invoking tzbtc-client 'removeOperator' command" {
+  stack exec -- tzbtc-client removeOperator\
+    --operator "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --dry-run
 }
 
-@test "invoking tzbtc 'pause' command" {
-  result="$(stack exec -- tzbtc pause)"
-  [ "$result" == 'Right (Left (Right (Right (Left Unit))))' ]
+@test "invoking tzbtc-client 'pause' command" {
+  stack exec -- tzbtc-client pause --dry-run
 }
 
-@test "invoking tzbtc 'unpause' command" {
-  result="$(stack exec -- tzbtc unpause)"
-  [ "$result" == 'Right (Left (Right (Right (Right Unit))))' ]
+@test "invoking tzbtc-client 'unpause' command" {
+  stack exec -- tzbtc-client unpause --dry-run
 }
 
-@test "invoking tzbtc 'setRedeemAddress' command" {
-  result="$(stack exec -- tzbtc setRedeemAddress "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV")"
-  [ "$result" == 'Right (Left (Right (Left "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV")))' ]
+@test "invoking tzbtc-client 'setRedeemAddress' command" {
+  stack exec -- tzbtc-client setRedeemAddress "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --dry-run
 }
 
-@test "invoking tzbtc 'startMigrateFrom' command" {
-  result="$(stack exec -- tzbtc startMigrateFrom "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV")"
-  [ "$result" == 'Right (Right (Right (Left (Left "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"))))' ]
+@test "invoking tzbtc-client 'startMigrateFrom' command" {
+  stack exec -- tzbtc-client startMigrateFrom "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --dry-run
 }
 
-@test "invoking tzbtc 'startMigrateTo' command" {
-  result="$(stack exec -- tzbtc startMigrateTo "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV")"
-  echo $result
-  [ "$result" == 'Right (Right (Left (Right (Right "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"))))' ]
+@test "invoking tzbtc-client 'startMigrateTo' command" {
+  stack exec -- tzbtc-client startMigrateTo "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --dry-run
 }
 
-@test "invoking tzbtc 'migrate' command" {
-  result="$(stack exec -- tzbtc migrate)"
-  echo $result
-  [ "$result" == 'Right (Right (Right (Right (Left Unit))))' ]
+@test "invoking tzbtc-client 'migrate' command" {
+  stack exec -- tzbtc-client migrate --dry-run
+}
+
+@test "invoking multisig package creation" {
+  stack exec -- tzbtc-client addOperator --operator "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --multisig package.txt --dry-run
 }
 
 @test "invoking tzbtc 'printContract' command" {
@@ -124,7 +111,7 @@
 }
 
 @test "invoking 'parseContractParameter' command to parse burn parameter" {
-  raw_parameter="$(stack exec -- tzbtc burn --value 100500)"
+  raw_parameter="Right (Left (Left (Left 100500)))"
   exec_command="stack exec -- tzbtc parseContractParameter '${raw_parameter}'"
   result=$(eval $exec_command)
   [ "$result" == 'Burn, value = 100500' ]

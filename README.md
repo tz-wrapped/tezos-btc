@@ -20,10 +20,11 @@ Run `stack test` and explore the tests.
 
 ### `tzbtc` executable
 
-You can use `tzbtc` executable in order to get raw Michelson
-parameters, that can be submitted to the chain via `tezos-client`.
-Also, you can get contract code, initial contracts storage. This
-stuff can be used for contract origination via `tezos-client`.
+
+You can use `tzbtc` executable in order to get contract code converted
+to Michelson, raw Michelson contract storage. This stuff can be used for
+contract origination via `tezos-client`. Also you can print other contracts
+that are used along with TZBTC contract: agent, proxy.
 `parseContractParameter` subcommand can be used for debugging,
 it parses raw Michelson value to the TZBTC contract parameter.
 
@@ -31,14 +32,11 @@ Use `tzbtc --help` to get a list of available commands.
 
 ### `tzbtc-client` executable
 
-Also you can use `tzbtc-client` executable. Unlike the `tzbtc`
-this executable performs transactions to the chain using remote
-tezos-node. In order to setup `tzbtc-client` you should use
-`tzbtc-client setupClient` command. Most of the commands (except
-`printContract`, `printInitialStorage`, `printContractDoc`,
-`printProxyContract`, `printAgentContract`, `parseContractParameter`,
-`testScenario`, `injectOperation`, `setupClient`) will perform forge
-and return an unsigned operation.
+Also you can use `tzbtc-client` executable.
+This executable performs transactions injection to the chain using remote
+tezos-node.
+
+Use `tzbtc-client --help` to get a list of available commands.
 
 #### `tzbtc-client` prerequisites
 
@@ -54,6 +52,11 @@ environment. It takes information about node, user information
 (specifically address and name alias from the `tezos-client`), contract address
 and also path to the `tezos-client` executable, which is used for
 transaction signing and ledger interaction.
+
+Other commands will perform injection of desired transaction to the
+TZBTC contract. E.g. `tzbtc-client mint --to tz1U1h1YzBJixXmaTgpwDpZnbrYHX3fMSpvby --value 100500`
+will mint 100500 tokens to the `tz1U1h1YzBJixXmaTgpwDpZnbrYHX3fMSpvby` address.
+This command will change actual contract storage in the chain.
 
 `tzbtc-client` interacts with the tezos node using [RPC API](https://tezos.gitlab.io/master/api/rpc.html).
 Transaction forging takes place in several stages:
@@ -73,6 +76,10 @@ on the previous steps.
 So the workflow for interacting with the TZBTC contract on the chain is the following:
 * Use `tzbtc-client setupClient` to set up the environment.
 * Use `tzbtc-client <subcommand>` to submit desired operation.
+
+All `tzbtc-client` commands can be performed with `--dry-run` flag, thus they won't
+interact with the chain at all. This flag is basically used for testing purposes in
+order to check that argument parser is sane.
 
 `tzbtc-client` also provides multisig support.
 

@@ -33,24 +33,6 @@ main :: IO ()
 main = do
   cmd <- execParser programInfo
   case cmd of
-    CmdMint mintParams _ -> printParam (Mint mintParams)
-    CmdBurn burnParams _ -> printParam (Burn burnParams)
-    CmdTransfer transferParams -> printParam (Transfer transferParams)
-    CmdApprove approveParams -> printParam (Approve approveParams)
-    CmdGetAllowance getAllowanceParams ->
-      printParam (GetAllowance getAllowanceParams)
-    CmdGetBalance getBalanceParams -> printParam (GetBalance getBalanceParams)
-    CmdAddOperator operatorParams _ -> printParam (AddOperator operatorParams)
-    CmdRemoveOperator operatorParams _ -> printParam (RemoveOperator operatorParams)
-    CmdPause _ -> printParam $ Pause ()
-    CmdUnpause _ -> printParam $ Unpause ()
-    CmdSetRedeemAddress setRedeemAddressParams _ ->
-      printParam (SetRedeemAddress setRedeemAddressParams)
-    CmdTransferOwnership p _ -> printParam (TransferOwnership p)
-    CmdAcceptOwnership p -> printParam (AcceptOwnership p)
-    CmdStartMigrateTo p _ -> printParam (StartMigrateTo p)
-    CmdStartMigrateFrom p _ -> printParam (StartMigrateFrom p)
-    CmdMigrate p -> printParam (Migrate p)
     CmdPrintContract singleLine mbFilePath ->
       printContract singleLine mbFilePath tzbtcContract
     CmdPrintAgentContract singleLine mbFilePath ->
@@ -83,15 +65,13 @@ main = do
     printContract singleLine mbFilePath contract =
       maybe putStrLn writeFileUtf8 mbFilePath $
         printLorentzContract singleLine lcwDumb contract
-    printParam :: Parameter -> IO ()
-    printParam = putStrLn . printLorentzValue True
     programInfo =
       info (helper <*> versionOption <*> argParser) $
       mconcat
         [ fullDesc
         , progDesc
             "TZBTC - Wrapped bitcoin on tezos blockchain"
-        , header "TZBTC Tools"
+        , header "TZBTC Developer tools"
         , footerDoc $ usageDoc
         ]
     versionOption =
@@ -104,13 +84,16 @@ usageDoc =
   Just $ mconcat
     [ "You can use help for specific COMMAND", linebreak
     , "EXAMPLE:", linebreak
-    , "  tzbtc mint --help", linebreak
+    , "  tzbtc printInitialStorage --help", linebreak
     , "USAGE EXAMPLE:", linebreak
-    , "  tzbtc mint --to tz1U1h1YzBJixXmaTgpwDpZnbrYHX3fMSpvb --value 100500", linebreak
+    , "  tzbtc printInitialStorage --admin-address \
+      \tz1U1h1YzBJixXmaTgpwDpZnbrYHX3fMSpvby"
+    , linebreak
+    , "                            --redeem-address \
+      \tz1U1h1YzBJixXmaTgpwDpZnbrYHX3fMSpvby"
     , linebreak
     , "  This command will return raw Michelson representation", linebreak
-    , "  of `Mint` entrypoint with the given arguments.", linebreak
-    , "  This raw Michelson value can later be submited to the", linebreak
-    , "  chain using tezos-client"
+    , "  of TZBTC contract storage that can later be used for", linebreak
+    , "  contract origination using tezos-client", linebreak
     ]
 

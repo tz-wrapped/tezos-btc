@@ -6,60 +6,26 @@ module Main
   ( main
   ) where
 
-import Control.Exception.Safe (throwString)
 import Data.Version (showVersion)
 import Fmt (pretty)
 import Options.Applicative
   (execParser, footerDoc, fullDesc, header, help, helper, info, infoOption, long, progDesc)
 import Options.Applicative.Help.Pretty (Doc, linebreak)
 
-import Lorentz (lcwDumb, parseLorentzValue, printLorentzContract, printLorentzValue)
-import Lorentz.Common (showTestScenario)
 import Paths_tzbtc (version)
-import Util.IO (writeFileUtf8)
 
-import CLI.Parser
 import Client.IO
 import Client.Parser
-import Lorentz.Contracts.TZBTC
-  (Parameter(..), agentContract, mkStorage, tzbtcCompileWay, tzbtcContract, tzbtcDoc)
-import Lorentz.Contracts.TZBTC.Proxy (tzbtcProxyContract)
-import Lorentz.Contracts.TZBTC.Test (mkTestScenario)
+import Lorentz.Contracts.TZBTC (Parameter(..))
 import Util.MultiSig
 
 main :: IO ()
 main = do
-  cmd <- execParser programInfo
-  case cmd of
-    CmdSetupClient config -> setupClient config
-    CmdGetOpDescription packageFilePath -> do
-      pkg <- getPackageFromFile packageFilePath
-      case pkg of
-        Left err -> putStrLn err
-        Right package -> putStrLn (pretty package :: Text)
-    CmdGetPackageDescription packageFilePath -> do
-      pkg <- getPackageFromFile packageFilePath
-      case pkg of
-        Left err -> putStrLn err
-        Right package -> putStrLn (pretty package :: Text)
-    CmdGetBytesToSign packageFilePath -> do
-      pkg <- getPackageFromFile packageFilePath
-      case pkg of
-        Left err -> putStrLn err
-        Right package -> putStrLn $ getBytesToSign package
-    CmdAddSignature pk sign packageFilePath -> do
-      pkg <- getPackageFromFile packageFilePath
-      case pkg of
-        Left err -> putStrLn err
-        Right package -> case addSignature package (pk, sign) of
-          Right signedPackage -> writePackageToFile signedPackage  packageFilePath
-          Left err -> putStrLn err
-    CmdCallMultisig packagesFilePaths -> do
-      pkgs <- fmap sequence $ mapM getPackageFromFile packagesFilePaths
-      case pkgs of
-        Left err -> putStrLn err
-        Right packages -> runMultisigContract packages
-    CmdTransaction arg -> case arg of
+  ClientArgs cmd dryRunFlag <- execParser programInfo
+  case dryRunFlag of
+    True -> pass
+    False -> case cmd of
+      CmdSetupClient config -> setupClient config
       CmdMint mintParams mbMultisig ->
         runMultisigTzbtcContract mbMultisig $ Mint mintParams
       CmdBurn burnParams mbMultisig ->
@@ -68,7 +34,8 @@ main = do
       CmdApprove approveParams -> runTzbtcContract $ Approve approveParams
       CmdGetAllowance getAllowanceParams -> runTzbtcContract $
         GetAllowance getAllowanceParams
-      CmdGetBalance getBalanceParams -> runTzbtcContract $ GetBalance getBalanceParams
+      CmdGetBalance getBalanceParams -> runTzbtcContract $
+        GetBalance getBalanceParams
       CmdAddOperator operatorParams mbMultisig ->
         runMultisigTzbtcContract mbMultisig $ AddOperator operatorParams
       CmdRemoveOperator operatorParams mbMultisig ->
@@ -85,26 +52,33 @@ main = do
       CmdStartMigrateFrom p mbMultisig ->
         runMultisigTzbtcContract mbMultisig $ StartMigrateFrom p
       CmdMigrate p -> runTzbtcContract $ Migrate p
-      CmdPrintContract singleLine mbFilePath ->
-        maybe putStrLn writeFileUtf8 mbFilePath $
-        printLorentzContract singleLine tzbtcCompileWay tzbtcContract
-      CmdPrintAgentContract singleLine mbFilePath ->
-        maybe putStrLn writeFileUtf8 mbFilePath $
-        printLorentzContract singleLine lcwDumb (agentContract @Parameter)
-      CmdPrintProxyContract singleLine mbFilePath ->
-        maybe putStrLn writeFileUtf8 mbFilePath $
-        printLorentzContract singleLine lcwDumb tzbtcProxyContract
-      CmdPrintInitialStorage adminAddress redeemAddress ->
-        putStrLn $ printLorentzValue True (mkStorage adminAddress redeemAddress mempty mempty)
-      CmdPrintDoc mbFilePath ->
-        maybe putStrLn writeFileUtf8 mbFilePath $ tzbtcDoc
-      CmdParseParameter t ->
-        either (throwString . pretty) (putTextLn . pretty) $
-        parseLorentzValue @Parameter t
-      CmdTestScenario TestScenarioOptions {..} -> do
-        maybe (throwString "Not enough addresses")
-          (maybe putStrLn writeFileUtf8 tsoOutput) $
-          showTestScenario <$> mkTestScenario tsoMaster tsoAddresses
+      CmdGetOpDescription packageFilePath -> do
+        pkg <- getPackageFromFile packageFilePath
+        case pkg of
+          Left err -> putStrLn err
+          Right package -> putStrLn (pretty package :: Text)
+      CmdGetPackageDescription packageFilePath -> do
+        pkg <- getPackageFromFile packageFilePath
+        case pkg of
+          Left err -> putStrLn err
+          Right package -> putStrLn (pretty package :: Text)
+      CmdGetBytesToSign packageFilePath -> do
+        pkg <- getPackageFromFile packageFilePath
+        case pkg of
+          Left err -> putStrLn err
+          Right package -> putStrLn $ getBytesToSign package
+      CmdAddSignature pk sign packageFilePath -> do
+        pkg <- getPackageFromFile packageFilePath
+        case pkg of
+          Left err -> putStrLn err
+          Right package -> case addSignature package (pk, sign) of
+            Right signedPackage -> writePackageToFile signedPackage  packageFilePath
+            Left err -> putStrLn err
+      CmdCallMultisig packagesFilePaths -> do
+        pkgs <- fmap sequence $ mapM getPackageFromFile packagesFilePaths
+        case pkgs of
+          Left err -> putStrLn err
+          Right packages -> runMultisigContract packages
   where
     runMultisigTzbtcContract :: (Maybe FilePath) -> Parameter -> IO ()
     runMultisigTzbtcContract mbMultisig param =
