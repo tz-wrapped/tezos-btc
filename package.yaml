@@ -93,12 +93,14 @@ tests:
     - universum
     - tasty
     - tasty-hunit
+    - tasty-hspec
     - morley
     - fmt
     - bytestring
     - containers
     - singletons
     - lorentz-contracts
+    - lorentz-contracts-test
     - named
     - text
     - tezos-bake-monitor-lib

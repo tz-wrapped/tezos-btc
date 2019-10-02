@@ -254,14 +254,7 @@ type instance ErrorArg "senderIsNotAgent" = ()
 type instance ErrorArg "tokenOperationsAreNotPaused" = ()
 
 -- | For FA1.2.1 compliance endpoints that are callable via a proxy
-type instance ErrorArg "proxyIsNotSet" = ()
-
--- | For FA1.2.1 compliance endpoints that are callable via a proxy
 type instance ErrorArg "callerIsNotProxy" = ()
-
--- | For setProxy entry point if Left value in `proxy` field does not
--- match the sender's address
-type instance ErrorArg "notAllowedToSetProxy" = ()
 
 -- | For setProxy entry point if Proxy is set already
 type instance ErrorArg "proxyAlreadySet" = ()
@@ -270,56 +263,53 @@ type instance ErrorArg "proxyAlreadySet" = ()
 type instance ErrorArg "illTypedMigrationManager" = ()
 
 instance CustomErrorHasDoc "notInTransferOwnershipMode" where
+  customErrClass = ErrClassActionException
   customErrDocMdCause =
     "Cannot accept ownership before transfer process has been initiated \
     \by calling transferOwnership entrypoint"
 
 instance CustomErrorHasDoc "senderIsNotNewOwner" where
+  customErrClass = ErrClassBadArgument
   customErrDocMdCause =
     "Cannot accept ownership because the sender address is different from \
     \the address passed to the transferOwnership entrypoint previously"
 
 instance CustomErrorHasDoc "senderIsNotOperator" where
+  customErrClass = ErrClassBadArgument
   customErrDocMdCause =
     "Sender has to be an operator to call this entrypoint"
 
 instance CustomErrorHasDoc "unauthorizedMigrateFrom" where
+  customErrClass = ErrClassActionException
   customErrDocMdCause =
     "Previous contract version address hasn't been set up"
 
 instance CustomErrorHasDoc "noBalanceToMigrate" where
+  customErrClass = ErrClassActionException
   customErrDocMdCause =
     "Cannot migrate zero tokens to the new contract version"
 
 instance CustomErrorHasDoc "migrationNotEnabled" where
+  customErrClass = ErrClassActionException
   customErrDocMdCause =
     "Cannot migrate when migration manager hasn't been set up"
 
 instance CustomErrorHasDoc "senderIsNotAgent" where
+  customErrClass = ErrClassBadArgument
   customErrDocMdCause =
     "Sender has to be a migration manager to call this entrypoint"
 
 instance CustomErrorHasDoc "tokenOperationsAreNotPaused" where
+  customErrClass = ErrClassActionException
   customErrDocMdCause =
     "This operation is only available when token operations are paused"
 
-instance CustomErrorHasDoc "proxyIsNotSet" where
-  customErrDocMdCause =
-    "Cannot call proxy entrypoint because proxy address is not set"
-
 instance CustomErrorHasDoc "callerIsNotProxy" where
+  customErrClass = ErrClassBadArgument
   customErrDocMdCause =
     "Sender has to be the proxy to call proxy entrypoints"
 
-instance CustomErrorHasDoc "notAllowedToSetProxy" where
-  customErrDocMdCause =
-    "Cannot set proxy address because Left value in `proxy` field does not \
-    \match the sender's address"
-
-instance CustomErrorHasDoc "proxyAlreadySet" where
-  customErrDocMdCause =
-    "Cannot set proxy address because it was already set up"
-
 instance CustomErrorHasDoc "illTypedMigrationManager" where
+  customErrClass = ErrClassActionException
   customErrDocMdCause =
     "Type checking on the stored migration manager address failed"

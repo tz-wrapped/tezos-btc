@@ -28,6 +28,7 @@ data StorageFields tp = StorageFields
 type instance ErrorArg "migrationBadOrigin" = ()
 
 instance CustomErrorHasDoc "migrationBadOrigin" where
+  customErrClass = ErrClassActionException
   customErrDocMdCause =
     "Old version contract address doesn't match with transaction origin address"
 
