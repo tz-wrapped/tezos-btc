@@ -18,9 +18,10 @@ import Network.HTTP.Client
   (ManagerSettings(..), Request(..), newManager, defaultManagerSettings)
 import Servant.Client
   (BaseUrl(..), ClientError, ClientEnv, Scheme(..), mkClientEnv, runClientM)
-import System.Directory (createDirectoryIfMissing, getAppUserDataDirectory)
+import System.Directory (createDirectoryIfMissing)
 import System.Exit (ExitCode(..))
 import System.Process (readProcessWithExitCode)
+import System.Environment.XDG.BaseDir (getUserConfigDir, getUserConfigFile)
 import Tezos.Json (TezosWord64(..))
 import Tezos.Micheline
   (Expression(..), MichelinePrimAp(..), MichelinePrimitive(..))
@@ -47,8 +48,10 @@ configFile = "config.json"
 
 getFullAppAndConfigPath :: IO (FilePath, FilePath)
 getFullAppAndConfigPath = do
-  appPath <- getAppUserDataDirectory appName
-  return $ (appPath, appPath <> "/" <> configFile)
+  configDir <- getUserConfigDir appName
+  configFile_ <- getUserConfigFile appName configFile
+
+  return $ (configDir, configFile_)
 
 stubSignature :: Signature
 stubSignature = unsafeParseSignature
@@ -252,6 +255,7 @@ setupClient :: ClientConfig -> IO ()
 setupClient config = do
   (appPath, configPath) <- getFullAppAndConfigPath
   createDirectoryIfMissing True appPath
+  putStrLn $ "Config file written to: " ++ configPath
   encodeFile configPath config
 
 runTzbtcContract :: Parameter -> IO ()

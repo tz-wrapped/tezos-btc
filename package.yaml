@@ -52,6 +52,7 @@ library:
     - aeson
     - aeson-casing
     - singletons
+    - xdg-basedir
 
 executables:
   tzbtc:
