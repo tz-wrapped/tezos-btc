@@ -77,11 +77,6 @@ main = do
         case pkg of
           Left err -> putStrLn err
           Right package -> putStrLn (pretty package :: Text)
-      CmdGetPackageDescription packageFilePath -> do
-        pkg <- getPackageFromFile packageFilePath
-        case pkg of
-          Left err -> putStrLn err
-          Right package -> putStrLn (pretty package :: Text)
       CmdGetBytesToSign packageFilePath -> do
         pkg <- getPackageFromFile packageFilePath
         case pkg of

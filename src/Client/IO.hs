@@ -16,6 +16,7 @@ module Client.IO
 import Data.Aeson (decodeFileStrict, encodeFile)
 import Data.ByteString (cons, readFile, writeFile)
 import Data.Sequence (Seq(..))
+import Fmt (pretty)
 import Network.HTTP.Client
   (ManagerSettings(..), Request(..), newManager, defaultManagerSettings)
 import Servant.Client
@@ -238,7 +239,6 @@ signWithTezosClient bs config@ClientConfig{..} = do
   (exitCode, stdout', stderr') <- readProcessWithExitCode ccTezosClientExecutable
     (tezosNodeArgs config <>
      [ "sign", "bytes", toString $ toSign
-     -- 0x prefix is required for bytestrings in tezos-client
      , "for", toString ccUserAlias
      ]) ""
   case exitCode of
@@ -247,14 +247,31 @@ signWithTezosClient bs config@ClientConfig{..} = do
     ExitFailure _ -> return . Left . fromString $
       "Operation signing failed: " <> stderr'
 
+data ConfirmationResult = Confirmed | Canceled
+
+confirmAction :: IO ConfirmationResult
+confirmAction = do
+  putStrLn $ ("Are you sure? [Y/N]" :: Text)
+  res <- getLine
+  case res of
+    x | x `elem` ["Y", "y", "yes"] -> pure Confirmed
+    x | x `elem` ["N", "n", "no"] -> pure Canceled
+    _ -> confirmAction
+
 signPackageForConfiguredUser :: Package -> IO (Either String Package)
 signPackageForConfiguredUser pkg = do
   config@ClientConfig{..} <- throwLeft $ readConfigFile
   (_, pk) <- throwLeft $ getAddressAndPKForAlias ccUserAlias config
-  signRes <- signWithTezosClient (Right $ getBytesToSign pkg) config
-  case signRes of
-    Left err -> pure $ Left $ toString err
-    Right signature' -> pure $ addSignature pkg (pk, signature')
+  putStrLn ("You are going to sign the following package:\n" :: Text)
+  putStrLn (pretty pkg :: Text)
+  confirmationResult <- confirmAction
+  case confirmationResult of
+    Canceled -> pure $ Left $ "Package signing was canceled"
+    Confirmed -> do
+      signRes <- signWithTezosClient (Right $ getBytesToSign pkg) config
+      case signRes of
+        Left err -> pure $ Left $ toString err
+        Right signature' -> pure $ addSignature pkg (pk, signature')
 
 tezosNodeArgs :: ClientConfig -> [String]
 tezosNodeArgs ClientConfig{..} = ["-A", toString ccNodeAddress, "-P", show ccNodePort]

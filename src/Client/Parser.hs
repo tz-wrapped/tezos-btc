@@ -54,7 +54,6 @@ data ClientArgsRaw
   | CmdMigrate MigrateParams
   | CmdSetupClient ClientConfig
   | CmdGetOpDescription FilePath
-  | CmdGetPackageDescription FilePath
   | CmdGetBytesToSign FilePath
   | CmdAddSignature PublicKey Signature FilePath
   | CmdSignPackage FilePath
@@ -74,8 +73,7 @@ clientArgRawParser = Opt.hsubparser $
   <> removeOperatorCmd <> pauseCmd <> unpauseCmd
   <> setRedeemAddressCmd <> transferOwnershipCmd <> acceptOwnershipCmd
   <> startMigrateFromCmd <> startMigrateToCmd
-  <> migrateCmd <> setupUserCmd <> getOpDescriptionCmd
-  <> getPackageDescriptionCmd <> getBytesToSignCmd
+  <> migrateCmd <> setupUserCmd <> getOpDescriptionCmd <> getBytesToSignCmd
   <> addSignatureCmd <> signPackageCmd <> callMultisigCmd
   where
     multisigOption =
@@ -240,13 +238,6 @@ clientArgRawParser = Opt.hsubparser $
       "getOpDescription"
       (CmdGetOpDescription <$> namedFilePathOption "package" "Package filepath")
       "Get operation description from given multisig package"
-
-    getPackageDescriptionCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
-    getPackageDescriptionCmd =
-      mkCommandParser
-      "getPackageDescription"
-      (CmdGetPackageDescription <$> namedFilePathOption "package" "Package filepath")
-      "Get human-readable description for given multisig package"
 
     getBytesToSignCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     getBytesToSignCmd =
