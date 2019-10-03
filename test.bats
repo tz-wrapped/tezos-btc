@@ -82,9 +82,8 @@
 
 @test "invoking tzbtc 'printContract' command with --oneline flag" {
   result="$(stack exec -- tzbtc printContract --oneline)"
-  [[ "$result" == *"%transfer"* ]]
-  [[ "$result" == *"%approve"* ]]
-  [[ "$result" == *"%mint"* ]]
+  [[ "$result" == *"%entrypointsWithView"* ]]
+  [[ "$result" == *"%entrypointsWithoutView"* ]]
 }
 
 @test "invoking tzbtc 'printAgentContract' command" {

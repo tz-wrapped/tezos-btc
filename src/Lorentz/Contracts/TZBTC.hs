@@ -11,7 +11,6 @@ module Lorentz.Contracts.TZBTC
   , Storage
   , StorageFields(..)
   , agentContract
-  , ToUnpackEnv(..)
   , tzbtcContract
   , tzbtcCompileWay
   , tzbtcDoc
@@ -39,35 +38,41 @@ import Lorentz.Contracts.TZBTC.Types
 tzbtcContract :: Contract Parameter Storage
 tzbtcContract = do
   unpair
-  entryCase @Parameter (Proxy @TzbtcEntryPointKind)
-    ( #cTransfer /-> transfer
-    , #cTransferViaProxy /-> transferViaProxy
-    , #cApprove /-> approve
-    , #cApproveViaProxy /-> approveViaProxy
-    , #cGetAllowance /-> getAllowance
-    , #cGetBalance /-> getBalance
-    , #cGetTotalSupply /-> getTotal #totalSupply
-      getTotalSupplyDoc
-    , #cGetTotalMinted /-> getTotal #totalMinted
-      "Return total number of minted tokens"
-    , #cGetTotalBurned /-> getTotal #totalBurned
-      "Return total number of burned tokens"
-    , #cSetAdministrator /-> setAdministrator
-    , #cGetAdministrator /-> getAdministrator
-    , #cMint /-> mint
-    , #cBurn /-> burn
-    , #cAddOperator /-> addOperator
-    , #cRemoveOperator /-> removeOperator
-    , #cSetRedeemAddress /-> setRedeemAddress
-    , #cPause /-> pause
-    , #cUnpause /-> unpause
-    , #cTransferOwnership /-> transferOwnership
-    , #cAcceptOwnership /-> acceptOwnership
-    , #cStartMigrateTo /-> startMigrateTo
-    , #cStartMigrateFrom /-> startMigrateFrom
-    , #cMintForMigration /-> mintForMigration
-    , #cMigrate /-> migrate
-    , #cSetProxy /-> setProxy
+  caseT @Parameter
+    ( #cEntrypointsWithView /->
+        entryCase @ParameterWithView (Proxy @PlainEntryPointsKind)
+        ( #cGetAllowance /-> getAllowance
+        , #cGetBalance /-> getBalance
+          , #cGetTotalSupply /-> getTotal #totalSupply
+            getTotalSupplyDoc
+          , #cGetTotalMinted /-> getTotal #totalMinted
+            "Return total number of minted tokens"
+          , #cGetTotalBurned /-> getTotal #totalBurned
+            "Return total number of burned tokens"
+          , #cGetAdministrator /-> getAdministrator
+          )
+    , #cEntrypointsWithoutView /->
+        entryCase @ParameterWithoutView (Proxy @PlainEntryPointsKind)
+          ( #cTransfer /-> transfer
+          , #cTransferViaProxy /-> transferViaProxy
+          , #cApprove /-> approve
+          , #cApproveViaProxy /-> approveViaProxy
+          , #cSetAdministrator /-> setAdministrator
+          , #cMint /-> mint
+          , #cBurn /-> burn
+          , #cAddOperator /-> addOperator
+          , #cRemoveOperator /-> removeOperator
+          , #cSetRedeemAddress /-> setRedeemAddress
+          , #cPause /-> pause
+          , #cUnpause /-> unpause
+          , #cTransferOwnership /-> transferOwnership
+          , #cAcceptOwnership /-> acceptOwnership
+          , #cStartMigrateTo /-> startMigrateTo
+          , #cStartMigrateFrom /-> startMigrateFrom
+          , #cMintForMigration /-> mintForMigration
+          , #cMigrate /-> migrate
+          , #cSetProxy /-> setProxy
+          )
     )
 
 tzbtcCompileWay :: LorentzCompilationWay Parameter Storage

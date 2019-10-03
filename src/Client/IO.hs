@@ -42,6 +42,7 @@ import Client.Parser
 import Client.Types
 import Client.Util
 import Lorentz.Contracts.TZBTC (Parameter(..))
+import Lorentz.Contracts.TZBTC.Types (ParameterWithoutView(..))
 import qualified Lorentz.Contracts.TZBTC.MultiSig as MSig
 import Util.MultiSig
 
@@ -72,7 +73,7 @@ dumbOp = TransactionOperation
   , toDestination = genesisAddress2
   , toParameters = ParametersInternal
     { piEntrypoint = "default"
-    , piValue = paramToExpression $ Pause ()
+    , piValue = paramToExpression $ EntrypointsWithoutView $ Pause ()
     }
   }
 
@@ -111,11 +112,11 @@ writePackageToFile :: Package -> FilePath -> IO ()
 writePackageToFile package fileToWrite =
   writeFile fileToWrite $ encodePackage package
 
-createMultisigPackage :: FilePath -> Parameter -> IO ()
+createMultisigPackage :: FilePath -> ParameterWithoutView -> IO ()
 createMultisigPackage packagePath parameter = do
   config@ClientConfig{..} <- throwLeft $ readConfigFile
   (counter, _) <- throwLeft $ getMultisigStorage ccMultisigAddress config
-  let package = mkPackageFromTzbtcParam ccMultisigAddress counter
+  let package = mkPackage ccMultisigAddress counter
         (ContractAddr ccContractAddress) parameter
   writePackageToFile package packagePath
 

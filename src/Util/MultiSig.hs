@@ -11,7 +11,6 @@ module Util.MultiSig
   , decodePackage
   , encodePackage
   , mkPackage
-  , mkPackageFromTzbtcParam
   , mkMultiSigParam
   , getOpDescription
   , mergePackages
@@ -27,7 +26,6 @@ import Data.Aeson.Casing (aesonPrefix, camelCase)
 import Data.Aeson.TH (deriveJSON)
 import Data.ByteString.Lazy as LBS (toStrict)
 import Data.List (lookup)
-import Data.Vinyl.Derived (Label)
 import Fmt (Buildable(..), Builder, blockListF, pretty, (|+))
 import Text.Hex (encodeHex, decodeHex)
 import qualified Text.Show (show)
@@ -36,9 +34,9 @@ import Client.Util (addTezosBytesPrefix)
 import Lorentz
 import Lorentz.Contracts.TZBTC.MultiSig as MSig
 import Lorentz.Contracts.TZBTC as TZBTC
+import Lorentz.Contracts.TZBTC.Types as TZBTC
 import Michelson.Interpret.Pack
 import Michelson.Interpret.Unpack
-import Michelson.TypeCheck.TypeCheck
 import Michelson.Typed
 import Tezos.Crypto
 
@@ -83,7 +81,6 @@ type ToSign = (Address, ParamPayload)
 -- then it expects a Nothing value in its place.
 data Package = Package
   { pkToSign :: !Text  -- ^ Hex encoded byte sequence that should be signed
-  , pkUnpackEnv :: !TcOriginatedContracts  -- ^ Maps address to the type of originated contracts.
   , pkSignatures :: ![(PublicKey, Signature)] -- ^ Field to hold signatures and public keys as they are collected.
   , pkSrcParam :: !Text -- ^ Packed main contract param and counter value
   }
@@ -112,15 +109,17 @@ fetchSrcParam package =
   case decodeHex $ pkSrcParam package of
     Just hexDecoded ->
       case fromVal @(TZBTC.Parameter, Natural, ContractAddr TZBTC.Parameter)
-          <$> unpackValue' (UnpackEnv (pkUnpackEnv package)) hexDecoded of
-        Right (parameter, counter, caddress) ->
+          <$> unpackValue' dummyUnpackEnv hexDecoded of
+        Right ((EntrypointsWithoutView parameter), counter, caddress) ->
           case getToSign package of
             Right (msigAddr, _) ->
-              let newPackage = mkPackageFromTzbtcParam
+              let newPackage = mkPackage
                     msigAddr counter caddress parameter
               in if pkToSign newPackage == pkToSign package
-              then Right parameter else Left BadSrcParameterFailure
+              then Right (EntrypointsWithoutView parameter)
+              else Left BadSrcParameterFailure
             Left err -> Left err
+        Right ((EntrypointsWithView _), _, _) -> Left UnexpectedParameterWithView
         Left err -> Left $ UnpackFailure err
     Nothing -> Left HexDecodingFailure
 
@@ -138,118 +137,26 @@ getOpDescription p = case fetchSrcParam p of
 
 -- | Make the `Package` value from input parameters.
 mkPackage
-  :: forall parameterRaw constructorName.
-     ( ParamConstraints parameterRaw
-     , CtorHasOnlyField constructorName TZBTC.Parameter parameterRaw
-     , InstrWrapC TZBTC.Parameter constructorName
-     )
-  => Address
+  :: Address
   -> Natural
   -> ContractAddr TZBTC.Parameter
-  -> TZBTC.Parameter -> parameterRaw -> Label constructorName -> Package
-mkPackage msigAddress counter tzbtc param paramRaw constrName
-  = let msigLambda = contractToLambda @parameterRaw @TZBTC.Parameter @constructorName
-          (unContractAddress tzbtc) paramRaw constrName
+  -> TZBTC.ParameterWithoutView -> Package
+mkPackage msigAddress counter tzbtc param
+  = let msigLambda = contractToLambda
+          (unContractAddress tzbtc) param
     in Package
       { pkToSign = encodeToSign $ (msigAddress, (counter, ParamLambda msigLambda))
-      , pkUnpackEnv = toUnpackEnv tzbtc param
       , pkSignatures = []
-      , pkSrcParam = encodeHex $ packValue' $ toVal (param, counter, tzbtc)
+      , pkSrcParam = encodeHex $ packValue' $
+        toVal ((EntrypointsWithoutView param), counter, tzbtc)
       }
-
--- | Make `Package` for given multisig and tzbtc contracts and given tzbtc
--- parameter.
---
--- Quite sad that we have to have this huge boilerplate patternmatching
--- but we need to extract constructor parameter and contstructor name
--- in order to perform wrap_.
-mkPackageFromTzbtcParam
-  :: Address -> Natural -> ContractAddr TZBTC.Parameter
-  -> TZBTC.Parameter -> Package
-mkPackageFromTzbtcParam multisigAddr counter tzbtcAddr parameter =
-  case parameter of
-    Transfer param ->
-      mkPackage multisigAddr counter tzbtcAddr
-      (Transfer param) param #cTransfer
-    TransferViaProxy param ->
-      mkPackage multisigAddr counter tzbtcAddr
-      (TransferViaProxy param) param #cTransferViaProxy
-    Approve param ->
-      mkPackage multisigAddr counter tzbtcAddr
-      (Approve param) param #cApprove
-    ApproveViaProxy param ->
-      mkPackage multisigAddr counter tzbtcAddr
-      (ApproveViaProxy param) param #cApproveViaProxy
-    GetAllowance param ->
-      mkPackage multisigAddr counter tzbtcAddr
-      (GetAllowance param) param #cGetAllowance
-    GetBalance param ->
-      mkPackage multisigAddr counter tzbtcAddr
-      (GetBalance param) param #cGetBalance
-    GetTotalSupply param ->
-      mkPackage multisigAddr counter tzbtcAddr
-      (GetTotalSupply param) param #cGetTotalSupply
-    GetTotalMinted param ->
-      mkPackage multisigAddr counter tzbtcAddr
-      (GetTotalMinted param) param #cGetTotalMinted
-    GetTotalBurned param ->
-      mkPackage multisigAddr counter tzbtcAddr
-      (GetTotalBurned param) param #cGetTotalBurned
-    SetAdministrator param ->
-      mkPackage multisigAddr counter tzbtcAddr
-      (SetAdministrator param) param #cSetAdministrator
-    GetAdministrator param ->
-      mkPackage multisigAddr counter tzbtcAddr
-      (GetAdministrator param) param #cGetAdministrator
-    Mint param ->
-      mkPackage multisigAddr counter tzbtcAddr
-      (Mint param) param #cMint
-    Burn param ->
-      mkPackage multisigAddr counter tzbtcAddr
-      (Burn param) param #cBurn
-    AddOperator param ->
-      mkPackage multisigAddr counter tzbtcAddr
-      (AddOperator param) param #cAddOperator
-    RemoveOperator param ->
-      mkPackage multisigAddr counter tzbtcAddr
-      (RemoveOperator param) param #cRemoveOperator
-    SetRedeemAddress param ->
-      mkPackage multisigAddr counter tzbtcAddr
-      (SetRedeemAddress param) param #cSetRedeemAddress
-    Pause param ->
-      mkPackage multisigAddr counter tzbtcAddr
-      (Pause param) param #cPause
-    Unpause param ->
-      mkPackage multisigAddr counter tzbtcAddr
-      (Unpause param) param #cUnpause
-    TransferOwnership param ->
-      mkPackage multisigAddr counter tzbtcAddr
-      (TransferOwnership param) param #cTransferOwnership
-    AcceptOwnership param ->
-      mkPackage multisigAddr counter tzbtcAddr
-      (AcceptOwnership param) param #cAcceptOwnership
-    StartMigrateTo param ->
-      mkPackage multisigAddr counter tzbtcAddr
-      (StartMigrateTo param) param #cStartMigrateTo
-    StartMigrateFrom param ->
-      mkPackage multisigAddr counter tzbtcAddr
-      (StartMigrateFrom param) param #cStartMigrateFrom
-    MintForMigration param ->
-      mkPackage multisigAddr counter tzbtcAddr
-      (MintForMigration param) param #cMintForMigration
-    Migrate param ->
-      mkPackage multisigAddr counter tzbtcAddr
-      (Migrate param) param #cMigrate
-    SetProxy param ->
-      mkPackage multisigAddr counter tzbtcAddr
-      (SetProxy param) param #cSetProxy
 
 mergeSignatures
   :: Package
   -> Package
   -> Maybe Package
 mergeSignatures p1 p2 =
-  if (pkToSign p1, pkUnpackEnv p1) == (pkToSign p2, pkUnpackEnv p2)
+  if pkToSign p1 == pkToSign p2
     then Just $ p1 { pkSignatures = pkSignatures p1 ++ pkSignatures p2 }
     else Nothing
 
@@ -266,7 +173,7 @@ getToSign :: Package -> Either UnpackageError ToSign
 getToSign Package{..} =
   case decodeHex pkToSign of
     Just hexDecoded ->
-      case fromVal @ToSign <$> unpackValue' (UnpackEnv pkUnpackEnv) hexDecoded of
+      case fromVal @ToSign <$> unpackValue' dummyUnpackEnv hexDecoded of
         Right toSign -> Right toSign
         Left err -> Left $ UnpackFailure err
     Nothing -> Left HexDecodingFailure
@@ -278,6 +185,7 @@ data UnpackageError
   | UnpackFailure UnpackError
   | PackageMergeFailure
   | BadSrcParameterFailure -- If the bundled operation differes from the one that is being signed for
+  | UnexpectedParameterWithView
 
 instance Buildable UnpackageError where
   build = \case
@@ -285,6 +193,7 @@ instance Buildable UnpackageError where
     PackageMergeFailure -> "Provied packages had different action/enviroments"
     BadSrcParameterFailure -> "ERROR!! The bundled operation does not match the byte sequence that is being signed."
     UnpackFailure err -> build err
+    UnexpectedParameterWithView -> "Unexpected parameter with View in package"
 
 instance Show UnpackageError where
   show = pretty

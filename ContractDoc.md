@@ -8,7 +8,157 @@
 
 This contract is implemented using Lorentz language
 
-## Entry-points of TZBTC contract
+## Entry points
+
+---
+
+### `GetAllowance`
+
+Returns the approval value between two given addresses.
+
+**Parameter:** [`View`](#types-View) (***owner*** : [`Address`](#types-Address), ***spender*** : [`Address`](#types-Address)) [`Natural`](#types-Natural)
+
+<details>
+  <summary>**How to call this entry point**</summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `GetAllowance` constructor.
+    + **In Haskell:** `GetAllowance (·)`
+    + **In Michelson:** `Left (Left (·))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+
+
+---
+
+### `GetBalance`
+
+Returns the balance of the address in the ledger.
+
+**Parameter:** [`View`](#types-View) [`Address`](#types-Address) [`Natural`](#types-Natural)
+
+<details>
+  <summary>**How to call this entry point**</summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `GetBalance` constructor.
+    + **In Haskell:** `GetBalance (·)`
+    + **In Michelson:** `Left (Right (Left (·)))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+
+
+---
+
+### `GetTotalSupply`
+
+Returns total number of tokens.
+
+**Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
+
+<details>
+  <summary>**How to call this entry point**</summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `GetTotalSupply` constructor.
+    + **In Haskell:** `GetTotalSupply (·)`
+    + **In Michelson:** `Left (Right (Right (·)))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+
+
+---
+
+### `GetTotalMinted`
+
+Return total number of minted tokens
+
+**Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
+
+<details>
+  <summary>**How to call this entry point**</summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `GetTotalMinted` constructor.
+    + **In Haskell:** `GetTotalMinted (·)`
+    + **In Michelson:** `Right (Left (·))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+
+
+---
+
+### `GetTotalBurned`
+
+Return total number of burned tokens
+
+**Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
+
+<details>
+  <summary>**How to call this entry point**</summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `GetTotalBurned` constructor.
+    + **In Haskell:** `GetTotalBurned (·)`
+    + **In Michelson:** `Right (Right (Left (·)))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+
+
+---
+
+### `GetAdministrator`
+
+This view returns the current administrator.
+
+**Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Address`](#types-Address)
+
+<details>
+  <summary>**How to call this entry point**</summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `GetAdministrator` constructor.
+    + **In Haskell:** `GetAdministrator (·)`
+    + **In Michelson:** `Right (Right (Right (·)))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+
 
 ---
 
@@ -64,7 +214,7 @@ Proxy version of Transfer entrypoint.
 0. Construct parameter for the entry point.
 1. Wrap into `TransferViaProxy` constructor.
     + **In Haskell:** `TransferViaProxy (·)`
-    + **In Michelson:** `Left (Left (Left (Right (Left (·)))))`
+    + **In Michelson:** `Left (Left (Left (Right (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -113,7 +263,7 @@ forbidden to prevent the [corresponding attack vector](https://docs.google.com/d
 0. Construct parameter for the entry point.
 1. Wrap into `Approve` constructor.
     + **In Haskell:** `Approve (·)`
-    + **In Michelson:** `Left (Left (Left (Right (Right (·)))))`
+    + **In Michelson:** `Left (Left (Right (Left (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -145,7 +295,7 @@ Proxy version of Approve entrypoint.
 0. Construct parameter for the entry point.
 1. Wrap into `ApproveViaProxy` constructor.
     + **In Haskell:** `ApproveViaProxy (·)`
-    + **In Michelson:** `Left (Left (Right (Left (·))))`
+    + **In Michelson:** `Left (Left (Right (Right (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -171,131 +321,6 @@ The sender has to be the `proxy`.
 
 ---
 
-### `GetAllowance`
-
-Returns the approval value between two given addresses.
-
-**Parameter:** [`View`](#types-View) (***owner*** : [`Address`](#types-Address), ***spender*** : [`Address`](#types-Address)) [`Natural`](#types-Natural)
-
-<details>
-  <summary>**How to call this entry point**</summary>
-
-0. Construct parameter for the entry point.
-1. Wrap into `GetAllowance` constructor.
-    + **In Haskell:** `GetAllowance (·)`
-    + **In Michelson:** `Left (Left (Right (Right (Left (·)))))`
-
-Pass resulting value as parameter to the contract.
-
-</details>
-<p>
-
-
-
-
-
----
-
-### `GetBalance`
-
-Returns the balance of the address in the ledger.
-
-**Parameter:** [`View`](#types-View) [`Address`](#types-Address) [`Natural`](#types-Natural)
-
-<details>
-  <summary>**How to call this entry point**</summary>
-
-0. Construct parameter for the entry point.
-1. Wrap into `GetBalance` constructor.
-    + **In Haskell:** `GetBalance (·)`
-    + **In Michelson:** `Left (Left (Right (Right (Right (·)))))`
-
-Pass resulting value as parameter to the contract.
-
-</details>
-<p>
-
-
-
-
-
----
-
-### `GetTotalSupply`
-
-Returns total number of tokens.
-
-**Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
-
-<details>
-  <summary>**How to call this entry point**</summary>
-
-0. Construct parameter for the entry point.
-1. Wrap into `GetTotalSupply` constructor.
-    + **In Haskell:** `GetTotalSupply (·)`
-    + **In Michelson:** `Left (Right (Left (Left (·))))`
-
-Pass resulting value as parameter to the contract.
-
-</details>
-<p>
-
-
-
-
-
----
-
-### `GetTotalMinted`
-
-Return total number of minted tokens
-
-**Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
-
-<details>
-  <summary>**How to call this entry point**</summary>
-
-0. Construct parameter for the entry point.
-1. Wrap into `GetTotalMinted` constructor.
-    + **In Haskell:** `GetTotalMinted (·)`
-    + **In Michelson:** `Left (Right (Left (Right (Left (·)))))`
-
-Pass resulting value as parameter to the contract.
-
-</details>
-<p>
-
-
-
-
-
----
-
-### `GetTotalBurned`
-
-Return total number of burned tokens
-
-**Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
-
-<details>
-  <summary>**How to call this entry point**</summary>
-
-0. Construct parameter for the entry point.
-1. Wrap into `GetTotalBurned` constructor.
-    + **In Haskell:** `GetTotalBurned (·)`
-    + **In Michelson:** `Left (Right (Left (Right (Right (·)))))`
-
-Pass resulting value as parameter to the contract.
-
-</details>
-<p>
-
-
-
-
-
----
-
 ### `SetAdministrator`
 
 Change the current administrator.
@@ -308,7 +333,7 @@ Change the current administrator.
 0. Construct parameter for the entry point.
 1. Wrap into `SetAdministrator` constructor.
     + **In Haskell:** `SetAdministrator (·)`
-    + **In Michelson:** `Left (Right (Right (Left (·))))`
+    + **In Michelson:** `Left (Right (Left (Left (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -326,31 +351,6 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-### `GetAdministrator`
-
-This view returns the current administrator.
-
-**Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Address`](#types-Address)
-
-<details>
-  <summary>**How to call this entry point**</summary>
-
-0. Construct parameter for the entry point.
-1. Wrap into `GetAdministrator` constructor.
-    + **In Haskell:** `GetAdministrator (·)`
-    + **In Michelson:** `Left (Right (Right (Right (Left (·)))))`
-
-Pass resulting value as parameter to the contract.
-
-</details>
-<p>
-
-
-
-
-
----
-
 ### `Mint`
 
 Mint tokens to the given address.
@@ -363,7 +363,7 @@ Mint tokens to the given address.
 0. Construct parameter for the entry point.
 1. Wrap into `Mint` constructor.
     + **In Haskell:** `Mint (·)`
-    + **In Michelson:** `Left (Right (Right (Right (Right (·)))))`
+    + **In Michelson:** `Left (Right (Left (Right (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -393,7 +393,7 @@ Burn some tokens from the `redeem` address.
 0. Construct parameter for the entry point.
 1. Wrap into `Burn` constructor.
     + **In Haskell:** `Burn (·)`
-    + **In Michelson:** `Right (Left (Left (Left (·))))`
+    + **In Michelson:** `Left (Right (Right (Left (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -425,7 +425,7 @@ Add operator with given address.
 0. Construct parameter for the entry point.
 1. Wrap into `AddOperator` constructor.
     + **In Haskell:** `AddOperator (·)`
-    + **In Michelson:** `Right (Left (Left (Right (Left (·)))))`
+    + **In Michelson:** `Left (Right (Right (Right (Left (·)))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -455,7 +455,7 @@ Remove operator with given address.
 0. Construct parameter for the entry point.
 1. Wrap into `RemoveOperator` constructor.
     + **In Haskell:** `RemoveOperator (·)`
-    + **In Michelson:** `Right (Left (Left (Right (Right (·)))))`
+    + **In Michelson:** `Left (Right (Right (Right (Right (·)))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -485,7 +485,7 @@ Update `redeem` address, from which tokens can be burned.
 0. Construct parameter for the entry point.
 1. Wrap into `SetRedeemAddress` constructor.
     + **In Haskell:** `SetRedeemAddress (·)`
-    + **In Michelson:** `Right (Left (Right (Left (·))))`
+    + **In Michelson:** `Right (Left (Left (Left (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -515,7 +515,7 @@ Pause the contract, after the pause all end users actions are prohibited.
 0. Construct parameter for the entry point.
 1. Wrap into `Pause` constructor.
     + **In Haskell:** `Pause (·)`
-    + **In Michelson:** `Right (Left (Right (Right (Left (·)))))`
+    + **In Michelson:** `Right (Left (Left (Right (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -549,7 +549,7 @@ no contract can perform `transfer` or `approval` operations.
 0. Construct parameter for the entry point.
 1. Wrap into `Unpause` constructor.
     + **In Haskell:** `Unpause (·)`
-    + **In Michelson:** `Right (Left (Right (Right (Right (·)))))`
+    + **In Michelson:** `Right (Left (Right (Left (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -579,7 +579,7 @@ Start the transfer ownership to a new owner.
 0. Construct parameter for the entry point.
 1. Wrap into `TransferOwnership` constructor.
     + **In Haskell:** `TransferOwnership (·)`
-    + **In Michelson:** `Right (Right (Left (Left (·))))`
+    + **In Michelson:** `Right (Left (Right (Right (Left (·)))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -609,7 +609,7 @@ Accept the ownership of the contract.
 0. Construct parameter for the entry point.
 1. Wrap into `AcceptOwnership` constructor.
     + **In Haskell:** `AcceptOwnership (·)`
-    + **In Michelson:** `Right (Right (Left (Right (Left (·)))))`
+    + **In Michelson:** `Right (Left (Right (Right (Right (·)))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -633,7 +633,7 @@ The sender has to be the `new owner`.
 
 Initialize process of migration from the old contract.
 
-**Parameter:** ***migrationManager*** : [`ContractAddr`](#types-Contract) ([`Address`](#types-Address), [`Natural`](#types-Natural))
+**Parameter:** ***migrationManager*** : [`Address`](#types-Address)
 
 <details>
   <summary>**How to call this entry point**</summary>
@@ -641,7 +641,7 @@ Initialize process of migration from the old contract.
 0. Construct parameter for the entry point.
 1. Wrap into `StartMigrateTo` constructor.
     + **In Haskell:** `StartMigrateTo (·)`
-    + **In Michelson:** `Right (Right (Left (Right (Right (·)))))`
+    + **In Michelson:** `Right (Right (Left (Left (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -665,7 +665,7 @@ The sender has to be the `admin`.
 
 Initialize process of migration from the new contract.
 
-**Parameter:** ***migrationManager*** : [`ContractAddr`](#types-Contract) ([`Address`](#types-Address), [`Natural`](#types-Natural))
+**Parameter:** ***migrationManager*** : [`Address`](#types-Address)
 
 <details>
   <summary>**How to call this entry point**</summary>
@@ -673,7 +673,7 @@ Initialize process of migration from the new contract.
 0. Construct parameter for the entry point.
 1. Wrap into `StartMigrateFrom` constructor.
     + **In Haskell:** `StartMigrateFrom (·)`
-    + **In Michelson:** `Right (Right (Right (Left (Left (·)))))`
+    + **In Michelson:** `Right (Right (Left (Right (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -703,7 +703,7 @@ Mint tokens to the given address from the agent.
 0. Construct parameter for the entry point.
 1. Wrap into `MintForMigration` constructor.
     + **In Haskell:** `MintForMigration (·)`
-    + **In Michelson:** `Right (Right (Right (Left (Right (·)))))`
+    + **In Michelson:** `Right (Right (Right (Left (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -750,6 +750,8 @@ Pass resulting value as parameter to the contract.
 * [`NotEnoughBalance`](#errors-NotEnoughBalance) — Not enough funds to perform the operation.
 
 * [`MigrationNotEnabled`](#errors-MigrationNotEnabled) — Cannot migrate when migration manager hasn't been set up
+
+* [`IllTypedMigrationManager`](#errors-IllTypedMigrationManager) — Type checking on the stored migration manager address failed
 
 
 
@@ -931,6 +933,16 @@ for details.
 **Fires if:** Sender has to be the proxy to call proxy entrypoints
 
 **Representation:** `("CallerIsNotProxy", ())`.
+
+<a name="errors-IllTypedMigrationManager"></a>
+
+---
+
+### `IllTypedMigrationManager`
+
+**Fires if:** Type checking on the stored migration manager address failed
+
+**Representation:** `("IllTypedMigrationManager", ())`.
 
 <a name="errors-InternalError"></a>
 

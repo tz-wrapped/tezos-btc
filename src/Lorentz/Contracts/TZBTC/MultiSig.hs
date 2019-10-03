@@ -17,12 +17,12 @@ where
 
 import Prelude hiding (drop, toStrict, (>>))
 
-import Data.Vinyl.Derived (Label)
-
 import Lorentz
 
 import Michelson.Text (mkMTextUnsafe)
-import Michelson.Typed.Haskell.Instr.Sum
+
+import qualified Lorentz.Contracts.TZBTC.Types as TZBTC
+  (Parameter(..), ParameterWithoutView(..))
 
 data Parameter
   = Default ()
@@ -53,31 +53,19 @@ type ParamManage
 
 type ParamSignatures = [Maybe Signature]
 
-type ParamConstraints parameter =
-  ( KnownValue parameter
-  , NoOperation parameter
-  , IsoValue parameter
-  , NoBigMap parameter)
-
 contractToLambda
-  :: forall parameterRaw parameter constructorName.
-     ( ParamConstraints parameterRaw, ParamConstraints parameter
-     , InstrWrapC parameter constructorName
-     , CtorHasOnlyField constructorName parameter parameterRaw
-     )
-  => Address -> parameterRaw -> Label constructorName -> Lambda () [Operation]
-contractToLambda addr paramRaw constrName = do
+  :: Address -> TZBTC.ParameterWithoutView -> Lambda () [Operation]
+contractToLambda addr param = do
   drop
   push addr
   contract
   if IsNone
   then do push (mkMTextUnsafe "Invalid contract type"); failWith
   else do
-    push paramRaw
-    stackType @(parameterRaw : ContractAddr parameter : '[])
-    wrap_ @parameter @constructorName constrName
+    push param
+    wrap_ @TZBTC.Parameter #cEntrypointsWithoutView
     dip $ push $ toMutez 0
-    transferTokens @parameter
+    transferTokens
     dip nil
     cons
 
