@@ -77,7 +77,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         -- Make the multi-sig call that adds an operator
         let
           tzbtcParam = TZBTC.AddOperator (#operator .! operatorAddress)
-          package = MSig.mkPackage msig 0 tzbtc tzbtcParam
+          package = MSig.mkPackageFromTzbtcParam msig 0 tzbtc tzbtcParam
           bytesToSign = getBytesToSign package
           encodedPackage = MSig.encodePackage package
         -- Signing the bytes
@@ -107,7 +107,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         -- Make the multi-sig call that adds an operator
         let
           tzbtcParam = TZBTC.AddOperator (#operator .! operatorAddress)
-          package = MSig.mkPackage msig 0 tzbtc tzbtcParam
+          package = MSig.mkPackageFromTzbtcParam msig 0 tzbtc tzbtcParam
           bytesToSign = getBytesToSign package
           encodedPackage = MSig.encodePackage package
           -- Signing the bytes
@@ -135,7 +135,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         -- Make the multi-sig call that adds an operator
         let
           tzbtcParam = TZBTC.AddOperator (#operator .! operatorAddress)
-          package = MSig.mkPackage msig 0 tzbtc tzbtcParam
+          package = MSig.mkPackageFromTzbtcParam msig 0 tzbtc tzbtcParam
           bytesToSign = getBytesToSign package
           encodedPackage = MSig.encodePackage package
           -- Signing the bytes
@@ -166,7 +166,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         -- Make the multi-sig call that adds an operator
         let
           tzbtcParam = TZBTC.AddOperator (#operator .! operatorAddress)
-          package = MSig.mkPackage msig 0 tzbtc tzbtcParam
+          package = MSig.mkPackageFromTzbtcParam msig 0 tzbtc tzbtcParam
           bytesToSign = getBytesToSign package
           encodedPackage = MSig.encodePackage package
           -- Signing the bytes
@@ -208,7 +208,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           tzbtcParam = TZBTC.AddOperator (#operator .! operatorAddress)
           -- Here we make the multi-sig pacakge for msig address.
           -- But will call the cloned multi-sig using it.
-          package = MSig.mkPackage msig 0 tzbtc tzbtcParam
+          package = MSig.mkPackageFromTzbtcParam msig 0 tzbtc tzbtcParam
           bytesToSign = getBytesToSign package
           encodedPackage = MSig.encodePackage package
           -- Signing the bytes
@@ -248,7 +248,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         tzbtc = ContractAddr $ unsafeParseAddress "KT1XXJWcjrwfcPL4n3vjmwCBsvkazDt8scYY"
 
         tzbtcParam = TZBTC.AddOperator (#operator .! operatorAddress)
-        package = MSig.mkPackage msig 0 tzbtc tzbtcParam
+        package = MSig.mkPackageFromTzbtcParam msig 0 tzbtc tzbtcParam
         bytesToSign = getBytesToSign package
         encodedPackage = MSig.encodePackage package
         -- Signing the bytes
@@ -285,8 +285,8 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
 
         tzbtcParam = TZBTC.AddOperator (#operator .! operatorAddress)
         tzbtcParamBadParam = TZBTC.RemoveOperator (#operator .! operatorAddress)
-        package = MSig.mkPackage msig 0 tzbtc tzbtcParam
-        package2 = MSig.mkPackage msig 0 tzbtc tzbtcParamBadParam
+        package = MSig.mkPackageFromTzbtcParam msig 0 tzbtc tzbtcParam
+        package2 = MSig.mkPackageFromTzbtcParam msig 0 tzbtc tzbtcParamBadParam
 
         -- replace operation with bad operation
         badPackage = package { pkToSign = pkToSign package2 } :: Package

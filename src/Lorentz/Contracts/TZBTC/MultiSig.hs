@@ -17,7 +17,12 @@ where
 
 import Prelude hiding (drop, toStrict, (>>))
 
+import Data.Vinyl.Derived (Label)
+
 import Lorentz
+
+import Michelson.Text (mkMTextUnsafe)
+import Michelson.Typed.Haskell.Instr.Sum
 
 data Parameter
   = Default ()
@@ -55,16 +60,26 @@ type ParamConstraints parameter =
   , NoBigMap parameter)
 
 contractToLambda
-  :: forall parameter. ParamConstraints parameter
-  => ContractAddr parameter -> parameter -> Lambda () [Operation]
-contractToLambda caddr param = do
+  :: forall parameterRaw parameter constructorName.
+     ( ParamConstraints parameterRaw, ParamConstraints parameter
+     , InstrWrapC parameter constructorName
+     , CtorHasOnlyField constructorName parameter parameterRaw
+     )
+  => Address -> parameterRaw -> Label constructorName -> Lambda () [Operation]
+contractToLambda addr paramRaw constrName = do
   drop
-  push caddr
-  push param
-  dip $ push $ toMutez 0
-  transferTokens
-  dip nil
-  cons
+  push addr
+  contract
+  if IsNone
+  then do push (mkMTextUnsafe "Invalid contract type"); failWith
+  else do
+    push paramRaw
+    stackType @(parameterRaw : ContractAddr parameter : '[])
+    wrap_ @parameter @constructorName constrName
+    dip $ push $ toMutez 0
+    transferTokens @parameter
+    dip nil
+    cons
 
 mkStorage :: Natural -> Natural -> [PublicKey] -> Storage
 mkStorage counter threshold keys_ = (counter, (threshold, keys_))

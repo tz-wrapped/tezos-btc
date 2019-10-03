@@ -112,13 +112,12 @@ writePackageToFile package fileToWrite =
   writeFile fileToWrite $ encodePackage package
 
 createMultisigPackage :: FilePath -> Parameter -> IO ()
-createMultisigPackage packagePath param = do
+createMultisigPackage packagePath parameter = do
   config@ClientConfig{..} <- throwLeft $ readConfigFile
   (counter, _) <- throwLeft $ getMultisigStorage ccMultisigAddress config
-  let package = mkPackage ccMultisigAddress counter
-        (ContractAddr ccContractAddress) param
+  let package = mkPackageFromTzbtcParam ccMultisigAddress counter
+        (ContractAddr ccContractAddress) parameter
   writePackageToFile package packagePath
-
 
 -- Quite ugly patternmatching, but at least such approach
 -- works for multisig storage extraction. As soon as https://issues.serokell.io/issue/TM-140
