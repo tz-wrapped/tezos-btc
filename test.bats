@@ -81,7 +81,10 @@
 }
 
 @test "invoking tzbtc 'printContract' command with --oneline flag" {
-  stack exec -- tzbtc printContract --oneline
+  result="$(stack exec -- tzbtc printContract --oneline)"
+  [[ "$result" == *"%transfer"* ]]
+  [[ "$result" == *"%approve"* ]]
+  [[ "$result" == *"%mint"* ]]
 }
 
 @test "invoking tzbtc 'printAgentContract' command" {
@@ -97,7 +100,10 @@
 }
 
 @test "invoking tzbtc 'printProxyContract' command with --oneline flag" {
-  stack exec -- tzbtc printProxyContract --oneline
+  result="$(stack exec -- tzbtc printProxyContract --oneline)"
+  [[ "$result" == *"%transfer"* ]]
+  [[ "$result" == *"%approve"* ]]
+  [[ "$result" == *"%getAllowance"* ]]
 }
 
 @test "invoking tzbtc 'printContractDoc' command" {
