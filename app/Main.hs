@@ -14,8 +14,6 @@ import Options.Applicative
 import Options.Applicative.Help.Pretty (Doc, linebreak)
 
 import Lorentz
-  (CanHaveBigMap, Contract, KnownValue, NoBigMap, NoOperation,
-   parseLorentzValue, printLorentzContract, printLorentzValue, lcwDumb)
 import Lorentz.Common (showTestScenario)
 import Util.IO (writeFileUtf8)
 import Paths_tzbtc (version)
@@ -34,9 +32,9 @@ main = do
   cmd <- execParser programInfo
   case cmd of
     CmdPrintContract singleLine mbFilePath ->
-      printContract singleLine mbFilePath tzbtcContract
+      printContract singleLine mbFilePath lcwEntryPoints tzbtcContract
     CmdPrintAgentContract singleLine mbFilePath ->
-      printContract singleLine mbFilePath (agentContract @Parameter)
+      printContract singleLine mbFilePath lcwDumb (agentContract @Parameter)
         -- Here agentContract that is printed is the one that target a
         -- contract with the parameter `Parameter`. If we can obtain
         -- runtime witness or type class dictionaries for the constraints
@@ -44,7 +42,7 @@ main = do
         -- from a file, and printout an agent contract that can migrate
         -- to it, or print out an error if it is incompatible.
     CmdPrintProxyContract singleLine mbFilePath ->
-      printContract singleLine mbFilePath tzbtcProxyContract
+      printContract singleLine mbFilePath lcwEntryPointsRecursive tzbtcProxyContract
     CmdPrintInitialStorage adminAddress redeemAddress ->
       putStrLn $ printLorentzValue True (mkStorage adminAddress redeemAddress mempty mempty)
     CmdPrintDoc mbFilePath ->
@@ -58,13 +56,15 @@ main = do
         showTestScenario <$> mkTestScenario tsoMaster tsoAddresses
   where
     printContract
-      :: ( KnownValue parameter, KnownValue storage
-         , NoOperation parameter, NoOperation storage
-         , NoBigMap parameter, CanHaveBigMap storage)
-      => Bool -> Maybe FilePath -> Contract parameter storage -> IO ()
-    printContract singleLine mbFilePath contract =
+      :: (KnownValue parameter, KnownValue storage)
+      => Bool
+      -> Maybe FilePath
+      -> LorentzCompilationWay parameter storage
+      -> Contract parameter storage
+      -> IO ()
+    printContract singleLine mbFilePath lcw  c =
       maybe putStrLn writeFileUtf8 mbFilePath $
-        printLorentzContract singleLine lcwDumb contract
+        printLorentzContract singleLine lcw c
     programInfo =
       info (helper <*> versionOption <*> argParser) $
       mconcat
