@@ -32,10 +32,21 @@
     --callback "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46" --dry-run
 }
 
+@test "invoking tzbtc-client 'getAllowance' command without callback" {
+  stack exec -- tzbtc-client getAllowance\
+    --owner "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"\
+    --spender "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" --dry-run
+}
+
 @test "invoking tzbtc-client 'getBalance' command" {
   stack exec -- tzbtc-client getBalance\
     --address "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"\
     --callback "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46" --dry-run
+}
+
+@test "invoking tzbtc-client 'getBalance' command without callback" {
+  stack exec -- tzbtc-client getBalance\
+    --address "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --dry-run
 }
 
 @test "invoking tzbtc-client 'addOperator' command" {

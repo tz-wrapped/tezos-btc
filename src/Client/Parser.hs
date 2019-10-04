@@ -14,8 +14,8 @@ module Client.Parser
 import Data.Char (isAlpha, isDigit, toUpper)
 import Fmt (pretty)
 import Options.Applicative
-  (argument, auto, eitherReader, help, long, metavar, option,
-  showDefaultWith, str, switch, value)
+  (argument, auto, eitherReader, help, long, metavar, option, optional,
+  showDefaultWith, str, strOption, switch, value)
 import qualified Options.Applicative as Opt
 import qualified Text.Megaparsec as P
   (Parsec, customFailure, many, parse, satisfy)
@@ -40,8 +40,8 @@ data ClientArgsRaw
   | CmdBurn BurnParams (Maybe FilePath)
   | CmdTransfer AddrOrAlias AddrOrAlias Natural
   | CmdApprove AddrOrAlias Natural
-  | CmdGetAllowance (AddrOrAlias, AddrOrAlias) AddrOrAlias
-  | CmdGetBalance AddrOrAlias AddrOrAlias
+  | CmdGetAllowance (AddrOrAlias, AddrOrAlias) (Maybe AddrOrAlias)
+  | CmdGetBalance AddrOrAlias (Maybe AddrOrAlias)
   | CmdAddOperator AddrOrAlias (Maybe FilePath)
   | CmdRemoveOperator AddrOrAlias (Maybe FilePath)
   | CmdPause (Maybe FilePath)
@@ -78,6 +78,7 @@ clientArgRawParser = Opt.hsubparser $
   <> addSignatureCmd <> signPackageCmd <> callMultisigCmd
   <> addSignatureCmd <> callMultisigCmd <> configCmd
   where
+    multisigOption :: Opt.Parser (Maybe FilePath)
     multisigOption =
       Opt.optional $ Opt.strOption $ mconcat
       [ long "multisig"
@@ -167,7 +168,7 @@ clientArgRawParser = Opt.hsubparser $
          (CmdGetAllowance <$>
           ((,) <$> addrOrAliasOption "owner" "Address of the owner" <*>
           addrOrAliasOption "spender" "Address of the spender") <*>
-          addrOrAliasOption "callback" "Callback address"
+          mbAddrOrAliasOption "callback" "Callback address"
          )
          "Get allowance for an account")
     getBalanceCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
@@ -176,7 +177,7 @@ clientArgRawParser = Opt.hsubparser $
          "getBalance"
          (CmdGetBalance <$>
           addrOrAliasOption "address" "Address of the owner" <*>
-          addrOrAliasOption "callback" "Callback address"
+          mbAddrOrAliasOption "callback" "Callback address"
          )
          "Get balance for an account")
     addOperatorCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
@@ -303,6 +304,14 @@ clientArgRawParser = Opt.hsubparser $
 addrOrAliasOption :: String -> String -> Opt.Parser AddrOrAlias
 addrOrAliasOption name hInfo =
   option str $ mconcat
+  [ metavar "ADDRESS | ALIAS"
+  , long name
+  , help hInfo
+  ]
+
+mbAddrOrAliasOption :: String -> String -> Opt.Parser (Maybe AddrOrAlias)
+mbAddrOrAliasOption name hInfo =
+  optional $ strOption $ mconcat
   [ metavar "ADDRESS | ALIAS"
   , long name
   , help hInfo

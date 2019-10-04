@@ -48,14 +48,26 @@ main = do
         spender <- addrOrAliasToAddr spender'
         runTzbtcContract $
           EntrypointsWithoutView $ Approve (#spender .! spender, #value .! value)
-      CmdGetAllowance (owner', spender') callback' -> do
-        [owner, spender, callback] <- mapM addrOrAliasToAddr [owner', spender', callback']
-        runTzbtcContract $ EntrypointsWithView $ GetAllowance $
-          View (#owner .! owner, #spender .! spender) (ContractAddr callback)
-      CmdGetBalance owner' callback' -> do
-        [owner, callback] <- mapM addrOrAliasToAddr [owner', callback']
-        runTzbtcContract $
-          EntrypointsWithView $ GetBalance $ View owner (ContractAddr callback)
+      CmdGetAllowance (owner', spender') mbCallback' ->
+        case mbCallback' of
+          Just callback' -> do
+            [owner, spender, callback] <- mapM addrOrAliasToAddr [owner', spender', callback']
+            runTzbtcContract $ EntrypointsWithView $ GetAllowance $
+              View (#owner .! owner, #spender .! spender) (ContractAddr callback)
+          Nothing -> do
+            [owner, spender] <- mapM addrOrAliasToAddr [owner', spender']
+            allowance <- getAllowance owner spender
+            putStrLn ("Allowance: " <> show allowance :: Text)
+      CmdGetBalance owner' mbCallback' -> do
+        case mbCallback' of
+          Just callback' -> do
+            [owner, callback] <- mapM addrOrAliasToAddr [owner', callback']
+            runTzbtcContract $
+              EntrypointsWithView $ GetBalance $ View owner (ContractAddr callback)
+          Nothing -> do
+            owner <- addrOrAliasToAddr owner'
+            balance <- getBalance owner
+            putStrLn ("Balance: " <> show balance :: Text)
       CmdAddOperator operator' mbMultisig -> do
         operator <- addrOrAliasToAddr operator'
         runMultisigTzbtcContract mbMultisig $

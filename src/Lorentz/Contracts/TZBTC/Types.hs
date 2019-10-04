@@ -132,7 +132,7 @@ data StorageFields = StorageFields
   , migrationManagerIn :: Maybe MigrationManager
   , migrationManagerOut :: Maybe MigrationManager
   , proxy :: Either Address Address
-  } deriving stock Generic
+  } deriving stock (Show, Generic)
     deriving anyclass IsoValue
 
 instance HasFieldOfType StorageFields name field =>

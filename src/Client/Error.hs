@@ -21,7 +21,6 @@ data TzbtcClientError
   | TzbtcClientConfigFileNotFound FilePath
   | TzbtcRunFailed [RunError]
   | TzbtcUnexpectedRunResult Text
-  | TzbtcUnexpectedMultisigStorage MichelsonExpression
   | TzbtcPublicKeyParseError Text CryptoParseError
   | TzbtcUnknownAliasError Text
   | TzbtcMutlisigConfigUnavailable
@@ -59,10 +58,6 @@ instance Buildable TzbtcClientError where
 
   build (TzbtcUnexpectedRunResult msg) =
     "Unexpected result of transaction preliminary run: " +| msg |+ ""
-
-  build (TzbtcUnexpectedMultisigStorage stor) =
-    "Multisig contract has unexpected storage: " +| stor |+ "\n" <>
-    "Expecting the following storage (counter, (treshold, [keys]))"
 
   build (TzbtcPublicKeyParseError pk err) =
     "Failed to parse public key " +| pk |+ " with: " +| err |+ ""
