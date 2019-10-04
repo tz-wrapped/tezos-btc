@@ -106,6 +106,14 @@ data ParameterWithoutView
   deriving stock (Eq, Show, Generic)
   deriving anyclass IsoValue
 
+instance TypeHasDoc ParameterWithView where
+  typeDocName _ = "Parameter.ParameterWithView"
+  typeDocMdDescription = "Parameter which contains View entrypoints"
+
+instance TypeHasDoc ParameterWithoutView where
+  typeDocName _ = "Parameter.ParameterWithoutView"
+  typeDocMdDescription = "Parameter which doesn't contain View entrypoints"
+
 ----------------------------------------------------------------------------
 -- Storage
 ----------------------------------------------------------------------------

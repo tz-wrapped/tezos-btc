@@ -19,11 +19,15 @@ module Lorentz.Contracts.TZBTC
 import Prelude (LText)
 import Lorentz
 
-import qualified Data.Text as T (concat)
+import qualified Data.Text as T
+import Fmt (build, fmt)
 
+import Michelson.Typed (untypeValue)
 import Michelson.Typed.Doc
   (DComment(..), DDescription(..), DName(..), SomeDocItem(..), contractDocToMarkdown)
 import Lorentz.Contracts.ManagedLedger.Doc (getTotalSupplyDoc)
+import Lorentz.Test.Integrational (genesisAddress)
+import Util.Markdown
 
 import Lorentz.Contracts.TZBTC.Agent (agentContract)
 import Lorentz.Contracts.TZBTC.Impl
@@ -40,49 +44,90 @@ tzbtcContract = do
   unpair
   caseT @Parameter
     ( #cEntrypointsWithView /->
-        entryCase @ParameterWithView (Proxy @PlainEntryPointsKind)
-        ( #cGetAllowance /-> getAllowance
-        , #cGetBalance /-> getBalance
-          , #cGetTotalSupply /-> getTotal #totalSupply
-            getTotalSupplyDoc
-          , #cGetTotalMinted /-> getTotal #totalMinted
-            "Return total number of minted tokens"
-          , #cGetTotalBurned /-> getTotal #totalBurned
-            "Return total number of burned tokens"
-          , #cGetAdministrator /-> getAdministrator
-          )
+        entrypointsWithView
     , #cEntrypointsWithoutView /->
-        entryCase @ParameterWithoutView (Proxy @PlainEntryPointsKind)
-          ( #cTransfer /-> transfer
-          , #cTransferViaProxy /-> transferViaProxy
-          , #cApprove /-> approve
-          , #cApproveViaProxy /-> approveViaProxy
-          , #cSetAdministrator /-> setAdministrator
-          , #cMint /-> mint
-          , #cBurn /-> burn
-          , #cAddOperator /-> addOperator
-          , #cRemoveOperator /-> removeOperator
-          , #cSetRedeemAddress /-> setRedeemAddress
-          , #cPause /-> pause
-          , #cUnpause /-> unpause
-          , #cTransferOwnership /-> transferOwnership
-          , #cAcceptOwnership /-> acceptOwnership
-          , #cStartMigrateTo /-> startMigrateTo
-          , #cStartMigrateFrom /-> startMigrateFrom
-          , #cMintForMigration /-> mintForMigration
-          , #cMigrate /-> migrate
-          , #cSetProxy /-> setProxy
-          )
+        entrypointsWithoutView
     )
 
 tzbtcCompileWay :: LorentzCompilationWay Parameter Storage
 tzbtcCompileWay = lcwEntryPoints
 
-data TzbtcEntryPointKind
+entrypointsWithView :: Entrypoint ParameterWithView Storage
+entrypointsWithView =
+  entryCase @ParameterWithView (Proxy @TzbtcEntryPointWithViewKind)
+    ( #cGetAllowance /-> getAllowance
+    , #cGetBalance /-> getBalance
+    , #cGetTotalSupply /-> getTotal #totalSupply
+      getTotalSupplyDoc
+    , #cGetTotalMinted /-> getTotal #totalMinted
+      "Return total number of minted tokens"
+    , #cGetTotalBurned /-> getTotal #totalBurned
+      "Return total number of burned tokens"
+    , #cGetAdministrator /-> getAdministrator
+    )
 
-instance DocItem (DEntryPoint TzbtcEntryPointKind) where
-  type DocItemPosition (DEntryPoint TzbtcEntryPointKind) = 1001
-  docItemSectionName = Just "Entry-points of TZBTC contract"
+entrypointsWithoutView :: Entrypoint ParameterWithoutView Storage
+entrypointsWithoutView =
+  entryCase @ParameterWithoutView (Proxy @TzbtcEntryPointWithoutViewKind)
+    ( #cTransfer /-> transfer
+    , #cTransferViaProxy /-> transferViaProxy
+    , #cApprove /-> approve
+    , #cApproveViaProxy /-> approveViaProxy
+    , #cSetAdministrator /-> setAdministrator
+    , #cMint /-> mint
+    , #cBurn /-> burn
+    , #cAddOperator /-> addOperator
+    , #cRemoveOperator /-> removeOperator
+    , #cSetRedeemAddress /-> setRedeemAddress
+    , #cPause /-> pause
+    , #cUnpause /-> unpause
+    , #cTransferOwnership /-> transferOwnership
+    , #cAcceptOwnership /-> acceptOwnership
+    , #cStartMigrateTo /-> startMigrateTo
+    , #cStartMigrateFrom /-> startMigrateFrom
+    , #cMintForMigration /-> mintForMigration
+    , #cMigrate /-> migrate
+    , #cSetProxy /-> setProxy
+    )
+
+data TzbtcEntryPointWithoutViewKind
+
+instance DocItem (DEntryPoint TzbtcEntryPointWithoutViewKind) where
+  type DocItemPosition (DEntryPoint TzbtcEntryPointWithoutViewKind) = 1001
+  docItemSectionName = Just "Non-View entry-points of TZBTC contract"
+  docItemSectionDescription = Nothing
+  docItemToMarkdown = diEntryPointToMarkdown
+
+pbsContainedInEntrypointsWithoutView :: ParamBuildingStep
+pbsContainedInEntrypointsWithoutView = ParamBuildingStep
+  { pbsEnglish = "Wrap into " <> mdTicked "EntrypointsWithoutView" <> " constructor"
+  , pbsHaskell = \p -> "EntrypointsWithoutView (" <> p <> ")"
+  , pbsMichelson = \p ->
+      let paramDumb = Pause ()
+      in build $ T.replace
+         (fmt . build . untypeValue $ toVal paramDumb)
+         ("(" <> fmt p <> ")")
+         (fmt . build . untypeValue $ toVal $ EntrypointsWithoutView paramDumb)
+  }
+
+pbsContainedInEntrypointsWithView :: ParamBuildingStep
+pbsContainedInEntrypointsWithView = ParamBuildingStep
+  { pbsEnglish = "Wrap into " <> mdTicked "EntrypointsWithView" <> " constructor"
+  , pbsHaskell = \p -> "EntrypointsWithView (" <> p <> ")"
+  , pbsMichelson = \p ->
+      let paramDumb = GetTotalSupply $
+            View {viewParam = (), viewCallbackTo = ContractAddr genesisAddress}
+      in build $ T.replace
+         (fmt . build . untypeValue $ toVal paramDumb)
+         ("(" <> fmt p <> ")")
+         (fmt . build . untypeValue $ toVal $ EntrypointsWithView paramDumb)
+  }
+
+data TzbtcEntryPointWithViewKind
+
+instance DocItem (DEntryPoint TzbtcEntryPointWithViewKind) where
+  type DocItemPosition (DEntryPoint TzbtcEntryPointWithViewKind) = 937
+  docItemSectionName = Just "View entry-points of TZBTC contract"
   docItemSectionDescription = Nothing
   docItemToMarkdown = diEntryPointToMarkdown
 
@@ -98,4 +143,8 @@ tzbtcDoc = contractDocToMarkdown . buildLorentzDoc $ do
     ]
   docGroup (SomeDocItem . DName "TZBTC") $ do
     doc $ DDescription "This contract is implemented using Lorentz language"
-    tzbtcContract
+    clarifyParamBuildingSteps pbsContainedInEntrypointsWithoutView $
+      entrypointsWithoutView
+    fakeCoerce
+    clarifyParamBuildingSteps pbsContainedInEntrypointsWithView $
+      entrypointsWithView

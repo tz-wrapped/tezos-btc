@@ -8,7 +8,7 @@
 
 This contract is implemented using Lorentz language
 
-## Entry points
+## View entry-points of TZBTC contract
 
 ---
 
@@ -25,6 +25,9 @@ Returns the approval value between two given addresses.
 1. Wrap into `GetAllowance` constructor.
     + **In Haskell:** `GetAllowance (·)`
     + **In Michelson:** `Left (Left (·))`
+1. Wrap into `EntrypointsWithView` constructor
+    + **In Haskell:** `EntrypointsWithView (·)`
+    + **In Michelson:** `Left ((·))`
 
 Pass resulting value as parameter to the contract.
 
@@ -50,6 +53,9 @@ Returns the balance of the address in the ledger.
 1. Wrap into `GetBalance` constructor.
     + **In Haskell:** `GetBalance (·)`
     + **In Michelson:** `Left (Right (Left (·)))`
+1. Wrap into `EntrypointsWithView` constructor
+    + **In Haskell:** `EntrypointsWithView (·)`
+    + **In Michelson:** `Left ((·))`
 
 Pass resulting value as parameter to the contract.
 
@@ -75,6 +81,9 @@ Returns total number of tokens.
 1. Wrap into `GetTotalSupply` constructor.
     + **In Haskell:** `GetTotalSupply (·)`
     + **In Michelson:** `Left (Right (Right (·)))`
+1. Wrap into `EntrypointsWithView` constructor
+    + **In Haskell:** `EntrypointsWithView (·)`
+    + **In Michelson:** `Left ((·))`
 
 Pass resulting value as parameter to the contract.
 
@@ -100,6 +109,9 @@ Return total number of minted tokens
 1. Wrap into `GetTotalMinted` constructor.
     + **In Haskell:** `GetTotalMinted (·)`
     + **In Michelson:** `Right (Left (·))`
+1. Wrap into `EntrypointsWithView` constructor
+    + **In Haskell:** `EntrypointsWithView (·)`
+    + **In Michelson:** `Left ((·))`
 
 Pass resulting value as parameter to the contract.
 
@@ -125,6 +137,9 @@ Return total number of burned tokens
 1. Wrap into `GetTotalBurned` constructor.
     + **In Haskell:** `GetTotalBurned (·)`
     + **In Michelson:** `Right (Right (Left (·)))`
+1. Wrap into `EntrypointsWithView` constructor
+    + **In Haskell:** `EntrypointsWithView (·)`
+    + **In Michelson:** `Left ((·))`
 
 Pass resulting value as parameter to the contract.
 
@@ -150,6 +165,9 @@ This view returns the current administrator.
 1. Wrap into `GetAdministrator` constructor.
     + **In Haskell:** `GetAdministrator (·)`
     + **In Michelson:** `Right (Right (Right (·)))`
+1. Wrap into `EntrypointsWithView` constructor
+    + **In Haskell:** `EntrypointsWithView (·)`
+    + **In Michelson:** `Left ((·))`
 
 Pass resulting value as parameter to the contract.
 
@@ -159,6 +177,8 @@ Pass resulting value as parameter to the contract.
 
 
 
+
+## Non-View entry-points of TZBTC contract
 
 ---
 
@@ -181,6 +201,9 @@ In this case current number of tokens that sender is allowed to withdraw from th
 1. Wrap into `Transfer` constructor.
     + **In Haskell:** `Transfer (·)`
     + **In Michelson:** `Left (Left (Left (Left (·))))`
+1. Wrap into `EntrypointsWithoutView` constructor
+    + **In Haskell:** `EntrypointsWithoutView (·)`
+    + **In Michelson:** `Right ((·))`
 
 Pass resulting value as parameter to the contract.
 
@@ -215,6 +238,9 @@ Proxy version of Transfer entrypoint.
 1. Wrap into `TransferViaProxy` constructor.
     + **In Haskell:** `TransferViaProxy (·)`
     + **In Michelson:** `Left (Left (Left (Right (·))))`
+1. Wrap into `EntrypointsWithoutView` constructor
+    + **In Haskell:** `EntrypointsWithoutView (·)`
+    + **In Michelson:** `Right ((·))`
 
 Pass resulting value as parameter to the contract.
 
@@ -264,6 +290,9 @@ forbidden to prevent the [corresponding attack vector](https://docs.google.com/d
 1. Wrap into `Approve` constructor.
     + **In Haskell:** `Approve (·)`
     + **In Michelson:** `Left (Left (Right (Left (·))))`
+1. Wrap into `EntrypointsWithoutView` constructor
+    + **In Haskell:** `EntrypointsWithoutView (·)`
+    + **In Michelson:** `Right ((·))`
 
 Pass resulting value as parameter to the contract.
 
@@ -296,6 +325,9 @@ Proxy version of Approve entrypoint.
 1. Wrap into `ApproveViaProxy` constructor.
     + **In Haskell:** `ApproveViaProxy (·)`
     + **In Michelson:** `Left (Left (Right (Right (·))))`
+1. Wrap into `EntrypointsWithoutView` constructor
+    + **In Haskell:** `EntrypointsWithoutView (·)`
+    + **In Michelson:** `Right ((·))`
 
 Pass resulting value as parameter to the contract.
 
@@ -334,6 +366,9 @@ Change the current administrator.
 1. Wrap into `SetAdministrator` constructor.
     + **In Haskell:** `SetAdministrator (·)`
     + **In Michelson:** `Left (Right (Left (Left (·))))`
+1. Wrap into `EntrypointsWithoutView` constructor
+    + **In Haskell:** `EntrypointsWithoutView (·)`
+    + **In Michelson:** `Right ((·))`
 
 Pass resulting value as parameter to the contract.
 
@@ -364,6 +399,9 @@ Mint tokens to the given address.
 1. Wrap into `Mint` constructor.
     + **In Haskell:** `Mint (·)`
     + **In Michelson:** `Left (Right (Left (Right (·))))`
+1. Wrap into `EntrypointsWithoutView` constructor
+    + **In Haskell:** `EntrypointsWithoutView (·)`
+    + **In Michelson:** `Right ((·))`
 
 Pass resulting value as parameter to the contract.
 
@@ -394,6 +432,9 @@ Burn some tokens from the `redeem` address.
 1. Wrap into `Burn` constructor.
     + **In Haskell:** `Burn (·)`
     + **In Michelson:** `Left (Right (Right (Left (·))))`
+1. Wrap into `EntrypointsWithoutView` constructor
+    + **In Haskell:** `EntrypointsWithoutView (·)`
+    + **In Michelson:** `Right ((·))`
 
 Pass resulting value as parameter to the contract.
 
@@ -426,6 +467,9 @@ Add operator with given address.
 1. Wrap into `AddOperator` constructor.
     + **In Haskell:** `AddOperator (·)`
     + **In Michelson:** `Left (Right (Right (Right (Left (·)))))`
+1. Wrap into `EntrypointsWithoutView` constructor
+    + **In Haskell:** `EntrypointsWithoutView (·)`
+    + **In Michelson:** `Right ((·))`
 
 Pass resulting value as parameter to the contract.
 
@@ -456,6 +500,9 @@ Remove operator with given address.
 1. Wrap into `RemoveOperator` constructor.
     + **In Haskell:** `RemoveOperator (·)`
     + **In Michelson:** `Left (Right (Right (Right (Right (·)))))`
+1. Wrap into `EntrypointsWithoutView` constructor
+    + **In Haskell:** `EntrypointsWithoutView (·)`
+    + **In Michelson:** `Right ((·))`
 
 Pass resulting value as parameter to the contract.
 
@@ -486,6 +533,9 @@ Update `redeem` address, from which tokens can be burned.
 1. Wrap into `SetRedeemAddress` constructor.
     + **In Haskell:** `SetRedeemAddress (·)`
     + **In Michelson:** `Right (Left (Left (Left (·))))`
+1. Wrap into `EntrypointsWithoutView` constructor
+    + **In Haskell:** `EntrypointsWithoutView (·)`
+    + **In Michelson:** `Right ((·))`
 
 Pass resulting value as parameter to the contract.
 
@@ -516,6 +566,9 @@ Pause the contract, after the pause all end users actions are prohibited.
 1. Wrap into `Pause` constructor.
     + **In Haskell:** `Pause (·)`
     + **In Michelson:** `Right (Left (Left (Right (·))))`
+1. Wrap into `EntrypointsWithoutView` constructor
+    + **In Haskell:** `EntrypointsWithoutView (·)`
+    + **In Michelson:** `Right ((·))`
 
 Pass resulting value as parameter to the contract.
 
@@ -550,6 +603,9 @@ no contract can perform `transfer` or `approval` operations.
 1. Wrap into `Unpause` constructor.
     + **In Haskell:** `Unpause (·)`
     + **In Michelson:** `Right (Left (Right (Left (·))))`
+1. Wrap into `EntrypointsWithoutView` constructor
+    + **In Haskell:** `EntrypointsWithoutView (·)`
+    + **In Michelson:** `Right ((·))`
 
 Pass resulting value as parameter to the contract.
 
@@ -580,6 +636,9 @@ Start the transfer ownership to a new owner.
 1. Wrap into `TransferOwnership` constructor.
     + **In Haskell:** `TransferOwnership (·)`
     + **In Michelson:** `Right (Left (Right (Right (Left (·)))))`
+1. Wrap into `EntrypointsWithoutView` constructor
+    + **In Haskell:** `EntrypointsWithoutView (·)`
+    + **In Michelson:** `Right ((·))`
 
 Pass resulting value as parameter to the contract.
 
@@ -610,6 +669,9 @@ Accept the ownership of the contract.
 1. Wrap into `AcceptOwnership` constructor.
     + **In Haskell:** `AcceptOwnership (·)`
     + **In Michelson:** `Right (Left (Right (Right (Right (·)))))`
+1. Wrap into `EntrypointsWithoutView` constructor
+    + **In Haskell:** `EntrypointsWithoutView (·)`
+    + **In Michelson:** `Right ((·))`
 
 Pass resulting value as parameter to the contract.
 
@@ -642,6 +704,9 @@ Initialize process of migration from the old contract.
 1. Wrap into `StartMigrateTo` constructor.
     + **In Haskell:** `StartMigrateTo (·)`
     + **In Michelson:** `Right (Right (Left (Left (·))))`
+1. Wrap into `EntrypointsWithoutView` constructor
+    + **In Haskell:** `EntrypointsWithoutView (·)`
+    + **In Michelson:** `Right ((·))`
 
 Pass resulting value as parameter to the contract.
 
@@ -674,6 +739,9 @@ Initialize process of migration from the new contract.
 1. Wrap into `StartMigrateFrom` constructor.
     + **In Haskell:** `StartMigrateFrom (·)`
     + **In Michelson:** `Right (Right (Left (Right (·))))`
+1. Wrap into `EntrypointsWithoutView` constructor
+    + **In Haskell:** `EntrypointsWithoutView (·)`
+    + **In Michelson:** `Right ((·))`
 
 Pass resulting value as parameter to the contract.
 
@@ -704,6 +772,9 @@ Mint tokens to the given address from the agent.
 1. Wrap into `MintForMigration` constructor.
     + **In Haskell:** `MintForMigration (·)`
     + **In Michelson:** `Right (Right (Right (Left (·))))`
+1. Wrap into `EntrypointsWithoutView` constructor
+    + **In Haskell:** `EntrypointsWithoutView (·)`
+    + **In Michelson:** `Right ((·))`
 
 Pass resulting value as parameter to the contract.
 
@@ -734,6 +805,9 @@ Migrate from one verstion of the contract to another. Thus tokens in the old ver
 1. Wrap into `Migrate` constructor.
     + **In Haskell:** `Migrate (·)`
     + **In Michelson:** `Right (Right (Right (Right (Left (·)))))`
+1. Wrap into `EntrypointsWithoutView` constructor
+    + **In Haskell:** `EntrypointsWithoutView (·)`
+    + **In Michelson:** `Right ((·))`
 
 Pass resulting value as parameter to the contract.
 
@@ -770,6 +844,9 @@ Set address of the proxy contract.
 1. Wrap into `SetProxy` constructor.
     + **In Haskell:** `SetProxy (·)`
     + **In Michelson:** `Right (Right (Right (Right (Right (·)))))`
+1. Wrap into `EntrypointsWithoutView` constructor
+    + **In Haskell:** `EntrypointsWithoutView (·)`
+    + **In Michelson:** `Right ((·))`
 
 Pass resulting value as parameter to the contract.
 
