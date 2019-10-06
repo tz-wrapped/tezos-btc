@@ -3,13 +3,15 @@
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
 module Client.Parser
-  ( ClientArgs(..)
+  ( AddrOrAlias
+  , ClientArgs(..)
   , ClientArgsRaw(..)
   , clientArgParser
+  , parseAddressFromOutput
   , parseSignatureFromOutput
   ) where
 
-import Data.Char (isAlpha, isDigit)
+import Data.Char (isAlpha, isDigit, toUpper)
 import Fmt (pretty)
 import Options.Applicative
   (argument, auto, eitherReader, help, long, metavar, option,
@@ -17,14 +19,12 @@ import Options.Applicative
 import qualified Options.Applicative as Opt
 import qualified Text.Megaparsec as P
   (Parsec, customFailure, many, parse, satisfy)
-import Text.Megaparsec.Char (space)
+import Text.Megaparsec.Char (space, newline)
 import Text.Megaparsec.Char.Lexer (symbol)
 import Text.Megaparsec.Error (ParseErrorBundle, ShowErrorComponent(..))
 
-import Lorentz (ContractAddr(..), View(..))
 import Tezos.Crypto (PublicKey, Signature, parsePublicKey, parseSignature)
 import Tezos.Address (Address, parseAddress)
-import Util.Named
 
 import CLI.Parser
 import Client.Types
@@ -33,22 +33,24 @@ import Lorentz.Contracts.TZBTC.Types
 -- | Client argument with optional dry-run flag
 data ClientArgs = ClientArgs ClientArgsRaw Bool
 
+type AddrOrAlias = Text
+
 data ClientArgsRaw
-  = CmdMint MintParams (Maybe FilePath)
+  = CmdMint AddrOrAlias Natural (Maybe FilePath)
   | CmdBurn BurnParams (Maybe FilePath)
-  | CmdTransfer TransferParams
-  | CmdApprove ApproveParams
-  | CmdGetAllowance (View GetAllowanceParams Natural)
-  | CmdGetBalance (View GetBalanceParams Natural)
-  | CmdAddOperator OperatorParams (Maybe FilePath)
-  | CmdRemoveOperator OperatorParams (Maybe FilePath)
+  | CmdTransfer AddrOrAlias AddrOrAlias Natural
+  | CmdApprove AddrOrAlias Natural
+  | CmdGetAllowance (AddrOrAlias, AddrOrAlias) AddrOrAlias
+  | CmdGetBalance AddrOrAlias AddrOrAlias
+  | CmdAddOperator AddrOrAlias (Maybe FilePath)
+  | CmdRemoveOperator AddrOrAlias (Maybe FilePath)
   | CmdPause (Maybe FilePath)
   | CmdUnpause (Maybe FilePath)
-  | CmdSetRedeemAddress SetRedeemAddressParams (Maybe FilePath)
-  | CmdTransferOwnership TransferOwnershipParams (Maybe FilePath)
+  | CmdSetRedeemAddress AddrOrAlias (Maybe FilePath)
+  | CmdTransferOwnership AddrOrAlias (Maybe FilePath)
   | CmdAcceptOwnership AcceptOwnershipParams
-  | CmdStartMigrateTo StartMigrateToParams (Maybe FilePath)
-  | CmdStartMigrateFrom StartMigrateFromParams (Maybe FilePath)
+  | CmdStartMigrateTo AddrOrAlias (Maybe FilePath)
+  | CmdStartMigrateFrom AddrOrAlias (Maybe FilePath)
   | CmdMigrate MigrateParams
   | CmdSetupClient ClientConfig
   | CmdGetOpDescription FilePath
@@ -91,7 +93,6 @@ clientArgRawParser = Opt.hsubparser $
                       namedAddressOption Nothing "contract-address"
                       "Contract's address" <*>
                       namedAddressOption Nothing "multisig-address" "Multisig contract address" <*>
-                      namedAddressOption Nothing "user-address" "User's address" <*>
                       (option str $ mconcat
                        [ long "alias"
                        , metavar "ADDRESS_ALIAS"
@@ -106,7 +107,8 @@ clientArgRawParser = Opt.hsubparser $
     mintCmd =
       (mkCommandParser
          "mint"
-         (CmdMint <$> mintParamParser <*> multisigOption)
+         (CmdMint <$> addrOrAliasOption "to" "Address to mint to" <*>
+          natOption "value" "Amount to mint" <*> multisigOption)
          "Mint tokens for an account")
     burnCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     burnCmd =
@@ -118,37 +120,57 @@ clientArgRawParser = Opt.hsubparser $
     transferCmd =
       (mkCommandParser
          "transfer"
-         (CmdTransfer <$> transferParamParser)
+         (CmdTransfer <$>
+          addrOrAliasOption "from" "Address to transfer from" <*>
+          addrOrAliasOption "to" "Address to transfer to" <*>
+          natOption "value" "Amount to transfer"
+         )
          "Transfer tokens from one account to another")
     approveCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     approveCmd =
       (mkCommandParser
          "approve"
-         (CmdApprove <$> approveParamsParser)
+         (CmdApprove <$>
+          addrOrAliasOption "spender" "Address of the spender" <*>
+          natOption "value" "Amount to approve"
+         )
          "Approve transfer of tokens from one account to another")
     getAllowanceCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     getAllowanceCmd =
       (mkCommandParser
          "getAllowance"
-         (CmdGetAllowance <$> getAllowanceParamsParser)
+         (CmdGetAllowance <$>
+          ((,) <$> addrOrAliasOption "owner" "Address of the owner" <*>
+          addrOrAliasOption "spender" "Address of the spender") <*>
+          addrOrAliasOption "callback" "Callback address"
+         )
          "Get allowance for an account")
     getBalanceCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     getBalanceCmd =
       (mkCommandParser
          "getBalance"
-         (CmdGetBalance <$> getBalanceParamsParser)
+         (CmdGetBalance <$>
+          addrOrAliasOption "address" "Address of the owner" <*>
+          addrOrAliasOption "callback" "Callback address"
+         )
          "Get balance for an account")
     addOperatorCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     addOperatorCmd =
       (mkCommandParser
          "addOperator"
-         (CmdAddOperator <$> operatorParamsParser <*> multisigOption)
+         (CmdAddOperator <$>
+          addrOrAliasOption "operator" "Address of the operator" <*>
+          multisigOption
+         )
          "Add an operator")
     removeOperatorCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     removeOperatorCmd =
       (mkCommandParser
          "removeOperator"
-         (CmdRemoveOperator <$> operatorParamsParser <*> multisigOption)
+         (CmdRemoveOperator <$>
+          addrOrAliasOption "operator" "Address of the operator" <*>
+          multisigOption
+         )
          "Remove an operator")
     pauseCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     pauseCmd =
@@ -166,13 +188,19 @@ clientArgRawParser = Opt.hsubparser $
     setRedeemAddressCmd =
       (mkCommandParser
          "setRedeemAddress"
-         (CmdSetRedeemAddress <$> setRedeemAddressParamsParser <*> multisigOption)
+         (CmdSetRedeemAddress <$>
+          addrOrAliasArg "Redeem address" <*>
+          multisigOption
+         )
          "Set redeem address")
     transferOwnershipCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     transferOwnershipCmd =
       (mkCommandParser
          "transferOwnership"
-         (CmdTransferOwnership <$> transferOwnershipParamsParser <*> multisigOption)
+         (CmdTransferOwnership <$>
+          addrOrAliasArg "new-owner" <*>
+          multisigOption
+         )
          "Transfer ownership")
     acceptOwnershipCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     acceptOwnershipCmd =
@@ -184,13 +212,19 @@ clientArgRawParser = Opt.hsubparser $
     startMigrateFromCmd =
       (mkCommandParser
          "startMigrateFrom"
-         (CmdStartMigrateFrom <$> startMigrateFromParamsParser <*> multisigOption)
+         (CmdStartMigrateFrom <$>
+          addrOrAliasArg "Manager contract address" <*>
+          multisigOption
+         )
          "Start contract migration")
     startMigrateToCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     startMigrateToCmd =
       (mkCommandParser
          "startMigrateTo"
-         (CmdStartMigrateTo <$> startMigrateToParamsParser <*> multisigOption)
+         (CmdStartMigrateTo <$>
+          addrOrAliasArg "Manager contract address" <*>
+          multisigOption
+         )
          "Start contract migration")
     migrateCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     migrateCmd =
@@ -238,70 +272,31 @@ clientArgRawParser = Opt.hsubparser $
       )
       "Call multisig contract with the given packages"
 
-mintParamParser :: Opt.Parser MintParams
-mintParamParser =
-  (,) <$> (getParser "Address to mint to")
-       <*> (getParser "Amount to mint")
+addrOrAliasOption :: String -> String -> Opt.Parser AddrOrAlias
+addrOrAliasOption name hInfo =
+  option str $ mconcat
+  [ metavar "ADDRESS | ALIAS"
+  , long name
+  , help hInfo
+  ]
+
+addrOrAliasArg :: String -> Opt.Parser AddrOrAlias
+addrOrAliasArg hInfo =
+  argument str $ mconcat
+  [ metavar "ADDRESS | ALIAS"
+  , help hInfo
+  ]
+
+natOption :: String -> String -> Opt.Parser Natural
+natOption name hInfo =
+  option auto $ mconcat
+  [ metavar $ toUpper <$> name
+  , long name
+  , help hInfo
+  ]
 
 burnParamsParser :: Opt.Parser BurnParams
 burnParamsParser = getParser "Amount to burn"
-
-approveParamsParser :: Opt.Parser ApproveParams
-approveParamsParser =
-  (,) <$> (getParser "Address of the spender")
-       <*> (getParser "Amount to approve")
-
-transferParamParser :: Opt.Parser TransferParams
-transferParamParser =
-  (,,) <$> (getParser "Address to transfer from")
-       <*> (getParser "Address to transfer to")
-       <*> (getParser "Amount to transfer")
-
-getAllowanceParamsParser :: Opt.Parser (View GetAllowanceParams Natural)
-getAllowanceParamsParser = let
-  iParam =
-    (,) <$> (getParser "Address of the owner")
-        <*> (getParser "Address of spender")
-  contractParam = callBackAddressOption
-  in View <$> iParam <*> contractParam
-
-getBalanceParamsParser :: Opt.Parser (View GetBalanceParams Natural)
-getBalanceParamsParser = let
-  iParam = addressOption Nothing "Address of the owner"
-  in View <$> iParam <*> callBackAddressOption
-
-operatorParamsParser :: Opt.Parser OperatorParams
-operatorParamsParser = getParser "Address of the operator"
-
-setRedeemAddressParamsParser :: Opt.Parser SetRedeemAddressParams
-setRedeemAddressParamsParser = #redeem <.!> addressArgument "Redeem address"
-
-transferOwnershipParamsParser :: Opt.Parser TransferOwnershipParams
-transferOwnershipParamsParser = #newOwner
-  <.!> addressArgument "Address of the new owner"
-
-startMigrateFromParamsParser :: Opt.Parser StartMigrateFromParams
-startMigrateFromParamsParser = #migrationManager <.!>
-  (addressArgument "Source contract address")
-
-startMigrateToParamsParser :: Opt.Parser StartMigrateToParams
-startMigrateToParamsParser = #migrationManager <.!>
-  (addressArgument "Manager contract address")
-
-callBackAddressOption :: Opt.Parser (ContractAddr a)
-callBackAddressOption = ContractAddr <$> caddr
-  where
-    caddr = option (eitherReader parseAddrDo) $
-      mconcat
-        [ metavar "CALLBACK-ADDRESS"
-        , long "callback"
-        , help "Callback address"
-        ]
-
-parseAddrDo :: String -> Either String Address
-parseAddrDo addr =
-  either (Left . mappend "Failed to parse address: " . pretty) Right $
-  parseAddress $ toText addr
 
 urlArgument :: String -> Opt.Parser Text
 urlArgument hInfo = argument str $
@@ -342,28 +337,46 @@ namedFilePathOption name hInfo = option str $
 nonEmptyParser :: Opt.Parser a -> Opt.Parser (NonEmpty a)
 nonEmptyParser p = (:|) <$> p <*> many p
 
--- Tezos-client sign bytes output parser
-data OutputParseError = OutputParseError Text
+-- Tezos-client output parsers
+data OutputParseError = OutputParseError Text Text
   deriving stock (Eq, Show, Ord)
 
 instance ShowErrorComponent OutputParseError where
-  showErrorComponent (OutputParseError err) = toString $
-    "Failed to parse signature: " <> err
+  showErrorComponent (OutputParseError name err) = toString $
+    "Failed to parse " <> name <> ": " <> err
 
 type Parser = P.Parsec OutputParseError Text
+
+isBase58Char :: Char -> Bool
+isBase58Char c =
+  (isDigit c && c /= '0') || (isAlpha c && c /= 'O' && c /= 'I' && c /= 'l')
 
 tezosClientSignatureParser :: Parser Signature
 tezosClientSignatureParser = do
   void $ symbol space "Signature:"
   rawSignature <- P.many (P.satisfy isBase58Char)
   case parseSignature (fromString rawSignature) of
-    Left err -> P.customFailure $ OutputParseError $ pretty err
+    Left err -> P.customFailure $ OutputParseError "signature" $ pretty err
     Right sign -> return sign
-  where
-    isBase58Char :: Char -> Bool
-    isBase58Char c =
-      (isDigit c && c /= '0') || (isAlpha c && c /= 'O' && c /= 'I' && c /= 'l')
 
-parseSignatureFromOutput ::
-  Text -> Either (ParseErrorBundle Text OutputParseError) Signature
+tezosClientAddressParser :: Parser (Address, PublicKey)
+tezosClientAddressParser = do
+  void $ symbol space "Hash:"
+  rawAddress <- fromString <$> P.many (P.satisfy isBase58Char)
+  void $ newline
+  void $ symbol space "Public Key:"
+  rawPublicKey <- fromString <$> P.many (P.satisfy isBase58Char)
+  case (parseAddress rawAddress, parsePublicKey rawPublicKey) of
+    (Right addr, Right pk) -> return (addr, pk)
+    (Left err, Right _) -> P.customFailure $ OutputParseError "address" $ pretty err
+    (Right _, Left err) -> P.customFailure $ OutputParseError "public key" $ pretty err
+    (Left err1, Left err2) -> P.customFailure $
+      OutputParseError "address and public key" $ pretty err1 <> "\n" <> pretty err2
+
+parseSignatureFromOutput
+  :: Text -> Either (ParseErrorBundle Text OutputParseError) Signature
 parseSignatureFromOutput output = P.parse tezosClientSignatureParser "" output
+
+parseAddressFromOutput
+  :: Text -> Either (ParseErrorBundle Text OutputParseError) (Address, PublicKey)
+parseAddressFromOutput output = P.parse tezosClientAddressParser "" output

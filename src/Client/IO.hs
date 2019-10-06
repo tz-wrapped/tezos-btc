@@ -3,7 +3,8 @@
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
 module Client.IO
-  ( createMultisigPackage
+  ( addrOrAliasToAddr
+  , createMultisigPackage
   , getPackageFromFile
   , runTzbtcContract
   , runMultisigContract
@@ -29,7 +30,7 @@ import Tezos.Micheline
 import Michelson.Runtime.GState (genesisAddress1, genesisAddress2)
 import Michelson.Typed.Haskell.Value (ContractAddr(..))
 import Michelson.Untyped (InternalByteString(..))
-import Tezos.Address (Address, formatAddress)
+import Tezos.Address (Address, formatAddress, parseAddress)
 import Tezos.Crypto (PublicKey, Signature, parsePublicKey)
 
 import Client.API
@@ -194,11 +195,12 @@ runTransaction
 runTransaction to param config@ClientConfig{..} = do
   clientEnv <- getClientEnv config
   lastBlockHash <- throwClientError $ getLastBlockHash clientEnv
-  counter <- throwClientError $ getAddressCounter clientEnv ccUserAddress
+  sourceAddr <- throwLeft $ getAddressForAlias ccUserAlias config
+  counter <- throwClientError $ getAddressCounter clientEnv sourceAddr
   let opToRun = dumbOp
         { toCounter = counter + 1
         , toDestination = to
-        , toSource = ccUserAddress
+        , toSource = sourceAddr
         , toParameters = paramToExpression $ param
         }
   let runOp = RunOperation
@@ -250,6 +252,24 @@ waitForOperationInclusion op config@ClientConfig{..} = do
   case exitCode of
     ExitSuccess -> putStr stdout'
     ExitFailure _ -> putStr stderr'
+
+getAddressForAlias :: Text -> ClientConfig -> IO (Either TzbtcClientError Address)
+getAddressForAlias alias config@ClientConfig{..} = do
+  (exitCode, stdout', _) <- readProcessWithExitCode ccTezosClientExecutable
+    (tezosNodeArgs config <> ["show", "address", toString alias]) ""
+  case exitCode of
+    ExitSuccess -> do
+      addr <- throwLeft $ pure $ fmap fst (parseAddressFromOutput $ toText stdout')
+      pure $ Right addr
+    ExitFailure _ -> pure $ Left $ TzbtcUnknownAliasError alias
+
+addrOrAliasToAddr :: AddrOrAlias -> IO Address
+addrOrAliasToAddr addrOrAlias =
+  case parseAddress addrOrAlias of
+    Right addr -> pure addr
+    Left _ -> do
+      config <- throwLeft $ readConfigFile
+      throwLeft $ getAddressForAlias addrOrAlias config
 
 setupClient :: ClientConfig -> IO ()
 setupClient config = do

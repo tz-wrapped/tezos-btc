@@ -73,6 +73,7 @@ executables:
 
     dependencies:
       - fmt
+      - morley
       - morley-prelude
       - optparse-applicative
       - tzbtc
