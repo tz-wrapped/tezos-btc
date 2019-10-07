@@ -77,11 +77,6 @@ main = do
         case pkg of
           Left err -> putStrLn err
           Right package -> putStrLn (pretty package :: Text)
-      CmdGetPackageDescription packageFilePath -> do
-        pkg <- getPackageFromFile packageFilePath
-        case pkg of
-          Left err -> putStrLn err
-          Right package -> putStrLn (pretty package :: Text)
       CmdGetBytesToSign packageFilePath -> do
         pkg <- getPackageFromFile packageFilePath
         case pkg of
@@ -92,8 +87,17 @@ main = do
         case pkg of
           Left err -> putStrLn err
           Right package -> case addSignature package (pk, sign) of
-            Right signedPackage -> writePackageToFile signedPackage  packageFilePath
+            Right signedPackage -> writePackageToFile signedPackage packageFilePath
             Left err -> putStrLn err
+      CmdSignPackage packageFilePath -> do
+        pkg <- getPackageFromFile packageFilePath
+        case pkg of
+          Left err -> putStrLn err
+          Right package -> do
+            signRes <- signPackageForConfiguredUser package
+            case signRes of
+              Left err -> putStrLn err
+              Right signedPackage -> writePackageToFile signedPackage packageFilePath
       CmdCallMultisig packagesFilePaths -> do
         pkgs <- fmap sequence $ mapM getPackageFromFile packagesFilePaths
         case pkgs of

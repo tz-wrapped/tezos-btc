@@ -103,7 +103,10 @@ E.g. `tzbtc-client pause --multisig`. This command will return encoded multisig 
 
 You can get operation description from this package using `tzbtc-client getOpDescription` command.
 
-In order to sign this package user have to extract bytes that needs to be signed using
+There are two ways to sign multisig package:
+* Sign package via `tzbtc-client signPackage --package <package filepath>` command.
+Thus given package will be signed by the user configured during `tzbtc-client setupClient`.
+* Manually sign package. In order to extract bytes that needs to be signed you should use
 `tzbtc-client getBytesToSign` command. After these bytes are signed, the signature can be
 added using `tzbtc-client addSignature` command.
 

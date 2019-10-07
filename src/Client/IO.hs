@@ -9,12 +9,14 @@ module Client.IO
   , runTzbtcContract
   , runMultisigContract
   , setupClient
+  , signPackageForConfiguredUser
   , writePackageToFile
   ) where
 
 import Data.Aeson (decodeFileStrict, encodeFile)
 import Data.ByteString (cons, readFile, writeFile)
 import Data.Sequence (Seq(..))
+import Fmt (pretty)
 import Network.HTTP.Client
   (ManagerSettings(..), Request(..), newManager, defaultManagerSettings)
 import Servant.Client
@@ -195,7 +197,7 @@ runTransaction
 runTransaction to param config@ClientConfig{..} = do
   clientEnv <- getClientEnv config
   lastBlockHash <- throwClientError $ getLastBlockHash clientEnv
-  sourceAddr <- throwLeft $ getAddressForAlias ccUserAlias config
+  (sourceAddr, _) <- throwLeft $ getAddressAndPKForAlias ccUserAlias config
   counter <- throwClientError $ getAddressCounter clientEnv sourceAddr
   let opToRun = dumbOp
         { toCounter = counter + 1
@@ -216,7 +218,7 @@ runTransaction to param config@ClientConfig{..} = do
                             , toFee = calcFees consumedGas storageSize
                             }]
     }
-  signRes <- signWithTezosClient (addOperationPrefix hex) config
+  signRes <- signWithTezosClient (Left $ addOperationPrefix hex) config
   case signRes of
     Left err -> putStrLn err
     Right signature' -> do
@@ -228,12 +230,15 @@ addOperationPrefix :: InternalByteString -> InternalByteString
 addOperationPrefix (InternalByteString bs) =
   InternalByteString $ cons 0x03 bs
 
-signWithTezosClient :: InternalByteString -> ClientConfig -> IO (Either Text Signature)
+signWithTezosClient
+  :: Either InternalByteString Text -> ClientConfig -> IO (Either Text Signature)
 signWithTezosClient bs config@ClientConfig{..} = do
+  let toSign = case bs of
+        Left rawBS -> addTezosBytesPrefix $ formatByteString rawBS
+        Right formatedBS -> formatedBS
   (exitCode, stdout', stderr') <- readProcessWithExitCode ccTezosClientExecutable
     (tezosNodeArgs config <>
-     [ "sign", "bytes", toString $ "0x" <> formatByteString bs
-     -- 0x prefix is required for bytestrings in tezos-client
+     [ "sign", "bytes", toString $ toSign
      , "for", toString ccUserAlias
      ]) ""
   case exitCode of
@@ -241,6 +246,32 @@ signWithTezosClient bs config@ClientConfig{..} = do
       Right <$> (throwLeft $ pure $ parseSignatureFromOutput (fromString stdout'))
     ExitFailure _ -> return . Left . fromString $
       "Operation signing failed: " <> stderr'
+
+data ConfirmationResult = Confirmed | Canceled
+
+confirmAction :: IO ConfirmationResult
+confirmAction = do
+  putStrLn $ ("Are you sure? [Y/N]" :: Text)
+  res <- getLine
+  case res of
+    x | x `elem` ["Y", "y", "yes"] -> pure Confirmed
+    x | x `elem` ["N", "n", "no"] -> pure Canceled
+    _ -> confirmAction
+
+signPackageForConfiguredUser :: Package -> IO (Either String Package)
+signPackageForConfiguredUser pkg = do
+  config@ClientConfig{..} <- throwLeft $ readConfigFile
+  (_, pk) <- throwLeft $ getAddressAndPKForAlias ccUserAlias config
+  putStrLn ("You are going to sign the following package:\n" :: Text)
+  putStrLn (pretty pkg :: Text)
+  confirmationResult <- confirmAction
+  case confirmationResult of
+    Canceled -> pure $ Left $ "Package signing was canceled"
+    Confirmed -> do
+      signRes <- signWithTezosClient (Right $ getBytesToSign pkg) config
+      case signRes of
+        Left err -> pure $ Left $ toString err
+        Right signature' -> pure $ addSignature pkg (pk, signature')
 
 tezosNodeArgs :: ClientConfig -> [String]
 tezosNodeArgs ClientConfig{..} = ["-A", toString ccNodeAddress, "-P", show ccNodePort]
@@ -253,13 +284,14 @@ waitForOperationInclusion op config@ClientConfig{..} = do
     ExitSuccess -> putStr stdout'
     ExitFailure _ -> putStr stderr'
 
-getAddressForAlias :: Text -> ClientConfig -> IO (Either TzbtcClientError Address)
-getAddressForAlias alias config@ClientConfig{..} = do
+getAddressAndPKForAlias
+  :: Text -> ClientConfig -> IO (Either TzbtcClientError (Address, PublicKey))
+getAddressAndPKForAlias alias config@ClientConfig{..} = do
   (exitCode, stdout', _) <- readProcessWithExitCode ccTezosClientExecutable
     (tezosNodeArgs config <> ["show", "address", toString alias]) ""
   case exitCode of
     ExitSuccess -> do
-      addr <- throwLeft $ pure $ fmap fst (parseAddressFromOutput $ toText stdout')
+      addr <- throwLeft $ pure $ (parseAddressFromOutput $ toText stdout')
       pure $ Right addr
     ExitFailure _ -> pure $ Left $ TzbtcUnknownAliasError alias
 
@@ -269,7 +301,8 @@ addrOrAliasToAddr addrOrAlias =
     Right addr -> pure addr
     Left _ -> do
       config <- throwLeft $ readConfigFile
-      throwLeft $ getAddressForAlias addrOrAlias config
+      (addr, _) <- throwLeft $ getAddressAndPKForAlias addrOrAlias config
+      pure addr
 
 setupClient :: ClientConfig -> IO ()
 setupClient config = do

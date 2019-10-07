@@ -3,7 +3,8 @@
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
 module Client.Util
-  ( calcFees
+  ( addTezosBytesPrefix
+  , calcFees
   , exprToMultisigStorage
   , paramToExpression
   , throwClientError
@@ -57,3 +58,6 @@ throwLeft =
 exprToMultisigStorage :: Expression -> Either UnpackError MSig.Storage
 exprToMultisigStorage =
   fmap fromVal . unpackValue' dummyUnpackEnv . BS.cons 0x05 . encode
+
+addTezosBytesPrefix :: Text -> Text
+addTezosBytesPrefix = ("0x" <>)
