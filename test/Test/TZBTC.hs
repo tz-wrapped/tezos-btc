@@ -106,15 +106,18 @@ test_proxyCheck = testGroup "TZBTC contract proxy endpoints check"
       "Fails with `ProxyIsNotSet` if one of the proxy serving endpoints is called and \
       \proxy is not set" $
       contractPropWithSender bob validate'
-        (TransferViaProxy (#sender .! bob, (#from .! bob, #to .! alice, #value .! 100))) storage
+        (EntrypointsWithoutView $
+         TransferViaProxy (#sender .! bob, (#from .! bob, #to .! alice, #value .! 100))) storage
   , testCase
       "Fails with `CallerIsNotProxy` if the caller to a proxy endpoint is not \
       \known proxy address." $
       integrationalTestExpectation $ do
         c <- lOriginate tzbtcContract "TZBTC Contract" storage (toMutez 1000)
-        withSender adminAddress $ lCall c (SetProxy contractAddress)
+        withSender adminAddress $ lCall c (EntrypointsWithoutView $
+                                           SetProxy contractAddress)
         withSender bob $
-          lCall c (TransferViaProxy (#sender .! bob, (#from .! bob, #to .! alice, #value .! 100)))
+          lCall c (EntrypointsWithoutView $
+                   TransferViaProxy (#sender .! bob, (#from .! bob, #to .! alice, #value .! 100)))
         validate . Left $
           lExpectCustomError_ #callerIsNotProxy
   ]
@@ -129,23 +132,28 @@ test_adminCheck :: TestTree
 test_adminCheck = testGroup "TZBTC contract admin check test"
   [ testCase "Fails with `SenderNotAdmin` if sender is not administrator for `addOperator` call" $
       contractPropWithSender bob validate'
-        (AddOperator (#operator .! newOperatorAddress)) storage
+        (EntrypointsWithoutView $
+         AddOperator (#operator .! newOperatorAddress)) storage
   , testCase
       "Fails with `SenderNotAdmin` if sender is not administrator for `removeOperator` call" $
       contractPropWithSender bob validate'
-        (RemoveOperator (#operator .! newOperatorAddress)) storage
+        (EntrypointsWithoutView $
+         RemoveOperator (#operator .! newOperatorAddress)) storage
   , testCase
       "Fails with `SenderNotAdmin` if sender is not administrator for `startMigrateFrom` call" $
       contractPropWithSender bob validate'
-        (StartMigrateFrom (#migrationManager .! contractAddress)) storage
+        (EntrypointsWithoutView $
+         StartMigrateFrom (#migrationManager .! contractAddress)) storage
   , testCase
       "Fails with `SenderNotAdmin` if sender is not administrator for `transferOwnership` call" $
       contractPropWithSender bob validate'
-        (TransferOwnership (#newOwner .! adminAddress)) storage
+        (EntrypointsWithoutView $
+         TransferOwnership (#newOwner .! adminAddress)) storage
   , testCase
       "Fails with `SenderNotAdmin` if sender is not administrator for `setRedeemAddress` call" $
       contractPropWithSender bob validate'
-        (SetRedeemAddress (#redeem .! redeemAddress_)) storage
+        (EntrypointsWithoutView $
+         SetRedeemAddress (#redeem .! redeemAddress_)) storage
   ]
   where
     validate' :: ContractPropValidator (ToT Storage) Assertion
@@ -159,7 +167,8 @@ test_addOperator = testGroup "TZBTC contract `addOperator` test"
   [ testCase
       "Call to `addOperator` Adds new operator to the set of operators" $
       contractPropWithSender adminAddress
-        validateAdd (AddOperator (#operator .! newOperatorAddress)) storage
+        validateAdd (EntrypointsWithoutView $
+                     AddOperator (#operator .! newOperatorAddress)) storage
   ]
   where
     validateAdd :: ContractPropValidator (ToT Storage) Assertion
@@ -176,7 +185,8 @@ test_removeOperator = testGroup "TZBTC contract `removeOperator` test"
       "Call to `removeOperator` removes operator from the set of operators" $
       contractPropWithSender adminAddress
         validateRemove
-        (RemoveOperator (#operator .! operatorToRemove)) storageWithOperator
+        (EntrypointsWithoutView $
+         RemoveOperator (#operator .! operatorToRemove)) storageWithOperator
   ]
   where
     operatorToRemove = replaceAddress
@@ -196,7 +206,8 @@ test_setRedeemAddress = testGroup "TZBTC contract `setRedeemAddress` test"
   [ testCase
       "Call to `setRedeemAddress` updates redeemAddress" $
       contractPropWithSender adminAddress
-        validate_ (SetRedeemAddress (#redeem .! newRedeemAddress)) storage
+        validate_ (EntrypointsWithoutView $
+                   SetRedeemAddress (#redeem .! newRedeemAddress)) storage
   ]
   where
     newRedeemAddress = replaceAddress
@@ -215,7 +226,8 @@ test_transferOwnership = testGroup "TZBTC contract `transferOwnership` test"
   [ testCase
       "Call to `transferOwnership` updates `newOwner`" $
       contractPropWithSender adminAddress
-        validate_ (TransferOwnership (#newOwner .! newOwnerAddress)) storage
+        validate_ (EntrypointsWithoutView $
+                   TransferOwnership (#newOwner .! newOwnerAddress)) storage
   ]
   where
     newOwnerAddress = replaceAddress
@@ -234,20 +246,24 @@ test_acceptOwnership = testGroup "TZBTC contract `acceptOwnership` test"
   [ testCase
       "Call to `acceptOwnership` get denied on contract that is not in transfer mode" $
       contractPropWithSender newOwnerAddress
-        validateNotInTransfer (AcceptOwnership ()) storage
+        validateNotInTransfer (EntrypointsWithoutView $
+                               AcceptOwnership ()) storage
   , testCase
       "Call to `acceptOwnership` fails for random caller" $
       contractPropWithSender badSenderAddress
-        validateBadSender (AcceptOwnership ()) storageInTranferOwnership
+        validateBadSender (EntrypointsWithoutView $
+                           AcceptOwnership ()) storageInTranferOwnership
   , testCase
       "Call to `acceptOwnership` fails for current admin" $
       contractPropWithSender adminAddress
-        validateBadSender (AcceptOwnership ()) storageInTranferOwnership
+        validateBadSender (EntrypointsWithoutView $
+                           AcceptOwnership ()) storageInTranferOwnership
   , testCase
       "Call to `acceptOwnership` updates admin with address of new owner \
       \and resets `newOwner` field" $
       contractPropWithSender newOwnerAddress
-        validateGoodOwner (AcceptOwnership ()) storageInTranferOwnership
+        validateGoodOwner (EntrypointsWithoutView $
+                           AcceptOwnership ()) storageInTranferOwnership
   ]
   where
     newOwnerAddress = replaceAddress
@@ -287,17 +303,20 @@ test_burn = testGroup "TZBTC contract `burn` test"
   [ testCase
       "Call to `burn` from admin gets denied with `SenderIsNotOperator`" $
       contractPropWithSender adminAddress
-        validateFail_ (Burn (#value .! 100)) storageWithOperator
+        validateFail_ (EntrypointsWithoutView $
+                       Burn (#value .! 100)) storageWithOperator
   , testCase
       "Call to `burn` from random address gets denied with `SenderIsNotOperator`" $
       contractPropWithSender bob
-        validateFail_ (Burn (#value .! 100)) storageWithOperator
+        validateFail_ (EntrypointsWithoutView $
+                       Burn (#value .! 100)) storageWithOperator
 
   , testCase
       "Call to `burn` from operator, burns from `redeemAddress` and update `totalBurned` \
       \ and `totalSupply` fields correctly" $
       contractPropWithSender newOperatorAddress
-        validate_ (Burn (#value .! 100)) storageWithOperator
+        validate_ (EntrypointsWithoutView $
+                   Burn (#value .! 100)) storageWithOperator
   ]
   where
     storageWithOperator =
@@ -335,16 +354,19 @@ test_mint = testGroup "TZBTC contract `mint` test"
   [ testCase
       "Call to `mint` from admin gets denied with `SenderIsNotOperator`" $
       contractPropWithSender adminAddress
-        validateFail_ (Burn (#value .! 100)) storageWithOperator
+        validateFail_ (EntrypointsWithoutView $
+                       Burn (#value .! 100)) storageWithOperator
   , testCase
       "Call to `mint` from random address gets denied with `SenderIsNotOperator`" $
       contractPropWithSender bob
-        validateFail_ (Burn (#value .! 100)) storageWithOperator
+        validateFail_ (EntrypointsWithoutView $
+                       Burn (#value .! 100)) storageWithOperator
   , testCase
       "Call to `mint` adds value to `to` parameter in input and update `totalMinted` \
       \ and `totalSupply` fields correctly" $
       contractPropWithSender newOperatorAddress
-        validate_ (Mint (#to .! alice, #value .! 200)) storageWithOperator
+        validate_ (EntrypointsWithoutView $
+                   Mint (#to .! alice, #value .! 200)) storageWithOperator
   ]
   where
     storageWithOperator =
@@ -382,15 +404,15 @@ test_pause = testGroup "TZBTC contract `pause` permission test"
   [ testCase
       "Call to `pause` from admin gets denied with `SenderIsNotOperator`" $
       contractPropWithSender adminAddress
-        validateFail_ (Pause ()) storageWithOperator
+        validateFail_ (EntrypointsWithoutView $ Pause ()) storageWithOperator
   , testCase
       "Call to `pause` from random address gets denied with `SenderIsNotOperator`" $
       contractPropWithSender bob
-        validateFail_ (Pause ()) storageWithOperator
+        validateFail_ (EntrypointsWithoutView $ Pause ()) storageWithOperator
   , testCase
       "Call to `pause` as operator is allowed" $
       contractPropWithSender newOperatorAddress
-        validate_ (Pause ()) storageWithOperator
+        validate_ (EntrypointsWithoutView $ Pause ()) storageWithOperator
   ]
   where
     storageWithOperator =
@@ -418,15 +440,15 @@ test_unpause_ = testGroup "TZBTC contract `unpause` permission test"
   [ testCase
       "Call to `unpause` as operator gets denied with `SenderIsNotAdmin`" $
       contractPropWithSender newOperatorAddress
-        validateFail_ (Unpause ()) storageWithOperator
+        validateFail_ (EntrypointsWithoutView $ Unpause ()) storageWithOperator
   , testCase
       "Call to `unpause` from random address gets denied with `SenderIsNotAdmin`" $
       contractPropWithSender bob
-        validateFail_ (Unpause ()) storageWithOperator
+        validateFail_ (EntrypointsWithoutView $ Unpause ()) storageWithOperator
   , testCase
       "Call to `unpause` as admin is allowed" $
       contractPropWithSender adminAddress
-        validate_ (Unpause ()) storageWithOperator
+        validate_ (EntrypointsWithoutView $ Unpause ()) storageWithOperator
   ]
   where
     storageWithOperator =
@@ -458,11 +480,11 @@ test_bookkeeping = testGroup "TZBTC contract bookkeeping views test"
           consumer <- lOriginateEmpty contractConsumer "consumer"
           withSender newOperatorAddress $ do
             -- Mint and burn some tokens
-            lCall v1 (Mint (#to .! alice, #value .! 130))
-            lCall v1 (Burn (#value .! 20))
-          lCall v1 $ GetTotalSupply (View () consumer)
-          lCall v1 $ GetTotalMinted (View () consumer)
-          lCall v1 $ GetTotalBurned (View () consumer)
+            lCall v1 (EntrypointsWithoutView $ Mint (#to .! alice, #value .! 130))
+            lCall v1 (EntrypointsWithoutView $ Burn (#value .! 20))
+          lCall v1 $ EntrypointsWithView $ GetTotalSupply (View () consumer)
+          lCall v1 $ EntrypointsWithView $ GetTotalMinted (View () consumer)
+          lCall v1 $ EntrypointsWithView $ GetTotalBurned (View () consumer)
           -- Check expectations
           validate . Right $
             lExpectViewConsumerStorage consumer [610, 630, 20]
@@ -480,18 +502,20 @@ test_setProxy = testGroup "TZBTC contract `setProxy` test"
   [ testCase
       "Call to `setProxy` from random address gets denied with `NotAllowedToSetProxy`" $
       contractPropWithSender bob
-        validateFail_ (SetProxy contractAddress) storageWithOperator
+        validateFail_ (EntrypointsWithoutView $
+                       SetProxy contractAddress) storageWithOperator
   , testCase
       "Call to `setProxy` from expected address sets proxy" $
       contractPropWithSender adminAddress
-        validate_ (SetProxy contractAddress) storageWithOperator
+        validate_ (EntrypointsWithoutView $
+                   SetProxy contractAddress) storageWithOperator
   , testCase
       "Call to `setProxy` in contract with proxy set fails with `ProxyAlreadySet` error" $
       integrationalTestExpectation $ do
         c <- lOriginate tzbtcContract "TZBTC Contract" storageWithOperator (toMutez 1000)
         withSender adminAddress $ do
-          lCall c (SetProxy contractAddress)
-          lCall c (SetProxy contractAddress)
+          lCall c (EntrypointsWithoutView $ SetProxy contractAddress)
+          lCall c (EntrypointsWithoutView $ SetProxy contractAddress)
         validate . Left $
           lExpectCustomError_ #proxyAlreadySet
   ]
@@ -565,7 +589,7 @@ test_migration = testGroup "TZBTC contract migration tests"
       "call `migrate` to unprepared contract is denied" $
         integrationalTestExpectation $ do
           v1 <- originateV1
-          withSender alice $ lCall v1 (Migrate ())
+          withSender alice $ lCall v1 (EntrypointsWithoutView $ Migrate ())
           validate . Left $
             lExpectCustomError_ #migrationNotEnabled
   , testCase
@@ -574,11 +598,12 @@ test_migration = testGroup "TZBTC contract migration tests"
           v1 <- originateV1
           v2 <- originateV2
           agent <- originateAgent (unContractAddress v1) v2
-          withSender newOperatorAddress $ lCall v1 (Pause ())
+          withSender newOperatorAddress $ lCall v1 (EntrypointsWithoutView $ Pause ())
           withSender adminAddress $ do
-            lCall v1 (StartMigrateTo (#migrationManager .! agent) )
-            lCall v1 (Unpause ())
-          withSender bob $ lCall v1 (Migrate ())
+            lCall v1 (EntrypointsWithoutView $
+                      StartMigrateTo (#migrationManager .! agent) )
+            lCall v1 (EntrypointsWithoutView $ Unpause ())
+          withSender bob $ lCall v1 (EntrypointsWithoutView $ Migrate ())
           validate . Left $
             lExpectCustomError_ #noBalanceToMigrate
  , testCase
@@ -587,9 +612,10 @@ test_migration = testGroup "TZBTC contract migration tests"
          v1 <- originateV1
          v2 <- originateV2
          agent <- originateAgent (unContractAddress v1) v2
-         withSender newOperatorAddress $ lCall v1 (Pause ())
-         withSender bob $ lCall v1 (StartMigrateTo $ (#migrationManager .! agent))
-         withSender adminAddress $ lCall v1 (Unpause ())
+         withSender newOperatorAddress $ lCall v1 (EntrypointsWithoutView $ Pause ())
+         withSender bob $ lCall v1 (EntrypointsWithoutView $
+                                    StartMigrateTo $ (#migrationManager .! agent))
+         withSender adminAddress $ lCall v1 (EntrypointsWithoutView $ Unpause ())
          validate . Left $
            lExpectCustomError_ #senderIsNotAdmin
  , testCase
@@ -598,7 +624,8 @@ test_migration = testGroup "TZBTC contract migration tests"
          v1 <- originateV1
          v2 <- originateV2
          agent <- originateAgent (unContractAddress v1) v2
-         withSender bob $ lCall v2 (StartMigrateFrom $ (#migrationManager .! agent))
+         withSender bob $ lCall v2 (EntrypointsWithoutView $
+                                    StartMigrateFrom $ (#migrationManager .! agent))
          validate . Left $
            lExpectCustomError_ #senderIsNotAdmin
  , testCase
@@ -607,10 +634,11 @@ test_migration = testGroup "TZBTC contract migration tests"
          v1 <- originateV1
          v2 <- originateV2
          agent <- originateAgent (unContractAddress v1) v2
-         withSender newOperatorAddress $ lCall v1 (Pause ())
+         withSender newOperatorAddress $ lCall v1 (EntrypointsWithoutView $ Pause ())
          withSender adminAddress $ do
-           lCall v1 (StartMigrateTo $ (#migrationManager .! agent))
-           lCall v1 (Unpause ())
+           lCall v1 (EntrypointsWithoutView $
+                     StartMigrateTo $ (#migrationManager .! agent))
+           lCall v1 (EntrypointsWithoutView $ Unpause ())
          validate . Right $
            lExpectStorageConst v1 $ let
             oldFields = fields storageV1
@@ -622,7 +650,8 @@ test_migration = testGroup "TZBTC contract migration tests"
          v1 <- originateV1
          v2 <- originateV2
          agent <- originateAgent (unContractAddress v1) v2
-         withSender adminAddress $ lCall v1 (StartMigrateTo $ (#migrationManager .! agent))
+         withSender adminAddress $ lCall v1 (EntrypointsWithoutView $
+                                             StartMigrateTo $ (#migrationManager .! agent))
          validate . Left $
            lExpectCustomError_ #tokenOperationsAreNotPaused
  , testCase
@@ -632,11 +661,13 @@ test_migration = testGroup "TZBTC contract migration tests"
          v2 <- originateV2
          agent <- originateAgent (unContractAddress v2) v1
          agent2 <- originateAgent (unContractAddress v1) v2
-         withSender newOperatorAddress $ lCall v1 (Pause ())
+         withSender newOperatorAddress $ lCall v1 (EntrypointsWithoutView $ Pause ())
          withSender adminAddress $ do
-           lCall v1 (StartMigrateTo $ (#migrationManager .! agent))
-           lCall v1 (StartMigrateTo $ (#migrationManager .! agent2))
-           lCall v1 (Unpause ())
+           lCall v1 (EntrypointsWithoutView $
+                     StartMigrateTo $ (#migrationManager .! agent))
+           lCall v1 (EntrypointsWithoutView $ StartMigrateTo $
+                     (#migrationManager .! agent2))
+           lCall v1 (EntrypointsWithoutView $ Unpause ())
          validate . Right $
            lExpectStorageConst v1 $ let
             oldFields = fields storageV1
@@ -648,7 +679,8 @@ test_migration = testGroup "TZBTC contract migration tests"
          v1 <- originateV1
          v2 <- originateV2
          agent <- originateAgent (unContractAddress v1) v2
-         withSender adminAddress $ lCall v2 (StartMigrateFrom $ (#migrationManager .! agent))
+         withSender adminAddress $ lCall v2 (EntrypointsWithoutView $
+                                             StartMigrateFrom $ (#migrationManager .! agent))
          validate . Right $
            lExpectStorageConst v2 $ let
             oldFields = fields storageV2
@@ -662,8 +694,10 @@ test_migration = testGroup "TZBTC contract migration tests"
          agent <- originateAgent (unContractAddress v2) v1
          agent2 <- originateAgent (unContractAddress v1) v2
          withSender adminAddress $ do
-           lCall v2 (StartMigrateFrom $ (#migrationManager .! agent))
-           lCall v2 (StartMigrateFrom $ (#migrationManager .! agent2))
+           lCall v2 (EntrypointsWithoutView $
+                     StartMigrateFrom $ (#migrationManager .! agent))
+           lCall v2 (EntrypointsWithoutView $
+                     StartMigrateFrom $ (#migrationManager .! agent2))
          validate . Right $
            lExpectStorageConst v2 $ let
             oldFields = fields storageV2
@@ -675,8 +709,10 @@ test_migration = testGroup "TZBTC contract migration tests"
          v1 <- originateV1
          v2 <- originateV2
          agent <- originateAgent (unContractAddress v1) v2
-         withSender adminAddress $ lCall v2 (StartMigrateFrom $ (#migrationManager .! agent))
-         withSender bob $ lCall v2 (MintForMigration $ (#to .! alice, #value .! 100))
+         withSender adminAddress $ lCall v2 (EntrypointsWithoutView $
+                                             StartMigrateFrom $ (#migrationManager .! agent))
+         withSender bob $ lCall v2 (EntrypointsWithoutView $
+                                    MintForMigration $ (#to .! alice, #value .! 100))
          validate . Left $
            lExpectCustomError_ #senderIsNotAgent
 
@@ -686,17 +722,20 @@ test_migration = testGroup "TZBTC contract migration tests"
          v1 <- originateV1
          v2 <- originateV2
          agent <- originateAgent (unContractAddress v1) v2
-         withSender adminAddress $ lCall v2 (StartMigrateFrom $ (#migrationManager .! agent))
-         withSender agent $ lCall v2 (MintForMigration $ (#to .! alice, #value .! 250))
+         withSender adminAddress $ lCall v2 (EntrypointsWithoutView $
+                                             StartMigrateFrom $ (#migrationManager .! agent))
+         withSender agent $ lCall v2 (EntrypointsWithoutView $
+                                      MintForMigration $ (#to .! alice, #value .! 250))
          consumer <- lOriginateEmpty contractConsumer "consumer"
-         lCall v2 $ GetBalance (View alice consumer)
+         lCall v2 $ EntrypointsWithView $ GetBalance (View alice consumer)
          validate . Right $
            lExpectViewConsumerStorage consumer [250]
  , testCase
      "call `mintForMigration` to contract that does not have migration agent set is denied" $
        integrationalTestExpectation $ do
          v2 <- originateV2
-         withSender bob $ lCall v2 (MintForMigration $ (#to .! alice, #value .! 100))
+         withSender bob $ lCall v2 (EntrypointsWithoutView $
+                                    MintForMigration $ (#to .! alice, #value .! 100))
          validate . Left $
            lExpectCustomError_ #migrationNotEnabled
   ]
@@ -731,16 +770,18 @@ test_migrationManager = testGroup "TZBTC migration manager tests"
           v2 <- originateV2
           agent <- originateAgent (unContractAddress v1) v2
           consumer <- lOriginateEmpty contractConsumer "consumer"
-          withSender newOperatorAddress $ lCall v1 (Pause ())
+          withSender newOperatorAddress $ lCall v1 (EntrypointsWithoutView $ Pause ())
           withSender adminAddress $ do
-            lCall v1 (StartMigrateTo $ (#migrationManager .! agent))
-            lCall v2 (StartMigrateFrom $ (#migrationManager .! agent))
-            lCall v1 (Unpause ())
-          lCall v1 $ GetBalance (View alice consumer)
-          lCall v2 $ GetBalance (View alice consumer)
-          withSender alice $ lCall v1 (Migrate ())
-          lCall v1 $ GetBalance (View alice consumer)
-          lCall v2 $ GetBalance (View alice consumer)
+            lCall v1 (EntrypointsWithoutView $
+                      StartMigrateTo $ (#migrationManager .! agent))
+            lCall v2 (EntrypointsWithoutView $
+                      StartMigrateFrom $ (#migrationManager .! agent))
+            lCall v1 (EntrypointsWithoutView $ Unpause ())
+          lCall v1 $ EntrypointsWithView $ GetBalance (View alice consumer)
+          lCall v2 $ EntrypointsWithView $ GetBalance (View alice consumer)
+          withSender alice $ lCall v1 (EntrypointsWithoutView $ Migrate ())
+          lCall v1 $ EntrypointsWithView $ GetBalance (View alice consumer)
+          lCall v2 $ EntrypointsWithView $ GetBalance (View alice consumer)
           validate . Right $
             lExpectViewConsumerStorage consumer [500, 0, 0, 500]
   , testCase
@@ -750,11 +791,14 @@ test_migrationManager = testGroup "TZBTC migration manager tests"
           v2 <- originateV2
           agent <- originateAgent (unContractAddress v1) v2
           withSender newOperatorAddress $ do
-            lCall v1 (Pause ())
+            lCall v1 (EntrypointsWithoutView $ Pause ())
           withSender adminAddress $ do
-            lCall v1 (StartMigrateTo $ (#migrationManager .! agent))
-            lCall v2 (StartMigrateFrom $ (#migrationManager .! agent))
-          withSender alice $ lCall v1 (Migrate ())
+            lCall v1 (EntrypointsWithoutView $
+                      StartMigrateTo $ (#migrationManager .! agent))
+            lCall v2 (EntrypointsWithoutView $
+                      StartMigrateFrom $ (#migrationManager .! agent))
+          withSender alice $ lCall v1 (EntrypointsWithoutView $
+                                       Migrate ())
           validate . Left $
             lExpectCustomError_ #tokenOperationsArePaused
   ]

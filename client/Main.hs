@@ -20,6 +20,8 @@ import Util.Named ((.!))
 import Client.IO
 import Client.Parser
 import Lorentz.Contracts.TZBTC (Parameter(..))
+import Lorentz.Contracts.TZBTC.Types
+  (ParameterWithoutView(..), ParameterWithView(..))
 import Util.MultiSig
 
 main :: IO ()
@@ -31,47 +33,58 @@ main = do
       CmdSetupClient config -> setupClient config
       CmdMint to' value mbMultisig -> do
         to <- addrOrAliasToAddr to'
-        runMultisigTzbtcContract mbMultisig $ Mint (#to .! to, #value .! value)
+        runMultisigTzbtcContract mbMultisig $
+          EntrypointsWithoutView $ Mint (#to .! to, #value .! value)
       CmdBurn burnParams mbMultisig ->
-        runMultisigTzbtcContract mbMultisig $ Burn burnParams
+        runMultisigTzbtcContract mbMultisig $
+          EntrypointsWithoutView $ Burn burnParams
       CmdTransfer from' to' value -> do
         [from, to] <- mapM addrOrAliasToAddr [from', to']
-        runTzbtcContract $ Transfer (#from .! from, #to .! to, #value .! value)
+        runTzbtcContract $
+          EntrypointsWithoutView $ Transfer (#from .! from, #to .! to, #value .! value)
       CmdApprove spender' value -> do
         spender <- addrOrAliasToAddr spender'
-        runTzbtcContract $ Approve (#spender .! spender, #value .! value)
+        runTzbtcContract $
+          EntrypointsWithoutView $ Approve (#spender .! spender, #value .! value)
       CmdGetAllowance (owner', spender') callback' -> do
         [owner, spender, callback] <- mapM addrOrAliasToAddr [owner', spender', callback']
-        runTzbtcContract $ GetAllowance $
+        runTzbtcContract $ EntrypointsWithView $ GetAllowance $
           View (#owner .! owner, #spender .! spender) (ContractAddr callback)
       CmdGetBalance owner' callback' -> do
         [owner, callback] <- mapM addrOrAliasToAddr [owner', callback']
         runTzbtcContract $
-          GetBalance $ View owner (ContractAddr callback)
+          EntrypointsWithView $ GetBalance $ View owner (ContractAddr callback)
       CmdAddOperator operator' mbMultisig -> do
         operator <- addrOrAliasToAddr operator'
-        runMultisigTzbtcContract mbMultisig $ AddOperator (#operator .! operator)
+        runMultisigTzbtcContract mbMultisig $
+          EntrypointsWithoutView $ AddOperator (#operator .! operator)
       CmdRemoveOperator operator' mbMultisig -> do
         operator <- addrOrAliasToAddr operator'
-        runMultisigTzbtcContract mbMultisig $ RemoveOperator (#operator .! operator)
-      CmdPause mbMultisig -> runMultisigTzbtcContract mbMultisig $ Pause ()
-      CmdUnpause mbMultisig -> runMultisigTzbtcContract mbMultisig $ Unpause ()
+        runMultisigTzbtcContract mbMultisig $
+          EntrypointsWithoutView $ RemoveOperator (#operator .! operator)
+      CmdPause mbMultisig -> runMultisigTzbtcContract mbMultisig $
+        EntrypointsWithoutView $ Pause ()
+      CmdUnpause mbMultisig -> runMultisigTzbtcContract mbMultisig $
+        EntrypointsWithoutView $ Unpause ()
       CmdSetRedeemAddress redeem' mbMultisig -> do
         redeem <- addrOrAliasToAddr redeem'
-        runMultisigTzbtcContract mbMultisig $ SetRedeemAddress (#redeem .! redeem)
+        runMultisigTzbtcContract mbMultisig $
+          EntrypointsWithoutView $ SetRedeemAddress (#redeem .! redeem)
       CmdTransferOwnership newOwner' mbMultisig -> do
         newOwner <- addrOrAliasToAddr newOwner'
-        runMultisigTzbtcContract mbMultisig $ TransferOwnership (#newOwner .! newOwner)
-      CmdAcceptOwnership p -> runTzbtcContract $ AcceptOwnership p
+        runMultisigTzbtcContract mbMultisig $
+          EntrypointsWithoutView $ TransferOwnership (#newOwner .! newOwner)
+      CmdAcceptOwnership p -> runTzbtcContract $
+        EntrypointsWithoutView $ AcceptOwnership p
       CmdStartMigrateTo manager' mbMultisig -> do
         manager <- addrOrAliasToAddr manager'
         runMultisigTzbtcContract mbMultisig $
-          StartMigrateTo (#migrationManager .! manager)
+          EntrypointsWithoutView $ StartMigrateTo (#migrationManager .! manager)
       CmdStartMigrateFrom manager' mbMultisig -> do
         manager <- addrOrAliasToAddr manager'
         runMultisigTzbtcContract mbMultisig $
-          StartMigrateFrom (#migrationManager .! manager)
-      CmdMigrate p -> runTzbtcContract $ Migrate p
+          EntrypointsWithoutView $ StartMigrateFrom (#migrationManager .! manager)
+      CmdMigrate p -> runTzbtcContract $ EntrypointsWithoutView $ Migrate p
       CmdGetOpDescription packageFilePath -> do
         pkg <- getPackageFromFile packageFilePath
         case pkg of
@@ -107,7 +120,9 @@ main = do
     runMultisigTzbtcContract :: (Maybe FilePath) -> Parameter -> IO ()
     runMultisigTzbtcContract mbMultisig param =
       case mbMultisig of
-        Just fp -> createMultisigPackage fp param
+        Just fp -> case param of
+          EntrypointsWithoutView subParam -> createMultisigPackage fp subParam
+          _ -> putStrLn ("Unable to call multisig for View entrypoints" :: Text)
         Nothing -> runTzbtcContract param
     programInfo =
       info (helper <*> versionOption <*> clientArgParser) $

@@ -21,6 +21,7 @@ import Util.Named ((.!))
 import Client.Parser (parseAddressFromOutput, parseSignatureFromOutput)
 import Client.Util (paramToExpression)
 import Lorentz.Contracts.TZBTC (Parameter(..))
+import Lorentz.Contracts.TZBTC.Types (ParameterWithoutView(..))
 
 (@??) :: (Show a, HasCallStack) => a -> (a -> Bool) -> Assertion
 (@??) val predicate =
@@ -30,13 +31,17 @@ import Lorentz.Contracts.TZBTC (Parameter(..))
 test_paramToExpression :: TestTree
 test_paramToExpression = testGroup "Test converting Parameter to Micheline expression"
   [ testCase "Pause" $
-    parameterRoundTrip (Pause ()) @?= Right (Pause ())
+    parameterRoundTrip (EntrypointsWithoutView $ Pause ()) @?=
+    Right (EntrypointsWithoutView $ Pause ())
   , testCase "Mint" $
-    parameterRoundTrip (Mint (#to .! genesisAddress1, #value .! 10)) @?=
-    Right (Mint (#to .! genesisAddress1, #value .! 10))
+    parameterRoundTrip (EntrypointsWithoutView $
+                        Mint (#to .! genesisAddress1, #value .! 10)) @?=
+    Right (EntrypointsWithoutView $ Mint (#to .! genesisAddress1, #value .! 10))
   , testCase "RemoveOperator" $
-    parameterRoundTrip (RemoveOperator (#operator .! genesisAddress1)) @?=
-    Right (RemoveOperator (#operator .! genesisAddress1))
+    parameterRoundTrip (EntrypointsWithoutView $
+                        RemoveOperator (#operator .! genesisAddress1)) @?=
+    Right (EntrypointsWithoutView $
+           RemoveOperator (#operator .! genesisAddress1))
   ]
 
 parameterRoundTrip :: Parameter -> Either UnpackError Parameter

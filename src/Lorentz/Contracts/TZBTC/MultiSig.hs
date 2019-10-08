@@ -19,6 +19,11 @@ import Prelude hiding (drop, toStrict, (>>))
 
 import Lorentz
 
+import Michelson.Text (mkMTextUnsafe)
+
+import qualified Lorentz.Contracts.TZBTC.Types as TZBTC
+  (Parameter(..), ParameterWithoutView(..))
+
 data Parameter
   = Default ()
   | ParameterMain ParamMain
@@ -48,23 +53,21 @@ type ParamManage
 
 type ParamSignatures = [Maybe Signature]
 
-type ParamConstraints parameter =
-  ( KnownValue parameter
-  , NoOperation parameter
-  , IsoValue parameter
-  , NoBigMap parameter)
-
 contractToLambda
-  :: forall parameter. ParamConstraints parameter
-  => ContractAddr parameter -> parameter -> Lambda () [Operation]
-contractToLambda caddr param = do
+  :: Address -> TZBTC.ParameterWithoutView -> Lambda () [Operation]
+contractToLambda addr param = do
   drop
-  push caddr
-  push param
-  dip $ push $ toMutez 0
-  transferTokens
-  dip nil
-  cons
+  push addr
+  contract
+  if IsNone
+  then do push (mkMTextUnsafe "Invalid contract type"); failWith
+  else do
+    push param
+    wrap_ @TZBTC.Parameter #cEntrypointsWithoutView
+    dip $ push $ toMutez 0
+    transferTokens
+    dip nil
+    cons
 
 mkStorage :: Natural -> Natural -> [PublicKey] -> Storage
 mkStorage counter threshold keys_ = (counter, (threshold, keys_))

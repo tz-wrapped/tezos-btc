@@ -21,6 +21,8 @@ module Lorentz.Contracts.TZBTC.Types
   , MintForMigrationParams
   , OperatorParams
   , Parameter(..)
+  , ParameterWithView(..)
+  , ParameterWithoutView(..)
   , PauseParams
   , SetMigrationAgentParams
   , SetProxyParams
@@ -29,26 +31,18 @@ module Lorentz.Contracts.TZBTC.Types
   , StartMigrateToParams
   , Storage
   , StorageFields(..)
-  , ToUnpackEnv(..)
   , TransferOwnershipParams
   , TransferViaProxyParams
   , mkStorage
-  , mkEnv
   ) where
 
 import Fmt (Buildable(..), (+|), (|+))
 import Data.Set (Set)
-import Data.Singletons
-import qualified Data.Map as Map
 
 import Lorentz
 import qualified Lorentz.Contracts.ManagedLedger.Types as ManagedLedger
 import Lorentz.Contracts.ManagedLedger.Types (Storage'(..), mkStorage')
 import Util.Instances ()
-import Michelson.TypeCheck.TypeCheck (TcOriginatedContracts)
-import Michelson.Typed.Extract
-import Michelson.Typed.Sing (Sing(..), fromSingT)
-import Tezos.Address
 
 type MigrationManager = Address
 type MigrationManagerCType = ContractAddr (Address, Natural)
@@ -74,17 +68,27 @@ type SetProxyParams = Address
 ----------------------------------------------------------------------------
 
 data Parameter
-  = Transfer            !ManagedLedger.TransferParams
-  | TransferViaProxy    !TransferViaProxyParams
-  | Approve             !ManagedLedger.ApproveParams
-  | ApproveViaProxy     !ApproveViaProxyParams
-  | GetAllowance        !(View ManagedLedger.GetAllowanceParams Natural)
+  = EntrypointsWithView ParameterWithView
+  | EntrypointsWithoutView ParameterWithoutView
+  deriving stock (Eq, Show, Generic)
+  deriving anyclass IsoValue
+
+data ParameterWithView
+  = GetAllowance        !(View ManagedLedger.GetAllowanceParams Natural)
   | GetBalance          !(View Address Natural)
   | GetTotalSupply      !(View () Natural)
   | GetTotalMinted      !(View () Natural)
   | GetTotalBurned      !(View () Natural)
-  | SetAdministrator    !Address
   | GetAdministrator    !(View () Address)
+  deriving stock (Eq, Show, Generic)
+  deriving anyclass IsoValue
+
+data ParameterWithoutView
+  = Transfer            !ManagedLedger.TransferParams
+  | TransferViaProxy    !TransferViaProxyParams
+  | Approve             !ManagedLedger.ApproveParams
+  | ApproveViaProxy     !ApproveViaProxyParams
+  | SetAdministrator    !Address
   | Mint                !ManagedLedger.MintParams
   | Burn                !BurnParams
   | AddOperator         !OperatorParams
@@ -101,6 +105,14 @@ data Parameter
   | SetProxy            !SetProxyParams
   deriving stock (Eq, Show, Generic)
   deriving anyclass IsoValue
+
+instance TypeHasDoc ParameterWithView where
+  typeDocName _ = "Parameter.ParameterWithView"
+  typeDocMdDescription = "Parameter which contains View entrypoints"
+
+instance TypeHasDoc ParameterWithoutView where
+  typeDocName _ = "Parameter.ParameterWithoutView"
+  typeDocMdDescription = "Parameter which doesn't contain View entrypoints"
 
 ----------------------------------------------------------------------------
 -- Storage
@@ -129,59 +141,62 @@ instance HasFieldOfType StorageFields name field =>
 
 instance Buildable Parameter where
   build = \case
-    Transfer (arg #from -> from, arg #to -> to, arg #value -> value) ->
-      "Transfer from " +| from |+ " to " +| to |+ ", value = " +| value |+ ""
-    TransferViaProxy
-      (arg #sender -> sender_, (arg #from -> from, arg #to -> to, arg #value -> value)) ->
-      "Transfer via proxy from sender " +| sender_ |+ ", from" +| from |+ " to "
-      +| to |+ ", value = " +| value |+ ""
-    Approve (arg #spender -> spender, arg #value -> value) ->
-      "Approve for " +| spender |+ ", value = " +| value |+ ""
-    ApproveViaProxy (arg #sender -> sender_, (arg #spender -> spender, arg #value -> value)) ->
-      "Approve via proxy for sender "
+    EntrypointsWithView param -> case param of
+      GetAllowance (View (arg #owner -> owner, arg #spender -> spender) _) ->
+        "Get allowance for " +| owner |+ " from " +| spender |+ ""
+      GetBalance (View addr _) ->
+        "Get balance for " +| addr |+ ""
+      GetTotalSupply _ ->
+        "Get total supply"
+      GetTotalMinted _ ->
+        "Get total minted"
+      GetTotalBurned _ ->
+        "Get total burned"
+      GetAdministrator _ ->
+        "Get administrator"
+
+    EntrypointsWithoutView param -> case param of
+      Transfer (arg #from -> from, arg #to -> to, arg #value -> value) ->
+        "Transfer from " +| from |+ " to " +| to |+ ", value = " +| value |+ ""
+      TransferViaProxy
+        (arg #sender -> sender_, (arg #from -> from, arg #to -> to, arg #value -> value)) ->
+        "Transfer via proxy from sender " +| sender_ |+ ", from" +| from |+ " to "
+        +| to |+ ", value = " +| value |+ ""
+      Approve (arg #spender -> spender, arg #value -> value) ->
+        "Approve for " +| spender |+ ", value = " +| value |+ ""
+      ApproveViaProxy (arg #sender -> sender_, (arg #spender -> spender, arg #value -> value)) ->
+        "Approve via proxy for sender "
         +| sender_ |+ ", spender =" +| spender |+ ", value = " +| value |+ ""
-    GetAllowance (View (arg #owner -> owner, arg #spender -> spender) _) ->
-      "Get allowance for " +| owner |+ " from " +| spender |+ ""
-    GetBalance (View addr _) ->
-      "Get balance for " +| addr |+ ""
-    GetTotalSupply _ ->
-      "Get total supply"
-    GetTotalMinted _ ->
-      "Get total minted"
-    GetTotalBurned _ ->
-      "Get total burned"
-    SetAdministrator addr ->
-      "Set administrator to " +| addr |+ ""
-    GetAdministrator _ ->
-      "Get administrator"
-    Mint (arg #to -> to, arg #value -> value) ->
-      "Mint to " +| to |+ ", value = " +| value |+ ""
-    MintForMigration (arg #to -> to, arg #value -> value) ->
-      "MintForMigration to " +| to |+ ", value = " +| value |+ ""
-    Burn (arg #value -> value) ->
-      "Burn, value = " +| value |+ ""
-    AddOperator (arg #operator -> operator) ->
-      "Add operator " +| operator |+ ""
-    RemoveOperator (arg #operator -> operator) ->
-      "Remove operator " +| operator |+ ""
-    SetRedeemAddress (arg #redeem -> redeem) ->
-      "Set redeem address to " +| redeem |+ ""
-    Pause _ ->
-      "Pause"
-    Unpause _ ->
-      "Unpause"
-    TransferOwnership (arg #newOwner -> newOwner) ->
-      "Transfer ownership to " +| newOwner |+ ""
-    AcceptOwnership _ ->
-      "Accept ownership"
-    StartMigrateTo (arg #migrationManager -> migrateTo) ->
-      "Start migrate to " +| migrateTo |+ ""
-    StartMigrateFrom (arg #migrationManager -> migrateFrom) ->
-      "Start migrate from " +| migrateFrom |+ ""
-    SetProxy address_ ->
-      "Set proxy " +| address_ |+ ""
-    Migrate _ ->
-      "Migrate"
+      SetAdministrator addr ->
+        "Set administrator to " +| addr |+ ""
+      Mint (arg #to -> to, arg #value -> value) ->
+        "Mint to " +| to |+ ", value = " +| value |+ ""
+      MintForMigration (arg #to -> to, arg #value -> value) ->
+        "MintForMigration to " +| to |+ ", value = " +| value |+ ""
+      Burn (arg #value -> value) ->
+        "Burn, value = " +| value |+ ""
+      AddOperator (arg #operator -> operator) ->
+        "Add operator " +| operator |+ ""
+      RemoveOperator (arg #operator -> operator) ->
+        "Remove operator " +| operator |+ ""
+      SetRedeemAddress (arg #redeem -> redeem) ->
+        "Set redeem address to " +| redeem |+ ""
+      Pause _ ->
+        "Pause"
+      Unpause _ ->
+        "Unpause"
+      TransferOwnership (arg #newOwner -> newOwner) ->
+        "Transfer ownership to " +| newOwner |+ ""
+      AcceptOwnership _ ->
+        "Accept ownership"
+      StartMigrateTo (arg #migrationManager -> migrateTo) ->
+        "Start migrate to " +| migrateTo |+ ""
+      StartMigrateFrom (arg #migrationManager -> migrateFrom) ->
+        "Start migrate from " +| migrateFrom |+ ""
+      SetProxy address_ ->
+        "Set proxy " +| address_ |+ ""
+      Migrate _ ->
+        "Migrate"
 
 type Storage = Storage' StorageFields
 
@@ -308,31 +323,3 @@ instance CustomErrorHasDoc "proxyAlreadySet" where
 instance CustomErrorHasDoc "illTypedMigrationManager" where
   customErrDocMdCause =
     "Type checking on the stored migration manager address failed"
-
-class ToUnpackEnv a where
-  toUnpackEnv :: ContractAddr a -> a -> TcOriginatedContracts
-
-instance ToUnpackEnv Parameter where
-  toUnpackEnv = mkEnv
-
-mkEnv :: ContractAddr Parameter -> Parameter -> TcOriginatedContracts
-mkEnv caddr param = case param of
-  GetAllowance v -> addToEnv v
-  GetBalance v -> addToEnv v
-  GetTotalSupply v -> addToEnv v
-  GetTotalMinted v -> addToEnv v
-  GetTotalBurned v -> addToEnv v
-  GetAdministrator v -> addToEnv v
-  _ -> defEnv
-  where
-    contractAddrToHash x = case unContractAddress x of
-      ContractAddress hsh -> hsh
-      _ -> error "mkEnv : Unexpected non-contract address"
-    addToEnv :: forall a r. (SingI (ToT r)) => View a r -> TcOriginatedContracts
-    addToEnv (View _ ca) =
-      Map.insert
-        (contractAddrToHash ca)
-        (toUType $ fromSingT (sing :: Sing (ToT r))) defEnv
-    defEnv = Map.singleton
-      (contractAddrToHash caddr)
-      (toUType $ fromSingT (sing :: Sing (ToT Parameter)))

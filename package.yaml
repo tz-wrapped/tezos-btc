@@ -51,7 +51,6 @@ library:
     - bytestring
     - aeson
     - aeson-casing
-    - singletons
     - xdg-basedir
 
 executables:

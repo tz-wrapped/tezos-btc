@@ -5,8 +5,7 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Util.MultiSig
-  ( PackagePoly(..)
-  , Package
+  ( Package(..)
   , ParamConstraints
   , addSignature
   , decodePackage
@@ -35,9 +34,9 @@ import Client.Util (addTezosBytesPrefix)
 import Lorentz
 import Lorentz.Contracts.TZBTC.MultiSig as MSig
 import Lorentz.Contracts.TZBTC as TZBTC
+import Lorentz.Contracts.TZBTC.Types as TZBTC
 import Michelson.Interpret.Pack
 import Michelson.Interpret.Unpack
-import Michelson.TypeCheck.TypeCheck
 import Michelson.Typed
 import Tezos.Crypto
 
@@ -69,8 +68,6 @@ type ParamConstraints parameter =
 -- data.
 type ToSign = (Address, ParamPayload)
 
-type Package = PackagePoly TZBTC.Parameter
-
 -- | The type that will represent the actual data that will be provide to
 -- signers. We are using this, instead of just providing the byte sequence,
 -- because we need the `TcOriginatedContracts` map to recreate the original
@@ -82,9 +79,8 @@ type Package = PackagePoly TZBTC.Parameter
 -- This is because the multi-sig expects the signatures to be orders in the
 -- exact same way as the keys in its storage. If a signature is not available
 -- then it expects a Nothing value in its place.
-data PackagePoly p = Package
+data Package = Package
   { pkToSign :: !Text  -- ^ Hex encoded byte sequence that should be signed
-  , pkUnpackEnv :: !TcOriginatedContracts  -- ^ Maps address to the type of originated contracts.
   , pkSignatures :: ![(PublicKey, Signature)] -- ^ Field to hold signatures and public keys as they are collected.
   , pkSrcParam :: !Text -- ^ Packed main contract param and counter value
   }
@@ -95,7 +91,7 @@ instance Buildable (PublicKey, Signature) where
                   |+ ("\nSignature: " :: String)
                   |+ (build $ formatSignature sig)
 
-instance (ParamConstraints p, ToUnpackEnv p, Buildable p) => Buildable (PackagePoly p) where
+instance Buildable Package where
   build p =
     ("Operation:" :: String)
     |+ ("\n------------------\n" :: String) |+ (getOpDescription p) |+ newLine
@@ -107,77 +103,77 @@ instance (ParamConstraints p, ToUnpackEnv p, Buildable p) => Buildable (PackageP
 -- | Match packed parameter with the signed bytesequence and
 -- if it matches, return it, or else return an error
 fetchSrcParam
-  :: forall parameter. (ParamConstraints parameter, ToUnpackEnv parameter)
-  => PackagePoly parameter
-  -> Either UnpackageError parameter
+  :: Package
+  -> Either UnpackageError TZBTC.Parameter
 fetchSrcParam package =
   case decodeHex $ pkSrcParam package of
     Just hexDecoded ->
-      case fromVal @(parameter, Natural, ContractAddr parameter)
-          <$> unpackValue' (UnpackEnv (pkUnpackEnv package)) hexDecoded of
-        Right (parameter, counter, caddress) ->
+      case fromVal @(TZBTC.Parameter, Natural, ContractAddr TZBTC.Parameter)
+          <$> unpackValue' dummyUnpackEnv hexDecoded of
+        Right ((EntrypointsWithoutView parameter), counter, caddress) ->
           case getToSign package of
             Right (msigAddr, _) ->
-              let newPackage = mkPackage msigAddr counter caddress parameter
+              let newPackage = mkPackage
+                    msigAddr counter caddress parameter
               in if pkToSign newPackage == pkToSign package
-              then Right parameter else Left BadSrcParameterFailure
+              then Right (EntrypointsWithoutView parameter)
+              else Left BadSrcParameterFailure
             Left err -> Left err
+        Right ((EntrypointsWithView _), _, _) -> Left UnexpectedParameterWithView
         Left err -> Left $ UnpackFailure err
     Nothing -> Left HexDecodingFailure
 
 checkIntegrity
-  :: forall parameter. (ParamConstraints parameter, ToUnpackEnv parameter)
-  => PackagePoly parameter
+  :: Package
   -> Bool
 checkIntegrity = isRight . fetchSrcParam
 
 -- | Get Operation description from serialized value
 getOpDescription
-  :: forall parameter. (Buildable parameter, ParamConstraints parameter, ToUnpackEnv parameter)
-  => PackagePoly parameter -> Builder
+  :: Package -> Builder
 getOpDescription p = case fetchSrcParam p of
   Right param -> build param
   Left err -> build err
 
 -- | Make the `Package` value from input parameters.
 mkPackage
-  :: forall parameter. (ParamConstraints parameter, ToUnpackEnv parameter)
-  => Address
+  :: Address
   -> Natural
-  -> ContractAddr parameter
-  -> parameter -> PackagePoly parameter
+  -> ContractAddr TZBTC.Parameter
+  -> TZBTC.ParameterWithoutView -> Package
 mkPackage msigAddress counter tzbtc param
-  = let msigLambda = contractToLambda tzbtc param
+  = let msigLambda = contractToLambda
+          (unContractAddress tzbtc) param
     in Package
       { pkToSign = encodeToSign $ (msigAddress, (counter, ParamLambda msigLambda))
-      , pkUnpackEnv = toUnpackEnv tzbtc param
       , pkSignatures = []
-      , pkSrcParam = encodeHex $ packValue' $ toVal (param, counter, tzbtc)
+      , pkSrcParam = encodeHex $ packValue' $
+        toVal ((EntrypointsWithoutView param), counter, tzbtc)
       }
 
 mergeSignatures
-  :: PackagePoly p
-  -> PackagePoly p
-  -> Maybe (PackagePoly p)
+  :: Package
+  -> Package
+  -> Maybe Package
 mergeSignatures p1 p2 =
-  if (pkToSign p1, pkUnpackEnv p1) == (pkToSign p2, pkUnpackEnv p2)
+  if pkToSign p1 == pkToSign p2
     then Just $ p1 { pkSignatures = pkSignatures p1 ++ pkSignatures p2 }
     else Nothing
 
 mergePackages
-  :: NonEmpty (PackagePoly p)
-  -> Either UnpackageError (PackagePoly p)
+  :: NonEmpty Package
+  -> Either UnpackageError Package
 mergePackages (p :| ps) = maybeToRight PackageMergeFailure $
   foldM mergeSignatures p ps
 
-getBytesToSign :: (PackagePoly p) -> Text
+getBytesToSign :: Package -> Text
 getBytesToSign Package{..} = addTezosBytesPrefix pkToSign
 
-getToSign :: (PackagePoly p) -> Either UnpackageError ToSign
+getToSign :: Package -> Either UnpackageError ToSign
 getToSign Package{..} =
   case decodeHex pkToSign of
     Just hexDecoded ->
-      case fromVal @ToSign <$> unpackValue' (UnpackEnv pkUnpackEnv) hexDecoded of
+      case fromVal @ToSign <$> unpackValue' dummyUnpackEnv hexDecoded of
         Right toSign -> Right toSign
         Left err -> Left $ UnpackFailure err
     Nothing -> Left HexDecodingFailure
@@ -189,6 +185,7 @@ data UnpackageError
   | UnpackFailure UnpackError
   | PackageMergeFailure
   | BadSrcParameterFailure -- If the bundled operation differes from the one that is being signed for
+  | UnexpectedParameterWithView
 
 instance Buildable UnpackageError where
   build = \case
@@ -196,6 +193,7 @@ instance Buildable UnpackageError where
     PackageMergeFailure -> "Provied packages had different action/enviroments"
     BadSrcParameterFailure -> "ERROR!! The bundled operation does not match the byte sequence that is being signed."
     UnpackFailure err -> build err
+    UnexpectedParameterWithView -> "Unexpected parameter with View in package"
 
 instance Show UnpackageError where
   show = pretty
@@ -205,22 +203,21 @@ instance Exception UnpackageError where
 
 -- | Encode package
 encodePackage
-  :: PackagePoly p
+  :: Package
   -> ByteString
 encodePackage = toStrict . encode
 
 -- | Decode package
 decodePackage
   :: ByteString
-  -> Either String (PackagePoly p)
+  -> Either String Package
 decodePackage = eitherDecodeStrict
 
 -- | Add signature to package.
-addSignature ::
-  forall parameter. (ParamConstraints parameter, ToUnpackEnv parameter)
-  => PackagePoly parameter
+addSignature
+  :: Package
   -> (PublicKey, Signature)
-  -> Either String (PackagePoly parameter)
+  -> Either String Package
 addSignature package sig =
   if checkIntegrity package then let
     existing = pkSignatures package
@@ -233,7 +230,7 @@ addSignature package sig =
 -- them in it's storage.
 mkMultiSigParam
   :: [PublicKey]
-  -> NonEmpty (PackagePoly p)
+  -> NonEmpty Package
   -> Either UnpackageError (ContractAddr MSig.Parameter, MSig.Parameter)
 mkMultiSigParam pks packages = do
   package <- mergePackages packages
@@ -257,4 +254,4 @@ mkMultiSigParam pks packages = do
 encodeToSign :: ToSign -> Text
 encodeToSign ts = (encodeHex $ packValue' $ toVal ts)
 
-deriveJSON (aesonPrefix camelCase) ''PackagePoly
+deriveJSON (aesonPrefix camelCase) ''Package

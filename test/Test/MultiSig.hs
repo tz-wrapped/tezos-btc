@@ -12,6 +12,7 @@ import Test.Tasty.HUnit (assertBool, assertEqual, testCase)
 
 import Lorentz hiding (SomeContract)
 import Lorentz.Contracts.TZBTC as TZBTC
+import Lorentz.Contracts.TZBTC.Types as TZBTC
 import Lorentz.Contracts.TZBTC.MultiSig as MSig
 import Lorentz.Test.Integrational
 import Michelson.Runtime (prepareContract)

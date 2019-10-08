@@ -6,7 +6,8 @@
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 
 module Lorentz.Contracts.TZBTC.Impl
-  ( StorageC
+  ( Entrypoint
+  , StorageC
   , ManagedLedger.approve
   , ManagedLedger.approve'
   , ManagedLedger.getAdministrator
