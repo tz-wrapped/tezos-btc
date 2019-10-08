@@ -4,6 +4,7 @@
  -}
 module Client.API
   ( forgeOperation
+  , getMainChainId
   , getCounter
   , getStorage
   , getLastBlock
@@ -33,7 +34,8 @@ type NodeAPI =
   "chains/main/blocks/head/helpers/scripts/run_operation"
   :> ReqBody '[JSON] RunOperation :> Post '[JSON] RunRes :<|>
   "chains/main/blocks/head/context/contracts"
-  :> Capture "contract" Text :> "storage" :> Get '[JSON] Expression
+  :> Capture "contract" Text :> "storage" :> Get '[JSON] Expression :<|>
+  "chains/main/chain_id" :> Get '[JSON] Text
 
 
 nodeAPI :: Proxy NodeAPI
@@ -45,9 +47,11 @@ injectOperation :: Maybe Text -> Text -> ClientM Text
 getCounter :: Text -> ClientM TezosWord64
 runOperation :: RunOperation -> ClientM RunRes
 getStorage :: Text -> ClientM Expression
+getMainChainId :: ClientM Text
 forgeOperation :<|>
   getLastBlock :<|>
   injectOperation :<|>
   getCounter :<|>
   runOperation :<|>
-  getStorage = client nodeAPI
+  getStorage :<|>
+  getMainChainId = client nodeAPI
