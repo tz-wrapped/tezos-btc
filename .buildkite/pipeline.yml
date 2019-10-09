@@ -13,14 +13,27 @@ steps:
  - command: "nix run -f https://github.com/serokell/crossref-verifier/archive/master.tar.gz -c crossref-verify"
    label: crossref-verify
    soft_fail: true
+ # TODO: Uncomment me before merging
+ # - commands:
+ #   - nix-shell --run "make test-ci"
+ #   - echo +++ Weeder
+ #   - nix-shell --run "nix run nixpkgs.haskellPackages.weeder -c weeder ."
+ #   - echo +++ Bats
+ #   - nix-shell --run "nix run nixpkgs.bats -c bats test.bats"
+ #   - echo 'bats passed successfully'
+ #   - echo +++ Smoke
+ #   - nix-shell --run "nix run nixpkgs.python3 -c bash scripts/ci-test.sh"
+ #   - echo 'ci-test passed successfully'
+ #   label: test && weeder && bats
+
  - commands:
-   - nix-shell --run "make test-ci"
-   - echo +++ Weeder
-   - nix-shell --run "nix run nixpkgs.haskellPackages.weeder -c weeder ."
-   - echo +++ Bats
-   - nix-shell --run "nix run nixpkgs.bats -c bats test.bats"
-   - echo 'bats passed successfully'
-   - echo +++ Smoke
-   - nix-shell --run "nix run nixpkgs.python3 -c bash scripts/ci-test.sh"
-   - echo 'ci-test passed successfully'
-   label: test && weeder && bats
+   - "$(nix-build --no-link -A fullBuildScript) -o tzbtc-static"
+   - nix-build release.nix --arg tzbtc-client-binary "tzbtc-static/bin/tzbtc-client" -A packageIntoDeb -o tzbtc-client-deb
+   - nix-build release.nix --arg tzbtc-client-binary "tzbtc-static/bin/tzbtc-client" -A packageIntoRpm -o tzbtc-client-rpm
+   label: packaging
+   # TODO: Uncomment me before merging
+   # branches: master
+   artifact_paths:
+     - ./tzbtc-static/bin/tzbtc-client
+     - ./tzbtc-client-deb/*
+     - ./tzbtc-client-rpm/*
