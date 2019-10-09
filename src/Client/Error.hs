@@ -18,11 +18,13 @@ import Client.Types
 data TzbtcClientError
   = TzbtcServantError ClientError
   | TzbtcClientConfigError
+  | TzbtcClientConfigFileNotFound FilePath
   | TzbtcRunFailed [RunError]
   | TzbtcUnexpectedRunResult Text
   | TzbtcUnexpectedMultisigStorage MichelsonExpression
   | TzbtcPublicKeyParseError Text CryptoParseError
   | TzbtcUnknownAliasError Text
+  | TzbtcMutlisigConfigUnavailable
 
 instance Buildable TzbtcClientError where
   build (TzbtcServantError err) = case err of
@@ -44,6 +46,12 @@ instance Buildable TzbtcClientError where
 
   build TzbtcClientConfigError =
     "Invalid client configuration. Use 'tzbtc-client setupClient'"
+
+  build (TzbtcClientConfigFileNotFound p) =
+    "Config file was not found at : " +| (build p)
+
+  build TzbtcMutlisigConfigUnavailable =
+    "Multi-sig configuration was not available"
 
   build (TzbtcRunFailed errs) =
     "Transaction run have failed with " +| length errs |+ " errors:\n" +|

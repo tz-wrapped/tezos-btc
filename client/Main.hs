@@ -30,6 +30,8 @@ main = do
   case dryRunFlag of
     True -> pass
     False -> case cmd of
+      CmdConfig editFlag partialConfig ->
+        runConfigEdit editFlag partialConfig
       CmdSetupClient config -> setupClient config
       CmdMint to' value mbMultisig -> do
         to <- addrOrAliasToAddr to'

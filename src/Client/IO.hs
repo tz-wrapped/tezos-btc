@@ -6,6 +6,7 @@ module Client.IO
   ( addrOrAliasToAddr
   , createMultisigPackage
   , getPackageFromFile
+  , runConfigEdit
   , runTzbtcContract
   , runMultisigContract
   , setupClient
@@ -13,15 +14,18 @@ module Client.IO
   , writePackageToFile
   ) where
 
-import Data.Aeson (decodeFileStrict, encodeFile)
+import Data.Aeson (decodeFileStrict)
+import Data.Aeson.Encode.Pretty (encodePretty)
 import Data.ByteString (cons, readFile, writeFile)
 import Data.Sequence (Seq(..))
+import qualified Data.ByteString.Lazy as BSL hiding (putStrLn)
+import qualified Data.ByteString.Lazy.Char8 as BSL (putStrLn)
 import Fmt (pretty)
 import Network.HTTP.Client
   (ManagerSettings(..), Request(..), newManager, defaultManagerSettings)
 import Servant.Client
   (BaseUrl(..), ClientError, ClientEnv, Scheme(..), mkClientEnv, runClientM)
-import System.Directory (createDirectoryIfMissing)
+import System.Directory (createDirectoryIfMissing, doesFileExist)
 import System.Exit (ExitCode(..))
 import System.Process (readProcessWithExitCode)
 import System.Environment.XDG.BaseDir (getUserConfigDir, getUserConfigFile)
@@ -96,10 +100,13 @@ getAddressCounter env address = runClientM (getCounter $ formatAddress address) 
 readConfigFile :: IO (Either TzbtcClientError ClientConfig)
 readConfigFile = do
   (_, configPath) <- getFullAppAndConfigPath
-  mbConfig <- decodeFileStrict configPath
-  case mbConfig of
-    Just config -> return $ Right config
-    Nothing -> return $ Left TzbtcClientConfigError
+  fileExists <- doesFileExist configPath
+  if fileExists then do
+    mbConfig <- decodeFileStrict configPath
+    case mbConfig of
+      Just config -> return $ Right config
+      Nothing -> return $ Left TzbtcClientConfigError
+  else return $ Left $ TzbtcClientConfigFileNotFound configPath
 
 getPackageFromFile :: FilePath -> IO (Either Text Package)
 getPackageFromFile packageFilePath = do
@@ -115,10 +122,13 @@ writePackageToFile package fileToWrite =
 createMultisigPackage :: FilePath -> ParameterWithoutView -> IO ()
 createMultisigPackage packagePath parameter = do
   config@ClientConfig{..} <- throwLeft $ readConfigFile
-  (counter, _) <- throwLeft $ getMultisigStorage ccMultisigAddress config
-  let package = mkPackage ccMultisigAddress counter
-        (ContractAddr ccContractAddress) parameter
-  writePackageToFile package packagePath
+  case ccMultisigAddress of
+    Nothing -> throwLeft $ pure $ Left TzbtcMutlisigConfigUnavailable
+    Just msAddr ->  do
+      (counter, _) <- throwLeft $ getMultisigStorage msAddr config
+      let package = mkPackage msAddr counter
+            (ContractAddr ccContractAddress) parameter
+      writePackageToFile package packagePath
 
 -- Quite ugly patternmatching, but at least such approach
 -- works for multisig storage extraction. As soon as https://issues.serokell.io/issue/TM-140
@@ -318,12 +328,40 @@ addrOrAliasToAddr addrOrAlias =
       (addr, _) <- throwLeft $ getAddressAndPKForAlias addrOrAlias config
       pure addr
 
-setupClient :: ClientConfig -> IO ()
-setupClient config = do
-  (appPath, configPath) <- getFullAppAndConfigPath
-  createDirectoryIfMissing True appPath
-  putStrLn $ "Config file written to: " ++ configPath
-  encodeFile configPath config
+-- | Write the configuration values to file as JSON in the following way.
+--
+-- 1. If none of the configuration values were provided, write the file
+-- with placeholders for missing values, and notify the user.
+--
+-- 2. If a configuration file exists alredy, do not overwrite it, no matter
+-- what.
+setupClient :: ClientConfigPartial -> IO ()
+setupClient configPartial = do
+  (appPath, configFilePath) <- getFullAppAndConfigPath
+  fileExists <- doesFileExist configFilePath
+  if fileExists  then
+    putStrLn $
+      "Not overwriting the existing config file at, \n\n" <> configFilePath <>
+      "\n\nPlease remove the file and try again"
+  else do
+    createDirectoryIfMissing True appPath
+    case toConfigFilled configPartial of
+      Just config -> do
+        BSL.writeFile configFilePath $ encodePretty config
+        putStrLn $ "Config file has been written to " <> configFilePath
+      Nothing -> do
+        BSL.writeFile configFilePath $ encodePretty configPartial
+        putStrLn $ "Since the required configuration values were missing from the command, \
+          \a config file, with placeholders in place of missing values has been \
+          \written to, \n\n" <> configFilePath <> "\n\n\
+          \Use `tzbtc-client setupClient --help` to see the command arguments."
+
+writeConfig :: ClientConfig -> IO ()
+writeConfig c =  do
+  putTextLn "Writing config to"
+  (_, configFilePath) <- getFullAppAndConfigPath
+  putStrLn  configFilePath
+  BSL.writeFile configFilePath $ encodePretty c
 
 runTzbtcContract :: Parameter -> IO ()
 runTzbtcContract param = do
@@ -338,3 +376,45 @@ runMultisigContract packages = do
   (_, (_, keys')) <- throwLeft $ getMultisigStorage multisigAddr config
   (_, multisigParam) <- throwLeft $ pure $ mkMultiSigParam keys' packages
   runTransaction multisigAddr multisigParam config
+
+runConfigEdit :: Bool -> ClientConfigPartial -> IO ()
+runConfigEdit doEdit configPartial = do
+  econfig <- readConfigFile
+  case econfig of
+    Left err -> putTextLn (pretty err)
+    Right config -> do
+      (_, path) <- getFullAppAndConfigPath
+      if doEdit then do
+        case mergeConfig config configPartial of
+          Just newConfig -> writeConfig newConfig
+          Nothing -> pass
+      else printConfig path config
+  where
+    -- Is there any change to the config at all?
+    delta ccp =
+      isAvailable (ccNodeAddress ccp) || isAvailable (ccNodePort ccp) ||
+      isAvailable (ccContractAddress ccp) || isJust (ccMultisigAddress ccp) ||
+      isAvailable (ccUserAlias ccp) || isAvailable (ccTezosClientExecutable ccp) ||
+      isAvailable (ccUserAddress ccp)
+
+    mergeConfig :: ClientConfig -> ClientConfigPartial -> Maybe ClientConfig
+    mergeConfig cc ccp = if delta ccp
+      then Just $ ClientConfig
+        (withDefault (ccNodeAddress cc) (ccNodeAddress ccp))
+        (withDefault (ccNodePort cc) (ccNodePort ccp))
+        (withDefault (ccContractAddress cc) (ccContractAddress ccp))
+        (case (ccMultisigAddress ccp) of Just a -> Just a; _ -> ccMultisigAddress cc)
+        (withDefault (ccUserAddress cc) (ccUserAddress ccp))
+        (withDefault (ccUserAlias cc) (ccUserAlias ccp))
+        (withDefault (ccTezosClientExecutable cc) (ccTezosClientExecutable ccp))
+      else Nothing
+
+printConfig :: FilePath -> ClientConfig -> IO ()
+printConfig path c = do
+  putTextLn "Config file path:"
+  putTextLn "-----------------"
+  putStrLn path
+  putTextLn ""
+  putTextLn "Config file content:"
+  putTextLn "--------------------"
+  BSL.putStrLn $ encodePretty c
