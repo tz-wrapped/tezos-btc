@@ -11,13 +11,14 @@ module CLI.Parser
   , argParser
   , mkCommandParser
   , namedAddressOption
+  , nullableAddressOption
   ) where
 
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
 
 import Data.Char (toUpper)
 import Fmt (pretty)
-import Named (Name(..))
+import Named (NamedF(..), Name(..), (!))
 import Options.Applicative
   (argument, auto, command, eitherReader, help, hsubparser, info, long, metavar, option, progDesc,
   showDefaultWith, str, switch, value)
@@ -169,6 +170,25 @@ namedAddressOption defAddress name hInfo = option (eitherReader parseAddrDo) $
     , help hInfo
     , maybeAddDefault pretty defAddress
     ]
+
+-- A nullable option that will accept an explicit null value
+nullableOption
+  :: ("name" :! String)
+  -> ("meta" :! String)
+  -> ("hinfo" :! String)
+  -> (String -> Either String a) -> Opt.Parser (Maybe a)
+nullableOption (Arg name) (Arg meta) (Arg hinfo) e =
+  option (eitherReader (parseNullable e)) $
+  mconcat [long name, metavar meta, help hinfo]
+  where
+    parseNullable :: (String -> Either String a) -> String -> Either String (Maybe a)
+    parseNullable _ "null" = Right Nothing
+    parseNullable fn a = case fn a of
+      Right x -> Right (Just x)
+      Left x -> Left x
+
+nullableAddressOption :: ("name" :! String) -> ("hinfo" :! String) -> Opt.Parser (Maybe Address)
+nullableAddressOption name hinfo = (nullableOption name ! #meta "ADDRESS") hinfo parseAddrDo
 
 addressArgument :: String -> Opt.Parser Address
 addressArgument hInfo =

@@ -51,7 +51,14 @@ ledger interaction.
 environment. It takes information about node, user information
 (specifically address and name alias from the `tezos-client`), contract address
 and also path to the `tezos-client` executable, which is used for
-transaction signing and ledger interaction.
+transaction signing and ledger interaction. The `setupClient` command
+can be called without any values, which places a template config file in
+the proper path, filled with placeholders. The `config --edit` command
+can be used to edit the config values in the file. When called with no
+arguments, `config --edit` command will open an editor (Not available in
+windows), with the config contents. After saving the content and
+closing the editor, the config file will be updated with the new
+contents.
 
 Other commands will perform injection of desired transaction to the
 TZBTC contract. E.g. `tzbtc-client mint --to tz1U1h1YzBJixXmaTgpwDpZnbrYHX3fMSpvby --value 100500`

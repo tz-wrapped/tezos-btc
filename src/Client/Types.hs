@@ -7,6 +7,7 @@ module Client.Types
   , ClientConfigP (..)
   , ClientConfig
   , ClientConfigPartial
+  , ClientConfigText
   , ForgeOperation (..)
   , InternalOperation (..)
   , MichelsonExpression (..)
@@ -19,9 +20,11 @@ module Client.Types
   , RunOperationInternal (..)
   , RunOperationResult (..)
   , RunRes (..)
+  , TextConfig (..)
   , TransactionOperation (..)
   , combineResults
   , partialParser
+  , partialParserMaybe
   , toConfigFilled
   , isAvailable
   , withDefault
@@ -217,31 +220,39 @@ data TransactionOperation = TransactionOperation
   , toParameters :: ParametersInternal
   }
 
-data ConfigSt = ConfigFilled | ConfigPartial
+data ConfigSt = ConfigFilled | ConfigPartial | ConfigText
 
-data Partial (label :: Symbol) a = Available a | Unavilable
+data Partial (label :: Symbol) a = Available a | Unavilable deriving (Eq, Functor)
+
+-- | This type is used to represent fields in a config where some of
+-- the fields can be placeholders. Let's us to read the partial config
+-- from the file and amend it in place.
+data TextConfig a = TextRep Text | ConfigVal a
 
 type family ConfigC (a :: ConfigSt) b (label :: Symbol) where
   ConfigC 'ConfigFilled a _ = a
   ConfigC 'ConfigPartial a label = Partial label a
+  ConfigC 'ConfigText a _ = TextConfig a
 
 type ClientConfig = ClientConfigP 'ConfigFilled
 
 type ClientConfigPartial = ClientConfigP 'ConfigPartial
 
+type ClientConfigText = ClientConfigP 'ConfigText
+
 data ClientConfigP f = ClientConfig
   { ccNodeAddress :: ConfigC f Text "url to the tezos node"
   , ccNodePort :: ConfigC f Int "`rpc port of the tezos node"
   , ccContractAddress :: ConfigC f Address "contract address"
-  , ccMultisigAddress :: Maybe Address
+  , ccMultisigAddress :: ConfigC f (Maybe Address) "multisig contract address"
   , ccUserAddress :: ConfigC f Address "user address"
   , ccUserAlias :: ConfigC f Text "user alias"
   , ccTezosClientExecutable :: ConfigC f FilePath "tezos-client executable path"
   } deriving Generic
 
-toPartial :: Maybe a -> Partial s a
-toPartial (Just a) = Available a
-toPartial Nothing = Unavilable
+-- For tests
+deriving instance Eq ClientConfig
+deriving instance Show ClientConfig
 
 isAvailable :: Partial s a -> Bool
 isAvailable (Available _) = True
@@ -249,6 +260,17 @@ isAvailable _ = False
 
 partialParser :: Parser a -> Parser (Partial s a)
 partialParser p = toPartial <$> optional p
+  where
+    toPartial :: Maybe a -> Partial s a
+    toPartial (Just a) = Available a
+    toPartial Nothing = Unavilable
+
+partialParserMaybe :: Parser a -> Parser (Partial s (Maybe a))
+partialParserMaybe p = toPartialMaybe <$> optional p
+  where
+    toPartialMaybe :: Maybe a -> Partial s (Maybe a)
+    toPartialMaybe (Just a) = Available (Just a)
+    toPartialMaybe Nothing = Unavilable
 
 withDefault :: a -> Partial s a -> a
 withDefault _ (Available a) = a
@@ -259,11 +281,15 @@ toConfigFilled p = ClientConfig
   <$> (toMaybe $ ccNodeAddress p)
   <*> (toMaybe $ ccNodePort p)
   <*> (toMaybe $ ccContractAddress p)
-  <*> (pure $ ccMultisigAddress p)
+  <*> (toMaybe $ withDefault' Nothing $ ccMultisigAddress p)
   <*> (toMaybe $ ccUserAddress p)
   <*> (toMaybeText $ ccUserAlias p)
   <*> (toMaybe $ ccTezosClientExecutable p)
   where
+    withDefault' :: a -> Partial s a -> Partial s a
+    withDefault' _ (Available a) = Available a
+    withDefault' a _ = Available a
+
     toMaybe :: Partial s a -> Maybe a
     toMaybe (Available a) = Just a
     toMaybe _ = Nothing
@@ -272,21 +298,32 @@ toConfigFilled p = ClientConfig
     toMaybeText (Available a) = if T.isPrefixOf "-- " a then Nothing else Just a
     toMaybeText _ = Nothing
 
-instance {-# OVERLAPS #-} (ToJSON a, KnownSymbol l) => ToJSON (Partial l a) where
+instance (ToJSON a, KnownSymbol l) => ToJSON (Partial l a) where
   toJSON v = case v of
     Available a -> toJSON a
-    Unavilable -> toJSON $ "-- Required field: " ++ (symbolVal (Proxy @l) ++ ", Replace this placeholder with proper value --")
-
-instance (ToJSON a, KnownSymbol l) => ToJSON (Partial l (Maybe a)) where
-  toJSON v = case v of
-    Available a -> toJSON a
-    Unavilable -> toJSON $ "-- Optional field: " ++ (symbolVal (Proxy @l) ++ ", Replace this placeholder with proper value or `null` if not required --")
+    Unavilable ->
+      toJSON $ "-- Required field: "
+        ++ (symbolVal (Proxy @l) ++ ", Replace this placeholder with proper value --")
 
 instance ToJSON ClientConfigPartial where
   toJSON = genericToJSON (aesonPrefix snakeCase)
 
 instance ToJSON ClientConfig where
   toJSON = genericToJSON (aesonPrefix snakeCase)
+
+instance FromJSON ClientConfigText where
+  parseJSON = genericParseJSON (aesonPrefix snakeCase)
+
+instance ToJSON ClientConfigText where
+  toJSON = genericToJSON (aesonPrefix snakeCase)
+
+instance (ToJSON a) => ToJSON (TextConfig a) where
+  toJSON (TextRep a) = toJSON a
+  toJSON (ConfigVal a) = toJSON a
+
+instance (FromJSON a) => FromJSON (TextConfig a) where
+  parseJSON v = (ConfigVal <$> parseJSON v)
+             <|> (TextRep <$> parseJSON v)
 
 instance FromJSON ClientConfig where
   parseJSON = genericParseJSON (aesonPrefix snakeCase)

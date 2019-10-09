@@ -51,6 +51,10 @@ library:
     - vinyl
     - xdg-basedir
 
+  when:
+    - condition: os(linux)
+      dependencies: editor-open
+
 executables:
   tzbtc:
     <<: *exec-common
@@ -83,6 +87,7 @@ tests:
       - DerivingStrategies
 
     dependencies:
+    - aeson
     - tzbtc
     - morley-prelude
     - universum
