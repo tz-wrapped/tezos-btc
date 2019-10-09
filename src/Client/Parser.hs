@@ -51,6 +51,10 @@ data ClientArgsRaw
   | CmdAcceptOwnership AcceptOwnershipParams
   | CmdStartMigrateTo AddrOrAlias (Maybe FilePath)
   | CmdStartMigrateFrom AddrOrAlias (Maybe FilePath)
+  | CmdGetTotalSupply (Maybe AddrOrAlias)
+  | CmdGetTotalMinted (Maybe AddrOrAlias)
+  | CmdGetTotalBurned (Maybe AddrOrAlias)
+  | CmdGetAdministrator (Maybe AddrOrAlias)
   | CmdSetupClient ClientConfigPartial
   | CmdMigrate MigrateParams
   | CmdGetOpDescription FilePath
@@ -74,7 +78,9 @@ clientArgRawParser = Opt.hsubparser $
   <> removeOperatorCmd <> pauseCmd <> unpauseCmd
   <> setRedeemAddressCmd <> transferOwnershipCmd <> acceptOwnershipCmd
   <> startMigrateFromCmd <> startMigrateToCmd
-  <> migrateCmd <> setupUserCmd <> getOpDescriptionCmd <> getBytesToSignCmd
+  <> migrateCmd <> getTotalSupplyCmd <> getTotalMintedCmd
+  <> getTotalBurnedCmd <> getAdministratorCmd <> setupUserCmd
+  <> getOpDescriptionCmd <> getBytesToSignCmd
   <> addSignatureCmd <> signPackageCmd <> callMultisigCmd
   <> addSignatureCmd <> callMultisigCmd <> configCmd
   where
@@ -258,6 +264,38 @@ clientArgRawParser = Opt.hsubparser $
          "migrate"
          (pure $ CmdMigrate ())
          "Migrate contract")
+
+    getTotalSupplyCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
+    getTotalSupplyCmd =
+      (mkCommandParser
+         "getTotalSupply"
+         (CmdGetTotalSupply <$>
+          mbAddrOrAliasOption "callback" "Callback address")
+         "Get total supply")
+
+    getTotalMintedCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
+    getTotalMintedCmd =
+      (mkCommandParser
+         "getTotalMinted"
+         (CmdGetTotalMinted <$>
+          mbAddrOrAliasOption "callback" "Callback address")
+         "Get amount of minted tokens")
+
+    getTotalBurnedCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
+    getTotalBurnedCmd =
+      (mkCommandParser
+         "getTotalBurned"
+         (CmdGetTotalBurned <$>
+          mbAddrOrAliasOption "callback" "Callback address")
+         "Get amount of burned tokens")
+
+    getAdministratorCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
+    getAdministratorCmd =
+      (mkCommandParser
+         "getAdministrator"
+         (CmdGetAdministrator <$>
+          mbAddrOrAliasOption "callback" "Callback address")
+         "Get current contract administrator")
 
     getOpDescriptionCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     getOpDescriptionCmd =

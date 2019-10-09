@@ -7,6 +7,7 @@ module Client.IO
   , createMultisigPackage
   , getAllowance
   , getBalance
+  , getFromTzbtcStorage
   , getPackageFromFile
   , runConfigEdit
   , runTzbtcContract
@@ -140,6 +141,12 @@ getMultisigStorage addr config@ClientConfig{..} = do
   mSigStorageRaw <- throwClientError $
     runClientM (getStorage $ formatAddress addr) clientEnv
   throwLeft $ pure $ exprToValue @MSig.Storage mSigStorageRaw
+
+getFromTzbtcStorage :: (AlmostStorage -> a) -> IO a
+getFromTzbtcStorage field = do
+  config <- throwLeft $ readConfigFile
+  storage <- getTzbtcStorage config
+  pure $ field storage
 
 getTzbtcStorage
   :: ClientConfig -> IO AlmostStorage
@@ -281,7 +288,7 @@ data ConfirmationResult = Confirmed | Canceled
 
 confirmAction :: IO ConfirmationResult
 confirmAction = do
-  putStrLn $ ("Are you sure? [Y/N]" :: Text)
+  putTextLn "Are you sure? [Y/N]"
   res <- getLine
   case res of
     x | x `elem` ["Y", "y", "yes"] -> pure Confirmed
@@ -292,8 +299,8 @@ signPackageForConfiguredUser :: Package -> IO (Either String Package)
 signPackageForConfiguredUser pkg = do
   config@ClientConfig{..} <- throwLeft $ readConfigFile
   (_, pk) <- throwLeft $ getAddressAndPKForAlias ccUserAlias config
-  putStrLn ("You are going to sign the following package:\n" :: Text)
-  putStrLn (pretty pkg :: Text)
+  putTextLn "You are going to sign the following package:\n"
+  putTextLn $ pretty pkg
   confirmationResult <- confirmAction
   case confirmationResult of
     Canceled -> pure $ Left $ "Package signing was canceled"
