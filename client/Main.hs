@@ -15,11 +15,13 @@ import Options.Applicative.Help.Pretty (Doc, linebreak)
 import Lorentz.Macro (View(..))
 import Michelson.Typed.Haskell.Value (ContractAddr(..))
 import Paths_tzbtc (version)
+import Tezos.Address (formatAddress)
 import Util.Named ((.!))
 
 import Client.IO
 import Client.Parser
-import Lorentz.Contracts.TZBTC (Parameter(..))
+import Client.Types
+import Lorentz.Contracts.TZBTC (Parameter(..), StorageFields(..))
 import Lorentz.Contracts.TZBTC.Types
   (ParameterWithoutView(..), ParameterWithView(..))
 import Util.MultiSig
@@ -48,14 +50,26 @@ main = do
         spender <- addrOrAliasToAddr spender'
         runTzbtcContract $
           EntrypointsWithoutView $ Approve (#spender .! spender, #value .! value)
-      CmdGetAllowance (owner', spender') callback' -> do
-        [owner, spender, callback] <- mapM addrOrAliasToAddr [owner', spender', callback']
-        runTzbtcContract $ EntrypointsWithView $ GetAllowance $
-          View (#owner .! owner, #spender .! spender) (ContractAddr callback)
-      CmdGetBalance owner' callback' -> do
-        [owner, callback] <- mapM addrOrAliasToAddr [owner', callback']
-        runTzbtcContract $
-          EntrypointsWithView $ GetBalance $ View owner (ContractAddr callback)
+      CmdGetAllowance (owner', spender') mbCallback' ->
+        case mbCallback' of
+          Just callback' -> do
+            [owner, spender, callback] <- mapM addrOrAliasToAddr [owner', spender', callback']
+            runTzbtcContract $ EntrypointsWithView $ GetAllowance $
+              View (#owner .! owner, #spender .! spender) (ContractAddr callback)
+          Nothing -> do
+            [owner, spender] <- mapM addrOrAliasToAddr [owner', spender']
+            allowance <- getAllowance owner spender
+            putTextLn $ "Allowance: " <> show allowance
+      CmdGetBalance owner' mbCallback' -> do
+        case mbCallback' of
+          Just callback' -> do
+            [owner, callback] <- mapM addrOrAliasToAddr [owner', callback']
+            runTzbtcContract $
+              EntrypointsWithView $ GetBalance $ View owner (ContractAddr callback)
+          Nothing -> do
+            owner <- addrOrAliasToAddr owner'
+            balance <- getBalance owner
+            putTextLn $ "Balance: " <> show balance
       CmdAddOperator operator' mbMultisig -> do
         operator <- addrOrAliasToAddr operator'
         runMultisigTzbtcContract mbMultisig $
@@ -87,11 +101,44 @@ main = do
         runMultisigTzbtcContract mbMultisig $
           EntrypointsWithoutView $ StartMigrateFrom (#migrationManager .! manager)
       CmdMigrate p -> runTzbtcContract $ EntrypointsWithoutView $ Migrate p
+      CmdGetTotalSupply mbCallback' -> do
+        case mbCallback' of
+          Just callback' -> do
+            callback <- addrOrAliasToAddr callback'
+            runTzbtcContract $
+              EntrypointsWithView $ GetTotalSupply $ View () (ContractAddr callback)
+          Nothing -> do
+            printFieldFromStorage "Total supply: " (totalSupply . asFields) show
+      CmdGetTotalMinted mbCallback' -> do
+        case mbCallback' of
+          Just callback' -> do
+            callback <- addrOrAliasToAddr callback'
+            runTzbtcContract $
+              EntrypointsWithView $ GetTotalMinted $ View () (ContractAddr callback)
+          Nothing ->
+            printFieldFromStorage "Total minted: " (totalMinted . asFields) show
+      CmdGetTotalBurned mbCallback' -> do
+        case mbCallback' of
+          Just callback' -> do
+            callback <- addrOrAliasToAddr callback'
+            runTzbtcContract $
+              EntrypointsWithView $ GetTotalBurned $ View () (ContractAddr callback)
+          Nothing ->
+            printFieldFromStorage "Total burned: " (totalMinted . asFields) show
+      CmdGetAdministrator mbCallback' -> do
+        case mbCallback' of
+          Just callback' -> do
+            callback <- addrOrAliasToAddr callback'
+            runTzbtcContract $
+              EntrypointsWithView $ GetAdministrator $ View () (ContractAddr callback)
+          Nothing ->
+            printFieldFromStorage
+            "Admininstator: " (admin . asFields) formatAddress
       CmdGetOpDescription packageFilePath -> do
         pkg <- getPackageFromFile packageFilePath
         case pkg of
           Left err -> putStrLn err
-          Right package -> putStrLn (pretty package :: Text)
+          Right package -> putTextLn $ pretty package
       CmdGetBytesToSign packageFilePath -> do
         pkg <- getPackageFromFile packageFilePath
         case pkg of
@@ -124,8 +171,12 @@ main = do
       case mbMultisig of
         Just fp -> case param of
           EntrypointsWithoutView subParam -> createMultisigPackage fp subParam
-          _ -> putStrLn ("Unable to call multisig for View entrypoints" :: Text)
+          _ -> putTextLn "Unable to call multisig for View entrypoints"
         Nothing -> runTzbtcContract param
+    printFieldFromStorage :: Text -> (AlmostStorage -> a) -> (a -> Text) -> IO ()
+    printFieldFromStorage prefix fieldGetter formatter = do
+      field' <- getFromTzbtcStorage fieldGetter
+      putTextLn $ prefix <> formatter field'
     programInfo =
       info (helper <*> versionOption <*> clientArgParser) $
       mconcat

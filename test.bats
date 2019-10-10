@@ -32,10 +32,57 @@
     --callback "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46" --dry-run
 }
 
+@test "invoking tzbtc-client 'getAllowance' command without callback" {
+  stack exec -- tzbtc-client getAllowance\
+    --owner "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"\
+    --spender "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" --dry-run
+}
+
 @test "invoking tzbtc-client 'getBalance' command" {
   stack exec -- tzbtc-client getBalance\
     --address "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"\
     --callback "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46" --dry-run
+}
+
+@test "invoking tzbtc-client 'getBalance' command without callback" {
+  stack exec -- tzbtc-client getBalance\
+    --address "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --dry-run
+}
+
+@test "invoking tzbtc-client 'getAdministrator' command" {
+  stack exec -- tzbtc-client getAdministrator\
+    --callback "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46" --dry-run
+}
+
+@test "invoking tzbtc-client 'getAdministrator' command without callback" {
+  stack exec -- tzbtc-client getAdministrator --dry-run
+}
+
+@test "invoking tzbtc-client 'getTotalSupply' command" {
+  stack exec -- tzbtc-client getTotalSupply\
+    --callback "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46" --dry-run
+}
+
+@test "invoking tzbtc-client 'getTotalSupply' command without callback" {
+  stack exec -- tzbtc-client getTotalSupply --dry-run
+}
+
+@test "invoking tzbtc-client 'getTotalMinted' command" {
+  stack exec -- tzbtc-client getTotalMinted\
+    --callback "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46" --dry-run
+}
+
+@test "invoking tzbtc-client 'getTotalMinted' command without callback" {
+  stack exec -- tzbtc-client getTotalMinted --dry-run
+}
+
+@test "invoking tzbtc-client 'getTotalBurned' command" {
+  stack exec -- tzbtc-client getTotalBurned\
+    --callback "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46" --dry-run
+}
+
+@test "invoking tzbtc-client 'getTotalBurned' command without callback" {
+  stack exec -- tzbtc-client getTotalBurned --dry-run
 }
 
 @test "invoking tzbtc-client 'addOperator' command" {

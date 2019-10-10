@@ -3,7 +3,8 @@
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
 module Client.Types
-  ( ClientConfigP (..)
+  ( AlmostStorage (..)
+  , ClientConfigP (..)
   , ClientConfig
   , ClientConfigPartial
   , ForgeOperation (..)
@@ -39,8 +40,11 @@ import Tezos.Micheline
   (Expression(..), MichelinePrimAp(..), MichelinePrimitive(..))
 import Tezos.Json (TezosWord64(..))
 
+import Michelson.Typed (IsoValue)
 import Tezos.Address (Address)
 import Tezos.Crypto (Signature, encodeBase58Check)
+
+import Lorentz.Contracts.TZBTC.Types (StorageFields)
 
 newtype MichelsonExpression = MichelsonExpression Expression
   deriving newtype FromJSON
@@ -59,6 +63,12 @@ instance Buildable MichelsonExpression where
       buildSeq =
         mconcat . intersperse ", " . map
         (build . MichelsonExpression) . toList
+
+data AlmostStorage = AlmostStorage
+  { asBigMapId :: Natural
+  , asFields :: StorageFields
+  } deriving stock (Show, Generic)
+    deriving anyclass IsoValue
 
 data ForgeOperation = ForgeOperation
   { foBranch :: Text

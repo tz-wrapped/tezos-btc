@@ -5,6 +5,9 @@
 module Client.IO
   ( addrOrAliasToAddr
   , createMultisigPackage
+  , getAllowance
+  , getBalance
+  , getFromTzbtcStorage
   , getPackageFromFile
   , runConfigEdit
   , runTzbtcContract
@@ -17,27 +20,28 @@ module Client.IO
 import Data.Aeson (decodeFileStrict)
 import Data.Aeson.Encode.Pretty (encodePretty)
 import Data.ByteString (cons, readFile, writeFile)
-import Data.Sequence (Seq(..))
 import qualified Data.ByteString.Lazy as BSL hiding (putStrLn)
 import qualified Data.ByteString.Lazy.Char8 as BSL (putStrLn)
+import qualified Data.Map as Map (empty, lookup)
 import Fmt (pretty)
 import Network.HTTP.Client
   (ManagerSettings(..), Request(..), newManager, defaultManagerSettings)
+import Network.HTTP.Types.Status (notFound404)
 import Servant.Client
-  (BaseUrl(..), ClientError, ClientEnv, Scheme(..), mkClientEnv, runClientM)
+  (BaseUrl(..), ClientError(..), ClientEnv, ResponseF(..), Scheme(..), mkClientEnv,
+  runClientM)
 import System.Directory (createDirectoryIfMissing, doesFileExist)
 import System.Exit (ExitCode(..))
 import System.Process (readProcessWithExitCode)
 import System.Environment.XDG.BaseDir (getUserConfigDir, getUserConfigFile)
 import Tezos.Json (TezosWord64(..))
-import Tezos.Micheline
-  (Expression(..), MichelinePrimAp(..), MichelinePrimitive(..))
 
+import Michelson.Interpret.Unpack (UnpackError)
 import Michelson.Runtime.GState (genesisAddress1, genesisAddress2)
 import Michelson.Typed.Haskell.Value (ContractAddr(..))
 import Michelson.Untyped (InternalByteString(..))
 import Tezos.Address (Address, formatAddress, parseAddress)
-import Tezos.Crypto (PublicKey, Signature, parsePublicKey)
+import Tezos.Crypto (PublicKey, Signature, encodeBase58Check)
 
 import Client.API
 import Client.Crypto
@@ -125,50 +129,59 @@ createMultisigPackage packagePath parameter = do
   case ccMultisigAddress of
     Nothing -> throwLeft $ pure $ Left TzbtcMutlisigConfigUnavailable
     Just msAddr ->  do
-      (counter, _) <- throwLeft $ getMultisigStorage msAddr config
+      (counter, _) <- getMultisigStorage msAddr config
       let package = mkPackage msAddr counter
             (ContractAddr ccContractAddress) parameter
       writePackageToFile package packagePath
 
--- Quite ugly patternmatching, but at least such approach
--- works for multisig storage extraction. As soon as https://issues.serokell.io/issue/TM-140
--- is resolved, this function should be changed.
 getMultisigStorage
-  :: Address -> ClientConfig -> IO (Either TzbtcClientError MSig.Storage)
+  :: Address -> ClientConfig -> IO MSig.Storage
 getMultisigStorage addr config@ClientConfig{..} = do
   clientEnv <- getClientEnv config
   mSigStorageRaw <- throwClientError $
     runClientM (getStorage $ formatAddress addr) clientEnv
-  return $ case mSigStorageRaw of
-    Expression_Prim
-      (MichelinePrimAp
-       { _michelinePrimAp_prim = MichelinePrimitive "Pair"
-       , _michelinePrimAp_args =
-         Expression_Int (TezosWord64 {unTezosWord64 = counter}) :<|
-         Expression_Prim
-         (MichelinePrimAp
-           { _michelinePrimAp_prim = MichelinePrimitive "Pair"
-           , _michelinePrimAp_args =
-             Expression_Int (TezosWord64 {unTezosWord64 = threshold}) :<|
-             Expression_Seq keySequence :<|
-             Empty
-            }
-         ) :<|
-         Empty
-       }
-      ) -> do
-      case traverse (extractKey mSigStorageRaw) $ toList keySequence of
-        Left err -> Left err
-        Right keys' -> Right $ (fromIntegral counter, (fromIntegral threshold, keys'))
-    _ -> Left $ TzbtcUnexpectedMultisigStorage $ MichelsonExpression mSigStorageRaw
+  throwLeft $ pure $ exprToValue @MSig.Storage mSigStorageRaw
 
-  where
-    extractKey :: Expression -> Expression -> Either TzbtcClientError PublicKey
-    extractKey rawStor = \case
-      Expression_String pubKeyRaw ->
-        either (Left . TzbtcPublicKeyParseError pubKeyRaw) Right $
-        parsePublicKey pubKeyRaw
-      _ -> Left $ TzbtcUnexpectedMultisigStorage $ MichelsonExpression rawStor
+getFromTzbtcStorage :: (AlmostStorage -> a) -> IO a
+getFromTzbtcStorage field = do
+  config <- throwLeft $ readConfigFile
+  storage <- getTzbtcStorage config
+  pure $ field storage
+
+getTzbtcStorage
+  :: ClientConfig -> IO AlmostStorage
+getTzbtcStorage config@ClientConfig{..} = do
+  clientEnv <- getClientEnv config
+  storageRaw <- throwClientError $
+    runClientM (getStorage $ formatAddress ccContractAddress) clientEnv
+  throwLeft $ pure $ exprToValue @AlmostStorage storageRaw
+
+getFromLedger :: Address -> IO (Either UnpackError (Natural, Map Address Natural))
+getFromLedger addr = do
+  config@ClientConfig{..} <- throwLeft $ readConfigFile
+  AlmostStorage{..} <- getTzbtcStorage config
+  clientEnv <- getClientEnv config
+  let scriptExpr = encodeBase58Check $ valueToScriptExpr addr
+  ledgerValueRaw <-
+    runClientM (getFromBigMap (asBigMapId) scriptExpr) clientEnv
+  case ledgerValueRaw of
+    Left err -> case err of
+      FailureResponse _ Response{..} -> do
+        if responseStatusCode == notFound404 then pure $ Right (0, Map.empty)
+        else throwM err
+      _ -> throwM err
+    Right rawVal -> pure $
+      exprToValue @(Natural, Map Address Natural) rawVal
+
+getBalance :: Address -> IO Natural
+getBalance addr = do
+  (balance, _) <- throwLeft $ getFromLedger addr
+  pure balance
+
+getAllowance :: Address -> Address -> IO Natural
+getAllowance owner spender = do
+  (_, allowanceMap) <- throwLeft $ getFromLedger owner
+  maybe (pure 0) pure $ Map.lookup spender allowanceMap
 
 getCosts
   :: ClientEnv -> RunOperation
@@ -275,7 +288,7 @@ data ConfirmationResult = Confirmed | Canceled
 
 confirmAction :: IO ConfirmationResult
 confirmAction = do
-  putStrLn $ ("Are you sure? [Y/N]" :: Text)
+  putTextLn "Are you sure? [Y/N]"
   res <- getLine
   case res of
     x | x `elem` ["Y", "y", "yes"] -> pure Confirmed
@@ -286,8 +299,8 @@ signPackageForConfiguredUser :: Package -> IO (Either String Package)
 signPackageForConfiguredUser pkg = do
   config@ClientConfig{..} <- throwLeft $ readConfigFile
   (_, pk) <- throwLeft $ getAddressAndPKForAlias ccUserAlias config
-  putStrLn ("You are going to sign the following package:\n" :: Text)
-  putStrLn (pretty pkg :: Text)
+  putTextLn "You are going to sign the following package:\n"
+  putTextLn $ pretty pkg
   confirmationResult <- confirmAction
   case confirmationResult of
     Canceled -> pure $ Left $ "Package signing was canceled"
@@ -373,7 +386,7 @@ runMultisigContract packages = do
   config <- throwLeft $ readConfigFile
   package <- throwLeft $ pure $ mergePackages packages
   multisigAddr <- throwLeft $ pure (fst <$> getToSign package)
-  (_, (_, keys')) <- throwLeft $ getMultisigStorage multisigAddr config
+  (_, (_, keys')) <- getMultisigStorage multisigAddr config
   (_, multisigParam) <- throwLeft $ pure $ mkMultiSigParam keys' packages
   runTransaction multisigAddr multisigParam config
 

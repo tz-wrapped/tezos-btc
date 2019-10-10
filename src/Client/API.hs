@@ -4,6 +4,7 @@
  -}
 module Client.API
   ( forgeOperation
+  , getFromBigMap
   , getMainChainId
   , getCounter
   , getStorage
@@ -35,7 +36,9 @@ type NodeAPI =
   :> ReqBody '[JSON] RunOperation :> Post '[JSON] RunRes :<|>
   "chains/main/blocks/head/context/contracts"
   :> Capture "contract" Text :> "storage" :> Get '[JSON] Expression :<|>
-  "chains/main/chain_id" :> Get '[JSON] Text
+  "chains/main/chain_id" :> Get '[JSON] Text :<|>
+  "chains/main/blocks/head/context/big_maps" :> Capture "big_map_id" Natural
+  :> Capture "script_expr" Text :> Get '[JSON] Expression
 
 
 nodeAPI :: Proxy NodeAPI
@@ -48,10 +51,12 @@ getCounter :: Text -> ClientM TezosWord64
 runOperation :: RunOperation -> ClientM RunRes
 getStorage :: Text -> ClientM Expression
 getMainChainId :: ClientM Text
+getFromBigMap :: Natural -> Text -> ClientM Expression
 forgeOperation :<|>
   getLastBlock :<|>
   injectOperation :<|>
   getCounter :<|>
   runOperation :<|>
   getStorage :<|>
-  getMainChainId = client nodeAPI
+  getMainChainId :<|>
+  getFromBigMap = client nodeAPI
