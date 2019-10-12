@@ -23,6 +23,8 @@ import Lorentz.Contracts.TZBTC
   (Parameter(..), agentContract, mkStorage, tzbtcContract, tzbtcDoc)
 import Lorentz.Contracts.TZBTC.Proxy (tzbtcProxyContract)
 import Lorentz.Contracts.TZBTC.Test (mkTestScenario)
+import qualified Lorentz.Contracts.TZBTC.V0 as V0
+import qualified Lorentz.Contracts.TZBTC.V1 as V1
 
 -- Here in main function we will just accept commands from user
 -- and print the smart contract parameter by using `printLorentzValue`
@@ -34,7 +36,8 @@ main = do
     CmdPrintContract singleLine mbFilePath ->
       printContract singleLine mbFilePath lcwEntryPoints tzbtcContract
     CmdPrintAgentContract singleLine mbFilePath ->
-      printContract singleLine mbFilePath lcwDumb (agentContract @Parameter)
+      --printContract singleLine mbFilePath lcwDumb V0.tzbtcContract
+      putStrLn $ V1.printContractCode
         -- Here agentContract that is printed is the one that target a
         -- contract with the parameter `Parameter`. If we can obtain
         -- runtime witness or type class dictionaries for the constraints

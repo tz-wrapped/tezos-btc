@@ -83,17 +83,13 @@ entrypointsWithoutView =
     , #cUnpause /-> unpause
     , #cTransferOwnership /-> transferOwnership
     , #cAcceptOwnership /-> acceptOwnership
-    , #cStartMigrateTo /-> startMigrateTo
-    , #cStartMigrateFrom /-> startMigrateFrom
-    , #cMintForMigration /-> mintForMigration
-    , #cMigrate /-> migrate
     , #cSetProxy /-> setProxy
     )
 
 data TzbtcEntryPointWithoutViewKind
 
 instance DocItem (DEntryPoint TzbtcEntryPointWithoutViewKind) where
-  type DocItemPosition (DEntryPoint TzbtcEntryPointWithoutViewKind) = 1001
+  type DocItemPosition (DEntryPoint TzbtcEntryPointWithoutViewKind) = 1003
   docItemSectionName = Just "Non-View entry-points of TZBTC contract"
   docItemSectionDescription = Nothing
   docItemToMarkdown = diEntryPointToMarkdown

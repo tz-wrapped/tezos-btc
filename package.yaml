@@ -50,6 +50,7 @@ library:
     - safe-exceptions
     - vinyl
     - xdg-basedir
+    - binary
 
 executables:
   tzbtc:
@@ -95,7 +96,11 @@ tests:
     - singletons
     - lorentz-contracts
     - named
-    - text
     - tezos-bake-monitor-lib
+    - typed-process
+    - bytestring
+    - temporary
+    - attoparsec
+    - text
     - hex-text
     - hspec

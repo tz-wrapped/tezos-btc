@@ -92,15 +92,6 @@ main = do
           EntrypointsWithoutView $ TransferOwnership (#newOwner .! newOwner)
       CmdAcceptOwnership p -> runTzbtcContract $
         EntrypointsWithoutView $ AcceptOwnership p
-      CmdStartMigrateTo manager' mbMultisig -> do
-        manager <- addrOrAliasToAddr manager'
-        runMultisigTzbtcContract mbMultisig $
-          EntrypointsWithoutView $ StartMigrateTo (#migrationManager .! manager)
-      CmdStartMigrateFrom manager' mbMultisig -> do
-        manager <- addrOrAliasToAddr manager'
-        runMultisigTzbtcContract mbMultisig $
-          EntrypointsWithoutView $ StartMigrateFrom (#migrationManager .! manager)
-      CmdMigrate p -> runTzbtcContract $ EntrypointsWithoutView $ Migrate p
       CmdGetTotalSupply mbCallback' -> do
         case mbCallback' of
           Just callback' -> do
