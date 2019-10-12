@@ -8,26 +8,25 @@
 
 This contract is implemented using Lorentz language
 
-## View entry-points of TZBTC contract
+## Top-level entry points of upgradeable contract.
+
+These are entry points of the contract.
 
 ---
 
-### `GetAllowance`
+### `GetVersion`
 
-Returns the approval value between two given addresses.
+This entry point is used to get contract version.
 
-**Parameter:** [`View`](#types-View) (***owner*** : [`Address`](#types-Address), ***spender*** : [`Address`](#types-Address)) [`Natural`](#types-Natural)
+**Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
 
 <details>
-  <summary>**How to call this entry point**</summary>
+  <summary><b>How to call this entry point</b></summary>
 
 0. Construct parameter for the entry point.
-1. Wrap into `GetAllowance` constructor.
-    + **In Haskell:** `GetAllowance (·)`
-    + **In Michelson:** `Left (Left (·))`
-1. Wrap into `EntrypointsWithView` constructor
-    + **In Haskell:** `EntrypointsWithView (·)`
-    + **In Michelson:** `Left ((·))`
+1. Wrap into `GetVersion` constructor.
+    + **In Haskell:** `GetVersion (·)`
+    + **In Michelson:** `Left (Left (Left (·)))`
 
 Pass resulting value as parameter to the contract.
 
@@ -35,6 +34,34 @@ Pass resulting value as parameter to the contract.
 <p>
 
 
+
+
+
+---
+
+### `GetAllowance`
+
+This entry point is used to get allowance for an account.
+
+**Parameter:** [`View`](#types-View) (***owner*** : [`Address`](#types-Address), ***spender*** : [`Address`](#types-Address)) [`Natural`](#types-Natural)
+
+<details>
+  <summary><b>How to call this entry point</b></summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `GetAllowance` constructor.
+    + **In Haskell:** `GetAllowance (·)`
+    + **In Michelson:** `Left (Left (Right (·)))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+**Possible errors:**
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
 
@@ -42,20 +69,17 @@ Pass resulting value as parameter to the contract.
 
 ### `GetBalance`
 
-Returns the balance of the address in the ledger.
+This entry point is used to get balance in an account.
 
 **Parameter:** [`View`](#types-View) [`Address`](#types-Address) [`Natural`](#types-Natural)
 
 <details>
-  <summary>**How to call this entry point**</summary>
+  <summary><b>How to call this entry point</b></summary>
 
 0. Construct parameter for the entry point.
 1. Wrap into `GetBalance` constructor.
     + **In Haskell:** `GetBalance (·)`
     + **In Michelson:** `Left (Right (Left (·)))`
-1. Wrap into `EntrypointsWithView` constructor
-    + **In Haskell:** `EntrypointsWithView (·)`
-    + **In Michelson:** `Left ((·))`
 
 Pass resulting value as parameter to the contract.
 
@@ -63,6 +87,9 @@ Pass resulting value as parameter to the contract.
 <p>
 
 
+
+**Possible errors:**
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
 
@@ -70,20 +97,17 @@ Pass resulting value as parameter to the contract.
 
 ### `GetTotalSupply`
 
-Returns total number of tokens.
+This entry point is used to get total number of tokens.
 
 **Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
 
 <details>
-  <summary>**How to call this entry point**</summary>
+  <summary><b>How to call this entry point</b></summary>
 
 0. Construct parameter for the entry point.
 1. Wrap into `GetTotalSupply` constructor.
     + **In Haskell:** `GetTotalSupply (·)`
     + **In Michelson:** `Left (Right (Right (·)))`
-1. Wrap into `EntrypointsWithView` constructor
-    + **In Haskell:** `EntrypointsWithView (·)`
-    + **In Michelson:** `Left ((·))`
 
 Pass resulting value as parameter to the contract.
 
@@ -91,6 +115,9 @@ Pass resulting value as parameter to the contract.
 <p>
 
 
+
+**Possible errors:**
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
 
@@ -98,20 +125,17 @@ Pass resulting value as parameter to the contract.
 
 ### `GetTotalMinted`
 
-Return total number of minted tokens
+This entry point is used to get total number of minted tokens.
 
 **Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
 
 <details>
-  <summary>**How to call this entry point**</summary>
+  <summary><b>How to call this entry point</b></summary>
 
 0. Construct parameter for the entry point.
 1. Wrap into `GetTotalMinted` constructor.
     + **In Haskell:** `GetTotalMinted (·)`
-    + **In Michelson:** `Right (Left (·))`
-1. Wrap into `EntrypointsWithView` constructor
-    + **In Haskell:** `EntrypointsWithView (·)`
-    + **In Michelson:** `Left ((·))`
+    + **In Michelson:** `Right (Left (Left (·)))`
 
 Pass resulting value as parameter to the contract.
 
@@ -119,6 +143,9 @@ Pass resulting value as parameter to the contract.
 <p>
 
 
+
+**Possible errors:**
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
 
@@ -126,20 +153,17 @@ Pass resulting value as parameter to the contract.
 
 ### `GetTotalBurned`
 
-Return total number of burned tokens
+This entry point is used to get total number of burned tokens.
 
 **Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
 
 <details>
-  <summary>**How to call this entry point**</summary>
+  <summary><b>How to call this entry point</b></summary>
 
 0. Construct parameter for the entry point.
 1. Wrap into `GetTotalBurned` constructor.
     + **In Haskell:** `GetTotalBurned (·)`
-    + **In Michelson:** `Right (Right (Left (·)))`
-1. Wrap into `EntrypointsWithView` constructor
-    + **In Haskell:** `EntrypointsWithView (·)`
-    + **In Michelson:** `Left ((·))`
+    + **In Michelson:** `Right (Left (Right (·)))`
 
 Pass resulting value as parameter to the contract.
 
@@ -147,6 +171,9 @@ Pass resulting value as parameter to the contract.
 <p>
 
 
+
+**Possible errors:**
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
 
@@ -154,20 +181,17 @@ Pass resulting value as parameter to the contract.
 
 ### `GetAdministrator`
 
-This view returns the current administrator.
+This entry point is used to get current administrator.
 
 **Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Address`](#types-Address)
 
 <details>
-  <summary>**How to call this entry point**</summary>
+  <summary><b>How to call this entry point</b></summary>
 
 0. Construct parameter for the entry point.
 1. Wrap into `GetAdministrator` constructor.
     + **In Haskell:** `GetAdministrator (·)`
-    + **In Michelson:** `Right (Right (Right (·)))`
-1. Wrap into `EntrypointsWithView` constructor
-    + **In Haskell:** `EntrypointsWithView (·)`
-    + **In Michelson:** `Left ((·))`
+    + **In Michelson:** `Right (Right (Left (·)))`
 
 Pass resulting value as parameter to the contract.
 
@@ -176,36 +200,861 @@ Pass resulting value as parameter to the contract.
 
 
 
+**Possible errors:**
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
-## Non-View entry-points of TZBTC contract
+
+---
+
+### `SafeEntrypoints`
+
+This entry point is used call the safe entrypoints of the contract.
+
+**Parameter:** [`Parameter.SafeParameter`](#types-Parameter.SafeParameter)
+
+<details>
+  <summary><b>How to call this entry point</b></summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `SafeEntrypoints (·)`
+    + **In Michelson:** `Right (Right (Right (·)))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+#### Top-level entry points of upgradeable contract.
+
+These are entry points of the contract.
+
+---
+
+##### `Run`
+
+This entry point is used to call the packed entrypoints in the contract.
+
+**Parameter:** [`UParam`](#types-Upgradable-parameter)
+
+<details>
+  <summary><b>How to call this entry point</b></summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `Run` constructor.
+    + **In Haskell:** `Run (·)`
+    + **In Michelson:** `Left (Left (Left (Left (·))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `SafeEntrypoints (·)`
+    + **In Michelson:** `Right (Right (Right (·)))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+**Possible errors:**
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
+
+
+
+---
+
+##### `Upgrade`
+
+This entry point is used to update the contract to a new version.
+
+**Parameter:** (***newVersion*** : [`Natural`](#types-Natural), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript), ***newCode*** : [`UContractRouter`](#types-UContractRouter))
+
+<details>
+  <summary><b>How to call this entry point</b></summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `Upgrade` constructor.
+    + **In Haskell:** `Upgrade (·)`
+    + **In Michelson:** `Left (Left (Left (Right (·))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `SafeEntrypoints (·)`
+    + **In Michelson:** `Right (Right (Right (·)))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+**Possible errors:**
+* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
+
+* [`UpgVersionMismatch`](#errors-UpgVersionMismatch) — The expected version does not match the version of the supplied code.
+
+
+
+---
+
+##### `SetMaster`
+
+This entry point is used to set the master of the contract.
+
+**Parameter:** [`Address`](#types-Address)
+
+<details>
+  <summary><b>How to call this entry point</b></summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `SetMaster` constructor.
+    + **In Haskell:** `SetMaster (·)`
+    + **In Michelson:** `Left (Left (Right (Left (·))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `SafeEntrypoints (·)`
+    + **In Michelson:** `Right (Right (Right (·)))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+**Possible errors:**
+* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+
+
+
+---
+
+##### `EpwBeginUpgrade`
+
+This entry point is used to start an entrypoint wise upgrade of the contract.
+
+**Parameter:** [`Natural`](#types-Natural)
+
+<details>
+  <summary><b>How to call this entry point</b></summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `EpwBeginUpgrade` constructor.
+    + **In Haskell:** `EpwBeginUpgrade (·)`
+    + **In Michelson:** `Left (Left (Right (Right (·))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `SafeEntrypoints (·)`
+    + **In Michelson:** `Right (Right (Right (·)))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+**Possible errors:**
+* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
+
+* [`UpgVersionMismatch`](#errors-UpgVersionMismatch) — The expected version does not match the version of the supplied code.
+
+
+
+---
+
+##### `EpwApplyMigration`
+
+This entry point is used to apply an migration script as part of an upgrade.
+
+**Parameter:** ***migrationscript*** : [`MigrationScript`](#types-MigrationScript)
+
+<details>
+  <summary><b>How to call this entry point</b></summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `EpwApplyMigration` constructor.
+    + **In Haskell:** `EpwApplyMigration (·)`
+    + **In Michelson:** `Left (Right (Left (Left (·))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `SafeEntrypoints (·)`
+    + **In Michelson:** `Right (Right (Right (·)))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+**Possible errors:**
+* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+
+* [`UpgContractIsNotMigrating`](#errors-UpgContractIsNotMigrating) — An migration related operation was requested when contract is not in a state of migration
+
+
+
+---
+
+##### `EpwSetCode`
+
+This entry point is used to set the dispatching code that calls the packed entrypoints.
+
+**Parameter:** ***contractcode*** : [`UContractRouter`](#types-UContractRouter)
+
+<details>
+  <summary><b>How to call this entry point</b></summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `EpwSetCode` constructor.
+    + **In Haskell:** `EpwSetCode (·)`
+    + **In Michelson:** `Left (Right (Left (Right (·))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `SafeEntrypoints (·)`
+    + **In Michelson:** `Right (Right (Right (·)))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+**Possible errors:**
+* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+
+* [`UpgContractIsNotMigrating`](#errors-UpgContractIsNotMigrating) — An migration related operation was requested when contract is not in a state of migration
+
+
+
+---
+
+##### `EpwFinishUpgrade`
+
+This entry point is used to mark that an upgrade has been finsihed.
+
+**Parameter:** none (pass unit)
+
+<details>
+  <summary><b>How to call this entry point</b></summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `EpwFinishUpgrade` constructor.
+    + **In Haskell:** `EpwFinishUpgrade (·)`
+    + **In Michelson:** `Left (Right (Right (Left (·))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `SafeEntrypoints (·)`
+    + **In Michelson:** `Right (Right (Right (·)))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+**Possible errors:**
+* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+
+* [`UpgContractIsNotMigrating`](#errors-UpgContractIsNotMigrating) — An migration related operation was requested when contract is not in a state of migration
+
+
+
+---
+
+##### `Transfer`
+
+This entry point is used transfer tokens from one account to another.
+
+**Parameter:** (***from*** : [`Address`](#types-Address), ***to*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
+
+<details>
+  <summary><b>How to call this entry point</b></summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `Transfer` constructor.
+    + **In Haskell:** `Transfer (·)`
+    + **In Michelson:** `Left (Right (Right (Right (Left (·)))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `SafeEntrypoints (·)`
+    + **In Michelson:** `Right (Right (Right (·)))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+**Possible errors:**
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
+
+
+
+---
+
+##### `Approve`
+
+This entry point is used approve transfer of tokens from one account to another.
+
+**Parameter:** (***spender*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
+
+<details>
+  <summary><b>How to call this entry point</b></summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `Approve` constructor.
+    + **In Haskell:** `Approve (·)`
+    + **In Michelson:** `Left (Right (Right (Right (Right (·)))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `SafeEntrypoints (·)`
+    + **In Michelson:** `Right (Right (Right (·)))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+**Possible errors:**
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
+
+
+
+---
+
+##### `Mint`
+
+This entry point is used mint new tokes for an account.
+
+**Parameter:** (***to*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
+
+<details>
+  <summary><b>How to call this entry point</b></summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `Mint` constructor.
+    + **In Haskell:** `Mint (·)`
+    + **In Michelson:** `Right (Left (Left (Left (·))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `SafeEntrypoints (·)`
+    + **In Michelson:** `Right (Right (Right (·)))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+**Possible errors:**
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
+
+
+
+---
+
+##### `Burn`
+
+This entry point is used burn tokes from the redeem address.
+
+**Parameter:** ***value*** : [`Natural`](#types-Natural)
+
+<details>
+  <summary><b>How to call this entry point</b></summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `Burn` constructor.
+    + **In Haskell:** `Burn (·)`
+    + **In Michelson:** `Right (Left (Left (Right (·))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `SafeEntrypoints (·)`
+    + **In Michelson:** `Right (Right (Right (·)))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+**Possible errors:**
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
+
+
+
+---
+
+##### `AddOperator`
+
+This entry point is used to add a new operator.
+
+**Parameter:** ***operator*** : [`Address`](#types-Address)
+
+<details>
+  <summary><b>How to call this entry point</b></summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `AddOperator` constructor.
+    + **In Haskell:** `AddOperator (·)`
+    + **In Michelson:** `Right (Left (Right (Left (·))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `SafeEntrypoints (·)`
+    + **In Michelson:** `Right (Right (Right (·)))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+**Possible errors:**
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
+
+
+
+---
+
+##### `RemoveOperator`
+
+This entry point is used to remove an operator.
+
+**Parameter:** ***operator*** : [`Address`](#types-Address)
+
+<details>
+  <summary><b>How to call this entry point</b></summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `RemoveOperator` constructor.
+    + **In Haskell:** `RemoveOperator (·)`
+    + **In Michelson:** `Right (Left (Right (Right (·))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `SafeEntrypoints (·)`
+    + **In Michelson:** `Right (Right (Right (·)))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+**Possible errors:**
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
+
+
+
+---
+
+##### `SetRedeemAddress`
+
+This entry point is used to set the redeem address.
+
+**Parameter:** ***redeem*** : [`Address`](#types-Address)
+
+<details>
+  <summary><b>How to call this entry point</b></summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `SetRedeemAddress` constructor.
+    + **In Haskell:** `SetRedeemAddress (·)`
+    + **In Michelson:** `Right (Right (Left (Left (·))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `SafeEntrypoints (·)`
+    + **In Michelson:** `Right (Right (Right (·)))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+**Possible errors:**
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
+
+
+
+---
+
+##### `Pause`
+
+This entry point is used to pause the contract.
+
+**Parameter:** [`()`](#types-lparenrparen)
+
+<details>
+  <summary><b>How to call this entry point</b></summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `Pause` constructor.
+    + **In Haskell:** `Pause (·)`
+    + **In Michelson:** `Right (Right (Left (Right (·))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `SafeEntrypoints (·)`
+    + **In Michelson:** `Right (Right (Right (·)))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+**Possible errors:**
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
+
+
+
+---
+
+##### `Unpause`
+
+This entry point is used to resume the contract during a paused state.
+
+**Parameter:** [`()`](#types-lparenrparen)
+
+<details>
+  <summary><b>How to call this entry point</b></summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `Unpause` constructor.
+    + **In Haskell:** `Unpause (·)`
+    + **In Michelson:** `Right (Right (Right (Left (·))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `SafeEntrypoints (·)`
+    + **In Michelson:** `Right (Right (Right (·)))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+**Possible errors:**
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
+
+
+
+---
+
+##### `TransferOwnership`
+
+This entry point is used to transfer ownership to a new owner.
+
+**Parameter:** ***newOwner*** : [`Address`](#types-Address)
+
+<details>
+  <summary><b>How to call this entry point</b></summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `TransferOwnership` constructor.
+    + **In Haskell:** `TransferOwnership (·)`
+    + **In Michelson:** `Right (Right (Right (Right (Left (·)))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `SafeEntrypoints (·)`
+    + **In Michelson:** `Right (Right (Right (·)))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+**Possible errors:**
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
+
+
+
+---
+
+##### `AcceptOwnership`
+
+This entry point is used to accept ownership by a new owner.
+
+**Parameter:** [`()`](#types-lparenrparen)
+
+<details>
+  <summary><b>How to call this entry point</b></summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `AcceptOwnership` constructor.
+    + **In Haskell:** `AcceptOwnership (·)`
+    + **In Michelson:** `Right (Right (Right (Right (Right (·)))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `SafeEntrypoints (·)`
+    + **In Michelson:** `Right (Right (Right (·)))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+**Possible errors:**
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
+
+
+
+
+
+---
+
+### `Run`
+
+This entry point is used to call the packed entrypoints in the contract.
+
+**Parameter:** [`UParam`](#types-Upgradable-parameter)
+
+<details>
+  <summary><b>How to call this entry point</b></summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `Run` constructor.
+    + **In Haskell:** `Run (·)`
+    + **In Michelson:** `Left (Left (Left (Left (·))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `Run (·)`
+    + **In Michelson:** `Right (Right (Right ((·))))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+**Possible errors:**
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
+
+
+
+---
+
+### `Upgrade`
+
+This entry point is used to update the contract to a new version.
+
+**Parameter:** (***newVersion*** : [`Natural`](#types-Natural), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript), ***newCode*** : [`UContractRouter`](#types-UContractRouter))
+
+<details>
+  <summary><b>How to call this entry point</b></summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `Upgrade` constructor.
+    + **In Haskell:** `Upgrade (·)`
+    + **In Michelson:** `Left (Left (Left (Right (·))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `Run (·)`
+    + **In Michelson:** `Right (Right (Right ((·))))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+**Possible errors:**
+* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
+
+* [`UpgVersionMismatch`](#errors-UpgVersionMismatch) — The expected version does not match the version of the supplied code.
+
+
+
+---
+
+### `SetMaster`
+
+This entry point is used to set the master of the contract.
+
+**Parameter:** [`Address`](#types-Address)
+
+<details>
+  <summary><b>How to call this entry point</b></summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `SetMaster` constructor.
+    + **In Haskell:** `SetMaster (·)`
+    + **In Michelson:** `Left (Left (Right (Left (·))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `Run (·)`
+    + **In Michelson:** `Right (Right (Right ((·))))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+**Possible errors:**
+* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+
+
+
+---
+
+### `EpwBeginUpgrade`
+
+This entry point is used to start an entrypoint wise upgrade of the contract.
+
+**Parameter:** [`Natural`](#types-Natural)
+
+<details>
+  <summary><b>How to call this entry point</b></summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `EpwBeginUpgrade` constructor.
+    + **In Haskell:** `EpwBeginUpgrade (·)`
+    + **In Michelson:** `Left (Left (Right (Right (·))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `Run (·)`
+    + **In Michelson:** `Right (Right (Right ((·))))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+**Possible errors:**
+* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
+
+* [`UpgVersionMismatch`](#errors-UpgVersionMismatch) — The expected version does not match the version of the supplied code.
+
+
+
+---
+
+### `EpwApplyMigration`
+
+This entry point is used to apply an migration script as part of an upgrade.
+
+**Parameter:** ***migrationscript*** : [`MigrationScript`](#types-MigrationScript)
+
+<details>
+  <summary><b>How to call this entry point</b></summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `EpwApplyMigration` constructor.
+    + **In Haskell:** `EpwApplyMigration (·)`
+    + **In Michelson:** `Left (Right (Left (Left (·))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `Run (·)`
+    + **In Michelson:** `Right (Right (Right ((·))))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+**Possible errors:**
+* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+
+* [`UpgContractIsNotMigrating`](#errors-UpgContractIsNotMigrating) — An migration related operation was requested when contract is not in a state of migration
+
+
+
+---
+
+### `EpwSetCode`
+
+This entry point is used to set the dispatching code that calls the packed entrypoints.
+
+**Parameter:** ***contractcode*** : [`UContractRouter`](#types-UContractRouter)
+
+<details>
+  <summary><b>How to call this entry point</b></summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `EpwSetCode` constructor.
+    + **In Haskell:** `EpwSetCode (·)`
+    + **In Michelson:** `Left (Right (Left (Right (·))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `Run (·)`
+    + **In Michelson:** `Right (Right (Right ((·))))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+**Possible errors:**
+* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+
+* [`UpgContractIsNotMigrating`](#errors-UpgContractIsNotMigrating) — An migration related operation was requested when contract is not in a state of migration
+
+
+
+---
+
+### `EpwFinishUpgrade`
+
+This entry point is used to mark that an upgrade has been finsihed.
+
+**Parameter:** none (pass unit)
+
+<details>
+  <summary><b>How to call this entry point</b></summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `EpwFinishUpgrade` constructor.
+    + **In Haskell:** `EpwFinishUpgrade (·)`
+    + **In Michelson:** `Left (Right (Right (Left (·))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `Run (·)`
+    + **In Michelson:** `Right (Right (Right ((·))))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+**Possible errors:**
+* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+
+* [`UpgContractIsNotMigrating`](#errors-UpgContractIsNotMigrating) — An migration related operation was requested when contract is not in a state of migration
+
+
 
 ---
 
 ### `Transfer`
 
-Transfers tokens between two given accounts.
-
-This entrypoint serves multiple purposes:
-* When called with `"from"` account equal to the transaction sender, we assume that
-the user transfers their own money and this does not require approval.
-* Otherwise, the transaction sender must be previously authorized to transfer at least the requested number of tokens from the `"from"` account using the `approve` entrypoint.
-In this case current number of tokens that sender is allowed to withdraw from the `"from"` address is decreased by the number of transferred tokens.
-
-
+This entry point is used transfer tokens from one account to another.
 
 **Parameter:** (***from*** : [`Address`](#types-Address), ***to*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
 
 <details>
-  <summary>**How to call this entry point**</summary>
+  <summary><b>How to call this entry point</b></summary>
 
 0. Construct parameter for the entry point.
 1. Wrap into `Transfer` constructor.
     + **In Haskell:** `Transfer (·)`
-    + **In Michelson:** `Left (Left (Left (Left (·))))`
-1. Wrap into `EntrypointsWithoutView` constructor
-    + **In Haskell:** `EntrypointsWithoutView (·)`
-    + **In Michelson:** `Right ((·))`
+    + **In Michelson:** `Left (Right (Right (Right (Left (·)))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `Run (·)`
+    + **In Michelson:** `Right (Right (Right ((·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -214,14 +1063,8 @@ Pass resulting value as parameter to the contract.
 
 
 
-**Pausable:** Cannot be executed when token operations are paused.
-
 **Possible errors:**
-* [`TokenOperationsArePaused`](#errors-TokenOperationsArePaused) — Token functionality (`transfer` and similar entrypoints) is suspended.
-
-* [`NotEnoughAllowance`](#errors-NotEnoughAllowance) — Not enough funds allowance to perform the operation.
-
-* [`NotEnoughBalance`](#errors-NotEnoughBalance) — Not enough funds to perform the operation.
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
 
@@ -229,30 +1072,20 @@ Pass resulting value as parameter to the contract.
 
 ### `Approve`
 
-When called with `(address :spender, nat :value)`
-parameters allows `spender` account to withdraw from the sender, multiple times,
-up to the `value` amount.
-Each call of `transfer` entrypoint decreases the allowance amount on the transferred amount of tokens unless `transfer` is called with `from` account equal to sender.
-
-If this entrypoint is called again, it overwrites the current allowance
-with `value`.
-
-Changing allowance value from non-zero value to a non-zero value is
-forbidden to prevent the [corresponding attack vector](https://docs.google.com/document/d/1YLPtQxZu1UAvO9cZ1O2RPXBbT0mooh4DYKjA_jp-RLM).
-
+This entry point is used approve transfer of tokens from one account to another.
 
 **Parameter:** (***spender*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
 
 <details>
-  <summary>**How to call this entry point**</summary>
+  <summary><b>How to call this entry point</b></summary>
 
 0. Construct parameter for the entry point.
 1. Wrap into `Approve` constructor.
     + **In Haskell:** `Approve (·)`
-    + **In Michelson:** `Left (Left (Left (Right (·))))`
-1. Wrap into `EntrypointsWithoutView` constructor
-    + **In Haskell:** `EntrypointsWithoutView (·)`
-    + **In Michelson:** `Right ((·))`
+    + **In Michelson:** `Left (Right (Right (Right (Right (·)))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `Run (·)`
+    + **In Michelson:** `Right (Right (Right ((·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -261,45 +1094,8 @@ Pass resulting value as parameter to the contract.
 
 
 
-**Pausable:** Cannot be executed when token operations are paused.
-
 **Possible errors:**
-* [`TokenOperationsArePaused`](#errors-TokenOperationsArePaused) — Token functionality (`transfer` and similar entrypoints) is suspended.
-
-* [`UnsafeAllowanceChange`](#errors-UnsafeAllowanceChange) — Allowance change from non-zero value to non-zero value is performed.
-
-
-
----
-
-### `SetAdministrator`
-
-Change the current administrator.
-
-**Parameter:** [`Address`](#types-Address)
-
-<details>
-  <summary>**How to call this entry point**</summary>
-
-0. Construct parameter for the entry point.
-1. Wrap into `SetAdministrator` constructor.
-    + **In Haskell:** `SetAdministrator (·)`
-    + **In Michelson:** `Left (Left (Right (Left (·))))`
-1. Wrap into `EntrypointsWithoutView` constructor
-    + **In Haskell:** `EntrypointsWithoutView (·)`
-    + **In Michelson:** `Right ((·))`
-
-Pass resulting value as parameter to the contract.
-
-</details>
-<p>
-
-
-
-**Authorization:** The sender has to be `administrator`.
-
-**Possible errors:**
-* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
 
@@ -307,20 +1103,20 @@ Pass resulting value as parameter to the contract.
 
 ### `Mint`
 
-Mint tokens to the given address.
+This entry point is used mint new tokes for an account.
 
 **Parameter:** (***to*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
 
 <details>
-  <summary>**How to call this entry point**</summary>
+  <summary><b>How to call this entry point</b></summary>
 
 0. Construct parameter for the entry point.
 1. Wrap into `Mint` constructor.
     + **In Haskell:** `Mint (·)`
-    + **In Michelson:** `Left (Left (Right (Right (·))))`
-1. Wrap into `EntrypointsWithoutView` constructor
-    + **In Haskell:** `EntrypointsWithoutView (·)`
-    + **In Michelson:** `Right ((·))`
+    + **In Michelson:** `Right (Left (Left (Left (·))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `Run (·)`
+    + **In Michelson:** `Right (Right (Right ((·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -329,10 +1125,8 @@ Pass resulting value as parameter to the contract.
 
 
 
-The sender has to be the `operator`.
-
 **Possible errors:**
-* [`SenderIsNotOperator`](#errors-SenderIsNotOperator) — Sender has to be an operator to call this entrypoint
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
 
@@ -340,20 +1134,20 @@ The sender has to be the `operator`.
 
 ### `Burn`
 
-Burn some tokens from the `redeem` address.
+This entry point is used burn tokes from the redeem address.
 
 **Parameter:** ***value*** : [`Natural`](#types-Natural)
 
 <details>
-  <summary>**How to call this entry point**</summary>
+  <summary><b>How to call this entry point</b></summary>
 
 0. Construct parameter for the entry point.
 1. Wrap into `Burn` constructor.
     + **In Haskell:** `Burn (·)`
-    + **In Michelson:** `Left (Right (Left (Left (·))))`
-1. Wrap into `EntrypointsWithoutView` constructor
-    + **In Haskell:** `EntrypointsWithoutView (·)`
-    + **In Michelson:** `Right ((·))`
+    + **In Michelson:** `Right (Left (Left (Right (·))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `Run (·)`
+    + **In Michelson:** `Right (Right (Right ((·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -362,12 +1156,8 @@ Pass resulting value as parameter to the contract.
 
 
 
-The sender has to be the `operator`.
-
 **Possible errors:**
-* [`SenderIsNotOperator`](#errors-SenderIsNotOperator) — Sender has to be an operator to call this entrypoint
-
-* [`NotEnoughBalance`](#errors-NotEnoughBalance) — Not enough funds to perform the operation.
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
 
@@ -375,20 +1165,20 @@ The sender has to be the `operator`.
 
 ### `AddOperator`
 
-Add operator with given address.
+This entry point is used to add a new operator.
 
 **Parameter:** ***operator*** : [`Address`](#types-Address)
 
 <details>
-  <summary>**How to call this entry point**</summary>
+  <summary><b>How to call this entry point</b></summary>
 
 0. Construct parameter for the entry point.
 1. Wrap into `AddOperator` constructor.
     + **In Haskell:** `AddOperator (·)`
-    + **In Michelson:** `Left (Right (Left (Right (·))))`
-1. Wrap into `EntrypointsWithoutView` constructor
-    + **In Haskell:** `EntrypointsWithoutView (·)`
-    + **In Michelson:** `Right ((·))`
+    + **In Michelson:** `Right (Left (Right (Left (·))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `Run (·)`
+    + **In Michelson:** `Right (Right (Right ((·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -397,10 +1187,8 @@ Pass resulting value as parameter to the contract.
 
 
 
-The sender has to be the `admin`.
-
 **Possible errors:**
-* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
 
@@ -408,20 +1196,20 @@ The sender has to be the `admin`.
 
 ### `RemoveOperator`
 
-Remove operator with given address.
+This entry point is used to remove an operator.
 
 **Parameter:** ***operator*** : [`Address`](#types-Address)
 
 <details>
-  <summary>**How to call this entry point**</summary>
+  <summary><b>How to call this entry point</b></summary>
 
 0. Construct parameter for the entry point.
 1. Wrap into `RemoveOperator` constructor.
     + **In Haskell:** `RemoveOperator (·)`
-    + **In Michelson:** `Left (Right (Right (Left (·))))`
-1. Wrap into `EntrypointsWithoutView` constructor
-    + **In Haskell:** `EntrypointsWithoutView (·)`
-    + **In Michelson:** `Right ((·))`
+    + **In Michelson:** `Right (Left (Right (Right (·))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `Run (·)`
+    + **In Michelson:** `Right (Right (Right ((·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -430,10 +1218,8 @@ Pass resulting value as parameter to the contract.
 
 
 
-The sender has to be the `admin`.
-
 **Possible errors:**
-* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
 
@@ -441,20 +1227,20 @@ The sender has to be the `admin`.
 
 ### `SetRedeemAddress`
 
-Update `redeem` address, from which tokens can be burned.
+This entry point is used to set the redeem address.
 
 **Parameter:** ***redeem*** : [`Address`](#types-Address)
 
 <details>
-  <summary>**How to call this entry point**</summary>
+  <summary><b>How to call this entry point</b></summary>
 
 0. Construct parameter for the entry point.
 1. Wrap into `SetRedeemAddress` constructor.
     + **In Haskell:** `SetRedeemAddress (·)`
-    + **In Michelson:** `Left (Right (Right (Right (·))))`
-1. Wrap into `EntrypointsWithoutView` constructor
-    + **In Haskell:** `EntrypointsWithoutView (·)`
-    + **In Michelson:** `Right ((·))`
+    + **In Michelson:** `Right (Right (Left (Left (·))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `Run (·)`
+    + **In Michelson:** `Right (Right (Right ((·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -463,10 +1249,8 @@ Pass resulting value as parameter to the contract.
 
 
 
-The sender has to be the `admin`.
-
 **Possible errors:**
-* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
 
@@ -474,20 +1258,20 @@ The sender has to be the `admin`.
 
 ### `Pause`
 
-Pause the contract, after the pause all end users actions are prohibited.
+This entry point is used to pause the contract.
 
 **Parameter:** [`()`](#types-lparenrparen)
 
 <details>
-  <summary>**How to call this entry point**</summary>
+  <summary><b>How to call this entry point</b></summary>
 
 0. Construct parameter for the entry point.
 1. Wrap into `Pause` constructor.
     + **In Haskell:** `Pause (·)`
-    + **In Michelson:** `Right (Left (Left (Left (·))))`
-1. Wrap into `EntrypointsWithoutView` constructor
-    + **In Haskell:** `EntrypointsWithoutView (·)`
-    + **In Michelson:** `Right ((·))`
+    + **In Michelson:** `Right (Right (Left (Right (·))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `Run (·)`
+    + **In Michelson:** `Right (Right (Right ((·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -496,10 +1280,8 @@ Pass resulting value as parameter to the contract.
 
 
 
-The sender has to be the `operator`.
-
 **Possible errors:**
-* [`SenderIsNotOperator`](#errors-SenderIsNotOperator) — Sender has to be an operator to call this entrypoint
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
 
@@ -507,25 +1289,20 @@ The sender has to be the `operator`.
 
 ### `Unpause`
 
-Unpause the contract and resume end users actions.
-
-This entry point pauses operations when the parameter is `True`,
-and resumes them when the parameter is `False`. During the pause,
-no contract can perform `transfer` or `approval` operations.
-
+This entry point is used to resume the contract during a paused state.
 
 **Parameter:** [`()`](#types-lparenrparen)
 
 <details>
-  <summary>**How to call this entry point**</summary>
+  <summary><b>How to call this entry point</b></summary>
 
 0. Construct parameter for the entry point.
 1. Wrap into `Unpause` constructor.
     + **In Haskell:** `Unpause (·)`
-    + **In Michelson:** `Right (Left (Left (Right (·))))`
-1. Wrap into `EntrypointsWithoutView` constructor
-    + **In Haskell:** `EntrypointsWithoutView (·)`
-    + **In Michelson:** `Right ((·))`
+    + **In Michelson:** `Right (Right (Right (Left (·))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `Run (·)`
+    + **In Michelson:** `Right (Right (Right ((·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -534,10 +1311,8 @@ Pass resulting value as parameter to the contract.
 
 
 
-**Authorization:** The sender has to be `administrator`.
-
 **Possible errors:**
-* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
 
@@ -545,20 +1320,20 @@ Pass resulting value as parameter to the contract.
 
 ### `TransferOwnership`
 
-Start the transfer ownership to a new owner.
+This entry point is used to transfer ownership to a new owner.
 
 **Parameter:** ***newOwner*** : [`Address`](#types-Address)
 
 <details>
-  <summary>**How to call this entry point**</summary>
+  <summary><b>How to call this entry point</b></summary>
 
 0. Construct parameter for the entry point.
 1. Wrap into `TransferOwnership` constructor.
     + **In Haskell:** `TransferOwnership (·)`
-    + **In Michelson:** `Right (Left (Right (Left (·))))`
-1. Wrap into `EntrypointsWithoutView` constructor
-    + **In Haskell:** `EntrypointsWithoutView (·)`
-    + **In Michelson:** `Right ((·))`
+    + **In Michelson:** `Right (Right (Right (Right (Left (·)))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `Run (·)`
+    + **In Michelson:** `Right (Right (Right ((·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -567,10 +1342,8 @@ Pass resulting value as parameter to the contract.
 
 
 
-The sender has to be the `admin`.
-
 **Possible errors:**
-* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
 
@@ -578,123 +1351,20 @@ The sender has to be the `admin`.
 
 ### `AcceptOwnership`
 
-Accept the ownership of the contract.
+This entry point is used to accept ownership by a new owner.
 
 **Parameter:** [`()`](#types-lparenrparen)
 
 <details>
-  <summary>**How to call this entry point**</summary>
+  <summary><b>How to call this entry point</b></summary>
 
 0. Construct parameter for the entry point.
 1. Wrap into `AcceptOwnership` constructor.
     + **In Haskell:** `AcceptOwnership (·)`
-    + **In Michelson:** `Right (Left (Right (Right (·))))`
-1. Wrap into `EntrypointsWithoutView` constructor
-    + **In Haskell:** `EntrypointsWithoutView (·)`
-    + **In Michelson:** `Right ((·))`
-
-Pass resulting value as parameter to the contract.
-
-</details>
-<p>
-
-
-
-The sender has to be the `new owner`.
-
-**Possible errors:**
-* [`NotInTransferOwnershipMode`](#errors-NotInTransferOwnershipMode) — Cannot accept ownership before transfer process has been initiated by calling transferOwnership entrypoint
-
-* [`SenderIsNotNewOwner`](#errors-SenderIsNotNewOwner) — Cannot accept ownership because the sender address is different from the address passed to the transferOwnership entrypoint previously
-
-
-
----
-
-### `StartMigrateTo`
-
-Initialize process of migration from the old contract.
-
-**Parameter:** ***migrationManager*** : [`Address`](#types-Address)
-
-<details>
-  <summary>**How to call this entry point**</summary>
-
-0. Construct parameter for the entry point.
-1. Wrap into `StartMigrateTo` constructor.
-    + **In Haskell:** `StartMigrateTo (·)`
-    + **In Michelson:** `Right (Right (Left (Left (·))))`
-1. Wrap into `EntrypointsWithoutView` constructor
-    + **In Haskell:** `EntrypointsWithoutView (·)`
-    + **In Michelson:** `Right ((·))`
-
-Pass resulting value as parameter to the contract.
-
-</details>
-<p>
-
-
-
-The sender has to be the `admin`.
-
-**Possible errors:**
-* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
-
-* [`TokenOperationsAreNotPaused`](#errors-TokenOperationsAreNotPaused) — This operation is only available when token operations are paused
-
-
-
----
-
-### `StartMigrateFrom`
-
-Initialize process of migration from the new contract.
-
-**Parameter:** ***migrationManager*** : [`Address`](#types-Address)
-
-<details>
-  <summary>**How to call this entry point**</summary>
-
-0. Construct parameter for the entry point.
-1. Wrap into `StartMigrateFrom` constructor.
-    + **In Haskell:** `StartMigrateFrom (·)`
-    + **In Michelson:** `Right (Right (Left (Right (·))))`
-1. Wrap into `EntrypointsWithoutView` constructor
-    + **In Haskell:** `EntrypointsWithoutView (·)`
-    + **In Michelson:** `Right ((·))`
-
-Pass resulting value as parameter to the contract.
-
-</details>
-<p>
-
-
-
-The sender has to be the `admin`.
-
-**Possible errors:**
-* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
-
-
-
----
-
-### `MintForMigration`
-
-Mint tokens to the given address from the agent.
-
-**Parameter:** (***to*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
-
-<details>
-  <summary>**How to call this entry point**</summary>
-
-0. Construct parameter for the entry point.
-1. Wrap into `MintForMigration` constructor.
-    + **In Haskell:** `MintForMigration (·)`
-    + **In Michelson:** `Right (Right (Right (Left (·))))`
-1. Wrap into `EntrypointsWithoutView` constructor
-    + **In Haskell:** `EntrypointsWithoutView (·)`
-    + **In Michelson:** `Right ((·))`
+    + **In Michelson:** `Right (Right (Right (Right (Right (·)))))`
+1. Wrap into `SafeEntrypoints` constructor.
+    + **In Haskell:** `Run (·)`
+    + **In Michelson:** `Right (Right (Right ((·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -704,48 +1374,7 @@ Pass resulting value as parameter to the contract.
 
 
 **Possible errors:**
-* [`MigrationNotEnabled`](#errors-MigrationNotEnabled) — Cannot migrate when migration manager hasn't been set up
-
-* [`SenderIsNotAgent`](#errors-SenderIsNotAgent) — Sender has to be a migration manager to call this entrypoint
-
-
-
----
-
-### `Migrate`
-
-Migrate from one verstion of the contract to another. Thus tokens in the old version is burned and minted in the new.
-
-**Parameter:** [`()`](#types-lparenrparen)
-
-<details>
-  <summary>**How to call this entry point**</summary>
-
-0. Construct parameter for the entry point.
-1. Wrap into `Migrate` constructor.
-    + **In Haskell:** `Migrate (·)`
-    + **In Michelson:** `Right (Right (Right (Right (·))))`
-1. Wrap into `EntrypointsWithoutView` constructor
-    + **In Haskell:** `EntrypointsWithoutView (·)`
-    + **In Michelson:** `Right ((·))`
-
-Pass resulting value as parameter to the contract.
-
-</details>
-<p>
-
-
-
-**Possible errors:**
-* [`TokenOperationsArePaused`](#errors-TokenOperationsArePaused) — Token functionality (`transfer` and similar entrypoints) is suspended.
-
-* [`NoBalanceToMigrate`](#errors-NoBalanceToMigrate) — Cannot migrate zero tokens to the new contract version
-
-* [`NotEnoughBalance`](#errors-NotEnoughBalance) — Not enough funds to perform the operation.
-
-* [`MigrationNotEnabled`](#errors-MigrationNotEnabled) — Cannot migrate when migration manager hasn't been set up
-
-* [`IllTypedMigrationManager`](#errors-IllTypedMigrationManager) — Type checking on the stored migration manager address failed
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
 
@@ -807,6 +1436,18 @@ Address primitive.
 
 
 
+<a name="types-ByteString"></a>
+
+---
+
+### `ByteString`
+
+Bytes primitive.
+
+**Final Michelson representation:** `bytes`
+
+
+
 <a name="types-Contract"></a>
 
 ---
@@ -831,6 +1472,20 @@ Signed number.
 
 
 
+<a name="types-MigrationScript"></a>
+
+---
+
+### `MigrationScript`
+
+A code which updates storage in order to make in compliant with the new version of the contract.
+
+**Structure:** ***migrationScript*** :[`Lambda`](#types-Lambda) [`UStore`](#types-Upgradeale-storage) [`UStore`](#types-Upgradeale-storage)
+
+**Final Michelson representation:** `lambda (big_map bytes bytes) (big_map bytes bytes)`
+
+
+
 <a name="types-Natural"></a>
 
 ---
@@ -840,6 +1495,39 @@ Signed number.
 Unsigned number.
 
 **Final Michelson representation:** `nat`
+
+
+
+<a name="types-Parameter.SafeParameter"></a>
+
+---
+
+### `Parameter.SafeParameter`
+
+Parameter which does not have unsafe arguments, like raw `Contract p` values.
+
+**Structure:** *one of*
++ **Run** [`UParam`](#types-Upgradable-parameter)
++ **Upgrade** (***newVersion*** : [`Natural`](#types-Natural), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript), ***newCode*** : [`UContractRouter`](#types-UContractRouter))
++ **SetMaster** [`Address`](#types-Address)
++ **EpwBeginUpgrade** [`Natural`](#types-Natural)
++ **EpwApplyMigration** (***migrationscript*** : [`MigrationScript`](#types-MigrationScript))
++ **EpwSetCode** (***contractcode*** : [`UContractRouter`](#types-UContractRouter))
++ **EpwFinishUpgrade** ()
++ **Transfer** (***from*** : [`Address`](#types-Address), ***to*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
++ **Approve** (***spender*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
++ **Mint** (***to*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
++ **Burn** (***value*** : [`Natural`](#types-Natural))
++ **AddOperator** (***operator*** : [`Address`](#types-Address))
++ **RemoveOperator** (***operator*** : [`Address`](#types-Address))
++ **SetRedeemAddress** (***redeem*** : [`Address`](#types-Address))
++ **Pause** [`()`](#types-lparenrparen)
++ **Unpause** [`()`](#types-lparenrparen)
++ **TransferOwnership** (***newOwner*** : [`Address`](#types-Address))
++ **AcceptOwnership** [`()`](#types-lparenrparen)
+
+
+**Final Michelson representation:** `or (or (or (or (pair string bytes) (pair nat (pair (lambda (big_map bytes bytes) (big_map bytes bytes)) (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))))) (or address nat)) (or (or (lambda (big_map bytes bytes) (big_map bytes bytes)) (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))) (or unit (or (pair address (pair address nat)) (pair address nat))))) (or (or (or (pair address nat) nat) (or address address)) (or (or address unit) (or unit (or address unit))))`
 
 
 
@@ -853,6 +1541,34 @@ Michelson string.
 Not every text literal is valid string, see list of constraints in the [Official Michelson documentation](http://tezos.gitlab.io/zeronet/whitedoc/michelson.html#constants).
 
 **Final Michelson representation:** `string`
+
+
+
+<a name="types-UContractRouter"></a>
+
+---
+
+### `UContractRouter`
+
+Parameter dispatching logic, main purpose of this code is to pass control to an entrypoint carrying the main logic of the contract.
+
+**Structure:** ***unContractCode*** :[`Lambda`](#types-Lambda) ([`UParam`](#types-Upgradable-parameter), [`UStore`](#types-Upgradeale-storage)) ([`List`](#types-List) [`Operation`](#types-Operation), [`UStore`](#types-Upgradeale-storage))
+
+**Final Michelson representation:** `lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))`
+
+
+
+<a name="types-Upgradable-parameter"></a>
+
+---
+
+### `Upgradable parameter`
+
+<UParam description>
+
+**Structure:** ([`Text`](#types-Text), [`ByteString`](#types-ByteString))
+
+**Final Michelson representation:** `pair string bytes`
 
 
 
@@ -914,94 +1630,6 @@ We distinquish several error classes:
   If an internal error is thrown, please report it to the author of this contract.
 
 
-<a name="errors-IllTypedMigrationManager"></a>
-
----
-
-### `IllTypedMigrationManager`
-
-**Class:** Action exception
-
-**Fires if:** Type checking on the stored migration manager address failed
-
-**Representation:** `("IllTypedMigrationManager", ())`.
-
-<a name="errors-InternalError"></a>
-
----
-
-### `InternalError`
-
-**Class:** Internal
-
-**Fires if:** Internal error occured.
-
-**Representation:** Textual error message, see [`Text`](#types-Text).
-
-<a name="errors-MigrationNotEnabled"></a>
-
----
-
-### `MigrationNotEnabled`
-
-**Class:** Action exception
-
-**Fires if:** Cannot migrate when migration manager hasn't been set up
-
-**Representation:** `("MigrationNotEnabled", ())`.
-
-<a name="errors-NoBalanceToMigrate"></a>
-
----
-
-### `NoBalanceToMigrate`
-
-**Class:** Action exception
-
-**Fires if:** Cannot migrate zero tokens to the new contract version
-
-**Representation:** `("NoBalanceToMigrate", ())`.
-
-<a name="errors-NotEnoughAllowance"></a>
-
----
-
-### `NotEnoughAllowance`
-
-**Class:** Action exception
-
-**Fires if:** Not enough funds allowance to perform the operation.
-
-**Representation:** `("NotEnoughAllowance", <error argument>)`.
-
-Provided error argument will be of type (***required*** : [`Natural`](#types-Natural), ***present*** : [`Natural`](#types-Natural)).
-
-<a name="errors-NotEnoughBalance"></a>
-
----
-
-### `NotEnoughBalance`
-
-**Class:** Action exception
-
-**Fires if:** Not enough funds to perform the operation.
-
-**Representation:** `("NotEnoughBalance", <error argument>)`.
-
-Provided error argument will be of type (***required*** : [`Natural`](#types-Natural), ***present*** : [`Natural`](#types-Natural)).
-
-<a name="errors-NotInTransferOwnershipMode"></a>
-
----
-
-### `NotInTransferOwnershipMode`
-
-**Class:** Action exception
-
-**Fires if:** Cannot accept ownership before transfer process has been initiated by calling transferOwnership entrypoint
-
-**Representation:** `("NotInTransferOwnershipMode", ())`.
-
 <a name="errors-SenderIsNotAdmin"></a>
 
 ---
@@ -1014,76 +1642,40 @@ Provided error argument will be of type (***required*** : [`Natural`](#types-Nat
 
 **Representation:** `("SenderIsNotAdmin", ())`.
 
-<a name="errors-SenderIsNotAgent"></a>
+<a name="errors-UpgContractIsMigrating"></a>
 
 ---
 
-### `SenderIsNotAgent`
-
-**Class:** Bad argument
-
-**Fires if:** Sender has to be a migration manager to call this entrypoint
-
-**Representation:** `("SenderIsNotAgent", ())`.
-
-<a name="errors-SenderIsNotNewOwner"></a>
-
----
-
-### `SenderIsNotNewOwner`
-
-**Class:** Bad argument
-
-**Fires if:** Cannot accept ownership because the sender address is different from the address passed to the transferOwnership entrypoint previously
-
-**Representation:** `("SenderIsNotNewOwner", ())`.
-
-<a name="errors-SenderIsNotOperator"></a>
-
----
-
-### `SenderIsNotOperator`
-
-**Class:** -
-
-**Fires if:** Sender has to be an operator to call this entrypoint
-
-**Representation:** `("SenderIsNotOperator", ())`.
-
-<a name="errors-TokenOperationsAreNotPaused"></a>
-
----
-
-### `TokenOperationsAreNotPaused`
+### `UpgContractIsMigrating`
 
 **Class:** Action exception
 
-**Fires if:** This operation is only available when token operations are paused
+**Fires if:** An operation was requested when contract is in a state of migration
 
-**Representation:** `("TokenOperationsAreNotPaused", ())`.
+**Representation:** `("UpgContractIsMigrating", ())`.
 
-<a name="errors-TokenOperationsArePaused"></a>
-
----
-
-### `TokenOperationsArePaused`
-
-**Class:** Action exception
-
-**Fires if:** Token functionality (`transfer` and similar entrypoints) is suspended.
-
-**Representation:** `("TokenOperationsArePaused", ())`.
-
-<a name="errors-UnsafeAllowanceChange"></a>
+<a name="errors-UpgContractIsNotMigrating"></a>
 
 ---
 
-### `UnsafeAllowanceChange`
+### `UpgContractIsNotMigrating`
 
 **Class:** Action exception
 
-**Fires if:** Allowance change from non-zero value to non-zero value is performed. This contract does not allow such an update, see the [corresponding attack vector](https://docs.google.com/document/d/1YLPtQxZu1UAvO9cZ1O2RPXBbT0mooh4DYKjA_jp-RLM) for explanation.
+**Fires if:** An migration related operation was requested when contract is not in a state of migration
 
-**Representation:** `("UnsafeAllowanceChange", <error argument>)`.
+**Representation:** `("UpgContractIsNotMigrating", ())`.
 
-Provided error argument will be of type [`Natural`](#types-Natural) and stand for the previous value of approval.
+<a name="errors-UpgVersionMismatch"></a>
+
+---
+
+### `UpgVersionMismatch`
+
+**Class:** Action exception
+
+**Fires if:** The expected version does not match the version of the supplied code.
+
+**Representation:** `("UpgVersionMismatch", <error argument>)`.
+
+Provided error argument will be of type (***expected*** : [`Natural`](#types-Natural), ***actual*** : [`Natural`](#types-Natural)).

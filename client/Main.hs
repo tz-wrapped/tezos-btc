@@ -15,15 +15,12 @@ import Options.Applicative.Help.Pretty (Doc, linebreak)
 import Lorentz.Macro (View(..))
 import Michelson.Typed.Haskell.Value (ContractAddr(..))
 import Paths_tzbtc (version)
-import Tezos.Address (formatAddress)
 import Util.Named ((.!))
 
 import Client.IO
 import Client.Parser
 import Client.Types
-import Lorentz.Contracts.TZBTC (Parameter(..), StorageFields(..))
-import Lorentz.Contracts.TZBTC.Types
-  (ParameterWithoutView(..), ParameterWithView(..))
+import Lorentz.Contracts.TZBTC
 import Util.MultiSig
 
 main :: IO ()
@@ -38,23 +35,23 @@ main = do
       CmdMint to' value mbMultisig -> do
         to <- addrOrAliasToAddr to'
         runMultisigTzbtcContract mbMultisig $
-          EntrypointsWithoutView $ Mint (#to .! to, #value .! value)
+          fromFlatParameter $ Mint (#to .! to, #value .! value)
       CmdBurn burnParams mbMultisig ->
         runMultisigTzbtcContract mbMultisig $
-          EntrypointsWithoutView $ Burn burnParams
+          fromFlatParameter $ Burn burnParams
       CmdTransfer from' to' value -> do
         [from, to] <- mapM addrOrAliasToAddr [from', to']
         runTzbtcContract $
-          EntrypointsWithoutView $ Transfer (#from .! from, #to .! to, #value .! value)
+          fromFlatParameter $ Transfer (#from .! from, #to .! to, #value .! value)
       CmdApprove spender' value -> do
         spender <- addrOrAliasToAddr spender'
         runTzbtcContract $
-          EntrypointsWithoutView $ Approve (#spender .! spender, #value .! value)
+          fromFlatParameter $ Approve (#spender .! spender, #value .! value)
       CmdGetAllowance (owner', spender') mbCallback' ->
         case mbCallback' of
           Just callback' -> do
             [owner, spender, callback] <- mapM addrOrAliasToAddr [owner', spender', callback']
-            runTzbtcContract $ EntrypointsWithView $ GetAllowance $
+            runTzbtcContract $ fromFlatParameter $ GetAllowance $
               View (#owner .! owner, #spender .! spender) (ContractAddr callback)
           Nothing -> do
             [owner, spender] <- mapM addrOrAliasToAddr [owner', spender']
@@ -65,7 +62,7 @@ main = do
           Just callback' -> do
             [owner, callback] <- mapM addrOrAliasToAddr [owner', callback']
             runTzbtcContract $
-              EntrypointsWithView $ GetBalance $ View owner (ContractAddr callback)
+              fromFlatParameter $ GetBalance $ View owner (ContractAddr callback)
           Nothing -> do
             owner <- addrOrAliasToAddr owner'
             balance <- getBalance owner
@@ -73,67 +70,62 @@ main = do
       CmdAddOperator operator' mbMultisig -> do
         operator <- addrOrAliasToAddr operator'
         runMultisigTzbtcContract mbMultisig $
-          EntrypointsWithoutView $ AddOperator (#operator .! operator)
+          fromFlatParameter $ AddOperator (#operator .! operator)
       CmdRemoveOperator operator' mbMultisig -> do
         operator <- addrOrAliasToAddr operator'
         runMultisigTzbtcContract mbMultisig $
-          EntrypointsWithoutView $ RemoveOperator (#operator .! operator)
+          fromFlatParameter $ RemoveOperator (#operator .! operator)
       CmdPause mbMultisig -> runMultisigTzbtcContract mbMultisig $
-        EntrypointsWithoutView $ Pause ()
+        fromFlatParameter $ Pause ()
       CmdUnpause mbMultisig -> runMultisigTzbtcContract mbMultisig $
-        EntrypointsWithoutView $ Unpause ()
+        fromFlatParameter $ Unpause ()
       CmdSetRedeemAddress redeem' mbMultisig -> do
         redeem <- addrOrAliasToAddr redeem'
         runMultisigTzbtcContract mbMultisig $
-          EntrypointsWithoutView $ SetRedeemAddress (#redeem .! redeem)
+          fromFlatParameter $ SetRedeemAddress (#redeem .! redeem)
       CmdTransferOwnership newOwner' mbMultisig -> do
         newOwner <- addrOrAliasToAddr newOwner'
         runMultisigTzbtcContract mbMultisig $
-          EntrypointsWithoutView $ TransferOwnership (#newOwner .! newOwner)
+          fromFlatParameter $ TransferOwnership (#newOwner .! newOwner)
       CmdAcceptOwnership p -> runTzbtcContract $
-        EntrypointsWithoutView $ AcceptOwnership p
-      CmdStartMigrateTo manager' mbMultisig -> do
-        manager <- addrOrAliasToAddr manager'
-        runMultisigTzbtcContract mbMultisig $
-          EntrypointsWithoutView $ StartMigrateTo (#migrationManager .! manager)
-      CmdStartMigrateFrom manager' mbMultisig -> do
-        manager <- addrOrAliasToAddr manager'
-        runMultisigTzbtcContract mbMultisig $
-          EntrypointsWithoutView $ StartMigrateFrom (#migrationManager .! manager)
-      CmdMigrate p -> runTzbtcContract $ EntrypointsWithoutView $ Migrate p
+        fromFlatParameter $ AcceptOwnership p
       CmdGetTotalSupply mbCallback' -> do
         case mbCallback' of
           Just callback' -> do
             callback <- addrOrAliasToAddr callback'
             runTzbtcContract $
-              EntrypointsWithView $ GetTotalSupply $ View () (ContractAddr callback)
+              fromFlatParameter $ GetTotalSupply $ View () (ContractAddr callback)
           Nothing -> do
-            printFieldFromStorage "Total supply: " (totalSupply . asFields) show
+            error "To be done in TBTC-55"
+            --printFieldFromStorage "Total supply: " (totalSupply . asFields) show
       CmdGetTotalMinted mbCallback' -> do
         case mbCallback' of
           Just callback' -> do
             callback <- addrOrAliasToAddr callback'
             runTzbtcContract $
-              EntrypointsWithView $ GetTotalMinted $ View () (ContractAddr callback)
+              fromFlatParameter $ GetTotalMinted $ View () (ContractAddr callback)
           Nothing ->
-            printFieldFromStorage "Total minted: " (totalMinted . asFields) show
+            error "To be done in TBTC-55"
+            --printFieldFromStorage "Total minted: " (totalMinted . asFields) show
       CmdGetTotalBurned mbCallback' -> do
         case mbCallback' of
           Just callback' -> do
             callback <- addrOrAliasToAddr callback'
             runTzbtcContract $
-              EntrypointsWithView $ GetTotalBurned $ View () (ContractAddr callback)
+              fromFlatParameter $ GetTotalBurned $ View () (ContractAddr callback)
           Nothing ->
-            printFieldFromStorage "Total burned: " (totalMinted . asFields) show
+            error "To be done in TBTC-55"
+            --printFieldFromStorage "Total burned: " (totalMinted . asFields) show
       CmdGetAdministrator mbCallback' -> do
         case mbCallback' of
           Just callback' -> do
             callback <- addrOrAliasToAddr callback'
             runTzbtcContract $
-              EntrypointsWithView $ GetAdministrator $ View () (ContractAddr callback)
+              fromFlatParameter $ GetAdministrator $ View () (ContractAddr callback)
           Nothing ->
-            printFieldFromStorage
-            "Admininstator: " (admin . asFields) formatAddress
+            error "To be done in TBTC-55"
+            --printFieldFromStorage
+            --"Admininstator: " (admin . asFields) formatAddress
       CmdGetOpDescription packageFilePath -> do
         pkg <- getPackageFromFile packageFilePath
         case pkg of
@@ -166,15 +158,15 @@ main = do
           Left err -> putStrLn err
           Right packages -> runMultisigContract packages
   where
-    runMultisigTzbtcContract :: (Maybe FilePath) -> Parameter -> IO ()
+    runMultisigTzbtcContract :: (Maybe FilePath) -> Parameter a -> IO ()
     runMultisigTzbtcContract mbMultisig param =
       case mbMultisig of
-        Just fp -> case param of
-          EntrypointsWithoutView subParam -> createMultisigPackage fp subParam
+        Just fp -> case toSafeParam param of
+          Just subParam -> createMultisigPackage fp subParam
           _ -> putTextLn "Unable to call multisig for View entrypoints"
         Nothing -> runTzbtcContract param
-    printFieldFromStorage :: Text -> (AlmostStorage -> a) -> (a -> Text) -> IO ()
-    printFieldFromStorage prefix fieldGetter formatter = do
+    _printFieldFromStorage :: Text -> (AlmostStorage Interface -> a) -> (a -> Text) -> IO ()
+    _printFieldFromStorage prefix fieldGetter formatter = do
       field' <- getFromTzbtcStorage fieldGetter
       putTextLn $ prefix <> formatter field'
     programInfo =

@@ -21,8 +21,8 @@ import Lorentz
 
 import Michelson.Text (mkMTextUnsafe)
 
-import qualified Lorentz.Contracts.TZBTC.Types as TZBTC
-  (Parameter(..), ParameterWithoutView(..))
+import Lorentz.Contracts.TZBTC as TZBTC hiding (Parameter, Storage)
+import qualified Lorentz.Contracts.TZBTC as TZBTC (Parameter)
 
 data Parameter
   = Default ()
@@ -54,7 +54,7 @@ type ParamManage
 type ParamSignatures = [Maybe Signature]
 
 contractToLambda
-  :: Address -> TZBTC.ParameterWithoutView -> Lambda () [Operation]
+  :: forall a. Address -> SafeParameter a -> Lambda () [Operation]
 contractToLambda addr param = do
   drop
   push addr
@@ -63,7 +63,7 @@ contractToLambda addr param = do
   then do push (mkMTextUnsafe "Invalid contract type"); failWith
   else do
     push param
-    wrap_ @TZBTC.Parameter #cEntrypointsWithoutView
+    wrap_ @(TZBTC.Parameter a) #cSafeEntrypoints
     dip $ push $ toMutez 0
     transferTokens
     dip nil

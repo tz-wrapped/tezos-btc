@@ -22,14 +22,14 @@ import Lorentz.Constraints (KnownValue, NoBigMap, NoOperation)
 import Michelson.Interpret.Pack (packValue')
 import Michelson.Interpret.Unpack (UnpackError, dummyUnpackEnv, unpackValue')
 import Michelson.Typed.Haskell.Value (IsoValue(..))
-import Michelson.Typed.Scope (HasNoOp, HasNoBigMap, forbiddenBigMap, forbiddenOp)
+import Michelson.Typed.Scope (HasNoContract, HasNoOp, HasNoBigMap, forbiddenBigMap, forbiddenOp)
 import Tezos.Crypto (blake2b)
 
 import Client.Error (TzbtcClientError(..))
 
 paramToExpression
   :: forall param.
-     (IsoValue param, KnownValue param, NoBigMap param, NoOperation param)
+     (KnownValue param, NoBigMap param, NoOperation param)
   => param -> Expression
 paramToExpression param = decode . BS.drop 1 $
   forbiddenOp @(ToT param) $ forbiddenBigMap @(ToT param) $
@@ -60,7 +60,7 @@ addTezosBytesPrefix :: Text -> Text
 addTezosBytesPrefix = ("0x" <>)
 
 exprToValue
-  :: forall t. (IsoValue t, KnownValue t, HasNoOp (ToT t), HasNoBigMap (ToT t))
+  :: forall t. (KnownValue t, HasNoContract (ToT t), HasNoOp (ToT t), HasNoBigMap (ToT t))
   => Expression -> Either UnpackError t
 exprToValue =
   fmap fromVal . unpackValue' @(ToT t) dummyUnpackEnv . BS.cons 0x05 . encode
@@ -79,6 +79,6 @@ addExprPrefix = (BS.pack [0x0D, 0x2C, 0x40, 0x1B] <>)
 -- and https://gitlab.com/tezos/tezos/blob/6e25ae8eb385d9975a30388c7a7aa2a9a65bf184/src/proto_005_PsBabyM1/lib_protocol/contract_services.ml#L136
 -- for more information.
 valueToScriptExpr
-  :: forall t. (IsoValue t, KnownValue t, HasNoOp (ToT t), HasNoBigMap (ToT t))
+  :: forall t. (KnownValue t, HasNoOp (ToT t), HasNoBigMap (ToT t))
   => t -> ByteString
 valueToScriptExpr = addExprPrefix . blake2b . packValue' . toVal

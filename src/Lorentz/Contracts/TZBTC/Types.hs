@@ -6,80 +6,84 @@
 module Lorentz.Contracts.TZBTC.Types
   ( AcceptOwnershipParams
   , BurnParams
+  , Entrypoint
   , GetBalanceParams
+  , Interface
   , ManagedLedger.AllowanceParams
   , ManagedLedger.ApproveParams
   , ManagedLedger.GetAllowanceParams
   , ManagedLedger.LedgerValue
   , ManagedLedger.MintParams
-  , ManagedLedger.Storage' (..)
   , ManagedLedger.TransferParams
-  , MigrateParams
-  , MigrationManager
-  , MigrationManagerCType
-  , MintForMigrationParams
   , OperatorParams
+  , OriginationParameters(..)
   , Parameter(..)
-  , ParameterWithView(..)
-  , ParameterWithoutView(..)
+  , SafeParameter(..)
   , PauseParams
-  , SetMigrationAgentParams
+  , SafeView
   , SetRedeemAddressParams
-  , StartMigrateFromParams
-  , StartMigrateToParams
-  , Storage
+  , Storage(..)
   , StorageFields(..)
+  , StoreTemplate(..)
   , TransferOwnershipParams
-  , mkStorage
+  , TZBTCPartInstr
+  , TZBTCParameter
+  , TZBTCStorage
+  , UpgradeParameters
+  , UStoreV1
   ) where
 
-import Fmt (Buildable(..), (+|), (|+))
-import Data.Set (Set)
+import Fmt ((+|), (|+), Buildable(..))
 
 import Lorentz
 import qualified Lorentz.Contracts.ManagedLedger.Types as ManagedLedger
-import Lorentz.Contracts.ManagedLedger.Types (Storage'(..), mkStorage')
+import Lorentz.Contracts.Upgradeable.Common (UContractRouter(..), MigrationScript)
+import Lorentz.Contracts.Upgradeable.EntryPointWise
 import Util.Instances ()
 
-type MigrationManager = Address
-type MigrationManagerCType = ContractAddr (Address, Natural)
 type BurnParams = ("value" :! Natural)
 type OperatorParams = ("operator" :! Address)
 type GetBalanceParams = Address
 type SetRedeemAddressParams = ("redeem" :! Address)
 type PauseParams = Bool
 type TransferOwnershipParams = ("newOwner" :! Address)
-type StartMigrateToParams = ("migrationManager" :! MigrationManager)
-type StartMigrateFromParams = ("migrationManager" :! MigrationManager)
-type MintForMigrationParams = ("to" :! Address, "value" :! Natural)
 type AcceptOwnershipParams = ()
-type MigrateParams = ()
-type SetMigrationAgentParams = ("migrationAgent" :! MigrationManager)
+type Entrypoint param store
+  = '[ param, store ] :-> ContractOut store
+
+type UpgradeParameters interface =
+  ( "newVersion" :! Natural
+  , "migrationScript" :! MigrationScript
+  , "newCode" :! UContractRouter interface
+  )
+
+deriving instance Eq (UContractRouter interface)
+deriving instance Show (UContractRouter interface)
+
+deriving instance Eq MigrationScript
+deriving instance Show MigrationScript
 
 ----------------------------------------------------------------------------
 -- Parameter
 ----------------------------------------------------------------------------
+-- | This is a type that is supposed to wrap all the 'safe' entrypoints ie the
+-- ones that have arguments that does not contain things like raw contract
+-- values that are forbidden in operations that would end up in the chain.
+data SafeParameter (interface :: [EntryPointKind])
+  = Run (UParam interface)
+  | Upgrade (UpgradeParameters interface)
+  | SetMaster Address
 
-data Parameter
-  = EntrypointsWithView ParameterWithView
-  | EntrypointsWithoutView ParameterWithoutView
-  deriving stock (Eq, Show, Generic)
-  deriving anyclass IsoValue
-
-data ParameterWithView
-  = GetAllowance        !(View ManagedLedger.GetAllowanceParams Natural)
-  | GetBalance          !(View Address Natural)
-  | GetTotalSupply      !(View () Natural)
-  | GetTotalMinted      !(View () Natural)
-  | GetTotalBurned      !(View () Natural)
-  | GetAdministrator    !(View () Address)
-  deriving stock (Eq, Show, Generic)
-  deriving anyclass IsoValue
-
-data ParameterWithoutView
-  = Transfer            !ManagedLedger.TransferParams
+  -- Entrypoint-wise upgrades are currently not protected from version mismatch
+  -- in subsequent transactions, so the user ought to be careful with them.
+  -- This behavior may change in future if deemed desirable.
+  | EpwBeginUpgrade Natural  -- version
+  | EpwApplyMigration ("migrationscript" :! MigrationScript)
+  | EpwSetCode ("contractcode" :! (UContractRouter interface))
+  | EpwFinishUpgrade
+  -- TZBTC Entrypoints
+  | Transfer            !ManagedLedger.TransferParams
   | Approve             !ManagedLedger.ApproveParams
-  | SetAdministrator    !Address
   | Mint                !ManagedLedger.MintParams
   | Burn                !BurnParams
   | AddOperator         !OperatorParams
@@ -89,72 +93,68 @@ data ParameterWithoutView
   | Unpause             !()
   | TransferOwnership   !TransferOwnershipParams
   | AcceptOwnership     !AcceptOwnershipParams
-  | StartMigrateTo      !StartMigrateToParams
-  | StartMigrateFrom    !StartMigrateFromParams
-  | MintForMigration    !MintForMigrationParams
-  | Migrate             !MigrateParams
-  deriving stock (Eq, Show, Generic)
+  deriving stock (Eq, Generic, Show)
   deriving anyclass IsoValue
 
-instance TypeHasDoc ParameterWithView where
-  typeDocName _ = "Parameter.ParameterWithView"
-  typeDocMdDescription = "Parameter which contains View entrypoints"
+instance TypeHasDoc (SafeParameter interface) where
+  typeDocName _ = "Parameter.SafeParameter"
+  typeDocMdDescription = "Parameter which does not have unsafe arguments, like raw `Contract p` values."
+  typeDocMdReference tp =
+    customTypeDocMdReference ("Parameter.SafeParameter", DType tp) []
+  typeDocHaskellRep = homomorphicTypeDocHaskellRep
+  typeDocMichelsonRep = homomorphicTypeDocMichelsonRep
 
-instance TypeHasDoc ParameterWithoutView where
-  typeDocName _ = "Parameter.ParameterWithoutView"
-  typeDocMdDescription = "Parameter which doesn't contain View entrypoints"
+-- | The actual parameter of the main TZBTC contract.
+data Parameter (interface :: [EntryPointKind])
+  = GetVersion (View () Natural)
+  -- TZBTC Entrypoints
+  | GetAllowance        !(View ManagedLedger.GetAllowanceParams Natural)
+  | GetBalance          !(View Address Natural)
+  | GetTotalSupply      !(View () Natural)
+  | GetTotalMinted      !(View () Natural)
+  | GetTotalBurned      !(View () Natural)
+  | GetAdministrator    !(View () Address)
+  | SafeEntrypoints (SafeParameter interface)
+  deriving stock (Eq, Generic, Show)
+  deriving anyclass IsoValue
 
-----------------------------------------------------------------------------
--- Storage
-----------------------------------------------------------------------------
-
-data StorageFields = StorageFields
-  { admin       :: Address
-  , paused      :: Bool
-  , totalSupply :: Natural
-  , totalBurned :: Natural
-  , totalMinted :: Natural
-  , newOwner    :: Maybe Address
-  , operators   :: Set Address
-  , redeemAddress :: Address
-  , code :: MText
-  , tokenname :: MText
-  , migrationManagerIn :: Maybe MigrationManager
-  , migrationManagerOut :: Maybe MigrationManager
-  } deriving stock (Show, Generic)
-    deriving anyclass IsoValue
-
-instance HasFieldOfType StorageFields name field =>
-         StoreHasField StorageFields name field where
-  storeFieldOps = storeFieldOpsADT
-
-instance Buildable Parameter where
+instance Buildable (Parameter s) where
   build = \case
-    EntrypointsWithView param -> case param of
-      GetAllowance (View (arg #owner -> owner, arg #spender -> spender) _) ->
-        "Get allowance for " +| owner |+ " from " +| spender |+ ""
-      GetBalance (View addr _) ->
-        "Get balance for " +| addr |+ ""
-      GetTotalSupply _ ->
-        "Get total supply"
-      GetTotalMinted _ ->
-        "Get total minted"
-      GetTotalBurned _ ->
-        "Get total burned"
-      GetAdministrator _ ->
-        "Get administrator"
-
-    EntrypointsWithoutView param -> case param of
+    GetAllowance (View (arg #owner -> owner, arg #spender -> spender) _) ->
+      "Get allowance for " +| owner |+ " from " +| spender |+ ""
+    GetBalance (View addr _) ->
+      "Get balance for " +| addr |+ ""
+    GetTotalSupply _ ->
+      "Get total supply"
+    GetTotalMinted _ ->
+      "Get total minted"
+    GetTotalBurned _ ->
+      "Get total burned"
+    GetAdministrator _ ->
+      "Get administrator"
+    GetVersion _ ->
+      "Get contract version"
+    SafeEntrypoints param -> case param of
+      Run _ ->
+        "Run a stored entrypoint"
+      Upgrade _ ->
+        "Upgrade contract"
+      EpwBeginUpgrade _ ->
+        "Start contract upgrade process"
+      EpwApplyMigration _ ->
+        "Run a complete migration"
+      EpwFinishUpgrade ->
+        "Finish upgrade process"
+      EpwSetCode _ ->
+        "Set entrypoint dispatch code"
       Transfer (arg #from -> from, arg #to -> to, arg #value -> value) ->
         "Transfer from " +| from |+ " to " +| to |+ ", value = " +| value |+ ""
       Approve (arg #spender -> spender, arg #value -> value) ->
         "Approve for " +| spender |+ ", value = " +| value |+ ""
-      SetAdministrator addr ->
-        "Set administrator to " +| addr |+ ""
+      SetMaster addr ->
+        "Set master to " +| addr |+ ""
       Mint (arg #to -> to, arg #value -> value) ->
         "Mint to " +| to |+ ", value = " +| value |+ ""
-      MintForMigration (arg #to -> to, arg #value -> value) ->
-        "MintForMigration to " +| to |+ ", value = " +| value |+ ""
       Burn (arg #value -> value) ->
         "Burn, value = " +| value |+ ""
       AddOperator (arg #operator -> operator) ->
@@ -171,37 +171,100 @@ instance Buildable Parameter where
         "Transfer ownership to " +| newOwner |+ ""
       AcceptOwnership _ ->
         "Accept ownership"
-      StartMigrateTo (arg #migrationManager -> migrateTo) ->
-        "Start migrate to " +| migrateTo |+ ""
-      StartMigrateFrom (arg #migrationManager -> migrateFrom) ->
-        "Start migrate from " +| migrateFrom |+ ""
-      Migrate _ ->
-        "Migrate"
 
-type Storage = Storage' StorageFields
 
--- | Create a default storage with ability to set some balances to
--- non-zero values.
-mkStorage :: Address -> Address -> Map Address Natural -> Set Address -> Storage
-mkStorage adminAddress redeem balances operators = mkStorage' balances $
-  StorageFields
-  { admin = adminAddress
-  , paused = False
-  , totalSupply = sum balances
-  , totalBurned = 0
-  , totalMinted = sum balances
-  , newOwner = Nothing
-  , operators = operators
-  , redeemAddress = redeem
-  , code = [mt|TZBTC|]
-  , tokenname = [mt|TZBTC|]
-  , migrationManagerOut = Nothing
-  , migrationManagerIn = Nothing
+---------------------------------------------------------------------------
+-- Storage
+---------------------------------------------------------------------------
+
+-- | The concrete fields of the contract
+data StorageFields interface = StorageFields
+  { contractRouter  :: UContractRouter interface
+  , master :: Address
+  , currentVersion :: Natural
+  , migrating :: Bool
+  } deriving stock (Generic, Show)
+    deriving anyclass IsoValue
+
+-- | The concrete storage of the contract
+data Storage interface store = Storage
+  { dataMap :: UStore store
+  , fields :: StorageFields interface
+  } deriving stock (Generic, Show)
+    deriving anyclass IsoValue
+
+-- | Template for the wrapped UStore which will hold the upgradeable code
+-- and fields
+data StoreTemplate = StoreTemplate
+  { admin         :: UStoreField Address
+  , paused        :: UStoreField Bool
+  , totalSupply   :: UStoreField Natural
+  , totalBurned   :: UStoreField Natural
+  , totalMinted   :: UStoreField Natural
+  , newOwner      :: UStoreField (Maybe Address)
+  , operators     :: UStoreField (Set Address)
+  , redeemAddress :: UStoreField Address
+  , tokenname     :: UStoreField MText
+  , tokencode     :: UStoreField MText
+  , code          :: MText |~> EntryPointImpl StoreTemplate
+  , fallback      :: UStoreField $ EpwFallback StoreTemplate
+  , ledger        :: Address |~> ManagedLedger.LedgerValue
+  } deriving stock Generic
+
+type UStoreV1 = UStore StoreTemplate
+
+-- The data required to initialize the V1 version of the contract storage.
+data OriginationParameters = OriginationParameters
+  { opMaster :: !Address
+  , opRedeemAddress :: !Address
+  , opBalances :: !(Map Address Natural)
+  , opTokenname :: !MText
+  , opTokencode :: !MText
   }
+
+-- | A safe view to act as argument to the inner stored procedures that
+-- accept a callback contract. The main entrypoint will recieve a `View`
+-- in its arguments, and convert the view to a `SafeView` before calling
+-- the stored view entry point
+newtype SafeView i o = SafeView { unSafeView :: (i, Address) }
+   deriving stock (Generic, Show)
+   deriving anyclass IsoValue
+
+-- | Interface of the V1 contract.
+type Interface =
+  [ "callGetAllowance" ?: (SafeView ManagedLedger.GetAllowanceParams Natural)
+  , "callGetBalance" ?: (SafeView Address Natural)
+  , "callGetTotalSupply" ?: (SafeView () Natural)
+  , "callGetTotalMinted" ?: (SafeView () Natural)
+  , "callGetTotalBurned" ?: (SafeView () Natural)
+  , "callGetAdministrator" ?: (SafeView () Address)
+  , "callTransfer" ?: ManagedLedger.TransferParams
+  , "callApprove" ?: ManagedLedger.ApproveParams
+  , "callMint" ?: ManagedLedger.MintParams
+  , "callBurn" ?: BurnParams
+  , "callAddOperator" ?: OperatorParams
+  , "callRemoveOperator" ?: OperatorParams
+  , "callSetRedeemAddress" ?: SetRedeemAddressParams
+  , "callPause" ?: ()
+  , "callUnpause" ?: ()
+  , "callTransferOwnership" ?: TransferOwnershipParams
+  , "callAcceptOwnership" ?: AcceptOwnershipParams
+  ]
+
+-- | Type of instruction which implements a part of TZBTC Protocol.
+type TZBTCPartInstr param store =
+  '[param, UStore store] :->
+  '[[Operation], UStore store]
+
+type TZBTCStorage = Storage Interface StoreTemplate
+type TZBTCParameter = Parameter Interface
 
 ----------------------------------------------------------------------------
 -- Errors
 ----------------------------------------------------------------------------
+--
+-- | For addresses that fails contract typecheck
+type instance ErrorArg "unexpectedContractType" = ()
 
 -- | For the `acceptOwnership` entry point, if the contract's `newOwner`
 -- field is None.
@@ -215,25 +278,27 @@ type instance ErrorArg "senderIsNotNewOwner" = ()
 -- of the operators.
 type instance ErrorArg "senderIsNotOperator" = ()
 
--- | For migration calls if the contract does not have previous
--- version field set.
-type instance ErrorArg "unauthorizedMigrateFrom" = ()
+-- | For calls that can only be run during a migration
+type instance ErrorArg "upgContractIsNotMigrating" = ()
 
--- | For migration calls if there is nothing to migrate.
-type instance ErrorArg "noBalanceToMigrate" = ()
+-- | If contract is in a migrating state and the call
+-- requires it to be in a non migrating state.
+type instance ErrorArg "upgContractIsMigrating" = ()
 
--- | For migrate calls to contracts don't have migration manager set.
-type instance ErrorArg "migrationNotEnabled" = ()
+instance CustomErrorHasDoc "upgContractIsMigrating" where
+  customErrClass = ErrClassActionException
+  customErrDocMdCause =
+    "An operation was requested when contract is in a state of migration"
 
--- | For `mintForMigration` calls from address other than that of the
--- migration agent.
-type instance ErrorArg "senderIsNotAgent" = ()
+instance CustomErrorHasDoc "upgContractIsNotMigrating" where
+  customErrClass = ErrClassActionException
+  customErrDocMdCause =
+    "An migration related operation was requested when contract is not in a state of migration"
 
--- | For `startMigrateTo` calls when the contract is in a running state
-type instance ErrorArg "tokenOperationsAreNotPaused" = ()
-
--- | If migration manager was found to be ill-typed
-type instance ErrorArg "illTypedMigrationManager" = ()
+instance CustomErrorHasDoc "unexpectedContractType" where
+  customErrClass = ErrClassActionException
+  customErrDocMdCause =
+    "Typechecking contract at the given address failed"
 
 instance CustomErrorHasDoc "notInTransferOwnershipMode" where
   customErrClass = ErrClassActionException
@@ -251,33 +316,3 @@ instance CustomErrorHasDoc "senderIsNotOperator" where
   customErrClass = ErrClassBadArgument
   customErrDocMdCause =
     "Sender has to be an operator to call this entrypoint"
-
-instance CustomErrorHasDoc "unauthorizedMigrateFrom" where
-  customErrClass = ErrClassActionException
-  customErrDocMdCause =
-    "Previous contract version address hasn't been set up"
-
-instance CustomErrorHasDoc "noBalanceToMigrate" where
-  customErrClass = ErrClassActionException
-  customErrDocMdCause =
-    "Cannot migrate zero tokens to the new contract version"
-
-instance CustomErrorHasDoc "migrationNotEnabled" where
-  customErrClass = ErrClassActionException
-  customErrDocMdCause =
-    "Cannot migrate when migration manager hasn't been set up"
-
-instance CustomErrorHasDoc "senderIsNotAgent" where
-  customErrClass = ErrClassBadArgument
-  customErrDocMdCause =
-    "Sender has to be a migration manager to call this entrypoint"
-
-instance CustomErrorHasDoc "tokenOperationsAreNotPaused" where
-  customErrClass = ErrClassActionException
-  customErrDocMdCause =
-    "This operation is only available when token operations are paused"
-
-instance CustomErrorHasDoc "illTypedMigrationManager" where
-  customErrClass = ErrClassActionException
-  customErrDocMdCause =
-    "Type checking on the stored migration manager address failed"

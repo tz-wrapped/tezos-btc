@@ -50,14 +50,11 @@ data ClientArgsRaw
   | CmdSetRedeemAddress AddrOrAlias (Maybe FilePath)
   | CmdTransferOwnership AddrOrAlias (Maybe FilePath)
   | CmdAcceptOwnership AcceptOwnershipParams
-  | CmdStartMigrateTo AddrOrAlias (Maybe FilePath)
-  | CmdStartMigrateFrom AddrOrAlias (Maybe FilePath)
   | CmdGetTotalSupply (Maybe AddrOrAlias)
   | CmdGetTotalMinted (Maybe AddrOrAlias)
   | CmdGetTotalBurned (Maybe AddrOrAlias)
   | CmdGetAdministrator (Maybe AddrOrAlias)
   | CmdSetupClient ClientConfigPartial
-  | CmdMigrate MigrateParams
   | CmdGetOpDescription FilePath
   | CmdGetBytesToSign FilePath
   | CmdAddSignature PublicKey Signature FilePath
@@ -78,12 +75,11 @@ clientArgRawParser = Opt.hsubparser $
   <> getAllowanceCmd <> getBalanceCmd <> addOperatorCmd
   <> removeOperatorCmd <> pauseCmd <> unpauseCmd
   <> setRedeemAddressCmd <> transferOwnershipCmd <> acceptOwnershipCmd
-  <> startMigrateFromCmd <> startMigrateToCmd
-  <> migrateCmd <> getTotalSupplyCmd <> getTotalMintedCmd
-  <> getTotalBurnedCmd <> getAdministratorCmd <> setupUserCmd
-  <> getOpDescriptionCmd <> getBytesToSignCmd
+  <> getTotalSupplyCmd <>  getTotalMintedCmd <> getTotalBurnedCmd
+  <> getAdministratorCmd <> setupUserCmd <> getOpDescriptionCmd
+  <> getBytesToSignCmd <> getTotalBurnedCmd
   <> addSignatureCmd <> signPackageCmd <> callMultisigCmd
-  <> addSignatureCmd <> callMultisigCmd <> configCmd
+  <> configCmd
   where
     multisigOption :: Opt.Parser (Maybe FilePath)
     multisigOption =
@@ -253,30 +249,6 @@ clientArgRawParser = Opt.hsubparser $
          "acceptOwnership"
          (pure $ CmdAcceptOwnership ())
          "Accept ownership")
-    startMigrateFromCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
-    startMigrateFromCmd =
-      (mkCommandParser
-         "startMigrateFrom"
-         (CmdStartMigrateFrom <$>
-          addrOrAliasArg "Manager contract address" <*>
-          multisigOption
-         )
-         "Start contract migration")
-    startMigrateToCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
-    startMigrateToCmd =
-      (mkCommandParser
-         "startMigrateTo"
-         (CmdStartMigrateTo <$>
-          addrOrAliasArg "Manager contract address" <*>
-          multisigOption
-         )
-         "Start contract migration")
-    migrateCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
-    migrateCmd =
-      (mkCommandParser
-         "migrate"
-         (pure $ CmdMigrate ())
-         "Migrate contract")
 
     getTotalSupplyCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     getTotalSupplyCmd =

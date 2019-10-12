@@ -38,7 +38,6 @@ import Tezos.Json (TezosWord64(..))
 
 import Michelson.Interpret.Unpack (UnpackError)
 import Michelson.Runtime.GState (genesisAddress1, genesisAddress2)
-import Michelson.Typed.Haskell.Value (ContractAddr(..))
 import Michelson.Untyped (InternalByteString(..))
 import Tezos.Address (Address, formatAddress, parseAddress)
 import Tezos.Crypto (PublicKey, Signature, encodeBase58Check)
@@ -49,8 +48,7 @@ import Client.Error
 import Client.Parser
 import Client.Types
 import Client.Util
-import Lorentz.Contracts.TZBTC (Parameter(..))
-import Lorentz.Contracts.TZBTC.Types (ParameterWithoutView(..))
+import Lorentz.Contracts.TZBTC (fromFlatParameter, Interface, FlatParameter(..), SafeParameter, Parameter)
 import qualified Lorentz.Contracts.TZBTC.MultiSig as MSig
 import Util.MultiSig
 import Util.Editor
@@ -82,7 +80,7 @@ dumbOp = TransactionOperation
   , toDestination = genesisAddress2
   , toParameters = ParametersInternal
     { piEntrypoint = "default"
-    , piValue = paramToExpression $ EntrypointsWithoutView $ Pause ()
+    , piValue = paramToExpression $ fromFlatParameter $ Pause ()
     }
   }
 
@@ -124,15 +122,14 @@ writePackageToFile :: Package -> FilePath -> IO ()
 writePackageToFile package fileToWrite =
   writeFile fileToWrite $ encodePackage package
 
-createMultisigPackage :: FilePath -> ParameterWithoutView -> IO ()
+createMultisigPackage :: FilePath -> SafeParameter s -> IO ()
 createMultisigPackage packagePath parameter = do
   config@ClientConfig{..} <- throwLeft $ readConfigFile
   case ccMultisigAddress of
     Nothing -> throwLeft $ pure $ Left TzbtcMutlisigConfigUnavailable
     Just msAddr ->  do
       (counter, _) <- getMultisigStorage msAddr config
-      let package = mkPackage msAddr counter
-            (ContractAddr ccContractAddress) parameter
+      let package = mkPackage msAddr counter ccContractAddress parameter
       writePackageToFile package packagePath
 
 getMultisigStorage
@@ -143,19 +140,19 @@ getMultisigStorage addr config@ClientConfig{..} = do
     runClientM (getStorage $ formatAddress addr) clientEnv
   throwLeft $ pure $ exprToValue @MSig.Storage mSigStorageRaw
 
-getFromTzbtcStorage :: (AlmostStorage -> a) -> IO a
+getFromTzbtcStorage :: (AlmostStorage Interface -> a) -> IO a
 getFromTzbtcStorage field = do
   config <- throwLeft $ readConfigFile
   storage <- getTzbtcStorage config
   pure $ field storage
 
 getTzbtcStorage
-  :: ClientConfig -> IO AlmostStorage
+  :: ClientConfig -> IO (AlmostStorage Interface)
 getTzbtcStorage config@ClientConfig{..} = do
   clientEnv <- getClientEnv config
   storageRaw <- throwClientError $
     runClientM (getStorage $ formatAddress ccContractAddress) clientEnv
-  throwLeft $ pure $ exprToValue @AlmostStorage storageRaw
+  throwLeft $ pure $ exprToValue @(AlmostStorage Interface) storageRaw
 
 getFromLedger :: Address -> IO (Either UnpackError (Natural, Map Address Natural))
 getFromLedger addr = do
@@ -377,7 +374,7 @@ writeConfig c =  do
   putStrLn  configFilePath
   BSL.writeFile configFilePath $ encodePretty c
 
-runTzbtcContract :: Parameter -> IO ()
+runTzbtcContract :: Parameter s -> IO ()
 runTzbtcContract param = do
   config@ClientConfig{..} <- throwLeft $ readConfigFile
   runTransaction ccContractAddress param config

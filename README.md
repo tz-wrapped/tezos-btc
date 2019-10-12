@@ -36,6 +36,10 @@ Currently you should do the following:
 2. Print initial storage: `stack exec -- tzbtc printInitialStorage --admin-address tz1PPPYChg5xXHpGzygnNkmzPd1hyVRMxvJf --redeem-address tz1PPPYChg5xXHpGzygnNkmzPd1hyVRMxvJf`.
 3. Originate the contract using `tezos-client` or a wrapper script.
 For example `babylonnet.sh`: `./babylonnet.sh client originate contract tzbtc transferring 0 from ADDR running container:tzbtc.tz --init OUTPUT_FROM2 --burn-cap 1`.
+4. Save the migration parameters to a file using command `stack exec -- tzbtc migrate --version 1 --adminAddress tz1PPPYChg5xXHpGzygnNkmzPd1hyVRMxvJf --redeemAddress tz1PPPYChg5xXHpGzygnNkmzPd1hyVRMxvJf --output migration-scripts.txt`
+5. Call the contract originated in step 3 with parameters from `migration-scripts.txt` created in step 4. Each line will be one parameter, and thus require one separate call. After this the contract will be fully upgraded to a working version.
+
+Refer to `scripts/deploy.py` to see an implementation of this process.
 
 ### `tzbtc-client` executable
 

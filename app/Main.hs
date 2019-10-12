@@ -19,8 +19,13 @@ import Paths_tzbtc (version)
 import Util.IO (writeFileUtf8)
 
 import CLI.Parser
-import Lorentz.Contracts.TZBTC (Parameter(..), agentContract, mkStorage, tzbtcContract, tzbtcDoc)
+import Lorentz.Contracts.TZBTC
+  ( Parameter, mkEmptyStorageV0, migrationScripts
+  , originationParams, tzbtcContractCode, tzbtcCompilationWay, tzbtcDoc
+  )
 import Lorentz.Contracts.TZBTC.Test (mkTestScenario)
+import qualified Lorentz.Contracts.TZBTC.V0 as V0
+import Util.Migration
 
 -- Here in main function we will just accept commands from user
 -- and print the smart contract parameter by using `printLorentzValue`
@@ -30,26 +35,26 @@ main = do
   cmd <- execParser programInfo
   case cmd of
     CmdPrintContract singleLine mbFilePath ->
-      printContract singleLine mbFilePath lcwEntryPointsRecursive tzbtcContract
-    CmdPrintAgentContract singleLine mbFilePath ->
-      printContract singleLine mbFilePath lcwDumb (agentContract @Parameter)
-        -- Here agentContract that is printed is the one that target a
-        -- contract with the parameter `Parameter`. If we can obtain
-        -- runtime witness or type class dictionaries for the constraints
-        -- `agentContract` require it might be possible to read a contract
-        -- from a file, and printout an agent contract that can migrate
-        -- to it, or print out an error if it is incompatible.
-    CmdPrintInitialStorage adminAddress redeemAddress ->
-      putStrLn $ printLorentzValue True (mkStorage adminAddress redeemAddress mempty mempty)
+      printContract singleLine mbFilePath tzbtcCompilationWay V0.tzbtcContract
+    CmdPrintInitialStorage adminAddress -> do
+      putStrLn $ printLorentzValue True (mkEmptyStorageV0 adminAddress)
     CmdPrintDoc mbFilePath ->
-      maybe putStrLn writeFileUtf8 mbFilePath $ tzbtcDoc
+      maybe putStrLn writeFileUtf8 mbFilePath tzbtcDoc
     CmdParseParameter t ->
       either (throwString . pretty) (putTextLn . pretty) $
-      parseLorentzValue @Parameter t
+      parseLorentzValue @(Parameter _) t
     CmdTestScenario TestScenarioOptions {..} -> do
       maybe (throwString "Not enough addresses")
         (maybe putStrLn writeFileUtf8 tsoOutput) $
         showTestScenario <$> mkTestScenario tsoMaster tsoAddresses
+    CmdMigrate
+      (arg #version -> version_)
+      (arg #adminAddress -> admin)
+      (arg #redeemAddress -> redeem)
+      (arg #output -> fp) -> do
+        (maybe putStrLn writeFileUtf8 fp) $
+          makeMigrationParams version_ tzbtcContractCode $
+            (migrationScripts $ originationParams admin redeem mempty)
   where
     printContract
       :: (KnownValue parameter, KnownValue storage)

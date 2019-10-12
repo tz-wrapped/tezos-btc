@@ -11,8 +11,9 @@ import Test.Hspec (Expectation)
 import Test.Tasty.HUnit (assertBool, assertEqual, testCase)
 
 import Lorentz hiding (SomeContract)
+import Lorentz.Contracts.ManagedLedger.Test (OriginationParams(..))
 import Lorentz.Contracts.TZBTC as TZBTC
-import Lorentz.Contracts.TZBTC.Types as TZBTC
+import qualified Lorentz.Contracts.TZBTC.Types as TZBTCTypes (SafeParameter(..))
 import Lorentz.Contracts.TZBTC.MultiSig as MSig
 import Lorentz.Test.Integrational
 import Michelson.Runtime (prepareContract)
@@ -22,6 +23,7 @@ import qualified Michelson.Untyped as U
 import Text.Hex (decodeHex)
 import Tezos.Crypto
 import Tezos.Address
+import Test.TZBTC (originateTzbtcV1ContractRaw, checkField)
 import Util.MultiSig as MSig
 import Util.Named
 
@@ -61,6 +63,17 @@ sign_ sk bs = case decodeHex (T.drop 2 bs) of
   Just dbs -> sign sk dbs
   Nothing -> error "Error with making signatures"
 
+originateTzbtc
+  :: Address
+  -> IntegrationalScenarioM Address
+originateTzbtc msig
+  = do
+      caddr <- originateTzbtcV1ContractRaw genesisAddress3 $ OriginationParams
+        { opAdmin = msig
+        , opBalances = mempty
+        }
+      pure $ unContractAddress caddr
+
 test_multisig :: TestTree
 test_multisig = testGroup "TZBTC contract multi-sig functionality test"
   [ testCase "Test call to multisig to add an operator by admin works" $ do
@@ -69,19 +82,14 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
       withMultiSigContract 0 2 masterPKList $ \msig -> do
         -- Define initial storage for main contract and expected storage
         -- after the call
-        let
-          initStorage = TZBTC.mkStorage msig genesisAddress3 mempty mempty
-          expectedStorage =
-            TZBTC.mkStorage msig genesisAddress3 mempty (Set.fromList [(operatorAddress)])
-        -- Originate main contract with admin set to multisig
-        tzbtc <- lOriginate tzbtcContract "TZBTC Contract" initStorage (toMutez 1000)
+        tzbtc <- originateTzbtc msig
         -- Make the multi-sig call that adds an operator
         let
-          tzbtcParam = TZBTC.AddOperator (#operator .! operatorAddress)
+          tzbtcParam = TZBTCTypes.AddOperator (#operator .! operatorAddress)
           package = MSig.mkPackage msig 0 tzbtc tzbtcParam
           bytesToSign = getBytesToSign package
           encodedPackage = MSig.encodePackage package
-        -- Signing the bytes
+          -- Signing the bytes
           alicePackage = fromRight_ "Adding signature failed" $
             addSignature_ encodedPackage
             (alicePKRaw, formatSignature $ sign_ aliceSK bytesToSign)
@@ -94,20 +102,19 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         -- Finally call the multisig contract
         lCall msaddr mparam
         validate . Right $
-          lExpectStorageConst tzbtc expectedStorage
+          lExpectStorageUpdate (ContractAddr tzbtc)
+            (checkField operators
+              (Set.member operatorAddress) "New operator not found")
 
   , testCase "Test call to multisig to add an operator by fails with one signature less" $ do
       -- Originate multisig with threshold 2 and a master pk list of
       -- three public keys
       withMultiSigContract 0 2 masterPKList $ \msig -> do
-        -- Define initial storage for main contract
-        let
-          initStorage = TZBTC.mkStorage msig genesisAddress3 mempty mempty
         -- Originate main contract with admin set to multisig
-        tzbtc <- lOriginate tzbtcContract "TZBTC Contract" initStorage (toMutez 1000)
+        tzbtc <- originateTzbtc msig
         -- Make the multi-sig call that adds an operator
         let
-          tzbtcParam = TZBTC.AddOperator (#operator .! operatorAddress)
+          tzbtcParam = TZBTCTypes.AddOperator (#operator .! operatorAddress)
           package = MSig.mkPackage msig 0 tzbtc tzbtcParam
           bytesToSign = getBytesToSign package
           encodedPackage = MSig.encodePackage package
@@ -127,15 +134,11 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
       -- Originate multisig with threshold 2 and a master pk list of
       -- three public keys
       withMultiSigContract 0 2 masterPKList $ \msig -> do
-        -- Define initial storage for main contract and expected storage
-        -- after the call
-        let
-          initStorage = TZBTC.mkStorage msig genesisAddress3 mempty mempty
         -- Originate main contract with admin set to multisig
-        tzbtc <- lOriginate tzbtcContract "TZBTC Contract" initStorage (toMutez 1000)
+        tzbtc <- originateTzbtc msig
         -- Make the multi-sig call that adds an operator
         let
-          tzbtcParam = TZBTC.AddOperator (#operator .! operatorAddress)
+          tzbtcParam = TZBTCTypes.AddOperator (#operator .! operatorAddress)
           package = MSig.mkPackage msig 0 tzbtc tzbtcParam
           bytesToSign = getBytesToSign package
           encodedPackage = MSig.encodePackage package
@@ -158,15 +161,11 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
       -- Originate multisig with threshold 2 and a master pk list of
       -- three public keys
       withMultiSigContract 0 2 masterPKList $ \msig -> do
-        -- Define initial storage for main contract and expected storage
-        -- after the call
-        let
-          initStorage = TZBTC.mkStorage msig genesisAddress3 mempty mempty
         -- Originate main contract with admin set to multisig
-        tzbtc <- lOriginate tzbtcContract "TZBTC Contract" initStorage (toMutez 1000)
+        tzbtc <- originateTzbtc msig
         -- Make the multi-sig call that adds an operator
         let
-          tzbtcParam = TZBTC.AddOperator (#operator .! operatorAddress)
+          tzbtcParam = TZBTCTypes.AddOperator (#operator .! operatorAddress)
           package = MSig.mkPackage msig 0 tzbtc tzbtcParam
           bytesToSign = getBytesToSign package
           encodedPackage = MSig.encodePackage package
@@ -196,17 +195,11 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
       -- Originate multisig with threshold 2 and a master pk list of
       -- three public keys
       withMultiSigContract 0 2 masterPKList $ \msig -> do
-        -- Define initial storage for main contract and expected storage
-        -- after the call
-        let
-          initStorage = TZBTC.mkStorage msig genesisAddress3 mempty mempty
-          expectedStorage =
-            TZBTC.mkStorage msig genesisAddress3 mempty (Set.fromList [(operatorAddress)])
         -- Originate main contract with admin set to multisig
-        tzbtc <- lOriginate tzbtcContract "TZBTC Contract" initStorage (toMutez 1000)
+        tzbtc <- originateTzbtc msig
         -- Make the multi-sig call that adds an operator
         let
-          tzbtcParam = TZBTC.AddOperator (#operator .! operatorAddress)
+          tzbtcParam = TZBTCTypes.AddOperator (#operator .! operatorAddress)
           -- Here we make the multi-sig pacakge for msig address.
           -- But will call the cloned multi-sig using it.
           package = MSig.mkPackage msig 0 tzbtc tzbtcParam
@@ -228,7 +221,9 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         -- expected.
         lCall msaddr mparam
         validate . Right $
-          lExpectStorageConst tzbtc expectedStorage
+          lExpectStorageUpdate (ContractAddr tzbtc)
+            (checkField operators
+              (Set.member operatorAddress) "New operator not found")
                                                                 --
         -- Now make a clone of the multisig contract that only differs in
         -- some noop instruction at the top
@@ -246,9 +241,9 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
   , testCase "Test mkMultiSigParam function arranges the signatures in the order of public keys" $ do
       let
         msig = unsafeParseAddress "KT19rTTBPeG1JAvrECgoQ8LJj1mJrN7gsdaH"
-        tzbtc = ContractAddr $ unsafeParseAddress "KT1XXJWcjrwfcPL4n3vjmwCBsvkazDt8scYY"
+        tzbtc = unsafeParseAddress "KT1XXJWcjrwfcPL4n3vjmwCBsvkazDt8scYY"
 
-        tzbtcParam = TZBTC.AddOperator (#operator .! operatorAddress)
+        tzbtcParam = TZBTCTypes.AddOperator (#operator .! operatorAddress)
         package = MSig.mkPackage msig 0 tzbtc tzbtcParam
         bytesToSign = getBytesToSign package
         encodedPackage = MSig.encodePackage package
@@ -282,10 +277,10 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
   , testCase "Test user is not allowed to sign a bad package" $ do
       let
         msig = unsafeParseAddress "KT19rTTBPeG1JAvrECgoQ8LJj1mJrN7gsdaH"
-        tzbtc = ContractAddr $ unsafeParseAddress "KT1XXJWcjrwfcPL4n3vjmwCBsvkazDt8scYY"
+        tzbtc = unsafeParseAddress "KT1XXJWcjrwfcPL4n3vjmwCBsvkazDt8scYY"
 
-        tzbtcParam = TZBTC.AddOperator (#operator .! operatorAddress)
-        tzbtcParamBadParam = TZBTC.RemoveOperator (#operator .! operatorAddress)
+        tzbtcParam = TZBTCTypes.AddOperator (#operator .! operatorAddress)
+        tzbtcParamBadParam = TZBTCTypes.RemoveOperator (#operator .! operatorAddress)
         package = MSig.mkPackage msig 0 tzbtc tzbtcParam
         package2 = MSig.mkPackage msig 0 tzbtc tzbtcParamBadParam
 
