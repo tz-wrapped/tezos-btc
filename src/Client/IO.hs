@@ -17,7 +17,7 @@ module Client.IO
   , writePackageToFile
   ) where
 
-import Data.Aeson (decodeFileStrict)
+import Data.Aeson (FromJSON, ToJSON, decodeFileStrict)
 import Data.Aeson.Encode.Pretty (encodePretty)
 import Data.ByteString (cons, readFile, writeFile)
 import qualified Data.ByteString.Lazy as BSL hiding (putStrLn)
@@ -53,6 +53,7 @@ import Lorentz.Contracts.TZBTC (Parameter(..))
 import Lorentz.Contracts.TZBTC.Types (ParameterWithoutView(..))
 import qualified Lorentz.Contracts.TZBTC.MultiSig as MSig
 import Util.MultiSig
+import Util.Editor
 
 appName, configFile :: FilePath
 appName = "tzbtc"
@@ -101,7 +102,7 @@ getClientEnv ClientConfig{..} = do
 getAddressCounter :: ClientEnv -> Address -> IO (Either ClientError TezosWord64)
 getAddressCounter env address = runClientM (getCounter $ formatAddress address) env
 
-readConfigFile :: IO (Either TzbtcClientError ClientConfig)
+readConfigFile :: (FromJSON a) => IO (Either TzbtcClientError a)
 readConfigFile = do
   (_, configPath) <- getFullAppAndConfigPath
   fileExists <- doesFileExist configPath
@@ -369,7 +370,7 @@ setupClient configPartial = do
           \written to, \n\n" <> configFilePath <> "\n\n\
           \Use `tzbtc-client setupClient --help` to see the command arguments."
 
-writeConfig :: ClientConfig -> IO ()
+writeConfig :: (ToJSON a) => a -> IO ()
 writeConfig c =  do
   putTextLn "Writing config to"
   (_, configFilePath) <- getFullAppAndConfigPath
@@ -390,44 +391,54 @@ runMultisigContract packages = do
   (_, multisigParam) <- throwLeft $ pure $ mkMultiSigParam keys' packages
   runTransaction multisigAddr multisigParam config
 
+checkConfig :: IO ()
+checkConfig = do
+  econfig <- readConfigFile @ClientConfig
+  case econfig of
+    Left _ -> putTextLn "WARNING! Config file is incomplete."
+    Right _ -> pass
+
 runConfigEdit :: Bool -> ClientConfigPartial -> IO ()
 runConfigEdit doEdit configPartial = do
-  econfig <- readConfigFile
-  case econfig of
-    Left err -> putTextLn (pretty err)
-    Right config -> do
-      (_, path) <- getFullAppAndConfigPath
-      if doEdit then do
-        case mergeConfig config configPartial of
-          Just newConfig -> writeConfig newConfig
-          Nothing -> pass
-      else printConfig path config
+  (_, path) <- getFullAppAndConfigPath
+  if doEdit then
+    if hasDelta configPartial then do
+      econfig <- readConfigFile
+      case econfig of
+        Left err -> putTextLn (pretty err)
+        Right config -> writeConfig $ mergeConfig config configPartial
+    else editConfigViaEditor path
+  else printConfig path
+  checkConfig
   where
     -- Is there any change to the config at all?
-    delta ccp =
+    hasDelta ccp =
       isAvailable (ccNodeAddress ccp) || isAvailable (ccNodePort ccp) ||
-      isAvailable (ccContractAddress ccp) || isJust (ccMultisigAddress ccp) ||
+      isAvailable (ccContractAddress ccp) || isAvailable (ccMultisigAddress ccp) ||
       isAvailable (ccUserAlias ccp) || isAvailable (ccTezosClientExecutable ccp) ||
       isAvailable (ccUserAddress ccp)
 
-    mergeConfig :: ClientConfig -> ClientConfigPartial -> Maybe ClientConfig
-    mergeConfig cc ccp = if delta ccp
-      then Just $ ClientConfig
-        (withDefault (ccNodeAddress cc) (ccNodeAddress ccp))
-        (withDefault (ccNodePort cc) (ccNodePort ccp))
-        (withDefault (ccContractAddress cc) (ccContractAddress ccp))
-        (case (ccMultisigAddress ccp) of Just a -> Just a; _ -> ccMultisigAddress cc)
-        (withDefault (ccUserAddress cc) (ccUserAddress ccp))
-        (withDefault (ccUserAlias cc) (ccUserAlias ccp))
-        (withDefault (ccTezosClientExecutable cc) (ccTezosClientExecutable ccp))
-      else Nothing
+    mergeConfig :: ClientConfigText -> ClientConfigPartial -> ClientConfigText
+    mergeConfig cc ccp = ClientConfig
+      (withDefaultConfig (ccNodeAddress cc) (ccNodeAddress ccp))
+      (withDefaultConfig (ccNodePort cc) (ccNodePort ccp))
+      (withDefaultConfig (ccContractAddress cc) (ccContractAddress ccp))
+      (withDefaultConfig (ccMultisigAddress cc) (ccMultisigAddress ccp))
+      (withDefaultConfig (ccUserAddress cc) (ccUserAddress ccp))
+      (withDefaultConfig (ccUserAlias cc) (ccUserAlias ccp))
+      (withDefaultConfig (ccTezosClientExecutable cc) (ccTezosClientExecutable ccp))
 
-printConfig :: FilePath -> ClientConfig -> IO ()
-printConfig path c = do
+    withDefaultConfig :: TextConfig a -> Partial s a -> TextConfig a
+    withDefaultConfig _ (Available a) = ConfigVal a
+    withDefaultConfig a Unavilable = a
+
+printConfig :: FilePath -> IO ()
+printConfig path = do
+  fileContents <- readFile path
   putTextLn "Config file path:"
   putTextLn "-----------------"
   putStrLn path
   putTextLn ""
   putTextLn "Config file content:"
   putTextLn "--------------------"
-  BSL.putStrLn $ encodePretty c
+  BSL.putStrLn $ BSL.fromStrict $ fileContents

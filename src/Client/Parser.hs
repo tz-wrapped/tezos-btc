@@ -13,6 +13,7 @@ module Client.Parser
 
 import Data.Char (isAlpha, isDigit, toUpper)
 import Fmt (pretty)
+import Named ((!))
 import Options.Applicative
   (argument, auto, eitherReader, help, long, metavar, option, optional,
   showDefaultWith, str, strOption, switch, value)
@@ -106,7 +107,7 @@ clientArgRawParser = Opt.hsubparser $
       (partialParser $ intOption "node-port" "Node port") <*>
       (partialParser $ namedAddressOption Nothing "contract-address"
       "Contract's address") <*>
-      (optional $ namedAddressOption Nothing "multisig-address" "Multisig contract address") <*>
+      (partialParserMaybe $ namedAddressOption Nothing "multisig-address" "Multisig contract address") <*>
       (partialParser $ namedAddressOption Nothing "user-address" "User's address") <*>
       (partialParser $ option str $ mconcat
        [ long "alias"
@@ -120,7 +121,10 @@ clientArgRawParser = Opt.hsubparser $
       (partialParser $ intOption "node-port" "Node port") <*>
       (partialParser $ namedAddressOption Nothing "contract-address"
       "Contract's address") <*>
-      (optional $ namedAddressOption Nothing "multisig-address" "Multisig contract address") <*>
+      (partialParserFlattenMaybe $
+        optional $ nullableAddressOption
+          ! #name "multisig-address"
+          ! #hinfo "Multisig contract address. Use 'null' to clear current value.") <*>
       (partialParser $ namedAddressOption Nothing "user-address" "User's address") <*>
       (partialParser $ option str $ mconcat
        [ long "alias"
@@ -128,13 +132,24 @@ clientArgRawParser = Opt.hsubparser $
        , help "tezos-client alias for user."
        ])
       <*> (partialParser $ tezosClientFilePathOptionWithoutDefault)
+      where
+        -- Handles the case where the value is explicitly provided to be null
+        -- by using the special 'null' value.
+        partialParserFlattenMaybe :: Opt.Parser (Maybe (Maybe a)) -> (Opt.Parser (Partial s (Maybe a)))
+        partialParserFlattenMaybe p = unwrapOuter <$> p
+          where
+            unwrapOuter :: Maybe (Maybe a) -> Partial s (Maybe a)
+            unwrapOuter (Just a) = Available a
+            unwrapOuter Nothing = Unavilable
+
     setupUserCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
-    setupUserCmd = (mkCommandParser
-                    "setupClient"
-                    (CmdSetupClient <$> clientConfigParser)
-                    ("Create a configuration file using node url, node port, contract address, \
-                     \multi-sig contract address(optional), user address, user address alias and \
-                     \filepath to the tezos-client executable"))
+    setupUserCmd =
+      (mkCommandParser
+         "setupClient"
+         (CmdSetupClient <$> clientConfigParser)
+         ("Create a configuration file using node url, node port, contract address, \
+          \multi-sig contract address(optional), user address, user address alias and \
+          \filepath to the tezos-client executable"))
     mintCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     mintCmd =
       (mkCommandParser
