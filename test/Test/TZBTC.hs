@@ -5,15 +5,13 @@
 module Test.TZBTC
   ( test_acceptOwnership
   , test_burn
-  , test_migration
   , test_mint
   , test_pause
-  , test_setProxy
+  , test_unpause
   , test_setRedeemAddress
   , test_transferOwnership
-  , test_unpause_
   , test_bookkeeping
-  , test_proxyCheck
+  , test_proxyCalls
 
   , test_addOperator
   , test_removeOperator
@@ -47,7 +45,7 @@ import Util.Named
 import qualified Lorentz.Contracts.TZBTC.V0 as V0
 import qualified Lorentz.Contracts.TZBTC.V1 as V1
 
--- A helper to check storage state.
+-- Helpers to check storage state.
 checkStorage
   :: (V1.StoreTemplate -> Either ValidationError ())
   -> V0.Storage -> Either ValidationError ()
@@ -81,9 +79,33 @@ tzbtcV1Contract = do
   withSender adminAddress $ lCall c (V0.Upgrade  upgradeParams)
   pure c
 
----- New Tests
+-- Some constants
 
--- Add/Remove Operator
+newOperatorAddress :: Address
+newOperatorAddress = genesisAddress1
+
+adminAddress :: Address
+adminAddress = genesisAddress3
+
+redeemAddress_ :: Address
+redeemAddress_ = adminAddress
+
+replaceAddress :: Address
+replaceAddress = genesisAddress2
+
+contractAddress :: Address
+contractAddress = genesisAddress4
+
+alice :: Address
+alice = genesisAddress6
+
+bob :: Address
+bob = genesisAddress5
+
+initialSupply :: Natural
+initialSupply = 500
+
+-- Tests
 
 test_addOperator :: TestTree
 test_addOperator = testGroup "TZBTC contract `addOperator` test"
@@ -135,8 +157,6 @@ test_removeOperator = testGroup "TZBTC contract `addOperator` test"
             (checkField V1.operators
               (Prelude.not . Set.member newOperatorAddress) "Unexpectedly found operator")
   ]
-
--- Transfer/Accept ownership
 
 test_transferOwnership :: TestTree
 test_transferOwnership = testGroup "TZBTC contract `transferOwnership` test"
@@ -312,277 +332,161 @@ test_mint = testGroup "TZBTC contract `mint` test"
             ]
   ]
 
--- New Tests End
-lContract :: Instr (ToTs '[(Parameter, Storage)]) (ToTs (ContractOut Storage))
-lContract = (unI tzbtcContract)
-
-newOperatorAddress :: Address
-newOperatorAddress = genesisAddress1
-
-adminAddress :: Address
-adminAddress = genesisAddress3
-
-redeemAddress_ :: Address
-redeemAddress_ = adminAddress
-
-replaceAddress :: Address
-replaceAddress = genesisAddress2
-
-contractAddress :: Address
-contractAddress = genesisAddress4
-
-alice :: Address
-alice = genesisAddress6
-
-bob :: Address
-bob = genesisAddress5
-
-initialSupply :: Natural
-initialSupply = 500
-
-storage :: Storage
-storage =
-  mkStorage adminAddress redeemAddress_
-    (Map.fromList [(redeemAddress_, initialSupply)]) mempty
-
-contractPropWithSender
-  :: Address
-  -> ContractPropValidator (ToT Storage) prop
-  -> Parameter
-  -> Storage
-  -> prop
-contractPropWithSender address_ check param initSt =
-  contractProp lContract check
-    (dummyContractEnv { ceSender = address_ })
-    param
-    initSt
-
-assertFailureMessage
-  :: Either MichelsonFailed ([Operation], Value (ToT Storage))
-  -> MText
-  -> String
-  -> Assertion
-assertFailureMessage res msg tstMsg = case res of
-  Right (_, _) ->
-    assertFailure "Contract did not fail as expected"
-  Left err -> case err of
-    MichelsonFailedWith (VPair ((VC (CvString t)), _)) -> do
-      assertEqual tstMsg msg t
-    a -> assertFailure $ "Unexpected contract failure: " <> pretty a
-
-test_proxyCheck :: TestTree
-test_proxyCheck = testGroup "TZBTC contract proxy endpoints check"
-  [ testCase
-      "Fails with `ProxyIsNotSet` if one of the proxy serving endpoints is called and \
-      \proxy is not set" $
-      contractPropWithSender bob validate'
-        (EntrypointsWithoutView $
-         TransferViaProxy (#sender .! bob, (#from .! bob, #to .! alice, #value .! 100))) storage
-  , testCase
-      "Fails with `CallerIsNotProxy` if the caller to a proxy endpoint is not \
-      \known proxy address." $
-      integrationalTestExpectation $ do
-        c <- lOriginate tzbtcContract "TZBTC Contract" storage (toMutez 1000)
-        withSender adminAddress $ lCall c (EntrypointsWithoutView $
-                                           SetProxy contractAddress)
-        withSender bob $
-          lCall c (EntrypointsWithoutView $
-                   TransferViaProxy (#sender .! bob, (#from .! bob, #to .! alice, #value .! 100)))
-        validate . Left $
-          lExpectCustomError_ #callerIsNotProxy
-  ]
-  where
-    validate' :: ContractPropValidator (ToT Storage) Assertion
-    validate' (res, _) =
-      assertFailureMessage
-        res [mt|ProxyIsNotSet|]
-        "Contract did not fail with 'ProxyIsNotSet' message"
-
 test_pause :: TestTree
-test_pause = testGroup "TZBTC contract `pause` permission test"
+test_pause = testGroup "TZBTC contract `pause` test"
   [ testCase
-      "Call to `pause` from admin gets denied with `SenderIsNotOperator`" $
-      contractPropWithSender adminAddress
-        validateFail_ (EntrypointsWithoutView $ Pause ()) storageWithOperator
+      "Call to `pause` from random address is denied with `SenderIsNotOperator` error" $
+      integrationalTestExpectation $ do
+        c <- tzbtcV1Contract
+        withSender bob $ do
+          lCall c (V0.Pause ())
+        validate . Left $
+          lExpectCustomError_ #senderIsNotOperator
   , testCase
-      "Call to `pause` from random address gets denied with `SenderIsNotOperator`" $
-      contractPropWithSender bob
-        validateFail_ (EntrypointsWithoutView $ Pause ()) storageWithOperator
+      "Call to `pause` from admin address is denied with `SenderIsNotOperator` error" $
+      integrationalTestExpectation $ do
+        c <- tzbtcV1Contract
+        withSender adminAddress $ do
+          lCall c (V0.Pause ())
+        validate . Left $
+          lExpectCustomError_ #senderIsNotOperator
   , testCase
-      "Call to `pause` as operator is allowed" $
-      contractPropWithSender newOperatorAddress
-        validate_ (EntrypointsWithoutView $ Pause ()) storageWithOperator
+      "Call to `pause` from operator sets the paused status" $
+      integrationalTestExpectation $ do
+        c <- tzbtcV1Contract
+        -- Add an operator
+        withSender adminAddress $ do
+          lCall c (V0.AddOperator (#operator .! newOperatorAddress))
+
+        -- Call pause
+        withSender newOperatorAddress $ lCall c (V0.Pause ())
+
+        validate . Right $
+          lExpectStorageUpdate c
+            (checkField V1.paused id "Unexpected Paused status")
   ]
-  where
-    storageWithOperator =
-      mkStorage adminAddress redeemAddress_
-        (Map.fromList [(redeemAddress_, initialSupply)])
-        (Set.fromList [newOperatorAddress])
-    validateFail_ :: ContractPropValidator (ToT Storage) Assertion
-    validateFail_ (res, _) =
-      assertFailureMessage
-        res [mt|SenderIsNotOperator|]
-          "Contract did not fail with 'SenderIsNotOperator' message"
 
-    validate_ :: ContractPropValidator (ToT Storage) Assertion
-    validate_ (res, _) =
-      case res of
-        Left err -> assertFailure $ "Unexpected contract failure: " <> pretty err
-        Right (_operations, rstorage) ->
-          assertEqual
-            "Contract's `pause` operation executed with out error"
-             True
-             (paused $ fields $ (fromVal rstorage :: Storage))
-
-test_unpause_ :: TestTree
-test_unpause_ = testGroup "TZBTC contract `unpause` permission test"
+test_unpause :: TestTree
+test_unpause = testGroup "TZBTC contract `unpause` test"
   [ testCase
-      "Call to `unpause` as operator gets denied with `SenderIsNotAdmin`" $
-      contractPropWithSender newOperatorAddress
-        validateFail_ (EntrypointsWithoutView $ Unpause ()) storageWithOperator
+      "Call to `unpause` from random address is denied with `SenderIsNotAdmin` error" $
+      integrationalTestExpectation $ do
+        c <- tzbtcV1Contract
+        withSender bob $ do
+          lCall c (V0.Unpause ())
+        validate . Left $
+          lExpectCustomError_ #senderIsNotAdmin
   , testCase
-      "Call to `unpause` from random address gets denied with `SenderIsNotAdmin`" $
-      contractPropWithSender bob
-        validateFail_ (EntrypointsWithoutView $ Unpause ()) storageWithOperator
+      "Call to `unpause` from operator address is denied with `SenderIsNotAdmin` error" $
+      integrationalTestExpectation $ do
+        c <- tzbtcV1Contract
+        -- Add an operator
+        withSender adminAddress $ do
+          lCall c (V0.AddOperator (#operator .! newOperatorAddress))
+        withSender newOperatorAddress $ do
+          lCall c (V0.Unpause ())
+        validate . Left $
+          lExpectCustomError_ #senderIsNotAdmin
   , testCase
-      "Call to `unpause` as admin is allowed" $
-      contractPropWithSender adminAddress
-        validate_ (EntrypointsWithoutView $ Unpause ()) storageWithOperator
-  ]
-  where
-    storageWithOperator =
-      mkStorage adminAddress redeemAddress_
-        (Map.fromList [(redeemAddress_, initialSupply)])
-        (Set.fromList [newOperatorAddress])
-    validateFail_ :: ContractPropValidator (ToT Storage) Assertion
-    validateFail_ (res, _) =
-      assertFailureMessage
-        res [mt|SenderIsNotAdmin|]
-        "Contract did not fail with 'SenderIsNotAdmin' message"
+      "Call to `unpause` from admin unsets the paused status" $
+      integrationalTestExpectation $ do
+        c <- tzbtcV1Contract
+        -- Add an operator
+        withSender adminAddress $ do
+          lCall c (V0.AddOperator (#operator .! newOperatorAddress))
 
-    validate_ :: ContractPropValidator (ToT Storage) Assertion
-    validate_ (res, _) =
-      case res of
-        Left err -> assertFailure $ "Unexpected contract failure: " <> pretty err
-        Right (_operations, rstorage) ->
-          assertEqual
-            "Contract's `unpause` operation executed with out error"
-             False
-             (paused $ fields $ (fromVal rstorage :: Storage))
+        -- Call pause
+        withSender newOperatorAddress $ lCall c (V0.Pause ())
+
+        validate . Right $
+          lExpectStorageUpdate c
+            (checkField V1.paused id "Unexpected Paused status")
+            --
+        -- Call unpause
+        withSender adminAddress $ lCall c (V0.Unpause ())
+
+        validate . Right $
+          lExpectStorageUpdate c
+            (checkField V1.paused Prelude.not "Unexpected Paused status")
+  ]
 
 test_bookkeeping :: TestTree
 test_bookkeeping = testGroup "TZBTC contract bookkeeping views test"
   [ testCase
       "calling book keeping views returns expected result" $
         integrationalTestExpectation $ do
-          v1 <- originateContract
-          consumer <- lOriginateEmpty contractConsumer "consumer"
+          v1 <- tzbtcV1Contract
+          -- Add an operator
+          withSender adminAddress $ do
+            lCall v1 (V0.AddOperator (#operator .! newOperatorAddress))
           withSender newOperatorAddress $ do
             -- Mint and burn some tokens
-            lCall v1 (EntrypointsWithoutView $ Mint (#to .! alice, #value .! 130))
-            lCall v1 (EntrypointsWithoutView $ Burn (#value .! 20))
-          lCall v1 $ EntrypointsWithView $ GetTotalSupply (View () consumer)
-          lCall v1 $ EntrypointsWithView $ GetTotalMinted (View () consumer)
-          lCall v1 $ EntrypointsWithView $ GetTotalBurned (View () consumer)
+            lCall v1 (V0.Mint (#to .! alice, #value .! 130))
+            lCall v1 (V0.Burn (#value .! 20))
+
+          consumer <- lOriginateEmpty contractConsumer "consumer"
+
+          lCall v1 $ V0.Views $ V0.GetTotalSupply (View () consumer)
+          lCall v1 $ V0.Views $ V0.GetTotalMinted (View () consumer)
+          lCall v1 $ V0.Views $ V0.GetTotalBurned (View () consumer)
           -- Check expectations
           validate . Right $
             lExpectViewConsumerStorage consumer [610, 630, 20]
   ]
-  where
-    originateContract :: IntegrationalScenarioM (ContractAddr Parameter)
-    originateContract =
-      lOriginate tzbtcContract "TZBTC Contract" st (toMutez 1000)
-    st :: Storage
-    st = mkStorage adminAddress redeemAddress_
-        (Map.fromList [(redeemAddress_, initialSupply)]) (Set.fromList [newOperatorAddress])
 
-test_setProxy :: TestTree
-test_setProxy = testGroup "TZBTC contract `setProxy` test"
+test_proxyCalls :: TestTree
+test_proxyCalls = testGroup "TZBTC contract `setProxy` test"
   [ testCase
-      "Call to `setProxy` from random address gets denied with `NotAllowedToSetProxy`" $
-      contractPropWithSender bob
-        validateFail_ (EntrypointsWithoutView $
-                       SetProxy contractAddress) storageWithOperator
+      "calling `setProxy` from expected address sets proxy as expected" $
+        integrationalTestExpectation $ do
+          v1 <- tzbtcV1Contract
+          -- Add an operator
+          withSender adminAddress $ do
+            lCall v1 (V0.SetProxy contractAddress)
+          validate . Right $
+            lExpectStorageUpdate v1
+              (checkField V1.proxy (== (Right contractAddress)) "Unexpected proxy status")
   , testCase
-      "Call to `setProxy` from expected address sets proxy" $
-      contractPropWithSender adminAddress
-        validate_ (EntrypointsWithoutView $
-                   SetProxy contractAddress) storageWithOperator
+      "calling `setProxy` multiple times is denied" $
+        integrationalTestExpectation $ do
+          v1 <- tzbtcV1Contract
+          -- Add an operator
+          withSender adminAddress $ do
+            lCall v1 (V0.SetProxy contractAddress)
+          withSender adminAddress $ do
+            lCall v1 (V0.SetProxy contractAddress)
+          validate . Left $
+            lExpectCustomError_ #proxyAlreadySet
   , testCase
-      "Call to `setProxy` in contract with proxy set fails with `ProxyAlreadySet` error" $
-      integrationalTestExpectation $ do
-        c <- lOriginate tzbtcContract "TZBTC Contract" storageWithOperator (toMutez 1000)
-        withSender adminAddress $ do
-          lCall c (EntrypointsWithoutView $ SetProxy contractAddress)
-          lCall c (EntrypointsWithoutView $ SetProxy contractAddress)
-        validate . Left $
-          lExpectCustomError_ #proxyAlreadySet
+      "calling `setProxy from random address sets proxy as expected" $
+        integrationalTestExpectation $ do
+          v1 <- tzbtcV1Contract
+          -- Add an operator
+          withSender bob $ do
+            lCall v1 (V0.SetProxy contractAddress)
+          validate . Left $
+            lExpectCustomError_ #notAllowedToSetProxy
+
+  , testCase
+      "calling proxy endpoint fails if proxy is not set" $
+        integrationalTestExpectation $ do
+          v1 <- tzbtcV1Contract
+          -- Add an operator
+          withSender bob $ do
+            lCall v1 (V0.TransferViaProxy (#sender .! bob, (#from .! bob, #to .! alice, #value .! 100)))
+          validate . Left $
+            lExpectCustomError_ #proxyIsNotSet
+  , testCase
+      "calling proxy endpoint from random address fails with `callerIsNotProxy` error" $
+        integrationalTestExpectation $ do
+          v1 <- tzbtcV1Contract
+          -- Add an operator
+          withSender adminAddress $ do
+            lCall v1 (V0.SetProxy contractAddress)
+          withSender bob $ do
+            lCall v1 (V0.TransferViaProxy (#sender .! bob, (#from .! bob, #to .! alice, #value .! 100)))
+          validate . Left $
+            lExpectCustomError_ #callerIsNotProxy
   ]
-  where
-    storageWithOperator =
-      mkStorage adminAddress redeemAddress_
-        (Map.fromList [(redeemAddress_, initialSupply)])
-        (Set.fromList [newOperatorAddress])
-    validateFail_ :: ContractPropValidator (ToT Storage) Assertion
-    validateFail_ (res, _) =
-      assertFailureMessage
-        res [mt|NotAllowedToSetProxy|]
-        "Contract did not fail with 'NotAllowedToSetProxy' message"
-    validate_ :: ContractPropValidator (ToT Storage) Assertion
-    validate_ (res, _) =
-      case res of
-        Left err -> assertFailure $ "Unexpected contract failure: " <> pretty err
-        Right (_operations, rstorage) ->
-          assertEqual
-            "Contract's `proxy` is set as expected"
-             (Right contractAddress)
-             (proxy $ fields $ (fromVal rstorage :: Storage))
 
--- Migration tests
-
-storageV1 :: Storage
-storageV1 =
-  mkStorage adminAddress redeemAddress_
-    (Map.fromList [(alice, initialSupply)])
-          (Set.fromList [newOperatorAddress])
-
-storageV2 :: Storage
-storageV2 =
-  mkStorage adminAddress redeemAddress_ mempty mempty
-
-originateV1 :: IntegrationalScenarioM (ContractAddr Parameter)
-originateV1 =
-  lOriginate tzbtcContract "UserUpgradeable V1" storageV1 (toMutez 1000)
-
-originateV2 :: IntegrationalScenarioM (ContractAddr Parameter)
-originateV2 =
-  lOriginate tzbtcContract "UserUpgradeable V2" storageV2 (toMutez 1000)
-
-originateAgent
-  :: forall v2.
-  ( InstrWrapC v2 "cMintForMigration"
-  , AppendCtorField
-      (GetCtorField v2 "cMintForMigration")
-      '[] ~ '[("to" :! Address, "value" :! Natural)]
-  , KnownValue v2, NoOperation v2, NoBigMap v2)
-  => Address
-  -> ContractAddr v2
-  -> IntegrationalScenarioM Address
-originateAgent oldContract newContract =
-  case checkOpPresence (sing @(ToT v2)) of
-    OpAbsent ->
-      unContractAddress <$>
-        lOriginate (Agent.agentContract @v2)
-        "Migration Agent" agentStorage (toMutez 1000)
-    OpPresent ->
-      error "Cannot originate contract with operations in parameter"
-    where
-      agentStorage = Agent.StorageFields
-        { oldVersion = oldContract
-        , newVersion = newContract
-        }
-
-test_migration :: TestTree
-test_migration = testGroup "TZBTC contract migration tests"
-  [ --TODO
-  ]
+-- New Tests End
