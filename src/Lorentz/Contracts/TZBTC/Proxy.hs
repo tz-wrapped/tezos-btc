@@ -7,6 +7,7 @@
 
 module Lorentz.Contracts.TZBTC.Proxy
   ( mkStorage
+  , toTZBTCParameter
   , tzbtcProxyContract
   , MLProxy.Parameter
   , MLProxy.SaneParameter(..)
@@ -17,6 +18,7 @@ where
 import Lorentz
 import qualified Lorentz.Contracts.TZBTC.Types as TZBTC
 import qualified Lorentz.Contracts.ManagedLedger.Proxy as MLProxy
+import Lorentz.Contracts.ManagedLedger.Proxy (SaneParameter(..))
 
 {-# ANN module ("HLint: ignore Reduce duplication" :: Text) #-}
 
@@ -55,3 +57,17 @@ callTzbtc = do
 
 mkStorage ::  Address -> Storage
 mkStorage = ContractAddr
+
+
+-- | Convert sane parameter to parameter of this contract.
+toTZBTCParameter :: SaneParameter -> TZBTC.Parameter
+toTZBTCParameter =
+  \case
+    STransfer tp -> TZBTC.EntrypointsWithoutView $ TZBTC.Transfer tp
+    SApprove ap -> TZBTC.EntrypointsWithoutView $ TZBTC.Approve ap
+    SGetAllowance v ->
+      TZBTC.EntrypointsWithView $ TZBTC.GetAllowance v
+    SGetTotalSupply v ->
+      TZBTC.EntrypointsWithView $ TZBTC.GetTotalSupply v
+    SGetBalance v ->
+      TZBTC.EntrypointsWithView $ TZBTC.GetBalance v

@@ -14,6 +14,7 @@ module Lorentz.Contracts.TZBTC
   , tzbtcContract
   , tzbtcCompileWay
   , tzbtcDoc
+  , toTZBTCParameter
   ) where
 
 import Prelude (LText)
@@ -32,6 +33,7 @@ import Util.Markdown
 import Lorentz.Contracts.TZBTC.Agent (agentContract)
 import Lorentz.Contracts.TZBTC.Impl
 import Lorentz.Contracts.TZBTC.Types
+import Lorentz.Contracts.TZBTC.Proxy (toTZBTCParameter)
 
 {-# ANN module ("HLint: ignore Reduce duplication" :: Text) #-}
 

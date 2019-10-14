@@ -10,6 +10,7 @@ module Test.TZBTC
   , test_migration
   , test_migrationManager
   , test_mint
+  , test_approvableLedger
   , test_pause
   , test_removeOperator
   , test_setProxy
@@ -23,6 +24,7 @@ module Test.TZBTC
 import Fmt (pretty)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (Assertion, assertEqual, assertBool, assertFailure, testCase)
+import Test.Tasty.Hspec (testSpec)
 import qualified Data.Map as Map
 import Data.Set
 import Data.Singletons (SingI(..))
@@ -41,6 +43,7 @@ import Michelson.Test
 import Michelson.Text (mt)
 import Michelson.Typed (Instr, InstrWrapC, AppendCtorField, GetCtorField, ToTs, Value, Value'(..))
 import Michelson.Typed.Scope (checkOpPresence, OpPresence(..))
+import Lorentz.Contracts.ManagedLedger.Test (ApprovableLedger(..), approvableLedgerSpec, originateManagedLedger)
 import Util.Named
 
 lContract :: Instr (ToTs '[(Parameter, Storage)]) (ToTs (ContractOut Storage))
@@ -99,6 +102,19 @@ assertFailureMessage res msg tstMsg = case res of
     MichelsonFailedWith (VPair ((VC (CvString t)), _)) -> do
       assertEqual tstMsg msg t
     a -> assertFailure $ "Unexpected contract failure: " <> pretty a
+
+test_approvableLedger :: IO TestTree
+test_approvableLedger = testSpec "TZBTC contract approvable ledger tests" $
+  approvableLedgerSpec $ ApprovableLedger
+    { alOriginate = originateAl
+    , alMkParam = toTZBTCParameter
+    }
+  where
+    originateAl :: Address -> Natural -> IntegrationalScenarioM (ContractAddr Parameter)
+    originateAl admin_ balance_ =
+      originateManagedLedger mkStorage' tzbtcContract admin_ balance_
+    mkStorage' admin_ balance_ =
+      mkStorage admin_ admin_ balance_ mempty
 
 test_proxyCheck :: TestTree
 test_proxyCheck = testGroup "TZBTC contract proxy endpoints check"
@@ -413,6 +429,19 @@ test_pause = testGroup "TZBTC contract `pause` permission test"
       "Call to `pause` as operator is allowed" $
       contractPropWithSender newOperatorAddress
         validate_ (EntrypointsWithoutView $ Pause ()) storageWithOperator
+  , testCase
+      "Call to `transfer` in a paused contract is denied" $
+      integrationalTestExpectation $ do
+        c <- lOriginate tzbtcContract "TZBTC Contract" storageWithOperator (toMutez 1000)
+        -- Mint some coins for alice.
+        withSender newOperatorAddress $ lCall c (EntrypointsWithoutView $ Mint (#to .! alice, #value .! 200))
+        -- Pause the contract
+        withSender newOperatorAddress $ lCall c (EntrypointsWithoutView $ Pause ())
+        -- Alice attempts to transfer to bob
+        withSender alice $
+          lCall c (EntrypointsWithoutView $ Transfer ((#from .! alice, #to .! bob, #value .! 100)))
+        validate . Left $
+          lExpectCustomError_ #tokenOperationsArePaused
   ]
   where
     storageWithOperator =
