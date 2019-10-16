@@ -4,4 +4,4 @@
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -->
 
-# Changelog for ZBTC
+# Changelog for TZBTC

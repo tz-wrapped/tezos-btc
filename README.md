@@ -4,16 +4,16 @@
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -->
 
-# ZBTC
+# TZBTC
 
-Wrapped Bitcoin on Tezos Blockchain called ZBTC
+Wrapped Bitcoin on Tezos Blockchain called TZBTC
 
 
-## Build Instructions [↑](#ZBTC)
+## Build Instructions [↑](#TZBTC)
 
 `stack build`
 
-## Usage [↑](#ZBTC)
+## Usage [↑](#TZBTC)
 
 Run `stack test` and explore the tests.
 
@@ -125,11 +125,11 @@ operation using `tzbtc-client callMultisig` command.
 
 Contract documentation is located in [ContractDoc.md](ContractDoc.md).
 
-## Issue Tracker [↑](#ZBTC)
+## Issue Tracker [↑](#TZBTC)
 
 We use [YouTrack](https://issues.serokell.io/issues/TBTC)
 
-## For Contributors [↑](#ZBTC)
+## For Contributors [↑](#TZBTC)
 
 Please see [CONTRIBUTING.md](CONTRIBUTING.md) for more information.
 
