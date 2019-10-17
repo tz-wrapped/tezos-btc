@@ -4,14 +4,14 @@
 
 import subprocess
 
-alphanet_sh = "./alphanet.sh"
+babylonnet_sh = "./babylonnet.sh"
 
-alphanet_client = [
-    alphanet_sh, "client", "-A", "jupiter.serokell.io", "-P", "8732",
+babylonnet_client = [
+    babylonnet_sh, "client", "-A", "jupiter.serokell.io", "-P", "8732",
     ]
 
 def transfer(source, dest, param, burn_cap="20", amount="0", dry_run=False):
-    cmd = alphanet_client + [
+    cmd = babylonnet_client + [
         "transfer", amount, "from", source, "to", dest,
         "--burn-cap", burn_cap, "--arg", param,
         ]

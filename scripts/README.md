@@ -21,7 +21,7 @@ Brief overview is provided below.
 
 Please refer to their CLI help and comments for more information, they are pretty simple.
 Here is a common workflow:
-1. Put `alphanet.sh` into root of the repo (maybe as a symlink).
+1. Put `babylonnet.sh` into root of the repo (maybe as a symlink).
 2. Make sure you have one address with some XTZ.
 3. Run `scripts/deploy.py --owner OWNER_ADDR`.
 Find the address of the contract in the output.

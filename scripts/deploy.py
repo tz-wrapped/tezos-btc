@@ -4,9 +4,9 @@
 #
 # SPDX-License-Identifier: LicenseRef-MPL-2.0
 
-# This script deploys our contract to a real network using `alphanet.sh`.
+# This script deploys our contract to a real network using `babylonnet.sh`.
 # Unless `--dry-run` is passed it assumes that:
-# • `alphanet.sh` can be executed;
+# • `babylonnet.sh` can be executed;
 # • the secret key of the originator address is known and the address has
 #   enough XTZ to perform all these operations.
 
@@ -16,11 +16,11 @@ import random
 import subprocess
 import time
 
-from common import (alphanet_client, transfer)
+from common import (babylonnet_client, transfer)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Deploy our contract')
-    # We can add more if necessary (e. g. for alphanet_sh)
+    # We can add more if necessary (e. g. for babylonnet_sh)
     parser.add_argument('--owner', required=True,
         metavar='ADDRESS', help="Owner's address")
     parser.add_argument('--redeem', required=True,
@@ -47,7 +47,7 @@ if __name__ == '__main__':
 
     # Originate
     contract_alias = "er" + str(random.randrange(100500))
-    originate_cmd = alphanet_client + [
+    originate_cmd = babylonnet_client + [
         "originate", "contract", contract_alias, "for", owner, "transferring",
         "0", "from", owner, "running", "container:" + contract_tz,
         "--init", initial_storage.strip(),
