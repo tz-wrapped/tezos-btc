@@ -48,7 +48,7 @@ if __name__ == '__main__':
     # Originate
     contract_alias = "er" + str(random.randrange(100500))
     originate_cmd = babylonnet_client + [
-        "originate", "contract", contract_alias, "for", owner, "transferring",
+        "originate", "contract", contract_alias, "transferring",
         "0", "from", owner, "running", "container:" + contract_tz,
         "--init", initial_storage.strip(),
         "--burn-cap", "20",
