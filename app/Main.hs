@@ -15,12 +15,11 @@ import Options.Applicative.Help.Pretty (Doc, linebreak)
 
 import Lorentz
 import Lorentz.Common (showTestScenario)
-import Util.IO (writeFileUtf8)
 import Paths_tzbtc (version)
+import Util.IO (writeFileUtf8)
 
 import CLI.Parser
-import Lorentz.Contracts.TZBTC
-  (Parameter(..), agentContract, mkStorage, tzbtcContract, tzbtcDoc)
+import Lorentz.Contracts.TZBTC (Parameter(..), agentContract, mkStorage, tzbtcContract, tzbtcDoc)
 import Lorentz.Contracts.TZBTC.Proxy (tzbtcProxyContract)
 import Lorentz.Contracts.TZBTC.Test (mkTestScenario)
 
@@ -32,7 +31,7 @@ main = do
   cmd <- execParser programInfo
   case cmd of
     CmdPrintContract singleLine mbFilePath ->
-      printContract singleLine mbFilePath lcwEntryPoints tzbtcContract
+      printContract singleLine mbFilePath lcwEntryPointsRecursive tzbtcContract
     CmdPrintAgentContract singleLine mbFilePath ->
       printContract singleLine mbFilePath lcwDumb (agentContract @Parameter)
         -- Here agentContract that is printed is the one that target a
@@ -96,4 +95,3 @@ usageDoc =
     , "  of TZBTC contract storage that can later be used for", linebreak
     , "  contract origination using tezos-client", linebreak
     ]
-
