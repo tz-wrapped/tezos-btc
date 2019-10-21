@@ -17,7 +17,6 @@ Wrapped Bitcoin on Tezos Blockchain called TZBTC
 
 Run `stack test` and explore the tests.
 
-
 ### `tzbtc` executable
 
 
@@ -29,6 +28,15 @@ that are used along with TZBTC contract: agent, proxy.
 it parses raw Michelson value to the TZBTC contract parameter.
 
 Use `tzbtc --help` to get a list of available commands.
+
+#### Contract origination
+
+Origination will become part of `tzbtc-client` in [TBTC-54](https://issues.serokell.io/issue/TBTC-54).
+Currently you should do the following:
+1. Print the contract itself: `stack exec -- tzbtc printContract > tzbtc.tz`.
+2. Print initial storage: `stack exec -- tzbtc printInitialStorage --admin-address tz1PPPYChg5xXHpGzygnNkmzPd1hyVRMxvJf --redeem-address tz1PPPYChg5xXHpGzygnNkmzPd1hyVRMxvJf`.
+3. Originate the contract using `tezos-client` or a wrapper script.
+For example `babylonnet.sh`: `./babylonnet.sh client originate contract tzbtc transferring 0 from ADDR running container:tzbtc.tz --init OUTPUT_FROM2 --burn-cap 1`.
 
 ### `tzbtc-client` executable
 
