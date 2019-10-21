@@ -27,7 +27,7 @@ if __name__ == '__main__':
     parser.add_argument('--dry-run', action='store_true',
         help="Do not submit transactions")
     parser.add_argument('--our-exe',
-        default='./scripts/tzbtc.sh',
+        default='stack exec -- tzbtc',
         help="How to launch our executable")
 
     args = parser.parse_args()
