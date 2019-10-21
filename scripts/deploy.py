@@ -42,8 +42,8 @@ if __name__ == '__main__':
 
     # Get initial storage
     initial_storage = subprocess.run(
-        our_exe + ["printInitialStorage", owner, redeem],
-        capture_output=True).stdout
+        our_exe + ["printInitialStorage", "--admin-address", owner, "--redeem-address", redeem],
+        capture_output=True, check=True).stdout
 
     # Originate
     contract_alias = "er" + str(random.randrange(100500))
