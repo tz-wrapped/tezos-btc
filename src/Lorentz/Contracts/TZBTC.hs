@@ -14,26 +14,24 @@ module Lorentz.Contracts.TZBTC
   , tzbtcContract
   , tzbtcCompileWay
   , tzbtcDoc
-  , toTZBTCParameter
   ) where
 
-import Prelude (LText)
 import Lorentz
+import Prelude (LText)
 
 import qualified Data.Text as T
 import Fmt (build, fmt)
 
+import Lorentz.Contracts.ManagedLedger.Doc (getTotalSupplyDoc)
+import Lorentz.Test.Integrational (genesisAddress)
 import Michelson.Typed (untypeValue)
 import Michelson.Typed.Doc
   (DComment(..), DDescription(..), DName(..), SomeDocItem(..), contractDocToMarkdown)
-import Lorentz.Contracts.ManagedLedger.Doc (getTotalSupplyDoc)
-import Lorentz.Test.Integrational (genesisAddress)
 import Util.Markdown
 
 import Lorentz.Contracts.TZBTC.Agent (agentContract)
 import Lorentz.Contracts.TZBTC.Impl
 import Lorentz.Contracts.TZBTC.Types
-import Lorentz.Contracts.TZBTC.Proxy (toTZBTCParameter)
 
 {-# ANN module ("HLint: ignore Reduce duplication" :: Text) #-}
 
@@ -72,9 +70,7 @@ entrypointsWithoutView :: Entrypoint ParameterWithoutView Storage
 entrypointsWithoutView =
   entryCase @ParameterWithoutView (Proxy @TzbtcEntryPointWithoutViewKind)
     ( #cTransfer /-> transfer
-    , #cTransferViaProxy /-> transferViaProxy
     , #cApprove /-> approve
-    , #cApproveViaProxy /-> approveViaProxy
     , #cSetAdministrator /-> setAdministrator
     , #cMint /-> mint
     , #cBurn /-> burn
@@ -89,7 +85,6 @@ entrypointsWithoutView =
     , #cStartMigrateFrom /-> startMigrateFrom
     , #cMintForMigration /-> mintForMigration
     , #cMigrate /-> migrate
-    , #cSetProxy /-> setProxy
     )
 
 data TzbtcEntryPointWithoutViewKind

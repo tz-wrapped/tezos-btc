@@ -20,7 +20,6 @@ import Util.IO (writeFileUtf8)
 
 import CLI.Parser
 import Lorentz.Contracts.TZBTC (Parameter(..), agentContract, mkStorage, tzbtcContract, tzbtcDoc)
-import Lorentz.Contracts.TZBTC.Proxy (tzbtcProxyContract)
 import Lorentz.Contracts.TZBTC.Test (mkTestScenario)
 
 -- Here in main function we will just accept commands from user
@@ -40,8 +39,6 @@ main = do
         -- `agentContract` require it might be possible to read a contract
         -- from a file, and printout an agent contract that can migrate
         -- to it, or print out an error if it is incompatible.
-    CmdPrintProxyContract singleLine mbFilePath ->
-      printContract singleLine mbFilePath lcwEntryPointsRecursive tzbtcProxyContract
     CmdPrintInitialStorage adminAddress redeemAddress ->
       putStrLn $ printLorentzValue True (mkStorage adminAddress redeemAddress mempty mempty)
     CmdPrintDoc mbFilePath ->

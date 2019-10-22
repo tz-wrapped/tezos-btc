@@ -13,12 +13,10 @@ module Test.TZBTC
   , test_approvableLedger
   , test_pause
   , test_removeOperator
-  , test_setProxy
   , test_setRedeemAddress
   , test_transferOwnership
   , test_unpause_
   , test_bookkeeping
-  , test_proxyCheck
   ) where
 
 import Fmt (pretty)
@@ -43,6 +41,7 @@ import Michelson.Test
 import Michelson.Text (mt)
 import Michelson.Typed (Instr, InstrWrapC, AppendCtorField, GetCtorField, ToTs, Value, Value'(..))
 import Michelson.Typed.Scope (checkOpPresence, OpPresence(..))
+import Lorentz.Contracts.ManagedLedger.Proxy (SaneParameter (..))
 import Lorentz.Contracts.ManagedLedger.Test (ApprovableLedger(..), approvableLedgerSpec, originateManagedLedger)
 import Util.Named
 
@@ -116,33 +115,17 @@ test_approvableLedger = testSpec "TZBTC contract approvable ledger tests" $
     mkStorage' admin_ balance_ =
       mkStorage admin_ admin_ balance_ mempty
 
-test_proxyCheck :: TestTree
-test_proxyCheck = testGroup "TZBTC contract proxy endpoints check"
-  [ testCase
-      "Fails with `ProxyIsNotSet` if one of the proxy serving endpoints is called and \
-      \proxy is not set" $
-      contractPropWithSender bob validate'
-        (EntrypointsWithoutView $
-         TransferViaProxy (#sender .! bob, (#from .! bob, #to .! alice, #value .! 100))) storage
-  , testCase
-      "Fails with `CallerIsNotProxy` if the caller to a proxy endpoint is not \
-      \known proxy address." $
-      integrationalTestExpectation $ do
-        c <- lOriginate tzbtcContract "TZBTC Contract" storage (toMutez 1000)
-        withSender adminAddress $ lCall c (EntrypointsWithoutView $
-                                           SetProxy contractAddress)
-        withSender bob $
-          lCall c (EntrypointsWithoutView $
-                   TransferViaProxy (#sender .! bob, (#from .! bob, #to .! alice, #value .! 100)))
-        validate . Left $
-          lExpectCustomError_ #callerIsNotProxy
-  ]
-  where
-    validate' :: ContractPropValidator (ToT Storage) Assertion
-    validate' (res, _) =
-      assertFailureMessage
-        res [mt|ProxyIsNotSet|]
-        "Contract did not fail with 'ProxyIsNotSet' message"
+    toTZBTCParameter :: SaneParameter -> Parameter
+    toTZBTCParameter =
+      \case
+        STransfer tp -> EntrypointsWithoutView $ Transfer tp
+        SApprove app -> EntrypointsWithoutView $ Approve app
+        SGetAllowance v ->
+          EntrypointsWithView $ GetAllowance v
+        SGetTotalSupply v ->
+          EntrypointsWithView $ GetTotalSupply v
+        SGetBalance v ->
+          EntrypointsWithView $ GetBalance v
 
 test_adminCheck :: TestTree
 test_adminCheck = testGroup "TZBTC contract admin check test"
@@ -525,48 +508,6 @@ test_bookkeeping = testGroup "TZBTC contract bookkeeping views test"
     st :: Storage
     st = mkStorage adminAddress redeemAddress_
         (Map.fromList [(redeemAddress_, initialSupply)]) (Set.fromList [newOperatorAddress])
-
-test_setProxy :: TestTree
-test_setProxy = testGroup "TZBTC contract `setProxy` test"
-  [ testCase
-      "Call to `setProxy` from random address gets denied with `NotAllowedToSetProxy`" $
-      contractPropWithSender bob
-        validateFail_ (EntrypointsWithoutView $
-                       SetProxy contractAddress) storageWithOperator
-  , testCase
-      "Call to `setProxy` from expected address sets proxy" $
-      contractPropWithSender adminAddress
-        validate_ (EntrypointsWithoutView $
-                   SetProxy contractAddress) storageWithOperator
-  , testCase
-      "Call to `setProxy` in contract with proxy set fails with `ProxyAlreadySet` error" $
-      integrationalTestExpectation $ do
-        c <- lOriginate tzbtcContract "TZBTC Contract" storageWithOperator (toMutez 1000)
-        withSender adminAddress $ do
-          lCall c (EntrypointsWithoutView $ SetProxy contractAddress)
-          lCall c (EntrypointsWithoutView $ SetProxy contractAddress)
-        validate . Left $
-          lExpectCustomError_ #proxyAlreadySet
-  ]
-  where
-    storageWithOperator =
-      mkStorage adminAddress redeemAddress_
-        (Map.fromList [(redeemAddress_, initialSupply)])
-        (Set.fromList [newOperatorAddress])
-    validateFail_ :: ContractPropValidator (ToT Storage) Assertion
-    validateFail_ (res, _) =
-      assertFailureMessage
-        res [mt|NotAllowedToSetProxy|]
-        "Contract did not fail with 'NotAllowedToSetProxy' message"
-    validate_ :: ContractPropValidator (ToT Storage) Assertion
-    validate_ (res, _) =
-      case res of
-        Left err -> assertFailure $ "Unexpected contract failure: " <> pretty err
-        Right (_operations, rstorage) ->
-          assertEqual
-            "Contract's `proxy` is set as expected"
-             (Right contractAddress)
-             (proxy $ fields $ (fromVal rstorage :: Storage))
 
 -- Migration tests
 

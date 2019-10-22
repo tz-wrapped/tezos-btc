@@ -192,6 +192,8 @@ the user transfers their own money and this does not require approval.
 * Otherwise, the transaction sender must be previously authorized to transfer at least the requested number of tokens from the `"from"` account using the `approve` entrypoint.
 In this case current number of tokens that sender is allowed to withdraw from the `"from"` address is decreased by the number of transferred tokens.
 
+
+
 **Parameter:** (***from*** : [`Address`](#types-Address), ***to*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
 
 <details>
@@ -225,49 +227,6 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-### `TransferViaProxy`
-
-Proxy version of Transfer entrypoint.
-
-**Parameter:** (***sender*** : [`Address`](#types-Address), (***from*** : [`Address`](#types-Address), ***to*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural)))
-
-<details>
-  <summary>**How to call this entry point**</summary>
-
-0. Construct parameter for the entry point.
-1. Wrap into `TransferViaProxy` constructor.
-    + **In Haskell:** `TransferViaProxy (·)`
-    + **In Michelson:** `Left (Left (Left (Right (·))))`
-1. Wrap into `EntrypointsWithoutView` constructor
-    + **In Haskell:** `EntrypointsWithoutView (·)`
-    + **In Michelson:** `Right ((·))`
-
-Pass resulting value as parameter to the contract.
-
-</details>
-<p>
-
-
-
-The sender has to be the `proxy`.
-
-**Pausable:** Cannot be executed when token operations are paused.
-
-**Possible errors:**
-* [`ProxyIsNotSet`](#errors-ProxyIsNotSet) — Cannot call proxy entrypoint because proxy address is not set
-
-* [`CallerIsNotProxy`](#errors-CallerIsNotProxy) — Sender has to be the proxy to call proxy entrypoints
-
-* [`TokenOperationsArePaused`](#errors-TokenOperationsArePaused) — Token functionality (`transfer` and similar entrypoints) is suspended.
-
-* [`NotEnoughAllowance`](#errors-NotEnoughAllowance) — Not enough funds allowance to perform the operation.
-
-* [`NotEnoughBalance`](#errors-NotEnoughBalance) — Not enough funds to perform the operation.
-
-
-
----
-
 ### `Approve`
 
 When called with `(address :spender, nat :value)`
@@ -281,6 +240,7 @@ with `value`.
 Changing allowance value from non-zero value to a non-zero value is
 forbidden to prevent the [corresponding attack vector](https://docs.google.com/document/d/1YLPtQxZu1UAvO9cZ1O2RPXBbT0mooh4DYKjA_jp-RLM).
 
+
 **Parameter:** (***spender*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
 
 <details>
@@ -289,7 +249,7 @@ forbidden to prevent the [corresponding attack vector](https://docs.google.com/d
 0. Construct parameter for the entry point.
 1. Wrap into `Approve` constructor.
     + **In Haskell:** `Approve (·)`
-    + **In Michelson:** `Left (Left (Right (Left (·))))`
+    + **In Michelson:** `Left (Left (Left (Right (·))))`
 1. Wrap into `EntrypointsWithoutView` constructor
     + **In Haskell:** `EntrypointsWithoutView (·)`
     + **In Michelson:** `Right ((·))`
@@ -304,47 +264,6 @@ Pass resulting value as parameter to the contract.
 **Pausable:** Cannot be executed when token operations are paused.
 
 **Possible errors:**
-* [`TokenOperationsArePaused`](#errors-TokenOperationsArePaused) — Token functionality (`transfer` and similar entrypoints) is suspended.
-
-* [`UnsafeAllowanceChange`](#errors-UnsafeAllowanceChange) — Allowance change from non-zero value to non-zero value is performed.
-
-
-
----
-
-### `ApproveViaProxy`
-
-Proxy version of Approve entrypoint.
-
-**Parameter:** (***sender*** : [`Address`](#types-Address), (***spender*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural)))
-
-<details>
-  <summary>**How to call this entry point**</summary>
-
-0. Construct parameter for the entry point.
-1. Wrap into `ApproveViaProxy` constructor.
-    + **In Haskell:** `ApproveViaProxy (·)`
-    + **In Michelson:** `Left (Left (Right (Right (·))))`
-1. Wrap into `EntrypointsWithoutView` constructor
-    + **In Haskell:** `EntrypointsWithoutView (·)`
-    + **In Michelson:** `Right ((·))`
-
-Pass resulting value as parameter to the contract.
-
-</details>
-<p>
-
-
-
-The sender has to be the `proxy`.
-
-**Pausable:** Cannot be executed when token operations are paused.
-
-**Possible errors:**
-* [`ProxyIsNotSet`](#errors-ProxyIsNotSet) — Cannot call proxy entrypoint because proxy address is not set
-
-* [`CallerIsNotProxy`](#errors-CallerIsNotProxy) — Sender has to be the proxy to call proxy entrypoints
-
 * [`TokenOperationsArePaused`](#errors-TokenOperationsArePaused) — Token functionality (`transfer` and similar entrypoints) is suspended.
 
 * [`UnsafeAllowanceChange`](#errors-UnsafeAllowanceChange) — Allowance change from non-zero value to non-zero value is performed.
@@ -365,7 +284,7 @@ Change the current administrator.
 0. Construct parameter for the entry point.
 1. Wrap into `SetAdministrator` constructor.
     + **In Haskell:** `SetAdministrator (·)`
-    + **In Michelson:** `Left (Right (Left (Left (·))))`
+    + **In Michelson:** `Left (Left (Right (Left (·))))`
 1. Wrap into `EntrypointsWithoutView` constructor
     + **In Haskell:** `EntrypointsWithoutView (·)`
     + **In Michelson:** `Right ((·))`
@@ -398,7 +317,7 @@ Mint tokens to the given address.
 0. Construct parameter for the entry point.
 1. Wrap into `Mint` constructor.
     + **In Haskell:** `Mint (·)`
-    + **In Michelson:** `Left (Right (Left (Right (·))))`
+    + **In Michelson:** `Left (Left (Right (Right (·))))`
 1. Wrap into `EntrypointsWithoutView` constructor
     + **In Haskell:** `EntrypointsWithoutView (·)`
     + **In Michelson:** `Right ((·))`
@@ -431,7 +350,7 @@ Burn some tokens from the `redeem` address.
 0. Construct parameter for the entry point.
 1. Wrap into `Burn` constructor.
     + **In Haskell:** `Burn (·)`
-    + **In Michelson:** `Left (Right (Right (Left (·))))`
+    + **In Michelson:** `Left (Right (Left (Left (·))))`
 1. Wrap into `EntrypointsWithoutView` constructor
     + **In Haskell:** `EntrypointsWithoutView (·)`
     + **In Michelson:** `Right ((·))`
@@ -466,7 +385,7 @@ Add operator with given address.
 0. Construct parameter for the entry point.
 1. Wrap into `AddOperator` constructor.
     + **In Haskell:** `AddOperator (·)`
-    + **In Michelson:** `Left (Right (Right (Right (Left (·)))))`
+    + **In Michelson:** `Left (Right (Left (Right (·))))`
 1. Wrap into `EntrypointsWithoutView` constructor
     + **In Haskell:** `EntrypointsWithoutView (·)`
     + **In Michelson:** `Right ((·))`
@@ -499,7 +418,7 @@ Remove operator with given address.
 0. Construct parameter for the entry point.
 1. Wrap into `RemoveOperator` constructor.
     + **In Haskell:** `RemoveOperator (·)`
-    + **In Michelson:** `Left (Right (Right (Right (Right (·)))))`
+    + **In Michelson:** `Left (Right (Right (Left (·))))`
 1. Wrap into `EntrypointsWithoutView` constructor
     + **In Haskell:** `EntrypointsWithoutView (·)`
     + **In Michelson:** `Right ((·))`
@@ -532,7 +451,7 @@ Update `redeem` address, from which tokens can be burned.
 0. Construct parameter for the entry point.
 1. Wrap into `SetRedeemAddress` constructor.
     + **In Haskell:** `SetRedeemAddress (·)`
-    + **In Michelson:** `Right (Left (Left (Left (·))))`
+    + **In Michelson:** `Left (Right (Right (Right (·))))`
 1. Wrap into `EntrypointsWithoutView` constructor
     + **In Haskell:** `EntrypointsWithoutView (·)`
     + **In Michelson:** `Right ((·))`
@@ -565,7 +484,7 @@ Pause the contract, after the pause all end users actions are prohibited.
 0. Construct parameter for the entry point.
 1. Wrap into `Pause` constructor.
     + **In Haskell:** `Pause (·)`
-    + **In Michelson:** `Right (Left (Left (Right (·))))`
+    + **In Michelson:** `Right (Left (Left (Left (·))))`
 1. Wrap into `EntrypointsWithoutView` constructor
     + **In Haskell:** `EntrypointsWithoutView (·)`
     + **In Michelson:** `Right ((·))`
@@ -594,6 +513,7 @@ This entry point pauses operations when the parameter is `True`,
 and resumes them when the parameter is `False`. During the pause,
 no contract can perform `transfer` or `approval` operations.
 
+
 **Parameter:** [`()`](#types-lparenrparen)
 
 <details>
@@ -602,7 +522,7 @@ no contract can perform `transfer` or `approval` operations.
 0. Construct parameter for the entry point.
 1. Wrap into `Unpause` constructor.
     + **In Haskell:** `Unpause (·)`
-    + **In Michelson:** `Right (Left (Right (Left (·))))`
+    + **In Michelson:** `Right (Left (Left (Right (·))))`
 1. Wrap into `EntrypointsWithoutView` constructor
     + **In Haskell:** `EntrypointsWithoutView (·)`
     + **In Michelson:** `Right ((·))`
@@ -635,7 +555,7 @@ Start the transfer ownership to a new owner.
 0. Construct parameter for the entry point.
 1. Wrap into `TransferOwnership` constructor.
     + **In Haskell:** `TransferOwnership (·)`
-    + **In Michelson:** `Right (Left (Right (Right (Left (·)))))`
+    + **In Michelson:** `Right (Left (Right (Left (·))))`
 1. Wrap into `EntrypointsWithoutView` constructor
     + **In Haskell:** `EntrypointsWithoutView (·)`
     + **In Michelson:** `Right ((·))`
@@ -668,7 +588,7 @@ Accept the ownership of the contract.
 0. Construct parameter for the entry point.
 1. Wrap into `AcceptOwnership` constructor.
     + **In Haskell:** `AcceptOwnership (·)`
-    + **In Michelson:** `Right (Left (Right (Right (Right (·)))))`
+    + **In Michelson:** `Right (Left (Right (Right (·))))`
 1. Wrap into `EntrypointsWithoutView` constructor
     + **In Haskell:** `EntrypointsWithoutView (·)`
     + **In Michelson:** `Right ((·))`
@@ -804,7 +724,7 @@ Migrate from one verstion of the contract to another. Thus tokens in the old ver
 0. Construct parameter for the entry point.
 1. Wrap into `Migrate` constructor.
     + **In Haskell:** `Migrate (·)`
-    + **In Michelson:** `Right (Right (Right (Right (Left (·)))))`
+    + **In Michelson:** `Right (Right (Right (Right (·))))`
 1. Wrap into `EntrypointsWithoutView` constructor
     + **In Haskell:** `EntrypointsWithoutView (·)`
     + **In Michelson:** `Right ((·))`
@@ -826,39 +746,6 @@ Pass resulting value as parameter to the contract.
 * [`MigrationNotEnabled`](#errors-MigrationNotEnabled) — Cannot migrate when migration manager hasn't been set up
 
 * [`IllTypedMigrationManager`](#errors-IllTypedMigrationManager) — Type checking on the stored migration manager address failed
-
-
-
----
-
-### `SetProxy`
-
-Set address of the proxy contract.
-
-**Parameter:** [`Address`](#types-Address)
-
-<details>
-  <summary>**How to call this entry point**</summary>
-
-0. Construct parameter for the entry point.
-1. Wrap into `SetProxy` constructor.
-    + **In Haskell:** `SetProxy (·)`
-    + **In Michelson:** `Right (Right (Right (Right (Right (·)))))`
-1. Wrap into `EntrypointsWithoutView` constructor
-    + **In Haskell:** `EntrypointsWithoutView (·)`
-    + **In Michelson:** `Right ((·))`
-
-Pass resulting value as parameter to the contract.
-
-</details>
-<p>
-
-
-
-**Possible errors:**
-* [`NotAllowedToSetProxy`](#errors-NotAllowedToSetProxy) — Cannot set proxy address because Left value in `proxy` field does not match the sender's address
-
-* [`ProxyAlreadySet`](#errors-ProxyAlreadySet) — Cannot set proxy address because it was already set up
 
 
 
@@ -1001,21 +888,39 @@ Most of the errors are represented according to the same
 `(error name, error argument)` pattern. See the list of errors below
 for details.
 
-<a name="errors-CallerIsNotProxy"></a>
+We distinquish several error classes:
++ **Action exception**: given action cannot be performed with
+  regard to the current contract state.
 
----
+  Examples: "insufficient balance", "wallet does not exist".
 
-### `CallerIsNotProxy`
+  If you are implementing a middleware, such errors should be propagated to
+  the client.
 
-**Fires if:** Sender has to be the proxy to call proxy entrypoints
++ **Bad argument**: invalid argument supplied to the entrypoint.
 
-**Representation:** `("CallerIsNotProxy", ())`.
+  Examples: entrypoint accepts a natural number from `0-3` range, and you
+  supply `5`.
+
+  If you are implementing a middleware, you should care about not letting
+  such errors happen.
+
++ **Internal**: contract-internal error.
+
+  In ideal case, such errors should not take place, but still, make sure
+  that you are ready to handle them. They can signal either invalid contract
+  deployment or a bug in contract implementation.
+
+  If an internal error is thrown, please report it to the author of this contract.
+
 
 <a name="errors-IllTypedMigrationManager"></a>
 
 ---
 
 ### `IllTypedMigrationManager`
+
+**Class:** Action exception
 
 **Fires if:** Type checking on the stored migration manager address failed
 
@@ -1027,10 +932,9 @@ for details.
 
 ### `InternalError`
 
-**Fires if:** Internal error occured.
-In ideal case such error should never be thrown, but contract user has to make sure that he is able to handle such case.
+**Class:** Internal
 
-If an internal error is thrown, please report it to the contract author.
+**Fires if:** Internal error occured.
 
 **Representation:** Textual error message, see [`Text`](#types-Text).
 
@@ -1039,6 +943,8 @@ If an internal error is thrown, please report it to the contract author.
 ---
 
 ### `MigrationNotEnabled`
+
+**Class:** Action exception
 
 **Fires if:** Cannot migrate when migration manager hasn't been set up
 
@@ -1050,25 +956,19 @@ If an internal error is thrown, please report it to the contract author.
 
 ### `NoBalanceToMigrate`
 
+**Class:** Action exception
+
 **Fires if:** Cannot migrate zero tokens to the new contract version
 
 **Representation:** `("NoBalanceToMigrate", ())`.
-
-<a name="errors-NotAllowedToSetProxy"></a>
-
----
-
-### `NotAllowedToSetProxy`
-
-**Fires if:** Cannot set proxy address because Left value in `proxy` field does not match the sender's address
-
-**Representation:** `("NotAllowedToSetProxy", ())`.
 
 <a name="errors-NotEnoughAllowance"></a>
 
 ---
 
 ### `NotEnoughAllowance`
+
+**Class:** Action exception
 
 **Fires if:** Not enough funds allowance to perform the operation.
 
@@ -1082,6 +982,8 @@ Provided error argument will be of type (***required*** : [`Natural`](#types-Nat
 
 ### `NotEnoughBalance`
 
+**Class:** Action exception
+
 **Fires if:** Not enough funds to perform the operation.
 
 **Representation:** `("NotEnoughBalance", <error argument>)`.
@@ -1094,35 +996,19 @@ Provided error argument will be of type (***required*** : [`Natural`](#types-Nat
 
 ### `NotInTransferOwnershipMode`
 
+**Class:** Action exception
+
 **Fires if:** Cannot accept ownership before transfer process has been initiated by calling transferOwnership entrypoint
 
 **Representation:** `("NotInTransferOwnershipMode", ())`.
-
-<a name="errors-ProxyAlreadySet"></a>
-
----
-
-### `ProxyAlreadySet`
-
-**Fires if:** Cannot set proxy address because it was already set up
-
-**Representation:** `("ProxyAlreadySet", ())`.
-
-<a name="errors-ProxyIsNotSet"></a>
-
----
-
-### `ProxyIsNotSet`
-
-**Fires if:** Cannot call proxy entrypoint because proxy address is not set
-
-**Representation:** `("ProxyIsNotSet", ())`.
 
 <a name="errors-SenderIsNotAdmin"></a>
 
 ---
 
 ### `SenderIsNotAdmin`
+
+**Class:** Action exception
 
 **Fires if:** Entrypoint executed not by its administrator.
 
@@ -1134,6 +1020,8 @@ Provided error argument will be of type (***required*** : [`Natural`](#types-Nat
 
 ### `SenderIsNotAgent`
 
+**Class:** Bad argument
+
 **Fires if:** Sender has to be a migration manager to call this entrypoint
 
 **Representation:** `("SenderIsNotAgent", ())`.
@@ -1143,6 +1031,8 @@ Provided error argument will be of type (***required*** : [`Natural`](#types-Nat
 ---
 
 ### `SenderIsNotNewOwner`
+
+**Class:** Bad argument
 
 **Fires if:** Cannot accept ownership because the sender address is different from the address passed to the transferOwnership entrypoint previously
 
@@ -1154,6 +1044,8 @@ Provided error argument will be of type (***required*** : [`Natural`](#types-Nat
 
 ### `SenderIsNotOperator`
 
+**Class:** -
+
 **Fires if:** Sender has to be an operator to call this entrypoint
 
 **Representation:** `("SenderIsNotOperator", ())`.
@@ -1163,6 +1055,8 @@ Provided error argument will be of type (***required*** : [`Natural`](#types-Nat
 ---
 
 ### `TokenOperationsAreNotPaused`
+
+**Class:** Action exception
 
 **Fires if:** This operation is only available when token operations are paused
 
@@ -1174,6 +1068,8 @@ Provided error argument will be of type (***required*** : [`Natural`](#types-Nat
 
 ### `TokenOperationsArePaused`
 
+**Class:** Action exception
+
 **Fires if:** Token functionality (`transfer` and similar entrypoints) is suspended.
 
 **Representation:** `("TokenOperationsArePaused", ())`.
@@ -1183,6 +1079,8 @@ Provided error argument will be of type (***required*** : [`Natural`](#types-Nat
 ---
 
 ### `UnsafeAllowanceChange`
+
+**Class:** Action exception
 
 **Fires if:** Allowance change from non-zero value to non-zero value is performed. This contract does not allow such an update, see the [corresponding attack vector](https://docs.google.com/document/d/1YLPtQxZu1UAvO9cZ1O2RPXBbT0mooh4DYKjA_jp-RLM) for explanation.
 

@@ -5,7 +5,6 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 module Lorentz.Contracts.TZBTC.Types
   ( AcceptOwnershipParams
-  , ApproveViaProxyParams
   , BurnParams
   , GetBalanceParams
   , ManagedLedger.AllowanceParams
@@ -25,14 +24,12 @@ module Lorentz.Contracts.TZBTC.Types
   , ParameterWithoutView(..)
   , PauseParams
   , SetMigrationAgentParams
-  , SetProxyParams
   , SetRedeemAddressParams
   , StartMigrateFromParams
   , StartMigrateToParams
   , Storage
   , StorageFields(..)
   , TransferOwnershipParams
-  , TransferViaProxyParams
   , mkStorage
   ) where
 
@@ -48,8 +45,6 @@ type MigrationManager = Address
 type MigrationManagerCType = ContractAddr (Address, Natural)
 type BurnParams = ("value" :! Natural)
 type OperatorParams = ("operator" :! Address)
-type TransferViaProxyParams = ("sender" :! Address, ManagedLedger.TransferParams)
-type ApproveViaProxyParams = ("sender" :! Address, ManagedLedger.ApproveParams)
 type GetBalanceParams = Address
 type SetRedeemAddressParams = ("redeem" :! Address)
 type PauseParams = Bool
@@ -60,8 +55,6 @@ type MintForMigrationParams = ("to" :! Address, "value" :! Natural)
 type AcceptOwnershipParams = ()
 type MigrateParams = ()
 type SetMigrationAgentParams = ("migrationAgent" :! MigrationManager)
-type SetProxyParams = Address
-
 
 ----------------------------------------------------------------------------
 -- Parameter
@@ -85,9 +78,7 @@ data ParameterWithView
 
 data ParameterWithoutView
   = Transfer            !ManagedLedger.TransferParams
-  | TransferViaProxy    !TransferViaProxyParams
   | Approve             !ManagedLedger.ApproveParams
-  | ApproveViaProxy     !ApproveViaProxyParams
   | SetAdministrator    !Address
   | Mint                !ManagedLedger.MintParams
   | Burn                !BurnParams
@@ -102,7 +93,6 @@ data ParameterWithoutView
   | StartMigrateFrom    !StartMigrateFromParams
   | MintForMigration    !MintForMigrationParams
   | Migrate             !MigrateParams
-  | SetProxy            !SetProxyParams
   deriving stock (Eq, Show, Generic)
   deriving anyclass IsoValue
 
@@ -131,7 +121,6 @@ data StorageFields = StorageFields
   , tokenname :: MText
   , migrationManagerIn :: Maybe MigrationManager
   , migrationManagerOut :: Maybe MigrationManager
-  , proxy :: Either Address Address
   } deriving stock (Show, Generic)
     deriving anyclass IsoValue
 
@@ -158,15 +147,8 @@ instance Buildable Parameter where
     EntrypointsWithoutView param -> case param of
       Transfer (arg #from -> from, arg #to -> to, arg #value -> value) ->
         "Transfer from " +| from |+ " to " +| to |+ ", value = " +| value |+ ""
-      TransferViaProxy
-        (arg #sender -> sender_, (arg #from -> from, arg #to -> to, arg #value -> value)) ->
-        "Transfer via proxy from sender " +| sender_ |+ ", from" +| from |+ " to "
-        +| to |+ ", value = " +| value |+ ""
       Approve (arg #spender -> spender, arg #value -> value) ->
         "Approve for " +| spender |+ ", value = " +| value |+ ""
-      ApproveViaProxy (arg #sender -> sender_, (arg #spender -> spender, arg #value -> value)) ->
-        "Approve via proxy for sender "
-        +| sender_ |+ ", spender =" +| spender |+ ", value = " +| value |+ ""
       SetAdministrator addr ->
         "Set administrator to " +| addr |+ ""
       Mint (arg #to -> to, arg #value -> value) ->
@@ -193,8 +175,6 @@ instance Buildable Parameter where
         "Start migrate to " +| migrateTo |+ ""
       StartMigrateFrom (arg #migrationManager -> migrateFrom) ->
         "Start migrate from " +| migrateFrom |+ ""
-      SetProxy address_ ->
-        "Set proxy " +| address_ |+ ""
       Migrate _ ->
         "Migrate"
 
@@ -217,7 +197,6 @@ mkStorage adminAddress redeem balances operators = mkStorage' balances $
   , tokenname = [mt|TZBTC|]
   , migrationManagerOut = Nothing
   , migrationManagerIn = Nothing
-  , proxy = Left adminAddress
   }
 
 ----------------------------------------------------------------------------
@@ -252,12 +231,6 @@ type instance ErrorArg "senderIsNotAgent" = ()
 
 -- | For `startMigrateTo` calls when the contract is in a running state
 type instance ErrorArg "tokenOperationsAreNotPaused" = ()
-
--- | For FA1.2.1 compliance endpoints that are callable via a proxy
-type instance ErrorArg "callerIsNotProxy" = ()
-
--- | For setProxy entry point if Proxy is set already
-type instance ErrorArg "proxyAlreadySet" = ()
 
 -- | If migration manager was found to be ill-typed
 type instance ErrorArg "illTypedMigrationManager" = ()
@@ -303,11 +276,6 @@ instance CustomErrorHasDoc "tokenOperationsAreNotPaused" where
   customErrClass = ErrClassActionException
   customErrDocMdCause =
     "This operation is only available when token operations are paused"
-
-instance CustomErrorHasDoc "callerIsNotProxy" where
-  customErrClass = ErrClassBadArgument
-  customErrDocMdCause =
-    "Sender has to be the proxy to call proxy entrypoints"
 
 instance CustomErrorHasDoc "illTypedMigrationManager" where
   customErrClass = ErrClassActionException
