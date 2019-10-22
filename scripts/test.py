@@ -4,20 +4,20 @@
 #
 # SPDX-License-Identifier: LicenseRef-MPL-2.0
 
-# This script calls some entrypoints of our contract using `alphanet.sh`.
+# This script calls some entrypoints of our contract using `babylonnet.sh`.
 # Unless `--dry-run` is passed it assumes that:
-# • `alphanet.sh` can be executed.
+# • `babylonnet.sh` can be executed.
 
 import argparse
 import os
 import subprocess
 import time
 
-from common import (alphanet_client, transfer)
+from common import (babylonnet_client, transfer)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Test our contract')
-    # We can add more if necessary (e. g. for alphanet_sh)
+    # We can add more if necessary (e. g. for babylonnet_sh)
     parser.add_argument('--owner', required=True,
         metavar='ADDRESS', help="Owner address")
     parser.add_argument('--contract', required=True,
@@ -27,7 +27,7 @@ if __name__ == '__main__':
     parser.add_argument('--dry-run', action='store_true',
         help="Do not submit transactions")
     parser.add_argument('--our-exe',
-        default='./scripts/tzbtc.sh',
+        default='stack exec -- tzbtc',
         help="How to launch our executable")
 
     args = parser.parse_args()

@@ -11,11 +11,11 @@ import os
 import subprocess
 import time
 
-from common import (alphanet_client, transfer)
+from common import (babylonnet_client, transfer)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Test our contract')
-    # We can add more if necessary (e. g. for alphanet_sh)
+    # We can add more if necessary (e. g. for babylonnet_sh)
     parser.add_argument('--owner', required=True,
         metavar='ADDRESS', help="Owner address")
     parser.add_argument('--contract', required=True,
