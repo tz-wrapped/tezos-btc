@@ -19,7 +19,6 @@ module Lorentz.Contracts.TZBTC.Impl
   , ManagedLedger.transfer'
   , acceptOwnership
   , addOperator
-  , approveViaProxy
   , burn
   , getTotal
   , mint
@@ -27,12 +26,10 @@ module Lorentz.Contracts.TZBTC.Impl
   , migrate
   , pause
   , removeOperator
-  , setProxy
   , setRedeemAddress
   , startMigrateFrom
   , startMigrateTo
   , transferOwnership
-  , transferViaProxy
   , unpause
   ) where
 
@@ -45,9 +42,9 @@ import Fmt (Builder)
 import Util.Markdown (mdTicked)
 
 import Lorentz
+import Lorentz.Contracts.ManagedLedger.Athens ()
 import qualified Lorentz.Contracts.ManagedLedger.Impl as ManagedLedger
 import qualified Lorentz.Contracts.ManagedLedger.Types as ManagedLedger
-import Lorentz.Contracts.ManagedLedger.Athens ()
 import Lorentz.Contracts.TZBTC.Types hiding (AddOperator, RemoveOperator)
 
 type StorageC store = StorageContains store
@@ -62,7 +59,6 @@ type StorageC store = StorageContains store
   , "migrationManagerIn" := Maybe MigrationManager
   , "migrationManagerOut" := Maybe MigrationManager
   , "ledger" := Address ~> LedgerValue
-  , "proxy" := Either Address Address
   ]
 
 type Entrypoint param store
@@ -157,23 +153,6 @@ mint = do
   doc $ DDescription "Mint tokens to the given address."
   dip authorizeOperator
   mint_
-
-transferViaProxy
-  :: forall store. StorageC store
-  => Entrypoint TransferViaProxyParams store
-transferViaProxy = do
-  doc $ DDescription "Proxy version of Transfer entrypoint."
-  dip authorizeProxy
-  ManagedLedger.transfer'
-
-approveViaProxy
-  :: forall store. StorageC store
-  => Entrypoint ApproveViaProxyParams store
-approveViaProxy = do
-  doc $ DDescription "Proxy version of Approve entrypoint."
-  dip authorizeProxy
-  coerce_
-  ManagedLedger.approve'
 
 -- | Add a new operator to the set of Operators. Only admin is allowed to call this
 -- entrypoint.
@@ -391,19 +370,6 @@ unpause = do
   push False
   ManagedLedger.setPause
 
-setProxy :: StorageC store => Entrypoint SetProxyParams store
-setProxy = do
-  doc $ DDescription "Set address of the proxy contract."
-  -- Check sender
-  dip $ do
-    stGetField #proxy
-    ifLeft
-      (do sender; if IsEq then nop else failCustom_ #notAllowedToSetProxy)
-      (failCustom_ #proxyAlreadySet)
-  right @Address
-  stSetField #proxy
-  finishNoOp
-
 data DRequireRole = DRequireRole Builder
 
 instance DocItem DRequireRole where
@@ -459,17 +425,6 @@ ensureNotPaused
 ensureNotPaused = do
   stGetField #paused
   if_ (failCustom_ #tokenOperationsArePaused) (nop)
-
--- | Check that the sender is proxy
-authorizeProxy
-  :: StorageC store
-  => store ': s :-> store ': s
-authorizeProxy = do
-  doc $ DRequireRole "proxy"
-  stGetField #proxy
-  ifLeft (failCustom_ #proxyIsNotSet) $ do
-    sender
-    if IsEq then nop else failCustom_ #callerIsNotProxy
 
 -- | Finish with an empty list of operations
 finishNoOp :: '[st] :-> (ContractOut st)

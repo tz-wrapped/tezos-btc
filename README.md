@@ -22,8 +22,7 @@ Run `stack test` and explore the tests.
 
 You can use `tzbtc` executable in order to get contract code converted
 to Michelson, raw Michelson contract storage. This stuff can be used for
-contract origination via `tezos-client`. Also you can print other contracts
-that are used along with TZBTC contract: agent, proxy.
+contract origination via `tezos-client`.
 `parseContractParameter` subcommand can be used for debugging,
 it parses raw Michelson value to the TZBTC contract parameter.
 

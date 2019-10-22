@@ -18,7 +18,7 @@ import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
 
 import Data.Char (toUpper)
 import Fmt (pretty)
-import Named (NamedF(..), Name(..), (!))
+import Named (Name(..), NamedF(..), (!))
 import Options.Applicative
   (argument, auto, command, eitherReader, help, hsubparser, info, long, metavar, option, progDesc,
   showDefaultWith, str, switch, value)
@@ -33,7 +33,6 @@ data CmdLnArgs
   = CmdPrintInitialStorage Address Address
   | CmdPrintContract Bool (Maybe FilePath)
   | CmdPrintAgentContract Bool (Maybe FilePath)
-  | CmdPrintProxyContract Bool (Maybe FilePath)
   | CmdPrintDoc (Maybe FilePath)
   | CmdParseParameter Text
   | CmdTestScenario TestScenarioOptions
@@ -47,7 +46,7 @@ data TestScenarioOptions = TestScenarioOptions
 argParser :: Opt.Parser CmdLnArgs
 argParser = hsubparser $
   printCmd
-  <> printAgentCmd <> printProxyCmd
+  <> printAgentCmd
   <> printInitialStorageCmd <> printDoc
   <> parseParameterCmd <> testScenarioCmd
   where
@@ -65,12 +64,6 @@ argParser = hsubparser $
         "printAgentContract"
         (CmdPrintAgentContract <$> singleLineSwitch <*> outputOption)
         "Print migration agent contract")
-    printProxyCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
-    printProxyCmd =
-      (mkCommandParser
-        "printProxyContract"
-        (CmdPrintProxyContract <$> singleLineSwitch <*> outputOption)
-        "Print proxy contract")
     printInitialStorageCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     printInitialStorageCmd =
       (mkCommandParser
