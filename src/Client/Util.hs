@@ -18,22 +18,20 @@ import Tezos.Binary (encode, decode)
 import Tezos.Json (TezosWord64)
 import Tezos.Micheline (Expression)
 
-import Lorentz.Constraints (KnownValue, NoBigMap, NoOperation)
-import Michelson.Interpret.Pack (packValue')
-import Michelson.Interpret.Unpack (UnpackError, dummyUnpackEnv, unpackValue')
-import Michelson.Typed.Haskell.Value (IsoValue(..))
-import Michelson.Typed.Scope (HasNoContract, HasNoOp, HasNoBigMap, forbiddenBigMap, forbiddenOp)
+import Lorentz.Constraints
+  (NicePackedValue, NiceUnpackedValue)
+import Lorentz.Pack (lPackValue, lUnpackValue)
+import Michelson.Interpret.Unpack (UnpackError, dummyUnpackEnv)
 import Tezos.Crypto (blake2b)
 
 import Client.Error (TzbtcClientError(..))
 
 paramToExpression
   :: forall param.
-     (KnownValue param, NoBigMap param, NoOperation param)
+     (NicePackedValue param)
   => param -> Expression
 paramToExpression param = decode . BS.drop 1 $
-  forbiddenOp @(ToT param) $ forbiddenBigMap @(ToT param) $
-  packValue' $ toVal param
+  lPackValue param
 
 calcFees :: TezosWord64 -> TezosWord64 -> TezosWord64
 calcFees consumedGas storageSize =
@@ -60,10 +58,10 @@ addTezosBytesPrefix :: Text -> Text
 addTezosBytesPrefix = ("0x" <>)
 
 exprToValue
-  :: forall t. (KnownValue t, HasNoContract (ToT t), HasNoOp (ToT t), HasNoBigMap (ToT t))
+  :: forall t. (NiceUnpackedValue t)
   => Expression -> Either UnpackError t
 exprToValue =
-  fmap fromVal . unpackValue' @(ToT t) dummyUnpackEnv . BS.cons 0x05 . encode
+  lUnpackValue dummyUnpackEnv . BS.cons 0x05 . encode
 
 addExprPrefix :: ByteString -> ByteString
 addExprPrefix = (BS.pack [0x0D, 0x2C, 0x40, 0x1B] <>)
@@ -79,6 +77,6 @@ addExprPrefix = (BS.pack [0x0D, 0x2C, 0x40, 0x1B] <>)
 -- and https://gitlab.com/tezos/tezos/blob/6e25ae8eb385d9975a30388c7a7aa2a9a65bf184/src/proto_005_PsBabyM1/lib_protocol/contract_services.ml#L136
 -- for more information.
 valueToScriptExpr
-  :: forall t. (KnownValue t, HasNoOp (ToT t), HasNoBigMap (ToT t))
+  :: forall t. (NicePackedValue t)
   => t -> ByteString
-valueToScriptExpr = addExprPrefix . blake2b . packValue' . toVal
+valueToScriptExpr = addExprPrefix . blake2b . lPackValue

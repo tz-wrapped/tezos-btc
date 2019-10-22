@@ -7,6 +7,7 @@ module Main
   ) where
 
 import Data.Version (showVersion)
+import Data.Vinyl.Derived (Label)
 import Fmt (pretty)
 import Options.Applicative
   (execParser, footerDoc, fullDesc, header, help, helper, info, infoOption, long, progDesc)
@@ -15,11 +16,12 @@ import Options.Applicative.Help.Pretty (Doc, linebreak)
 import Lorentz.Macro (View(..))
 import Michelson.Typed.Haskell.Value (ContractAddr(..))
 import Paths_tzbtc (version)
+import Tezos.Address (Address, formatAddress)
 import Util.Named ((.!))
+import Util.TypeLits (symbolValT')
 
 import Client.IO
 import Client.Parser
-import Client.Types
 import Lorentz.Contracts.TZBTC
 import Util.MultiSig
 
@@ -95,9 +97,8 @@ main = do
             callback <- addrOrAliasToAddr callback'
             runTzbtcContract $
               fromFlatParameter $ GetTotalSupply $ View () (ContractAddr callback)
-          Nothing -> do
-            error "To be done in TBTC-55"
-            --printFieldFromStorage "Total supply: " (totalSupply . asFields) show
+          Nothing ->
+            printFieldFromStorage @Natural #totalSupply "Total supply: " show
       CmdGetTotalMinted mbCallback' -> do
         case mbCallback' of
           Just callback' -> do
@@ -105,8 +106,7 @@ main = do
             runTzbtcContract $
               fromFlatParameter $ GetTotalMinted $ View () (ContractAddr callback)
           Nothing ->
-            error "To be done in TBTC-55"
-            --printFieldFromStorage "Total minted: " (totalMinted . asFields) show
+            printFieldFromStorage @Natural #totalMinted "Total minted: " show
       CmdGetTotalBurned mbCallback' -> do
         case mbCallback' of
           Just callback' -> do
@@ -114,8 +114,7 @@ main = do
             runTzbtcContract $
               fromFlatParameter $ GetTotalBurned $ View () (ContractAddr callback)
           Nothing ->
-            error "To be done in TBTC-55"
-            --printFieldFromStorage "Total burned: " (totalMinted . asFields) show
+            printFieldFromStorage @Natural #totalBurned "Total burned: " show
       CmdGetAdministrator mbCallback' -> do
         case mbCallback' of
           Just callback' -> do
@@ -123,9 +122,7 @@ main = do
             runTzbtcContract $
               fromFlatParameter $ GetAdministrator $ View () (ContractAddr callback)
           Nothing ->
-            error "To be done in TBTC-55"
-            --printFieldFromStorage
-            --"Admininstator: " (admin . asFields) formatAddress
+            printFieldFromStorage @Address #admin "Admininstator: " formatAddress
       CmdGetOpDescription packageFilePath -> do
         pkg <- getPackageFromFile packageFilePath
         case pkg of
@@ -165,10 +162,15 @@ main = do
           Just subParam -> createMultisigPackage fp subParam
           _ -> putTextLn "Unable to call multisig for View entrypoints"
         Nothing -> runTzbtcContract param
-    _printFieldFromStorage :: Text -> (AlmostStorage Interface -> a) -> (a -> Text) -> IO ()
-    _printFieldFromStorage prefix fieldGetter formatter = do
-      field' <- getFromTzbtcStorage fieldGetter
-      putTextLn $ prefix <> formatter field'
+    printFieldFromStorage
+      :: forall t name. HasStoreTemplateField t name
+      => Label name -> Text -> (t -> Text) -> IO ()
+    printFieldFromStorage _ prefix formatter = do
+      mbField <- getFieldFromTzbtcUStore @name @t
+      case mbField of
+        Just field' -> putTextLn $ prefix <> formatter field'
+        Nothing -> putStrLn $ "Field " <>
+          symbolValT' @name <> " not found in the contract storage"
     programInfo =
       info (helper <*> versionOption <*> clientArgParser) $
       mconcat

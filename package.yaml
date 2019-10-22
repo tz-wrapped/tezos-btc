@@ -78,6 +78,7 @@ executables:
       - morley-prelude
       - optparse-applicative
       - tzbtc
+      - vinyl
 
 tests:
   tzbtc-test:
