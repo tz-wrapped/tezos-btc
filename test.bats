@@ -171,9 +171,9 @@
 }
 
 @test "invoking tzbtc 'config --edit' command with available arguments" {
-  stack exec -- tzbtc-client config --edit --node-url "localhost" --node-port "9900" --contract-address "KT1HmhmNcZKmm2NsuyahdXAaHQwYfWfdrBxi" --multisig-address "KT1HmhmNcZKmm2NsuyahdXAaHQwYfWfdrBxi" --user-address "tz1VwXeEPw2tkTgDSUUbEb5fe63b24gNEssa" --alias alice --tezos-client /local/bin/tezos-client
+  stack exec -- tzbtc-client config --edit --node-url "localhost" --node-port "9900" --contract-address "KT1HmhmNcZKmm2NsuyahdXAaHQwYfWfdrBxi" --multisig-address "KT1HmhmNcZKmm2NsuyahdXAaHQwYfWfdrBxi" --alias alice --tezos-client /local/bin/tezos-client
 }
 
 @test "invoking tzbtc 'setupClient' command with arguments" {
-  stack exec -- tzbtc-client setupClient --node-url "localhost" --node-port "9900" --contract-address "KT1HmhmNcZKmm2NsuyahdXAaHQwYfWfdrBxi" --multisig-address "KT1HmhmNcZKmm2NsuyahdXAaHQwYfWfdrBxi" --user-address "tz1VwXeEPw2tkTgDSUUbEb5fe63b24gNEssa" --alias alice --tezos-client /local/bin/tezos-client
+  stack exec -- tzbtc-client setupClient --node-url "localhost" --node-port "9900" --contract-address "KT1HmhmNcZKmm2NsuyahdXAaHQwYfWfdrBxi" --multisig-address "KT1HmhmNcZKmm2NsuyahdXAaHQwYfWfdrBxi" --alias alice --tezos-client /local/bin/tezos-client
 }

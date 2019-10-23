@@ -415,8 +415,7 @@ runConfigEdit doEdit configPartial = do
     hasDelta ccp =
       isAvailable (ccNodeAddress ccp) || isAvailable (ccNodePort ccp) ||
       isAvailable (ccContractAddress ccp) || isAvailable (ccMultisigAddress ccp) ||
-      isAvailable (ccUserAlias ccp) || isAvailable (ccTezosClientExecutable ccp) ||
-      isAvailable (ccUserAddress ccp)
+      isAvailable (ccUserAlias ccp) || isAvailable (ccTezosClientExecutable ccp)
 
     mergeConfig :: ClientConfigText -> ClientConfigPartial -> ClientConfigText
     mergeConfig cc ccp = ClientConfig
@@ -424,7 +423,6 @@ runConfigEdit doEdit configPartial = do
       (withDefaultConfig (ccNodePort cc) (ccNodePort ccp))
       (withDefaultConfig (ccContractAddress cc) (ccContractAddress ccp))
       (withDefaultConfig (ccMultisigAddress cc) (ccMultisigAddress ccp))
-      (withDefaultConfig (ccUserAddress cc) (ccUserAddress ccp))
       (withDefaultConfig (ccUserAlias cc) (ccUserAlias ccp))
       (withDefaultConfig (ccTezosClientExecutable cc) (ccTezosClientExecutable ccp))
 

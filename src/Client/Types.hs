@@ -245,7 +245,6 @@ data ClientConfigP f = ClientConfig
   , ccNodePort :: ConfigC f Int "`rpc port of the tezos node"
   , ccContractAddress :: ConfigC f Address "contract address"
   , ccMultisigAddress :: ConfigC f (Maybe Address) "multisig contract address"
-  , ccUserAddress :: ConfigC f Address "user address"
   , ccUserAlias :: ConfigC f Text "user alias"
   , ccTezosClientExecutable :: ConfigC f FilePath "tezos-client executable path"
   } deriving Generic
@@ -282,7 +281,6 @@ toConfigFilled p = ClientConfig
   <*> (toMaybe $ ccNodePort p)
   <*> (toMaybe $ ccContractAddress p)
   <*> (toMaybe $ withDefault' Nothing $ ccMultisigAddress p)
-  <*> (toMaybe $ ccUserAddress p)
   <*> (toMaybeText $ ccUserAlias p)
   <*> (toMaybe $ ccTezosClientExecutable p)
   where
