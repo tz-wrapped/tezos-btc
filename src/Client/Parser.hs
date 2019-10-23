@@ -108,7 +108,6 @@ clientArgRawParser = Opt.hsubparser $
       (partialParser $ namedAddressOption Nothing "contract-address"
       "Contract's address") <*>
       (partialParserMaybe $ namedAddressOption Nothing "multisig-address" "Multisig contract address") <*>
-      (partialParser $ namedAddressOption Nothing "user-address" "User's address") <*>
       (partialParser $ option str $ mconcat
        [ long "alias"
        , metavar "ADDRESS_ALIAS"
@@ -125,7 +124,6 @@ clientArgRawParser = Opt.hsubparser $
         optional $ nullableAddressOption
           ! #name "multisig-address"
           ! #hinfo "Multisig contract address. Use 'null' to clear current value.") <*>
-      (partialParser $ namedAddressOption Nothing "user-address" "User's address") <*>
       (partialParser $ option str $ mconcat
        [ long "alias"
        , metavar "ADDRESS_ALIAS"

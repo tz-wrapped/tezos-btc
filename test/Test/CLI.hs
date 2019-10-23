@@ -19,9 +19,6 @@ import Client.Types
 contractAddress :: Address
 contractAddress = unsafeParseAddress "KT19rTTBPeG1JAvrECgoQ8LJj1mJrN7gsdaH"
 
-userAddress :: Address
-userAddress = unsafeParseAddress "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx"
-
 test_toConfigFilled :: TestTree
 test_toConfigFilled = testGroup "Building ClientConfig from ConfigPartial works as expected"
   [ testCase "Handle values correctly with placeholders" $
@@ -37,7 +34,6 @@ test_toConfigFilled = testGroup "Building ClientConfig from ConfigPartial works 
       , ccNodePort = Available 9000
       , ccContractAddress = Available contractAddress
       , ccMultisigAddress = Available (Just contractAddress)
-      , ccUserAddress = Available userAddress
       , ccUserAlias = Available "alice"
       , ccTezosClientExecutable = Available "/bin/tezos-client"
       }
@@ -47,7 +43,6 @@ test_toConfigFilled = testGroup "Building ClientConfig from ConfigPartial works 
       , ccNodePort = Available 9000
       , ccContractAddress = Available contractAddress
       , ccMultisigAddress = Available (Just contractAddress)
-      , ccUserAddress = Available userAddress
       , ccUserAlias = Available "-- some text"
       , ccTezosClientExecutable = Available "/bin/tezos-client"
       }
