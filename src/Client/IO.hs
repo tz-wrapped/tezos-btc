@@ -224,10 +224,10 @@ getAllowance owner spender = do
     Just ledgerValue -> let approvals = arg (Name @"approvals") . snd $ ledgerValue in
       pure $ maybe 0 id $ Map.lookup spender approvals
 
-getCosts
+getAppliedResult
   :: ClientEnv -> RunOperation
-  -> IO (Either TzbtcClientError (TezosWord64, TezosWord64))
-getCosts env runOp = do
+  -> IO (Either TzbtcClientError AppliedResult)
+getAppliedResult env runOp = do
   req <- runClientM (runOperation runOp) env
   case req of
     Left err -> return $ Left (TzbtcServantError err)
@@ -236,8 +236,8 @@ getCosts env runOp = do
         [OperationContent (RunMetadata res internalOps)] ->
           let internalResults = map unInternalOperation internalOps in
           case foldr combineResults res internalResults of
-            RunOperationApplied consumedGas storageSize ->
-              return $ Right (consumedGas, storageSize)
+            RunOperationApplied appliedRes ->
+              return $ Right appliedRes
             RunOperationFailed errors ->
               return $ Left (TzbtcRunFailed errors)
         [] -> return $ Left $ TzbtcUnexpectedRunResult "empty result"
@@ -288,12 +288,12 @@ runTransaction to param config@ClientConfig{..} = do
           }
         , roChainId = chainId
         }
-  (consumedGas, storageSize) <- throwLeft $ getCosts clientEnv runOp
+  AppliedResult{..} <- throwLeft $ getAppliedResult clientEnv runOp
   hex <- throwClientError $ getOperationHex clientEnv ForgeOperation
     { foBranch = lastBlockHash
-    , foContents = [opToRun { toGasLimit = consumedGas + 200
-                            , toStorageLimit = storageSize + 20
-                            , toFee = calcFees consumedGas storageSize
+    , foContents = [opToRun { toGasLimit = arConsumedGas + 200
+                            , toStorageLimit = arStorageSize + 20
+                            , toFee = calcFees arConsumedGas arPaidStorageDiff
                             }]
     }
   signRes <- signWithTezosClient (Left $ addOperationPrefix hex) config

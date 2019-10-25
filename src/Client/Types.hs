@@ -4,6 +4,7 @@
  -}
 module Client.Types
   ( AlmostStorage (..)
+  , AppliedResult (..)
   , ClientConfigP (..)
   , ClientConfig
   , ClientConfigPartial
@@ -12,6 +13,8 @@ module Client.Types
   , InternalOperation (..)
   , MichelsonExpression (..)
   , OperationContent (..)
+  , OriginationOperation (..)
+  , OriginationScript (..)
   , ParametersInternal (..)
   , Partial (..)
   , RunError (..)
@@ -45,7 +48,7 @@ import Tezos.Json (TezosWord64(..))
 
 import Michelson.Typed (IsoValue)
 import Tezos.Address (Address)
-import Tezos.Crypto (Signature, encodeBase58Check)
+import Tezos.Crypto (PublicKey, Signature, encodeBase58Check)
 
 import Lorentz.Contracts.TZBTC.Types (StorageFields)
 
@@ -180,15 +183,31 @@ instance Buildable RunError where
              \the storage or parameter field." :: Text)
 
 data RunOperationResult
-  = RunOperationApplied TezosWord64 TezosWord64
+  = RunOperationApplied AppliedResult
   | RunOperationFailed [RunError]
 
+data AppliedResult = AppliedResult
+  { arConsumedGas :: TezosWord64
+  , arStorageSize :: TezosWord64
+  , arPaidStorageDiff :: TezosWord64
+  , arOriginatedContracts :: [Address]
+  }
+
+instance Semigroup AppliedResult where
+  (<>) ar1 ar2 = AppliedResult
+    { arConsumedGas = arConsumedGas ar1 + arConsumedGas ar2
+    , arStorageSize = arStorageSize ar1 + arStorageSize ar2
+    , arPaidStorageDiff = arPaidStorageDiff ar1 + arPaidStorageDiff ar2
+    , arOriginatedContracts = arOriginatedContracts ar1 <> arOriginatedContracts ar2
+    }
+
 combineResults :: RunOperationResult -> RunOperationResult -> RunOperationResult
-combineResults (RunOperationApplied c1 c2) (RunOperationApplied c3 c4) =
-  RunOperationApplied (c1 + c3) (c2 + c4)
-combineResults (RunOperationApplied _ _) (RunOperationFailed e) =
+combineResults
+  (RunOperationApplied res1) (RunOperationApplied res2) =
+  RunOperationApplied $ res1 <> res2
+combineResults (RunOperationApplied _) (RunOperationFailed e) =
   RunOperationFailed e
-combineResults (RunOperationFailed e) (RunOperationApplied _ _) =
+combineResults (RunOperationFailed e) (RunOperationApplied _) =
   RunOperationFailed e
 combineResults (RunOperationFailed e1) (RunOperationFailed e2) =
   RunOperationFailed $ e1 <> e2
@@ -197,7 +216,12 @@ instance FromJSON RunOperationResult where
   parseJSON = withObject "operation_costs" $ \o -> do
     status <- o .: "status"
     case status of
-      "applied" -> RunOperationApplied <$> o .: "consumed_gas" <*> o .: "storage_size"
+      "applied" -> RunOperationApplied <$>
+        (AppliedResult <$>
+          o .: "consumed_gas" <*> o .: "storage_size" <*>
+          o .:? "paid_storage_size_diff" .!= 0 <*>
+          o .:? "originated_contracts" .!= []
+        )
       "failed" -> RunOperationFailed <$> o .: "errors"
       "backtracked" ->
         RunOperationFailed <$> o .:? "errors" .!= []
@@ -218,6 +242,23 @@ data TransactionOperation = TransactionOperation
   , toAmount :: TezosWord64
   , toDestination :: Address
   , toParameters :: ParametersInternal
+  }
+
+data OriginationScript = OriginationScript
+  { osCode :: Expression
+  , osStorage :: Expression
+  }
+
+data OriginationOperation = OriginationOperation
+  { ooKind :: Text
+  , ooSource :: Address
+  , ooFee :: TezosWord64
+  , ooCounter :: TezosWord64
+  , ooGasLimit :: TezosWord64
+  , ooStorageLimit :: TezosWord64
+  , ooBalance :: TezosWord64
+  , ooDelegatable :: Maybe (PublicKey)
+  , ooScript :: OriginationScript
   }
 
 data ConfigSt = ConfigFilled | ConfigPartial | ConfigText
@@ -328,5 +369,7 @@ instance FromJSON ClientConfig where
 
 deriveJSON (aesonPrefix snakeCase) ''ParametersInternal
 deriveJSON (aesonPrefix snakeCase) ''TransactionOperation
+deriveJSON (aesonPrefix snakeCase) ''OriginationScript
+deriveJSON (aesonPrefix snakeCase) ''OriginationOperation
 deriveJSON (aesonPrefix snakeCase) ''RunOperationInternal
 deriveJSON (aesonPrefix snakeCase) ''RunOperation
