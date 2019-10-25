@@ -42,11 +42,11 @@ if __name__ == '__main__':
 
     # Get initial storage
     initial_storage = subprocess.run(
-        our_exe + ["printInitialStorage", "--admin-address", owner, "--redeem-address", redeem],
+        our_exe + ["printInitialStorage", "--admin-address", owner],
         capture_output=True, check=True).stdout
 
     # Originate
-    contract_alias = "er" + str(random.randrange(100500))
+    contract_alias = "tzbtc" + str(random.randrange(100500))
     originate_cmd = babylonnet_client + [
         "originate", "contract", contract_alias, "transferring",
         "0", "from", owner, "running", "container:" + contract_tz,
@@ -57,5 +57,25 @@ if __name__ == '__main__':
         print(originate_cmd)
     else:
         subprocess.run(originate_cmd, check=True)
+
+    # Upgrade to V1
+    migrations_file = "migrations-v1.txt"
+    subprocess.run(
+        our_exe + [
+            "migrate", "--version", "1", "--adminAddress", owner, "--redeemAddress", owner, "--output", migrations_file,
+            ]
+        )
+
+    with open(migrations_file, mode="r") as f:
+        for param in f:
+            if param[0] == '#':
+                continue
+
+            transfer(
+                source=owner, dest=contract_alias, param=param.strip(),
+                dry_run=args.dry_run,
+                )
+            if not args.dry_run:
+                time.sleep(20)
 
     os.remove(contract_tz)

@@ -10,17 +10,16 @@ import Lorentz.Common (TestScenario)
 import Tezos.Address (Address)
 import Util.Named ((.!))
 
-import Lorentz.Contracts.TZBTC (Parameter(..))
-import Lorentz.Contracts.TZBTC.Types (ParameterWithoutView(..))
+import Lorentz.Contracts.TZBTC
 
-mkTestScenario :: Address -> [Address] -> Maybe (TestScenario Parameter)
+mkTestScenario :: Address -> [Address] -> Maybe (TestScenario (Parameter s))
 mkTestScenario owner addresses = do
   case addresses of
     addr0 : addr1 : _ -> Just
-      [ (owner, EntrypointsWithoutView $ AddOperator (#operator .! owner))
-      , (owner, EntrypointsWithoutView $ Pause ())
-      , (owner, EntrypointsWithoutView $ Unpause ())
-      , (owner, EntrypointsWithoutView $ Mint (#to .! addr0, #value .! 100500))
-      , (owner, EntrypointsWithoutView $ Mint (#to .! addr1, #value .! 100500))
+      [ (owner, fromFlatParameter $ AddOperator (#operator .! owner))
+      , (owner, fromFlatParameter $ Pause ())
+      , (owner, fromFlatParameter $ Unpause ())
+      , (owner, fromFlatParameter $ Mint (#to .! addr0, #value .! 100500))
+      , (owner, fromFlatParameter $ Mint (#to .! addr1, #value .! 100500))
       ]
     _ -> Nothing

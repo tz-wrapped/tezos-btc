@@ -35,7 +35,6 @@ import Lorentz
 import Lorentz.Contracts.TZBTC.MultiSig as MSig
 import Lorentz.Contracts.TZBTC as TZBTC
 import Lorentz.Contracts.TZBTC.Types as TZBTC
-import Michelson.Interpret.Pack
 import Michelson.Interpret.Unpack
 import Michelson.Typed
 import Tezos.Crypto
@@ -100,26 +99,27 @@ instance Buildable Package where
     where
       newLine = "\n" :: String
 
--- | Match packed parameter with the signed bytesequence and
--- if it matches, return it, or else return an error
+-- | Match packed parameter with the signed bytesequence and if it matches,
+-- return it, or else return an error.  The idea is that the source parameter
+-- is meaningless (and probably dangerous) if it does not match with the
+-- packed bytesequence that is being signed on.
 fetchSrcParam
-  :: Package
-  -> Either UnpackageError TZBTC.Parameter
+  :: forall a. Package
+  -> Either UnpackageError (TZBTC.Parameter a)
 fetchSrcParam package =
   case decodeHex $ pkSrcParam package of
     Just hexDecoded ->
-      case fromVal @(TZBTC.Parameter, Natural, ContractAddr TZBTC.Parameter)
+      case fromVal @((TZBTC.SafeParameter a), Natural, Address)
           <$> unpackValue' dummyUnpackEnv hexDecoded of
-        Right ((EntrypointsWithoutView parameter), counter, caddress) ->
+        Right (safeParameter, counter, caddress) ->
           case getToSign package of
             Right (msigAddr, _) ->
               let newPackage = mkPackage
-                    msigAddr counter caddress parameter
+                    msigAddr counter caddress safeParameter
               in if pkToSign newPackage == pkToSign package
-              then Right (EntrypointsWithoutView parameter)
+              then Right (TZBTC.SafeEntrypoints safeParameter)
               else Left BadSrcParameterFailure
             Left err -> Left err
-        Right ((EntrypointsWithView _), _, _) -> Left UnexpectedParameterWithView
         Left err -> Left $ UnpackFailure err
     Nothing -> Left HexDecodingFailure
 
@@ -139,16 +139,20 @@ getOpDescription p = case fetchSrcParam p of
 mkPackage
   :: Address
   -> Natural
-  -> ContractAddr TZBTC.Parameter
-  -> TZBTC.ParameterWithoutView -> Package
+  -> Address
+  -> TZBTC.SafeParameter a -> Package
 mkPackage msigAddress counter tzbtc param
-  = let msigLambda = contractToLambda
-          (unContractAddress tzbtc) param
+  = let msigLambda = contractToLambda tzbtc param
+    -- Create the Lambda for required action
     in Package
       { pkToSign = encodeToSign $ (msigAddress, (counter, ParamLambda msigLambda))
-      , pkSignatures = []
-      , pkSrcParam = encodeHex $ packValue' $
-        toVal ((EntrypointsWithoutView param), counter, tzbtc)
+      -- ^ Wrap the the lambda with multisig address and replay attack counter,
+      -- forming a structure that the multi-sig contract will ultimately
+      -- verify the included signatures against
+      , pkSignatures = [] -- No signatures when creating package
+      , pkSrcParam = encodeHex $ lPackValue (param, counter, tzbtc)
+      -- ^ Include the input parameter for integrity check and showing human
+      -- readable description of the action parameter.
       }
 
 mergeSignatures
@@ -157,6 +161,8 @@ mergeSignatures
   -> Maybe Package
 mergeSignatures p1 p2 =
   if pkToSign p1 == pkToSign p2
+    -- ^ If the payloads are same, then merge the signatures from both
+    -- packages and form a new package with both the signatures.
     then Just $ p1 { pkSignatures = pkSignatures p1 ++ pkSignatures p2 }
     else Nothing
 
@@ -169,6 +175,9 @@ mergePackages (p :| ps) = maybeToRight PackageMergeFailure $
 getBytesToSign :: Package -> Text
 getBytesToSign Package{..} = addTezosBytesPrefix pkToSign
 
+-- | Extract the signable component from package. This is a structure
+-- with the packed lambda that represent the action, the multi-sig contract
+-- address, and the replay attack prevention counter.
 getToSign :: Package -> Either UnpackageError ToSign
 getToSign Package{..} =
   case decodeHex pkToSign of
@@ -220,6 +229,8 @@ addSignature
   -> Either String Package
 addSignature package sig =
   if checkIntegrity package then let
+    -- ^ Checks if the included source parameter matches with the
+    -- signable payload.
     existing = pkSignatures package
     in Right $ package { pkSignatures = sig:existing }
   else Left "WARNING!! Cannot add signature as the integrity of the multi-sig package could not be verified"
@@ -252,6 +263,6 @@ mkMultiSigParam pks packages = do
     sortSigs sigs = flip lookup sigs <$> pks
 
 encodeToSign :: ToSign -> Text
-encodeToSign ts = (encodeHex $ packValue' $ toVal ts)
+encodeToSign ts = (encodeHex $ lPackValue ts)
 
 deriveJSON (aesonPrefix camelCase) ''Package

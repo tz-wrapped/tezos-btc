@@ -67,9 +67,9 @@ instance Buildable MichelsonExpression where
         mconcat . intersperse ", " . map
         (build . MichelsonExpression) . toList
 
-data AlmostStorage = AlmostStorage
+data AlmostStorage interface = AlmostStorage
   { asBigMapId :: Natural
-  , asFields :: StorageFields
+  , asFields :: StorageFields interface
   } deriving stock (Show, Generic)
     deriving anyclass IsoValue
 

@@ -14,7 +14,6 @@ module Lorentz.Contracts.TZBTC.Impl
   , ManagedLedger.getAllowance
   , ManagedLedger.getBalance
   , ManagedLedger.getTotalSupply
-  , ManagedLedger.setAdministrator
   , ManagedLedger.transfer
   , ManagedLedger.transfer'
   , acceptOwnership
@@ -22,13 +21,9 @@ module Lorentz.Contracts.TZBTC.Impl
   , burn
   , getTotal
   , mint
-  , mintForMigration
-  , migrate
   , pause
   , removeOperator
   , setRedeemAddress
-  , startMigrateFrom
-  , startMigrateTo
   , transferOwnership
   , unpause
   ) where
@@ -56,13 +51,8 @@ type StorageC store = StorageContains store
   , "operators" := Set Address
   , "redeemAddress" := Address
   , "newOwner" := Maybe Address
-  , "migrationManagerIn" := Maybe MigrationManager
-  , "migrationManagerOut" := Maybe MigrationManager
   , "ledger" := Address ~> LedgerValue
   ]
-
-type Entrypoint param store
-  = '[ param, store ] :-> ContractOut store
 
 getTotal
   :: forall store a.
@@ -240,116 +230,6 @@ acceptOwnership = do
     ) (failCustom_ #notInTransferOwnershipMode)
   finishNoOp
 
--- | This accepts a `MigrationManager` (a proxy contract address) and
--- stores it in the storage field `MigrationManagerOut'.
-startMigrateTo
-  :: forall store. StorageC store
-  => Entrypoint StartMigrateToParams store
-startMigrateTo = do
-  doc $ DDescription "Initialize process of migration from the old contract."
-  dip $ do
-    authorizeAdmin
-    ensurePaused
-  fromNamed #migrationManager
-  stackType @'[MigrationManager, store]
-  some;
-  stSetField #migrationManagerOut
-  finishNoOp
-
--- | This accepts a `MigrationManager` (a proxy contract address) and stores it
--- in the `MigrationManagerIn` storage field.
-startMigrateFrom
-  :: forall store. StorageC store
-  => Entrypoint StartMigrateFromParams store
-startMigrateFrom = do
-  doc $ DDescription "Initialize process of migration from the new contract."
-  dip authorizeAdmin
-  fromNamed #migrationManager
-  some
-  stSetField #migrationManagerIn
-  finishNoOp
-
--- Check the existence of migration agent and if it is equal to the
--- sender and mints tokens in this contract for the address in parameter
-mintForMigration
-  :: forall store. StorageC store
-  => Entrypoint MintForMigrationParams store
-mintForMigration = do
-  doc $ DDescription "Mint tokens to the given address from the agent."
-  dip ensureMigrationAgent
-  mint_
-  where
-    ensureMigrationAgent = do
-      stGetField #migrationManagerIn
-      ifSome (do sender # eq) (failCustom_ #migrationNotEnabled)
-      if_ nop $ failCustom_ #senderIsNotAgent
-
--- | This entry point just fetches the migration manager from storage
--- (MigrationManagerOut) and calls it passing senders address and balance,
--- migrating all the account's credits. It also burns all tokens for the sender
--- in this contract. This entrypoint require contract to be running as it
--- is an end user call.
-migrate :: forall store. StorageC store => Entrypoint MigrateParams store
-migrate = do
-  doc $ DDescription
-    "Migrate from one verstion of the contract to another. \
-    \Thus tokens in the old version is burned and minted in the new."
-  dip ensureNotPaused
-  drop
-  dup
-  sender
-  stGet #ledger
-  if IsSome then do
-    toField #balance
-    dup; int
-    if IsZero
-      then failCustom_ #noBalanceToMigrate
-      else do
-        stackType @'[Natural, store]
-        toNamed #value
-        stackType @'["value" :! Natural, store]
-        sender
-        swap
-        dip $ toNamed #from
-        stackType @'["value" :! Natural, "from" :! Address, store]
-        dup
-        dip $ do
-          pair
-          burn_
-          unpair
-          drop
-        stackType @'["value" :! Natural, store]
-        fromNamed #value
-        stackType @'[Natural, store]
-        doMigrate
-    else failCustom_ #noBalanceToMigrate
-  where
-    doMigrate :: '[Natural, store] :-> '[([Operation], store)]
-    doMigrate = do
-      stackType @'[Natural, store]
-      dip $ do
-        stGetField #migrationManagerOut
-        if IsSome then do
-          stackType @'[MigrationManager, store]
-          contract
-          stackType @'[Maybe MigrationManagerCType, store]
-          if IsSome then do
-            nop
-          else
-            failCustom_ #illTypedMigrationManager
-        else
-          failCustom_ #migrationNotEnabled
-      stackType @'[Natural, MigrationManagerCType, store]
-      sender
-      pair
-      push (toMutez 0)
-      swap
-      transferTokens
-      nil
-      swap
-      cons
-      pair
-
 -- | Pause end user actions. This is callable only by the operator.
 pause :: StorageC store => Entrypoint () store
 pause = do
@@ -410,21 +290,6 @@ authorizeOperator = do
   stGetField #operators; sender; mem;
   assert (CustomError #senderIsNotOperator)
 
--- | Check that the contract is paused
-ensurePaused
-  :: forall store. StorageC store
-  => '[store] :-> '[store]
-ensurePaused = do
-  stGetField #paused
-  if_ (nop) (failCustom_ #tokenOperationsAreNotPaused)
-
--- | Check that the contract is NOT paused
-ensureNotPaused
-  :: forall store. StorageC store
-  => '[store] :-> '[store]
-ensureNotPaused = do
-  stGetField #paused
-  if_ (failCustom_ #tokenOperationsArePaused) (nop)
 
 -- | Finish with an empty list of operations
 finishNoOp :: '[st] :-> (ContractOut st)

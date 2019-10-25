@@ -30,12 +30,16 @@ import Util.Named
 
 -- | Represents the Cmd line commands with inputs/arguments.
 data CmdLnArgs
-  = CmdPrintInitialStorage Address Address
+  = CmdPrintInitialStorage Address
   | CmdPrintContract Bool (Maybe FilePath)
-  | CmdPrintAgentContract Bool (Maybe FilePath)
   | CmdPrintDoc (Maybe FilePath)
   | CmdParseParameter Text
   | CmdTestScenario TestScenarioOptions
+  | CmdMigrate
+      ("version" :! Natural)
+      ("adminAddress" :! Address)
+      ("redeemAddress" :! Address)
+      ( "output" :! Maybe FilePath)
 
 data TestScenarioOptions = TestScenarioOptions
   { tsoMaster :: !Address
@@ -46,9 +50,8 @@ data TestScenarioOptions = TestScenarioOptions
 argParser :: Opt.Parser CmdLnArgs
 argParser = hsubparser $
   printCmd
-  <> printAgentCmd
   <> printInitialStorageCmd <> printDoc
-  <> parseParameterCmd <> testScenarioCmd
+  <> parseParameterCmd <> testScenarioCmd <> migrateCmd
   where
     singleLineSwitch =
             switch (long "oneline" <> help "Single line output")
@@ -58,19 +61,12 @@ argParser = hsubparser $
         "printContract"
         (CmdPrintContract <$> singleLineSwitch <*> outputOption)
         "Print token contract")
-    printAgentCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
-    printAgentCmd =
-      (mkCommandParser
-        "printAgentContract"
-        (CmdPrintAgentContract <$> singleLineSwitch <*> outputOption)
-        "Print migration agent contract")
     printInitialStorageCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     printInitialStorageCmd =
       (mkCommandParser
          "printInitialStorage"
          (CmdPrintInitialStorage
-            <$> namedAddressOption Nothing "admin-address" "Administrator's address"
-            <*> namedAddressOption Nothing "redeem-address" "Redeem address")
+            <$> namedAddressOption Nothing "admin-address" "Administrator's address")
          "Print initial contract storage with the given administrator and \
          \redeem addresses")
     printDoc :: Opt.Mod Opt.CommandFields CmdLnArgs
@@ -91,6 +87,16 @@ argParser = hsubparser $
           "testScenario"
           (CmdTestScenario <$> testScenarioOptions)
           "Print parameters for smoke tests")
+    migrateCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
+    migrateCmd =
+      (mkCommandParser
+          "migrate"
+          (CmdMigrate
+            <$> getParser "Target version"
+            <*> getParser "Redeem address"
+            <*> getParser "Administrator's address"
+            <*> (#output <.!> outputOption))
+          "Print migration scripts.")
 
 mkCommandParser
   :: String
