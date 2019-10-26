@@ -6,32 +6,73 @@ module Client.Util
   ( addTezosBytesPrefix
   , calcFees
   , exprToValue
-  , paramToExpression
+  , mkOriginationScript
+  , nicePackedValueToExpression
   , throwClientError
   , throwLeft
   , valueToScriptExpr
   ) where
 
 import qualified Data.ByteString as BS (cons, drop, pack)
+import Data.Sequence (fromList)
+import Data.Singletons (SingI)
 import Servant.Client.Core (ClientError)
 import Tezos.Binary (encode, decode)
 import Tezos.Json (TezosWord64)
-import Tezos.Micheline (Expression)
+import Tezos.Micheline (Expression(..), MichelinePrimAp(..), MichelinePrimitive(..))
 
-import Lorentz.Constraints
-  (NicePackedValue, NiceUnpackedValue)
+import Lorentz (Contract, compileLorentz)
+import Lorentz.Constraints (NicePackedValue, NiceUnpackedValue)
+import Lorentz.UStore.Types (UStore(..))
 import Lorentz.Pack (lPackValue, lUnpackValue)
+import Michelson.Interpret.Pack (packT', packCode')
 import Michelson.Interpret.Unpack (UnpackError)
+import Michelson.Typed (Instr)
+import Michelson.Typed.Haskell.Value (BigMap(..), IsoValue(..))
 import Tezos.Crypto (blake2b)
 
 import Client.Error (TzbtcClientError(..))
+import Client.Types
+import Lorentz.Contracts.TZBTC.Types (Storage(..))
+import Lorentz.Contracts.TZBTC.V0 (Interface, Parameter(..), UStoreV0)
 
-paramToExpression
+nicePackedValueToExpression
   :: forall param.
      (NicePackedValue param)
   => param -> Expression
-paramToExpression param = decode . BS.drop 1 $
-  lPackValue param
+nicePackedValueToExpression param = decode . BS.drop 1 $ lPackValue param
+
+typeToExpression :: forall t. (SingI (ToT t)) => Expression
+typeToExpression = decode $ packT' @(ToT t)
+
+codeToExpression :: Instr inp out -> Expression
+codeToExpression = decode . packCode'
+
+mkOriginationScript
+  :: Contract (Parameter Interface) UStoreV0 -> UStoreV0 -> OriginationScript
+mkOriginationScript contract Storage{..} = OriginationScript
+  { osCode = Expression_Seq $ fromList
+    [ Expression_Prim $
+      MichelinePrimAp (MichelinePrimitive "parameter")
+      (fromList [typeToExpression @(Parameter Interface)])
+    , Expression_Prim $
+      MichelinePrimAp (MichelinePrimitive "storage")
+      (fromList [typeToExpression @UStoreV0])
+    , Expression_Prim $
+      MichelinePrimAp (MichelinePrimitive "code")
+      (fromList [codeToExpression $ compileLorentz contract])
+    ]
+  -- Here we assume, that the storage has the following structure:
+  -- (big_map, fields)
+  , osStorage = Expression_Prim $
+    MichelinePrimAp (MichelinePrimitive "Pair") $ fromList
+    -- Here is another hack. We cannot pack big_map, but JSON representation
+    -- (and thus Micheline representation) of big_map and basic map don't differ,
+    -- so we convert basic map (made from our big_map) to Expression here.
+    [ nicePackedValueToExpression $ (unBigMap . unUStore) dataMap
+    , nicePackedValueToExpression fields
+    ]
+  }
 
 calcFees :: TezosWord64 -> TezosWord64 -> TezosWord64
 calcFees consumedGas storageSize =

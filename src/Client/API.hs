@@ -4,12 +4,13 @@
  -}
 module Client.API
   ( forgeOperation
+  , getBlockConstants
   , getFromBigMap
-  , getMainChainId
   , getCounter
   , getStorage
   , getLastBlock
   , injectOperation
+  , preApplyOperations
   , runOperation
   ) where
 
@@ -36,9 +37,11 @@ type NodeAPI =
   :> ReqBody '[JSON] RunOperation :> Post '[JSON] RunRes :<|>
   "chains/main/blocks/head/context/contracts"
   :> Capture "contract" Text :> "storage" :> Get '[JSON] Expression :<|>
-  "chains/main/chain_id" :> Get '[JSON] Text :<|>
+  "chains/main/blocks" :> Capture "block_id" Text :> Get '[JSON] BlockConstants :<|>
   "chains/main/blocks/head/context/big_maps" :> Capture "big_map_id" Natural
-  :> Capture "script_expr" Text :> Get '[JSON] Expression
+  :> Capture "script_expr" Text :> Get '[JSON] Expression :<|>
+  "chains/main/blocks/head/helpers/preapply/operations"
+  :> ReqBody '[JSON] [PreApplyOperation] :> Post '[JSON] [RunRes]
 
 
 nodeAPI :: Proxy NodeAPI
@@ -50,13 +53,15 @@ injectOperation :: Maybe Text -> Text -> ClientM Text
 getCounter :: Text -> ClientM TezosWord64
 runOperation :: RunOperation -> ClientM RunRes
 getStorage :: Text -> ClientM Expression
-getMainChainId :: ClientM Text
+getBlockConstants :: Text -> ClientM BlockConstants
 getFromBigMap :: Natural -> Text -> ClientM Expression
+preApplyOperations :: [PreApplyOperation] -> ClientM [RunRes]
 forgeOperation :<|>
   getLastBlock :<|>
   injectOperation :<|>
   getCounter :<|>
   runOperation :<|>
   getStorage :<|>
-  getMainChainId :<|>
-  getFromBigMap = client nodeAPI
+  getBlockConstants :<|>
+  getFromBigMap :<|>
+  preApplyOperations = client nodeAPI

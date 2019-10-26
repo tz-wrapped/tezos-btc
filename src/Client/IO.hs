@@ -6,6 +6,7 @@ module Client.IO
   ( HasStoreTemplateField
   , addrOrAliasToAddr
   , createMultisigPackage
+  , deployTzbtcContract
   , getAllowance
   , getBalance
   , getFieldFromTzbtcUStore
@@ -56,7 +57,12 @@ import Client.Parser
 import Client.Types
 import Client.Util
 import Lorentz.Contracts.TZBTC
-  (FlatParameter(..), Interface, SafeParameter, StoreTemplate, Parameter, fromFlatParameter)
+  (FlatParameter(..), Interface, SafeParameter,  StoreTemplate, Parameter,
+  fromFlatParameter)
+import Lorentz.Contracts.TZBTC.Types (StorageFields(..))
+import Lorentz.Contracts.TZBTC.V0 (mkEmptyStorageV0, tzbtcContract)
+import Lorentz.Contracts.TZBTC.V1
+  (migrationScripts, originationParams, tzbtcContractCode)
 import qualified Lorentz.Contracts.TZBTC.MultiSig as MSig
 import Util.MultiSig
 import Util.Editor
@@ -88,7 +94,7 @@ dumbOp = TransactionOperation
   , toDestination = genesisAddress2
   , toParameters = ParametersInternal
     { piEntrypoint = "default"
-    , piValue = paramToExpression $ fromFlatParameter $ Pause ()
+    , piValue = nicePackedValueToExpression $ fromFlatParameter $ Pause ()
     }
   }
 
@@ -187,9 +193,9 @@ getFromTzbtcUStore
      )
   => key -> IO (Maybe value)
 getFromTzbtcUStore key = do
-  config <- throwLeft $ readConfigFile
+  config@ClientConfig{..} <- throwLeft $ readConfigFile
   clientEnv <- getClientEnv config
-  AlmostStorage{..} <- getTzbtcStorage config clientEnv
+  AlmostStorage{..} <- getTzbtcStorage ccContractAddress config clientEnv
   let scriptExpr = encodeBase58Check . valueToScriptExpr . lPackValue $ key
   fieldValueRaw <- runClientM (getFromBigMap asBigMapId scriptExpr) clientEnv
   case fieldValueRaw of
@@ -203,10 +209,10 @@ getFromTzbtcUStore key = do
       fmap Just . throwLeft . pure $ lUnpackValue rawVal
 
 getTzbtcStorage
-  :: ClientConfig -> ClientEnv -> IO (AlmostStorage Interface)
-getTzbtcStorage ClientConfig{..} clientEnv = do
+  :: Address -> ClientConfig -> ClientEnv -> IO (AlmostStorage Interface)
+getTzbtcStorage contractAddr ClientConfig{..} clientEnv =do
   storageRaw <- throwClientError $
-    runClientM (getStorage $ formatAddress ccContractAddress) clientEnv
+    runClientM (getStorage $ formatAddress contractAddr) clientEnv
   throwLeft $ pure $ exprToValue storageRaw
 
 getBalance :: Address -> IO Natural
@@ -225,24 +231,25 @@ getAllowance owner spender = do
       pure $ maybe 0 id $ Map.lookup spender approvals
 
 getAppliedResult
-  :: ClientEnv -> RunOperation
+  :: ClientEnv -> Either RunOperation PreApplyOperation
   -> IO (Either TzbtcClientError AppliedResult)
-getAppliedResult env runOp = do
-  req <- runClientM (runOperation runOp) env
-  case req of
-    Left err -> return $ Left (TzbtcServantError err)
-    Right RunRes{..} -> do
+getAppliedResult env op = do
+  res <- case op of
+    Left runOp ->
+      (sequence . (: [])) <$> throwLeft $ runClientM (runOperation runOp) env
+    Right preApplyOp -> throwLeft $ runClientM (preApplyOperations [preApplyOp]) env
+  pure $ concatMapM handleRunRes res
+  where
+    handleRunRes :: RunRes -> Either TzbtcClientError AppliedResult
+    handleRunRes RunRes{..} =
       case rrOperationContents of
         [OperationContent (RunMetadata res internalOps)] ->
           let internalResults = map unInternalOperation internalOps in
           case foldr combineResults res internalResults of
-            RunOperationApplied appliedRes ->
-              return $ Right appliedRes
-            RunOperationFailed errors ->
-              return $ Left (TzbtcRunFailed errors)
-        [] -> return $ Left $ TzbtcUnexpectedRunResult "empty result"
-        _ -> return $ Left $
-          TzbtcUnexpectedRunResult "expecting only one operation content"
+            RunOperationApplied appliedRes -> Right appliedRes
+            RunOperationFailed errors -> Left (TzbtcRunFailed errors)
+        [] -> Left $ TzbtcUnexpectedRunResult "empty result"
+        _ -> Left $ TzbtcUnexpectedRunResult "expecting only one operation content"
 
 getOperationHex
   :: ClientEnv -> ForgeOperation
@@ -252,8 +259,8 @@ getOperationHex env forgeOp = runClientM (forgeOperation forgeOp) env
 getLastBlockHash :: ClientEnv -> IO (Either ClientError Text)
 getLastBlockHash env = runClientM getLastBlock env
 
-getCurrentChainId :: ClientEnv -> IO (Either ClientError Text)
-getCurrentChainId env = runClientM getMainChainId env
+getCurrentBlockConstants :: ClientEnv -> Text -> IO (Either ClientError BlockConstants)
+getCurrentBlockConstants env block = runClientM (getBlockConstants block) env
 
 injectOp :: Text -> Signature -> ClientConfig -> IO Text
 injectOp opToInject sign config = do
@@ -261,48 +268,163 @@ injectOp opToInject sign config = do
   throwClientError $ runClientM
     (injectOperation (Just "main") $ prepareForInjection opToInject sign) clientEnv
 
+
+-- | Datatype that contains various values required for
+-- chain operations.
+data OperationConstants = OperationConstants
+  { ocClientEnv :: ClientEnv
+  -- ^ Environment required for network operations
+  , ocLastBlockHash :: Text
+  -- ^ Block in which operations is going to be injected
+  , ocSourceAddr :: Address
+  -- ^ The address of the operations sender
+  , ocBlockConstants :: BlockConstants
+  -- ^ Information about block: chain_id and protocol
+  , ocCounter :: TezosWord64
+  -- ^ Sender counter
+  }
+
+-- | Function which obtains `OperationConstant` by given
+-- `ClientConfig`.
+preProcessOperation :: ClientConfig -> IO OperationConstants
+preProcessOperation config@ClientConfig{..} = do
+  ocClientEnv <- getClientEnv config
+  ocLastBlockHash <- throwClientError $ getLastBlockHash ocClientEnv
+  (ocSourceAddr, _) <- throwLeft $ getAddressAndPKForAlias ccUserAlias config
+  ocBlockConstants <-
+    throwClientError $ getCurrentBlockConstants ocClientEnv ocLastBlockHash
+  ocCounter <- throwClientError $ getAddressCounter ocClientEnv ocSourceAddr
+  pure OperationConstants{..}
+
+-- | Function which waits for operation to be included into
+-- the chain.
+postProcessOperation :: ClientConfig -> Text -> IO ()
+postProcessOperation config opHash = do
+  putStrLn $ "Operation hash: " <> opHash
+  waitForOperationInclusion opHash config
+
 runTransaction
   :: (NicePackedValue param)
   => Address -> param -> ClientConfig -> IO ()
 runTransaction to param config@ClientConfig{..} = do
-  clientEnv <- getClientEnv config
-  lastBlockHash <- throwClientError $ getLastBlockHash clientEnv
-  (sourceAddr, _) <- throwLeft $ getAddressAndPKForAlias ccUserAlias config
-  chainId <- throwClientError $ getCurrentChainId clientEnv
-  counter <- throwClientError $ getAddressCounter clientEnv sourceAddr
+  OperationConstants{..} <- preProcessOperation config
   let opToRun = dumbOp
-        { toCounter = counter + 1
+        { toCounter = ocCounter + 1
         , toDestination = to
-        , toSource = sourceAddr
+        , toSource = ocSourceAddr
         , toParameters = ParametersInternal
           { piEntrypoint = "default"
-          , piValue = paramToExpression $ param
+          , piValue = nicePackedValueToExpression $ param
           }
         }
   let runOp = RunOperation
         { roOperation =
           RunOperationInternal
-          { roiBranch = lastBlockHash
-          , roiContents = [opToRun]
+          { roiBranch = ocLastBlockHash
+          , roiContents = [Left $ opToRun]
           , roiSignature = stubSignature
           }
-        , roChainId = chainId
+        , roChainId = bcChainId ocBlockConstants
         }
-  AppliedResult{..} <- throwLeft $ getAppliedResult clientEnv runOp
-  hex <- throwClientError $ getOperationHex clientEnv ForgeOperation
-    { foBranch = lastBlockHash
-    , foContents = [opToRun { toGasLimit = arConsumedGas + 200
-                            , toStorageLimit = arStorageSize + 20
-                            , toFee = calcFees arConsumedGas arPaidStorageDiff
-                            }]
+  -- Perform run_operation with dumb signature in order
+  -- to estimate gas cost, storage size and paid storage diff
+  AppliedResult{..} <- throwLeft $ getAppliedResult ocClientEnv (Left runOp)
+  -- Forge operation with given limits and get its hexadecimal representation
+  hex <- throwClientError $ getOperationHex ocClientEnv ForgeOperation
+    { foBranch = ocLastBlockHash
+    , foContents = [Left $ opToRun { toGasLimit = arConsumedGas + 200
+                                   , toStorageLimit = arStorageSize + 20
+                                   , toFee = calcFees arConsumedGas arPaidStorageDiff
+                                   }]
     }
+  -- Sign operation with sender secret key
   signRes <- signWithTezosClient (Left $ addOperationPrefix hex) config
   case signRes of
     Left err -> putStrLn err
     Right signature' -> do
-      opHash <- injectOp (formatByteString hex) signature' config
-      putStrLn $ "Operation hash: " <> opHash
-      waitForOperationInclusion opHash config
+      -- Sign and inject the operation
+      injectOp (formatByteString hex) signature' config >>=
+        (postProcessOperation config)
+
+
+originateTzbtcContract
+  :: Address -> ClientConfig -> IO (Either TzbtcClientError Address)
+originateTzbtcContract admin config@ClientConfig{..} = do
+  OperationConstants{..} <- preProcessOperation config
+  let origOp = OriginationOperation
+        { ooKind = "origination"
+        , ooSource = ocSourceAddr
+        , ooFee = 50000
+        , ooCounter = ocCounter + 1
+        , ooGasLimit = 800000
+        , ooStorageLimit = 60000
+        , ooBalance = 0
+        , ooScript =
+          mkOriginationScript tzbtcContract (mkEmptyStorageV0 admin)
+        }
+  let runOp = RunOperation
+        { roOperation =
+          RunOperationInternal
+          { roiBranch = ocLastBlockHash
+          , roiContents = [Right $ origOp]
+          , roiSignature = stubSignature
+          }
+        , roChainId = bcChainId ocBlockConstants
+        }
+  -- Estimate limits and paid storage diff
+  ar1 <- throwLeft $ getAppliedResult ocClientEnv (Left runOp)
+  -- Update limits and fee
+  let updOrigOp = origOp { ooGasLimit = arConsumedGas ar1 + 200
+                         , ooStorageLimit = arStorageSize ar1 + 1000
+                         , ooFee = calcFees (arConsumedGas ar1) (arPaidStorageDiff ar1)
+                         }
+  hex <- throwClientError $ getOperationHex ocClientEnv ForgeOperation
+    { foBranch = ocLastBlockHash
+    , foContents = [Right $ updOrigOp]
+    }
+  signRes <- signWithTezosClient (Left $ addOperationPrefix hex) config
+  case signRes of
+    Left err -> pure $ Left $ TzbtcOriginationError err
+    Right signature' -> do
+      let preApplyOp = PreApplyOperation
+            { paoProtocol = bcProtocol ocBlockConstants
+            , paoBranch = ocLastBlockHash
+            , paoContents = [Right $ updOrigOp]
+            , paoSignature = signature'
+            }
+      -- Perform operations preapplying in order to obtain contract address
+      ar2 <- throwLeft $ getAppliedResult ocClientEnv (Right preApplyOp)
+      injectOp (formatByteString hex) signature' config >>=
+        (postProcessOperation config)
+      case arOriginatedContracts ar2 of
+        [contractAddr] -> pure $ Right contractAddr
+        _ -> pure $ Left $ TzbtcOriginationError
+          "Error during contract origination, expecting to \
+          \originate exactly one contract."
+
+deployTzbtcContract :: Address -> Address -> IO ()
+deployTzbtcContract admin redeem = do
+  putTextLn "Originating contract"
+  config@ClientConfig{..} <- throwLeft $ readConfigFile
+  contractAddr <- throwLeft $ originateTzbtcContract admin config
+  putTextLn $ "Contract address: " <> formatAddress contractAddr
+  let migration = migrationScripts (originationParams admin redeem mempty)
+      transactionToTzbtc = \p -> runTransaction contractAddr p config
+  clientEnv <- getClientEnv config
+  AlmostStorage{..} <- getTzbtcStorage contractAddr config clientEnv
+  putTextLn "Begin upgrade to V1"
+  transactionToTzbtc $ fromFlatParameter $ EpwBeginUpgrade $ currentVersion asFields  + 1
+  putTextLn "Apply storage migrations"
+  forM_ migration $
+    (\m ->
+        transactionToTzbtc $ fromFlatParameter $ EpwApplyMigration m
+    )
+  putTextLn "Set contract code"
+  transactionToTzbtc $ fromFlatParameter $ EpwSetCode tzbtcContractCode
+  putTextLn "Finish upgrade"
+  transactionToTzbtc $ fromFlatParameter $ EpwFinishUpgrade
+  putTextLn $ "Contract was successfully deployed. Contract address: " <>
+    formatAddress contractAddr
 
 addOperationPrefix :: InternalByteString -> InternalByteString
 addOperationPrefix (InternalByteString bs) =

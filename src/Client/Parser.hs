@@ -61,6 +61,7 @@ data ClientArgsRaw
   | CmdSignPackage FilePath
   | CmdCallMultisig (NonEmpty FilePath)
   | CmdConfig Bool ClientConfigPartial
+  | CmdDeployContract AddrOrAlias AddrOrAlias
 
 clientArgParser :: Opt.Parser ClientArgs
 clientArgParser = ClientArgs <$> clientArgRawParser <*> dryRunSwitch
@@ -79,7 +80,7 @@ clientArgRawParser = Opt.hsubparser $
   <> getAdministratorCmd <> setupUserCmd <> getOpDescriptionCmd
   <> getBytesToSignCmd <> getTotalBurnedCmd
   <> addSignatureCmd <> signPackageCmd <> callMultisigCmd
-  <> configCmd
+  <> configCmd <> deployCmd
   where
     multisigOption :: Opt.Parser (Maybe FilePath)
     multisigOption =
@@ -323,6 +324,16 @@ clientArgRawParser = Opt.hsubparser $
        nonEmptyParser (namedFilePathOption "package" "Package filepath")
       )
       "Call multisig contract with the given packages"
+
+    deployCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
+    deployCmd =
+      mkCommandParser
+      "deployTzbtcContract"
+      (CmdDeployContract <$>
+       addrOrAliasOption "admin" "Address of the administrator" <*>
+       addrOrAliasOption "redeem" "Redeem address"
+      )
+      "Deploy TZBTC contract to the chain"
 
 addrOrAliasOption :: String -> String -> Opt.Parser AddrOrAlias
 addrOrAliasOption name hInfo =

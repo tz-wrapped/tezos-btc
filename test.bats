@@ -111,6 +111,10 @@
   stack exec -- tzbtc-client addOperator --operator "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --multisig package.txt --dry-run
 }
 
+@test "deploy contract" {
+  stack exec -- tzbtc-client deployTzbtcContract --admin boba --redeem boba --dry-run
+}
+
 @test "invoking tzbtc 'printContract' command" {
   stack exec -- tzbtc printContract
 }

@@ -24,6 +24,7 @@ data TzbtcClientError
   | TzbtcPublicKeyParseError Text CryptoParseError
   | TzbtcUnknownAliasError Text
   | TzbtcMutlisigConfigUnavailable
+  | TzbtcOriginationError Text
 
 instance Buildable TzbtcClientError where
   build (TzbtcServantError err) = case err of
@@ -64,6 +65,9 @@ instance Buildable TzbtcClientError where
 
   build (TzbtcUnknownAliasError alias) =
     "Unknown alias: " +| alias |+ ""
+
+  build (TzbtcOriginationError msg) =
+    "Error during contract origination:\n" +| msg |+ ""
 
 instance Show TzbtcClientError where
   show = pretty

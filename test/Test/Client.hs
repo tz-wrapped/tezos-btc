@@ -4,7 +4,7 @@
  -}
 module Test.Client
   ( test_addressParser
-  , test_paramToExpression
+  , test_nicePackedValueToExpression
   , test_signatureParser
   ) where
 
@@ -19,7 +19,7 @@ import Lorentz.Test.Integrational (genesisAddress1)
 import Util.Named ((.!))
 
 import Client.Parser (parseAddressFromOutput, parseSignatureFromOutput)
-import Client.Util (paramToExpression)
+import Client.Util (nicePackedValueToExpression)
 import Lorentz.Contracts.TZBTC.Types (SafeParameter(..))
 
 (@??) :: (Show a, HasCallStack) => a -> (a -> Bool) -> Assertion
@@ -27,8 +27,8 @@ import Lorentz.Contracts.TZBTC.Types (SafeParameter(..))
   predicate val @?
   ("Predicate does not hold for value " <> show val)
 
-test_paramToExpression :: TestTree
-test_paramToExpression = testGroup "Test converting Parameter to Micheline expression"
+test_nicePackedValueToExpression :: TestTree
+test_nicePackedValueToExpression = testGroup "Test converting Parameter to Micheline expression"
   [ testCase "Pause" $
     parameterRoundTrip (Pause ()) @?=
     Right (Pause ())
@@ -42,7 +42,7 @@ test_paramToExpression = testGroup "Test converting Parameter to Micheline expre
 
 parameterRoundTrip :: SafeParameter a -> Either UnpackError (SafeParameter a)
 parameterRoundTrip = fmap fromVal . unpackValue' .
-  cons 0x05 . encode . paramToExpression
+  cons 0x05 . encode . nicePackedValueToExpression
 
 test_signatureParser :: TestTree
 test_signatureParser = testGroup "Test parsing tezos-client sign output"

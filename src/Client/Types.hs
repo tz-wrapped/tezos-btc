@@ -5,6 +5,7 @@
 module Client.Types
   ( AlmostStorage (..)
   , AppliedResult (..)
+  , BlockConstants (..)
   , ClientConfigP (..)
   , ClientConfig
   , ClientConfigPartial
@@ -17,6 +18,7 @@ module Client.Types
   , OriginationScript (..)
   , ParametersInternal (..)
   , Partial (..)
+  , PreApplyOperation (..)
   , RunError (..)
   , RunMetadata (..)
   , RunOperation (..)
@@ -33,11 +35,14 @@ module Client.Types
   , withDefault
   ) where
 
-import Data.Aeson (FromJSON(..), ToJSON(..), object, withObject, genericParseJSON, genericToJSON, (.=), (.:), (.:?), (.!=))
+import Data.Aeson
+  (FromJSON(..), ToJSON(..), Value(..), object, withObject, genericParseJSON,
+  genericToJSON, (.=), (.:), (.:?), (.!=))
 import Data.Aeson.Casing (aesonPrefix, snakeCase)
-import Data.Aeson.TH (deriveJSON)
+import Data.Aeson.TH (deriveFromJSON, deriveToJSON)
 import Data.List (isSuffixOf)
 import Data.Text as T (isPrefixOf)
+import Data.Vector (fromList)
 import Fmt (Buildable(..), (+|), (|+))
 import GHC.TypeLits
 import Options.Applicative
@@ -48,7 +53,7 @@ import Tezos.Json (TezosWord64(..))
 
 import Michelson.Typed (IsoValue)
 import Tezos.Address (Address)
-import Tezos.Crypto (PublicKey, Signature, encodeBase58Check)
+import Tezos.Crypto (Signature, encodeBase58Check, formatSignature)
 
 import Lorentz.Contracts.TZBTC.Types (StorageFields)
 
@@ -78,25 +83,55 @@ data AlmostStorage interface = AlmostStorage
 
 data ForgeOperation = ForgeOperation
   { foBranch :: Text
-  , foContents :: [TransactionOperation]
+  , foContents :: [Either TransactionOperation OriginationOperation]
   }
+
+
+contentsToJSON :: [Either TransactionOperation OriginationOperation] -> Value
+contentsToJSON = Array . fromList .
+  map (\case
+          Right transOp -> toJSON transOp
+          Left origOp -> toJSON origOp
+      )
 
 instance ToJSON ForgeOperation where
   toJSON ForgeOperation{..} = object
     [ "branch" .= toString foBranch
-    , "contents" .= toJSON foContents
+    , ("contents", contentsToJSON foContents)
     ]
 
 data RunOperationInternal = RunOperationInternal
   { roiBranch :: Text
-  , roiContents :: [TransactionOperation]
+  , roiContents :: [Either TransactionOperation OriginationOperation]
   , roiSignature :: Signature
   }
+
+instance ToJSON RunOperationInternal where
+  toJSON RunOperationInternal{..} = object
+    [ "branch" .= toString roiBranch
+    , ("contents", contentsToJSON roiContents)
+    , "signature" .= toJSON roiSignature
+    ]
 
 data RunOperation = RunOperation
   { roOperation :: RunOperationInternal
   , roChainId :: Text
   }
+
+data PreApplyOperation = PreApplyOperation
+  { paoProtocol :: Text
+  , paoBranch :: Text
+  , paoContents :: [Either TransactionOperation OriginationOperation]
+  , paoSignature :: Signature
+  }
+
+instance ToJSON PreApplyOperation where
+  toJSON PreApplyOperation{..} = object
+    [ "branch" .= toString paoBranch
+    , ("contents", contentsToJSON paoContents)
+    , "protocol" .= toString paoProtocol
+    , "signature" .= formatSignature paoSignature
+    ]
 
 data RunRes = RunRes
   { rrOperationContents :: [OperationContent]
@@ -128,6 +163,11 @@ newtype InternalOperation = InternalOperation
 instance FromJSON InternalOperation where
   parseJSON = withObject "internal_operation" $ \o ->
     InternalOperation <$> o .: "result"
+
+data BlockConstants = BlockConstants
+  { bcProtocol :: Text
+  , bcChainId :: Text
+  }
 
 data RunError
   = RuntimeError Address
@@ -191,7 +231,7 @@ data AppliedResult = AppliedResult
   , arStorageSize :: TezosWord64
   , arPaidStorageDiff :: TezosWord64
   , arOriginatedContracts :: [Address]
-  }
+  } deriving Show
 
 instance Semigroup AppliedResult where
   (<>) ar1 ar2 = AppliedResult
@@ -200,6 +240,9 @@ instance Semigroup AppliedResult where
     , arPaidStorageDiff = arPaidStorageDiff ar1 + arPaidStorageDiff ar2
     , arOriginatedContracts = arOriginatedContracts ar1 <> arOriginatedContracts ar2
     }
+
+instance Monoid AppliedResult where
+  mempty = AppliedResult 0 0 0 []
 
 combineResults :: RunOperationResult -> RunOperationResult -> RunOperationResult
 combineResults
@@ -257,7 +300,6 @@ data OriginationOperation = OriginationOperation
   , ooGasLimit :: TezosWord64
   , ooStorageLimit :: TezosWord64
   , ooBalance :: TezosWord64
-  , ooDelegatable :: Maybe (PublicKey)
   , ooScript :: OriginationScript
   }
 
@@ -367,9 +409,9 @@ instance (FromJSON a) => FromJSON (TextConfig a) where
 instance FromJSON ClientConfig where
   parseJSON = genericParseJSON (aesonPrefix snakeCase)
 
-deriveJSON (aesonPrefix snakeCase) ''ParametersInternal
-deriveJSON (aesonPrefix snakeCase) ''TransactionOperation
-deriveJSON (aesonPrefix snakeCase) ''OriginationScript
-deriveJSON (aesonPrefix snakeCase) ''OriginationOperation
-deriveJSON (aesonPrefix snakeCase) ''RunOperationInternal
-deriveJSON (aesonPrefix snakeCase) ''RunOperation
+deriveToJSON (aesonPrefix snakeCase) ''ParametersInternal
+deriveToJSON (aesonPrefix snakeCase) ''TransactionOperation
+deriveToJSON (aesonPrefix snakeCase) ''OriginationScript
+deriveToJSON (aesonPrefix snakeCase) ''OriginationOperation
+deriveToJSON (aesonPrefix snakeCase) ''RunOperation
+deriveFromJSON (aesonPrefix snakeCase) ''BlockConstants

@@ -154,6 +154,9 @@ main = do
         case pkgs of
           Left err -> putStrLn err
           Right packages -> runMultisigContract packages
+      CmdDeployContract admin' redeem' -> do
+        [admin, redeem] <- mapM addrOrAliasToAddr [admin', redeem']
+        deployTzbtcContract admin redeem
   where
     runMultisigTzbtcContract :: (Maybe FilePath) -> Parameter a -> IO ()
     runMultisigTzbtcContract mbMultisig param =
