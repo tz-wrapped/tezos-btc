@@ -263,7 +263,7 @@ injectOp opToInject sign config = do
     (injectOperation (Just "main") $ prepareForInjection opToInject sign) clientEnv
 
 runTransaction
-  :: (ParamConstraints param)
+  :: (NicePackedValue param)
   => Address -> param -> ClientConfig -> IO ()
 runTransaction to param config@ClientConfig{..} = do
   clientEnv <- getClientEnv config

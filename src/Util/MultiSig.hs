@@ -6,7 +6,6 @@
 
 module Util.MultiSig
   ( Package(..)
-  , ParamConstraints
   , addSignature
   , decodePackage
   , encodePackage
@@ -36,7 +35,6 @@ import Lorentz.Contracts.TZBTC.MultiSig as MSig
 import Lorentz.Contracts.TZBTC as TZBTC
 import Lorentz.Contracts.TZBTC.Types as TZBTC
 import Michelson.Interpret.Unpack
-import Michelson.Typed
 import Tezos.Crypto
 
 -- The work flow consist of first calling the `mkPackage` function with the
@@ -51,14 +49,6 @@ import Tezos.Crypto
 -- `mkMultiSigParam` function, which will create a multi-sig contract param.
 -- This to param, when used in a call to the multisig contract make it validate
 -- the signatures and call the action in the main contract.
-
-type ParamConstraints parameter =
-  ( KnownValue parameter
-  , NoOperation parameter
-  , HasNoOp (ToT parameter)
-  , IsoValue parameter
-  , NoBigMap parameter
-  , HasNoBigMap (ToT parameter))
 
 -- | This is the structure that will be serialized and signed on. We are using
 -- this particular type because the multisig contract extracts the payload,
