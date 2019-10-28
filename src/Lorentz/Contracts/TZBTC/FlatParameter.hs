@@ -28,7 +28,6 @@ import Lorentz.Contracts.TZBTC.Types
 data FlatParameter interface
   = Run (UParam interface)
   | Upgrade (UpgradeParameters interface)
-  | SetMaster Address
   | EpwBeginUpgrade Natural  -- version
   | EpwApplyMigration MigrationScript
   | EpwSetCode (UContractRouter interface)
@@ -57,7 +56,6 @@ fromFlatParameter :: FlatParameter s -> TZBTC.Parameter s
 fromFlatParameter = \case
   Run a -> TZBTC.SafeEntrypoints $ TZBTC.Run a
   Upgrade a -> TZBTC.SafeEntrypoints $ TZBTC.Upgrade a
-  SetMaster a -> TZBTC.SafeEntrypoints $ TZBTC.SetMaster a
   EpwBeginUpgrade a -> TZBTC.SafeEntrypoints $ TZBTC.EpwBeginUpgrade a
   EpwApplyMigration a -> TZBTC.SafeEntrypoints $ TZBTC.EpwApplyMigration (#migrationscript .! a)
   EpwSetCode a -> TZBTC.SafeEntrypoints $ TZBTC.EpwSetCode (#contractcode .! a)

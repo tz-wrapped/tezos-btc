@@ -20,7 +20,7 @@ import Options.Applicative
 import qualified Options.Applicative as Opt
 import qualified Text.Megaparsec as P
   (Parsec, customFailure, many, parse, satisfy)
-import Text.Megaparsec.Char (space, newline)
+import Text.Megaparsec.Char (space, eol)
 import Text.Megaparsec.Char.Lexer (symbol)
 import Text.Megaparsec.Error (ParseErrorBundle, ShowErrorComponent(..))
 
@@ -427,7 +427,7 @@ tezosClientAddressParser :: Parser (Address, PublicKey)
 tezosClientAddressParser = do
   void $ symbol space "Hash:"
   rawAddress <- fromString <$> P.many (P.satisfy isBase58Char)
-  void $ newline
+  void $ eol
   void $ symbol space "Public Key:"
   rawPublicKey <- fromString <$> P.many (P.satisfy isBase58Char)
   case (parseAddress rawAddress, parsePublicKey rawPublicKey) of

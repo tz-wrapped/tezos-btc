@@ -36,7 +36,7 @@ import Lorentz.Contracts.TZBTC.V1
 -- Implementation
 ----------------------------------------------------------------------------
 
-tzbtcCompilationWay :: LorentzCompilationWay TZBTCParameter TZBTCStorage
+tzbtcCompilationWay :: (NiceStorage store) => LorentzCompilationWay TZBTCParameter store
 tzbtcCompilationWay = lcwEntryPointsRecursive
 
 toSafeParam :: Parameter a -> Maybe (SafeParameter a)
