@@ -3,11 +3,13 @@
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
 module Client.IO
-  ( addrOrAliasToAddr
+  ( HasStoreTemplateField
+  , addrOrAliasToAddr
   , createMultisigPackage
   , getAllowance
   , getBalance
-  , getFromTzbtcStorage
+  , getFieldFromTzbtcUStore
+  , getValueFromTzbtcUStoreSubmap
   , getPackageFromFile
   , runConfigEdit
   , runTzbtcContract
@@ -22,8 +24,9 @@ import Data.Aeson.Encode.Pretty (encodePretty)
 import Data.ByteString (cons, readFile, writeFile)
 import qualified Data.ByteString.Lazy as BSL hiding (putStrLn)
 import qualified Data.ByteString.Lazy.Char8 as BSL (putStrLn)
-import qualified Data.Map as Map (empty, lookup)
+import qualified Data.Map as Map (lookup)
 import Fmt (pretty)
+import Named (Name(..), arg)
 import Network.HTTP.Client
   (ManagerSettings(..), Request(..), newManager, defaultManagerSettings)
 import Network.HTTP.Types.Status (notFound404)
@@ -36,7 +39,12 @@ import System.Process (readProcessWithExitCode)
 import System.Environment.XDG.BaseDir (getUserConfigDir, getUserConfigFile)
 import Tezos.Json (TezosWord64(..))
 
-import Michelson.Interpret.Unpack (UnpackError)
+import Lorentz.Constraints (NicePackedValue, NiceUnpackedValue)
+import Lorentz.Contracts.ManagedLedger.Types (LedgerValue)
+import Lorentz.Pack (lPackValue, lUnpackValue)
+import Lorentz.UStore (HasUField, HasUStore)
+import Lorentz.UStore.Common (fieldNameToMText)
+import Michelson.Interpret.Unpack (dummyUnpackEnv)
 import Michelson.Runtime.GState (genesisAddress1, genesisAddress2)
 import Michelson.Untyped (InternalByteString(..))
 import Tezos.Address (Address, formatAddress, parseAddress)
@@ -48,7 +56,8 @@ import Client.Error
 import Client.Parser
 import Client.Types
 import Client.Util
-import Lorentz.Contracts.TZBTC (fromFlatParameter, Interface, FlatParameter(..), SafeParameter, Parameter)
+import Lorentz.Contracts.TZBTC
+  (FlatParameter(..), Interface, SafeParameter, StoreTemplate, Parameter, fromFlatParameter)
 import qualified Lorentz.Contracts.TZBTC.MultiSig as MSig
 import Util.MultiSig
 import Util.Editor
@@ -140,46 +149,81 @@ getMultisigStorage addr config@ClientConfig{..} = do
     runClientM (getStorage $ formatAddress addr) clientEnv
   throwLeft $ pure $ exprToValue @MSig.Storage mSigStorageRaw
 
-getFromTzbtcStorage :: (AlmostStorage Interface -> a) -> IO a
-getFromTzbtcStorage field = do
+type HasStoreTemplateField t name =
+  ( HasUField name t StoreTemplate
+  , NiceUnpackedValue t
+  )
+
+type HasStoreTemplateSubmap key value name =
+  ( HasUStore name key value StoreTemplate
+  , NicePackedValue key, NiceUnpackedValue value
+  )
+
+-- | Get field with given name from TZBTC contract UStore.
+--
+getFieldFromTzbtcUStore
+  :: forall name t. HasStoreTemplateField t name
+  => IO (Maybe t)
+getFieldFromTzbtcUStore =
+  getFromTzbtcUStore $ fieldNameToMText @name
+
+-- | Get value assosiated with given key from given submap of
+-- TZBTC contract UStore.
+getValueFromTzbtcUStoreSubmap
+  :: forall name key value. (HasStoreTemplateSubmap key value name)
+  => key -> IO (Maybe value)
+getValueFromTzbtcUStoreSubmap key =
+  getFromTzbtcUStore (fieldNameToMText @name , key)
+
+-- | Get value for given keu from UStore.
+--
+-- UStore is basically `BigMap Bytestring ByteString`.
+-- So in order to get value from it we pack the key into
+-- `ByteString` and perform getting from BigMap using RPC call.
+-- After obtaining value we unpack it to the desired type.
+getFromTzbtcUStore
+  :: forall key value.
+     ( NicePackedValue key
+     , NiceUnpackedValue value
+     )
+  => key -> IO (Maybe value)
+getFromTzbtcUStore key = do
   config <- throwLeft $ readConfigFile
-  storage <- getTzbtcStorage config
-  pure $ field storage
-
-getTzbtcStorage
-  :: ClientConfig -> IO (AlmostStorage Interface)
-getTzbtcStorage config@ClientConfig{..} = do
   clientEnv <- getClientEnv config
-  storageRaw <- throwClientError $
-    runClientM (getStorage $ formatAddress ccContractAddress) clientEnv
-  throwLeft $ pure $ exprToValue @(AlmostStorage Interface) storageRaw
-
-getFromLedger :: Address -> IO (Either UnpackError (Natural, Map Address Natural))
-getFromLedger addr = do
-  config@ClientConfig{..} <- throwLeft $ readConfigFile
-  AlmostStorage{..} <- getTzbtcStorage config
-  clientEnv <- getClientEnv config
-  let scriptExpr = encodeBase58Check $ valueToScriptExpr addr
-  ledgerValueRaw <-
-    runClientM (getFromBigMap (asBigMapId) scriptExpr) clientEnv
-  case ledgerValueRaw of
+  AlmostStorage{..} <- getTzbtcStorage config clientEnv
+  let scriptExpr = encodeBase58Check . valueToScriptExpr . lPackValue $ key
+  fieldValueRaw <- runClientM (getFromBigMap asBigMapId scriptExpr) clientEnv
+  case fieldValueRaw of
     Left err -> case err of
       FailureResponse _ Response{..} -> do
-        if responseStatusCode == notFound404 then pure $ Right (0, Map.empty)
+        if responseStatusCode == notFound404 then pure $ Nothing
         else throwM err
       _ -> throwM err
-    Right rawVal -> pure $
-      exprToValue @(Natural, Map Address Natural) rawVal
+    Right veryRawVal -> do
+      rawVal <- throwLeft $ pure $ exprToValue @ByteString veryRawVal
+      fmap Just . throwLeft . pure $ lUnpackValue dummyUnpackEnv rawVal
+
+getTzbtcStorage
+  :: ClientConfig -> ClientEnv -> IO (AlmostStorage Interface)
+getTzbtcStorage ClientConfig{..} clientEnv = do
+  storageRaw <- throwClientError $
+    runClientM (getStorage $ formatAddress ccContractAddress) clientEnv
+  throwLeft $ pure $ exprToValue storageRaw
 
 getBalance :: Address -> IO Natural
 getBalance addr = do
-  (balance, _) <- throwLeft $ getFromLedger addr
-  pure balance
+  mbLedgerValue <- getValueFromTzbtcUStoreSubmap @"ledger" @Address @LedgerValue addr
+  case mbLedgerValue of
+    Nothing -> pure 0
+    Just ledgerValue -> pure $ arg (Name @"balance") . fst $ ledgerValue
 
 getAllowance :: Address -> Address -> IO Natural
 getAllowance owner spender = do
-  (_, allowanceMap) <- throwLeft $ getFromLedger owner
-  maybe (pure 0) pure $ Map.lookup spender allowanceMap
+  mbLedgerValue <- getValueFromTzbtcUStoreSubmap @"ledger" @Address @LedgerValue owner
+  case mbLedgerValue of
+    Nothing -> pure 0
+    Just ledgerValue -> let approvals = arg (Name @"approvals") . snd $ ledgerValue in
+      pure $ maybe 0 id $ Map.lookup spender approvals
 
 getCosts
   :: ClientEnv -> RunOperation
@@ -219,7 +263,7 @@ injectOp opToInject sign config = do
     (injectOperation (Just "main") $ prepareForInjection opToInject sign) clientEnv
 
 runTransaction
-  :: (ParamConstraints param)
+  :: (NicePackedValue param)
   => Address -> param -> ClientConfig -> IO ()
 runTransaction to param config@ClientConfig{..} = do
   clientEnv <- getClientEnv config
