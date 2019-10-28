@@ -64,7 +64,7 @@ main = do
           Just callback' -> do
             [owner, callback] <- mapM addrOrAliasToAddr [owner', callback']
             runTzbtcContract $
-              fromFlatParameter $ GetBalance $ View owner (ContractAddr callback)
+              fromFlatParameter $ GetBalance $ View (#owner .! owner) (ContractAddr callback)
           Nothing -> do
             owner <- addrOrAliasToAddr owner'
             balance <- getBalance owner

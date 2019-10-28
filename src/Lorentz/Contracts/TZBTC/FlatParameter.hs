@@ -18,7 +18,7 @@ import Util.Named
 
 import qualified Lorentz.Contracts.TZBTC.Types as TZBTC
 import Lorentz.Contracts.TZBTC.Types
-  ( UpgradeParameters, GetAllowanceParams, TransferParams, ApproveParams
+  ( UpgradeParameters, GetAllowanceParams, GetBalanceParams, TransferParams, ApproveParams
   , MintParams, BurnParams, OperatorParams, SetRedeemAddressParams
   , TransferOwnershipParams, AcceptOwnershipParams)
 
@@ -35,7 +35,7 @@ data FlatParameter interface
   -- TZBTC Entrypoints
   | GetVersion (View () Natural)
   | GetAllowance        !(View GetAllowanceParams Natural)
-  | GetBalance          !(View Address Natural)
+  | GetBalance          !(View GetBalanceParams Natural)
   | GetTotalSupply      !(View () Natural)
   | GetTotalMinted      !(View () Natural)
   | GetTotalBurned      !(View () Natural)

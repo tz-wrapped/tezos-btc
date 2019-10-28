@@ -13,7 +13,7 @@ import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (Assertion, testCase, (@?=), (@?))
 import Tezos.Binary (encode)
 
-import Michelson.Interpret.Unpack (UnpackError(..), dummyUnpackEnv, unpackValue')
+import Michelson.Interpret.Unpack (UnpackError(..), unpackValue')
 import Michelson.Typed.Haskell.Value (IsoValue(..))
 import Lorentz.Test.Integrational (genesisAddress1)
 import Util.Named ((.!))
@@ -41,7 +41,7 @@ test_paramToExpression = testGroup "Test converting Parameter to Micheline expre
   ]
 
 parameterRoundTrip :: SafeParameter a -> Either UnpackError (SafeParameter a)
-parameterRoundTrip = fmap fromVal . unpackValue' dummyUnpackEnv .
+parameterRoundTrip = fmap fromVal . unpackValue' .
   cons 0x05 . encode . paramToExpression
 
 test_signatureParser :: TestTree
