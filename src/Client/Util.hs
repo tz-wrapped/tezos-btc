@@ -100,6 +100,7 @@ throwClientError =
   (>>= \case
       Left e -> throwM $ TzbtcServantError e
       Right x -> return x)
+
 throwLeft :: (MonadThrow m, Exception e) => m (Either e a) -> m a
 throwLeft =
   (>>= \case

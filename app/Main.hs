@@ -16,7 +16,6 @@ import Options.Applicative.Help.Pretty (Doc, linebreak)
 import Lorentz
 import Lorentz.Common (showTestScenario)
 import Paths_tzbtc (version)
-import Util.IO (writeFileUtf8)
 
 import CLI.Parser
 import Lorentz.Contracts.TZBTC
@@ -24,6 +23,8 @@ import Lorentz.Contracts.TZBTC
   tzbtcContractRouter, tzbtcDoc)
 import Lorentz.Contracts.TZBTC.Test (mkTestScenario)
 import Util.Migration
+import Util.AbstractIO
+import Client.IO ()
 
 -- Here in main function we will just accept commands from user
 -- and print the smart contract parameter by using `printLorentzValue`
@@ -35,33 +36,36 @@ main = do
     CmdPrintContract singleLine mbFilePath ->
       printContract singleLine mbFilePath tzbtcContract
     CmdPrintInitialStorage adminAddress -> do
-      putStrLn $ printLorentzValue True (mkEmptyStorageV0 adminAddress)
+      printLTextLn $ printLorentzValue True (mkEmptyStorageV0 adminAddress)
     CmdPrintDoc mbFilePath ->
-      maybe putStrLn writeFileUtf8 mbFilePath tzbtcDoc
+      maybe printLTextLn writeFileUtf8 mbFilePath tzbtcDoc
     CmdParseParameter t ->
-      either (throwString . pretty) (putTextLn . pretty) $
+      either (throwString . pretty) (printTextLn . pretty) $
       parseLorentzValue @(Parameter _) t
     CmdTestScenario TestScenarioOptions {..} -> do
       maybe (throwString "Not enough addresses")
-        (maybe putStrLn writeFileUtf8 tsoOutput) $
+        (maybe printTextLn writeFileUtf8 tsoOutput) $
         showTestScenario <$> mkTestScenario tsoMaster tsoAddresses
     CmdMigrate
       (arg #version -> version_)
       (arg #adminAddress -> admin)
       (arg #redeemAddress -> redeem)
       (arg #output -> fp) -> do
-        (maybe putStrLn writeFileUtf8 fp) $
+        (maybe printLTextLn writeFileUtf8 fp) $
           makeMigrationParams version_ tzbtcContractRouter $
             (migrationScripts $ originationParams admin redeem mempty)
   where
     printContract
       :: (ParameterEntryPoints parameter, NiceStorage storage)
+         , KnownValue storage
+         , HasFilesystem m
+         , HasCmdLine m)
       => Bool
       -> Maybe FilePath
       -> Contract parameter storage
-      -> IO ()
+      -> m ()
     printContract singleLine mbFilePath c =
-      maybe putStrLn writeFileUtf8 mbFilePath $
+      maybe printLTextLn writeFileUtf8 mbFilePath $
         printLorentzContract singleLine c
     programInfo =
       info (helper <*> versionOption <*> argParser) $
