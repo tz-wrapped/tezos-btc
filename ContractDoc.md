@@ -300,37 +300,6 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-##### `SetMaster`
-
-This entry point is used to set the master of the contract.
-
-**Parameter:** [`Address`](#types-Address)
-
-<details>
-  <summary><b>How to call this entry point</b></summary>
-
-0. Construct parameter for the entry point.
-1. Wrap into `SetMaster` constructor.
-    + **In Haskell:** `SetMaster (·)`
-    + **In Michelson:** `Left (Left (Right (Left (·))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (·)))`
-
-Pass resulting value as parameter to the contract.
-
-</details>
-<p>
-
-
-
-**Possible errors:**
-* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
-
-
-
----
-
 ##### `EpwBeginUpgrade`
 
 This entry point is used to start an entrypoint wise upgrade of the contract.
@@ -343,7 +312,7 @@ This entry point is used to start an entrypoint wise upgrade of the contract.
 0. Construct parameter for the entry point.
 1. Wrap into `EpwBeginUpgrade` constructor.
     + **In Haskell:** `EpwBeginUpgrade (·)`
-    + **In Michelson:** `Left (Left (Right (Right (·))))`
+    + **In Michelson:** `Left (Left (Right (Left (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `SafeEntrypoints (·)`
     + **In Michelson:** `Right (Right (Right (·)))`
@@ -378,7 +347,7 @@ This entry point is used to apply an migration script as part of an upgrade.
 0. Construct parameter for the entry point.
 1. Wrap into `EpwApplyMigration` constructor.
     + **In Haskell:** `EpwApplyMigration (·)`
-    + **In Michelson:** `Left (Right (Left (Left (·))))`
+    + **In Michelson:** `Left (Left (Right (Right (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `SafeEntrypoints (·)`
     + **In Michelson:** `Right (Right (Right (·)))`
@@ -411,7 +380,7 @@ This entry point is used to set the dispatching code that calls the packed entry
 0. Construct parameter for the entry point.
 1. Wrap into `EpwSetCode` constructor.
     + **In Haskell:** `EpwSetCode (·)`
-    + **In Michelson:** `Left (Right (Left (Right (·))))`
+    + **In Michelson:** `Left (Right (Left (Left (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `SafeEntrypoints (·)`
     + **In Michelson:** `Right (Right (Right (·)))`
@@ -444,7 +413,7 @@ This entry point is used to mark that an upgrade has been finsihed.
 0. Construct parameter for the entry point.
 1. Wrap into `EpwFinishUpgrade` constructor.
     + **In Haskell:** `EpwFinishUpgrade (·)`
-    + **In Michelson:** `Left (Right (Right (Left (·))))`
+    + **In Michelson:** `Left (Right (Left (Right (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `SafeEntrypoints (·)`
     + **In Michelson:** `Right (Right (Right (·)))`
@@ -477,7 +446,7 @@ This entry point is used transfer tokens from one account to another.
 0. Construct parameter for the entry point.
 1. Wrap into `Transfer` constructor.
     + **In Haskell:** `Transfer (·)`
-    + **In Michelson:** `Left (Right (Right (Right (Left (·)))))`
+    + **In Michelson:** `Left (Right (Right (Left (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `SafeEntrypoints (·)`
     + **In Michelson:** `Right (Right (Right (·)))`
@@ -508,7 +477,7 @@ This entry point is used approve transfer of tokens from one account to another.
 0. Construct parameter for the entry point.
 1. Wrap into `Approve` constructor.
     + **In Haskell:** `Approve (·)`
-    + **In Michelson:** `Left (Right (Right (Right (Right (·)))))`
+    + **In Michelson:** `Left (Right (Right (Right (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `SafeEntrypoints (·)`
     + **In Michelson:** `Right (Right (Right (·)))`
@@ -874,37 +843,6 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-### `SetMaster`
-
-This entry point is used to set the master of the contract.
-
-**Parameter:** [`Address`](#types-Address)
-
-<details>
-  <summary><b>How to call this entry point</b></summary>
-
-0. Construct parameter for the entry point.
-1. Wrap into `SetMaster` constructor.
-    + **In Haskell:** `SetMaster (·)`
-    + **In Michelson:** `Left (Left (Right (Left (·))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right ((·))))`
-
-Pass resulting value as parameter to the contract.
-
-</details>
-<p>
-
-
-
-**Possible errors:**
-* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
-
-
-
----
-
 ### `EpwBeginUpgrade`
 
 This entry point is used to start an entrypoint wise upgrade of the contract.
@@ -917,7 +855,7 @@ This entry point is used to start an entrypoint wise upgrade of the contract.
 0. Construct parameter for the entry point.
 1. Wrap into `EpwBeginUpgrade` constructor.
     + **In Haskell:** `EpwBeginUpgrade (·)`
-    + **In Michelson:** `Left (Left (Right (Right (·))))`
+    + **In Michelson:** `Left (Left (Right (Left (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `Run (·)`
     + **In Michelson:** `Right (Right (Right ((·))))`
@@ -952,7 +890,7 @@ This entry point is used to apply an migration script as part of an upgrade.
 0. Construct parameter for the entry point.
 1. Wrap into `EpwApplyMigration` constructor.
     + **In Haskell:** `EpwApplyMigration (·)`
-    + **In Michelson:** `Left (Right (Left (Left (·))))`
+    + **In Michelson:** `Left (Left (Right (Right (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `Run (·)`
     + **In Michelson:** `Right (Right (Right ((·))))`
@@ -985,7 +923,7 @@ This entry point is used to set the dispatching code that calls the packed entry
 0. Construct parameter for the entry point.
 1. Wrap into `EpwSetCode` constructor.
     + **In Haskell:** `EpwSetCode (·)`
-    + **In Michelson:** `Left (Right (Left (Right (·))))`
+    + **In Michelson:** `Left (Right (Left (Left (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `Run (·)`
     + **In Michelson:** `Right (Right (Right ((·))))`
@@ -1018,7 +956,7 @@ This entry point is used to mark that an upgrade has been finsihed.
 0. Construct parameter for the entry point.
 1. Wrap into `EpwFinishUpgrade` constructor.
     + **In Haskell:** `EpwFinishUpgrade (·)`
-    + **In Michelson:** `Left (Right (Right (Left (·))))`
+    + **In Michelson:** `Left (Right (Left (Right (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `Run (·)`
     + **In Michelson:** `Right (Right (Right ((·))))`
@@ -1051,7 +989,7 @@ This entry point is used transfer tokens from one account to another.
 0. Construct parameter for the entry point.
 1. Wrap into `Transfer` constructor.
     + **In Haskell:** `Transfer (·)`
-    + **In Michelson:** `Left (Right (Right (Right (Left (·)))))`
+    + **In Michelson:** `Left (Right (Right (Left (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `Run (·)`
     + **In Michelson:** `Right (Right (Right ((·))))`
@@ -1082,7 +1020,7 @@ This entry point is used approve transfer of tokens from one account to another.
 0. Construct parameter for the entry point.
 1. Wrap into `Approve` constructor.
     + **In Haskell:** `Approve (·)`
-    + **In Michelson:** `Left (Right (Right (Right (Right (·)))))`
+    + **In Michelson:** `Left (Right (Right (Right (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `Run (·)`
     + **In Michelson:** `Right (Right (Right ((·))))`
@@ -1509,7 +1447,6 @@ Parameter which does not have unsafe arguments, like raw `Contract p` values.
 **Structure:** *one of*
 + **Run** [`UParam`](#types-Upgradable-parameter)
 + **Upgrade** (***newVersion*** : [`Natural`](#types-Natural), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript), ***newCode*** : [`UContractRouter`](#types-UContractRouter))
-+ **SetMaster** [`Address`](#types-Address)
 + **EpwBeginUpgrade** [`Natural`](#types-Natural)
 + **EpwApplyMigration** (***migrationscript*** : [`MigrationScript`](#types-MigrationScript))
 + **EpwSetCode** (***contractcode*** : [`UContractRouter`](#types-UContractRouter))
@@ -1527,7 +1464,7 @@ Parameter which does not have unsafe arguments, like raw `Contract p` values.
 + **AcceptOwnership** [`()`](#types-lparenrparen)
 
 
-**Final Michelson representation:** `or (or (or (or (pair string bytes) (pair nat (pair (lambda (big_map bytes bytes) (big_map bytes bytes)) (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))))) (or address nat)) (or (or (lambda (big_map bytes bytes) (big_map bytes bytes)) (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))) (or unit (or (pair address (pair address nat)) (pair address nat))))) (or (or (or (pair address nat) nat) (or address address)) (or (or address unit) (or unit (or address unit))))`
+**Final Michelson representation:** `or (or (or (or (pair string bytes) (pair nat (pair (lambda (big_map bytes bytes) (big_map bytes bytes)) (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))))) (or nat (lambda (big_map bytes bytes) (big_map bytes bytes)))) (or (or (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))) unit) (or (pair address (pair address nat)) (pair address nat)))) (or (or (or (pair address nat) nat) (or address address)) (or (or address unit) (or unit (or address unit))))`
 
 
 
@@ -1630,6 +1567,18 @@ We distinquish several error classes:
   If an internal error is thrown, please report it to the author of this contract.
 
 
+<a name="errors-InternalError"></a>
+
+---
+
+### `InternalError`
+
+**Class:** Internal
+
+**Fires if:** Internal error occured.
+
+**Representation:** Textual error message, see [`Text`](#types-Text).
+
 <a name="errors-SenderIsNotAdmin"></a>
 
 ---
@@ -1679,3 +1628,4 @@ We distinquish several error classes:
 **Representation:** `("UpgVersionMismatch", <error argument>)`.
 
 Provided error argument will be of type (***expected*** : [`Natural`](#types-Natural), ***actual*** : [`Natural`](#types-Natural)).
+

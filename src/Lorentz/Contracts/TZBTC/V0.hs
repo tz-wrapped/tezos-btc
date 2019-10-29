@@ -15,14 +15,12 @@ module Lorentz.Contracts.TZBTC.V0
 
 import Prelude hiding (drop, swap, (>>))
 
-import qualified Data.Map as M
 import qualified Data.Text as T
 import Data.Vinyl.Derived (Label)
 import Fmt (Buildable (..), fmt)
 
 import Lorentz
 import Lorentz.Contracts.Upgradeable.Common hiding (Parameter(..), Storage)
-import Lorentz.UStore.Types
 import Michelson.Text
 import Michelson.Typed.Doc
   (DComment(..), DDescription(..), contractDocToMarkdown)
@@ -32,16 +30,23 @@ import Util.Markdown
 
 import Lorentz.Contracts.TZBTC.Types as Types
 
-mkEmptyStorageV0 :: Address -> TZBTCStorage
+-- | Template for the wrapped UStore which will hold the admin address
+-- only
+data StoreTemplateV0 = StoreTemplateV0
+  { admin         :: UStoreField Address
+  } deriving stock Generic
+
+mkEmptyStorageV0 :: Address -> UStoreV0
 mkEmptyStorageV0 admin = Storage
-  { dataMap = UStore $ T.BigMap $ M.fromList []
+  { dataMap = mkUStore (StoreTemplateV0 $ UStoreField admin)
   , fields = StorageFields
     { contractRouter  = emptyCode
-    , master = admin
     , currentVersion = 0
     , migrating = False
     }
   }
+
+type UStoreV0 = Storage Interface StoreTemplateV0
 
 emptyCode :: UContractRouter interface
 emptyCode = UContractRouter $ cdr # nil # pair
@@ -56,7 +61,7 @@ instance DocItem (DEntryPoint UpgradeableEntryPointKind) where
     "These are entry points of the contract."
   docItemToMarkdown = diEntryPointToMarkdown
 
-safeEntrypoints :: Entrypoint (SafeParameter Interface) TZBTCStorage
+safeEntrypoints :: Entrypoint (SafeParameter Interface) UStoreV0
 safeEntrypoints = entryCase @(SafeParameter Interface) (Proxy @UpgradeableEntryPointKind)
   ( #cRun /-> do
       doc $ DDescription
@@ -70,13 +75,6 @@ safeEntrypoints = entryCase @(SafeParameter Interface) (Proxy @UpgradeableEntryP
       getField #migrationScript; swap; dip (applyMigration)
       toField #newCode;
       endWithMigration
-  , #cSetMaster /-> do
-      doc $ DDescription
-        "This entry point is used to set the master of the contract."
-      dip (ensureMaster # getField #fields)
-      setField #master
-      setField #fields
-      nil; pair
   , #cEpwBeginUpgrade /-> do
       doc $ DDescription
         "This entry point is used to start an entrypoint wise upgrade of the contract."
@@ -153,7 +151,7 @@ safeEntrypoints = entryCase @(SafeParameter Interface) (Proxy @UpgradeableEntryP
   where
     endWithMigration = migrateCode # nil # pair
 
-tzbtcContract :: Contract (Parameter Interface) TZBTCStorage
+tzbtcContract :: Contract (Parameter Interface) UStoreV0
 tzbtcContract = do
   unpair
   entryCase @(Parameter Interface) (Proxy @UpgradeableEntryPointKind)
@@ -265,9 +263,10 @@ callUSafeViewEP epName = do
   coerce_ @((vi, Address)) @(SafeView vi vo)
   callUEp epName
 
-ensureMaster :: '[Storage interface store] :-> '[Storage interface store]
+ensureMaster :: (HasUField "admin" Address store) => '[Storage interface store] :-> '[Storage interface store]
 ensureMaster = do
-  getField #fields; toField #master
+  getField #dataMap;
+  ustoreToField #admin
   sender; eq
   if_ (nop) (failCustom_ #senderIsNotAdmin)
 

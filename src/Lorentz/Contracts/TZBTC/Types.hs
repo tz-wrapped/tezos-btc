@@ -72,7 +72,6 @@ deriving instance Show MigrationScript
 data SafeParameter (interface :: [EntryPointKind])
   = Run (UParam interface)
   | Upgrade (UpgradeParameters interface)
-  | SetMaster Address
 
   -- Entrypoint-wise upgrades are currently not protected from version mismatch
   -- in subsequent transactions, so the user ought to be careful with them.
@@ -151,8 +150,6 @@ instance Buildable (Parameter s) where
         "Transfer from " +| from |+ " to " +| to |+ ", value = " +| value |+ ""
       Approve (arg #spender -> spender, arg #value -> value) ->
         "Approve for " +| spender |+ ", value = " +| value |+ ""
-      SetMaster addr ->
-        "Set master to " +| addr |+ ""
       Mint (arg #to -> to, arg #value -> value) ->
         "Mint to " +| to |+ ", value = " +| value |+ ""
       Burn (arg #value -> value) ->
@@ -180,7 +177,6 @@ instance Buildable (Parameter s) where
 -- | The concrete fields of the contract
 data StorageFields interface = StorageFields
   { contractRouter  :: UContractRouter interface
-  , master :: Address
   , currentVersion :: Natural
   , migrating :: Bool
   } deriving stock (Generic, Show)

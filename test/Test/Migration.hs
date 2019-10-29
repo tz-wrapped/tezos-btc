@@ -51,12 +51,6 @@ test_adminCheck = testGroup "TZBTC contract migration endpoints test"
         v0 <- originateContract
         withSender bob $ lCall v0 $ fromFlatParameter $ EpwFinishUpgrade
         validate . Left $ lExpectCustomError_ #senderIsNotAdmin
-
-  , testCase "Test call to `SetMaster` endpoints are only available to master" $
-      integrationalTestExpectation $ do
-        v0 <- originateContract
-        withSender bob $ lCall v0 $ fromFlatParameter $ SetMaster adminAddress
-        validate . Left $ lExpectCustomError_ #senderIsNotAdmin
   ]
 
 -- Test that migration entrypoints check a not migrating status

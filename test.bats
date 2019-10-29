@@ -135,7 +135,7 @@
 
 @test "invoking tzbtc 'printInitialStorage' command" {
   result="$(stack exec -- tzbtc printInitialStorage --admin-address tz1f1S7V2hZJ3mhj47djb5j1saek8c2yB2Cx)"
-  [ "$result" == 'Pair { } (Pair (Pair { CDR; NIL operation; PAIR } "tz1f1S7V2hZJ3mhj47djb5j1saek8c2yB2Cx") (Pair 0 False))' ]
+  [ "$result" == 'Pair { Elt 0x05010000000561646d696e 0x050a000000160000d476acd953eb55d38c398c85c3f53e19b62b167a } (Pair { CDR; NIL operation; PAIR } (Pair 0 False))' ]
 }
 
 @test "invoking 'parseContractParameter' command to parse burn parameter" {
