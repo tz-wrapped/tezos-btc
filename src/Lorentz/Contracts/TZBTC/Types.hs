@@ -62,7 +62,6 @@ deriving instance Eq (UContractRouter interface)
 deriving instance Show (UContractRouter interface)
 
 deriving instance Eq MigrationScript
-deriving instance Show MigrationScript
 
 ----------------------------------------------------------------------------
 -- Parameter
@@ -96,13 +95,14 @@ data SafeParameter (interface :: [EntryPointKind])
   deriving stock (Eq, Generic, Show)
   deriving anyclass IsoValue
 
-instance TypeHasDoc (SafeParameter interface) where
+instance (Typeable interface) => TypeHasDoc (SafeParameter interface) where
   typeDocName _ = "Parameter.SafeParameter"
   typeDocMdDescription = "Parameter which does not have unsafe arguments, like raw `Contract p` values."
   typeDocMdReference tp =
     customTypeDocMdReference ("Parameter.SafeParameter", DType tp) []
   typeDocHaskellRep = homomorphicTypeDocHaskellRep
   typeDocMichelsonRep = homomorphicTypeDocMichelsonRep
+  typeDocDependencies = genericTypeDocDependencies
 
 -- | The actual parameter of the main TZBTC contract.
 data Parameter (interface :: [EntryPointKind])

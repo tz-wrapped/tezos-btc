@@ -25,7 +25,7 @@ import Lorentz
 import Lorentz.Contracts.Upgradeable.Common hiding (Parameter(..), Storage)
 import Michelson.Text
 import qualified Michelson.Typed as T
-import Michelson.Typed.Doc (DComment(..), DDescription(..), contractDocToMarkdown)
+import Michelson.Doc (DComment(..), DDescription(..), contractDocToMarkdown)
 import Util.Markdown
 import Util.TypeLits
 

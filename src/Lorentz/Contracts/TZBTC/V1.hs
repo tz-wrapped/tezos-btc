@@ -96,7 +96,7 @@ originationParams addr redeem balances =
 
 -- | Migrations to version 1 before preprocessing.
 migrationScriptsRaw :: OriginationParameters -> [MigrationScript]
-migrationScriptsRaw op = migrateStorage op ++ epwCodeMigrations epwContract
+migrationScriptsRaw op = migrateStorage op : epwCodeMigrations epwContract
 
 epwContract :: EpwContract Interface StoreTemplate
 epwContract = mkEpwContract v1Impl epwFallbackFail
@@ -122,9 +122,9 @@ originationParamsToStoreTemplate OriginationParameters {..} = let
   where
     toLedgerValue i = (#balance .! i, #approvals .! mempty)
 
-migrateStorage :: OriginationParameters -> [MigrationScript]
+migrateStorage :: OriginationParameters -> MigrationScript
 migrateStorage op =
   templateToMigration $ originationParamsToStoreTemplate op
   where
-    templateToMigration :: StoreTemplate -> [MigrationScript]
+    templateToMigration :: StoreTemplate -> MigrationScript
     templateToMigration template = migrationToScript $ fillUStore template
