@@ -324,7 +324,7 @@ data OriginationOperation = OriginationOperation
 
 data ConfigSt = ConfigFilled | ConfigPartial | ConfigText
 
-data Partial (label :: Symbol) a = Available a | Unavilable deriving (Eq, Functor)
+data Partial (label :: Symbol) a = Available a | Unavilable deriving (Eq, Show, Functor)
 
 -- | This type is used to represent fields in a config where some of
 -- the fields can be placeholders. Let's us to read the partial config
@@ -350,11 +350,14 @@ data ClientConfigP f = ClientConfig
   , ccMultisigAddress :: ConfigC f (Maybe Address) "multisig contract address"
   , ccUserAlias :: ConfigC f Text "user alias"
   , ccTezosClientExecutable :: ConfigC f FilePath "tezos-client executable path"
-  } deriving Generic
+  } deriving (Generic)
 
 -- For tests
 deriving instance Eq ClientConfig
 deriving instance Show ClientConfig
+
+deriving instance Eq ClientConfigPartial
+deriving instance Show ClientConfigPartial
 
 isAvailable :: Partial s a -> Bool
 isAvailable (Available _) = True

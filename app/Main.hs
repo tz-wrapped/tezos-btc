@@ -36,11 +36,11 @@ main = do
     CmdPrintContract singleLine mbFilePath ->
       printContract singleLine mbFilePath tzbtcContract
     CmdPrintInitialStorage adminAddress -> do
-      printLTextLn $ printLorentzValue True (mkEmptyStorageV0 adminAddress)
+      printTextLn $ printLorentzValue True (mkEmptyStorageV0 adminAddress)
     CmdPrintDoc mbFilePath ->
-      maybe printLTextLn writeFileUtf8 mbFilePath tzbtcDoc
+      maybe printTextLn writeFileUtf8 mbFilePath tzbtcDoc
     CmdParseParameter t ->
-      either (throwString . pretty) (printTextLn . pretty) $
+      either (throwString . pretty) (printStringLn . pretty) $
       parseLorentzValue @(Parameter _) t
     CmdTestScenario TestScenarioOptions {..} -> do
       maybe (throwString "Not enough addresses")
@@ -51,13 +51,13 @@ main = do
       (arg #adminAddress -> admin)
       (arg #redeemAddress -> redeem)
       (arg #output -> fp) -> do
-        (maybe printLTextLn writeFileUtf8 fp) $
+        (maybe printTextLn writeFileUtf8 fp) $
           makeMigrationParams version_ tzbtcContractRouter $
             (migrationScripts $ originationParams admin redeem mempty)
   where
     printContract
-      :: (ParameterEntryPoints parameter, NiceStorage storage)
-         , KnownValue storage
+      :: ( ParameterEntryPoints parameter
+         , NiceStorage storage
          , HasFilesystem m
          , HasCmdLine m)
       => Bool
@@ -65,7 +65,7 @@ main = do
       -> Contract parameter storage
       -> m ()
     printContract singleLine mbFilePath c =
-      maybe printLTextLn writeFileUtf8 mbFilePath $
+      maybe printTextLn writeFileUtf8 mbFilePath $
         printLorentzContract singleLine c
     programInfo =
       info (helper <*> versionOption <*> argParser) $

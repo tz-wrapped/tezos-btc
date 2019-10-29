@@ -2,9 +2,11 @@
  -
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
+{-# OPTIONS_GHC -Wno-orphans #-}
 module Client.IO
   ( runConfigEdit
   , runTzbtcContract
+  , deployTzbtcContract
   , getAllowance
   , getBalance
   , getPackageFromFile
@@ -15,96 +17,69 @@ module Client.IO
   , runMultisigContract
   , createMultisigPackage
   , getTzbtcStorage
-  , getFromTzbtcStorage
+  --, getFromTzbtcStorage
   , mainProgram
   ) where
 
-import Fmt (pretty)
-
+import Data.Aeson.Encode.Pretty (encodePretty)
+import qualified Data.Aeson as Aeson (ToJSON, FromJSON, decodeFileStrict)
+import Data.ByteString (cons)
+import qualified Data.ByteString.Lazy as BSL hiding (putStrLn)
+import qualified Data.ByteString as BS (readFile, writeFile)
+import qualified Data.ByteString.Char8 as BSC (putStrLn)
+import qualified Data.Map as Map
 import Data.Version (showVersion)
+import Data.Vinyl
 import Fmt (pretty)
+import Network.HTTP.Types.Status (notFound404)
+import Network.HTTP.Client (ManagerSettings(..), Request(..), defaultManagerSettings, newManager)
+import Network.HTTP.Client.TLS (tlsManagerSettings)
 import Options.Applicative
   (footerDoc, fullDesc, header, help, helper, info, infoOption, long, progDesc)
-
-import Lorentz.Macro (View(..))
-import Michelson.Typed.Haskell.Value (ContractAddr(..))
-import Paths_tzbtc (version)
-import Util.Named ((.!))
-
-import Client.Parser
-import Client.Types
-import Lorentz.Contracts.TZBTC
-import Util.MultiSig
-import Util.AbstractIO
-
-
-import Tezos.Address
 import Options.Applicative.Help.Pretty (Doc, linebreak)
-
-import qualified Data.Map as Map
-import qualified Data.ByteString.Lazy as BSL hiding (putStrLn)
-import qualified Data.ByteString.Lazy.Char8 as BSL (putStrLn)
-import Data.Aeson.Encode.Pretty (encodePretty)
-import Util.AbstractIO
-import Util.Editor
-import Client.Types
-import Client.Error
-import Client.Util
-import Tezos.Crypto
-import Lorentz.Contracts.TZBTC
-import qualified Lorentz.Contracts.TZBTC.MultiSig as MSig
-import Util.MultiSig as MSig
-import Michelson.Interpret.Unpack (UnpackError)
-import Servant.Client.Core as Servant (ClientError(..))
-import Servant.Client as Servant (ResponseF(..))
-import Network.HTTP.Types.Status (notFound404)
-import Client.Parser
-
-import Data.Aeson (FromJSON, ToJSON)
-import qualified Data.Map as Map
-import Data.Aeson.Encode.Pretty (encodePretty)
-import Data.ByteString (cons)
-import qualified Data.Aeson as Aeson (decodeFileStrict)
-import Options.Applicative as Opt
-import qualified Data.Text as T
-import qualified Data.Text.IO as T
-import qualified Data.Text.Lazy as LT
-import qualified Data.Text.Lazy.IO as LT
-import qualified Data.ByteString as BS (readFile, writeFile)
-import qualified Data.ByteString.Lazy as BSL
-import qualified Data.ByteString.Char8 as BSC (putStrLn)
+import Options.Applicative as Opt hiding (value)
 import qualified System.Directory as Directory (doesFileExist, createDirectoryIfMissing)
 import System.Environment.XDG.BaseDir (getUserConfigDir, getUserConfigFile)
 import System.Exit (ExitCode(..))
 import System.Process (readProcessWithExitCode)
-import Michelson.Untyped (InternalByteString(..))
+import Servant.Client.Core as Servant (ClientError(..))
+import Servant.Client as Servant (ResponseF(..))
 import Servant.Client
-  (BaseUrl(..), ClientError(..), ClientEnv, ResponseF(..), Scheme(..), mkClientEnv,
-  runClientM)
-import Network.HTTP.Client
-  (ManagerSettings(..), Request(..), newManager, defaultManagerSettings)
-import Network.HTTP.Types.Status (notFound404)
+  (BaseUrl(..), ClientEnv, Scheme(..), mkClientEnv, runClientM)
+
+import Lorentz hiding (balance, map, cons, address, chainId)
+import Lorentz.Macro (View(..))
+import Lorentz.UStore.Common
+import Lorentz.UStore.Migration (manualConcatMigrationScripts)
+import Lorentz.Contracts.ManagedLedger.Types
 import Michelson.Runtime.GState (genesisAddress1, genesisAddress2)
-import Michelson.Interpret.Unpack (UnpackError)
-
-
+import Michelson.Typed.Haskell.Value (ContractAddr(..))
+import Michelson.Untyped (InternalByteString(..))
+import Paths_tzbtc (version)
 import Tezos.Address
-import Tezos.Micheline (Expression)
-import Tezos.Crypto
+import Tezos.Crypto hiding (sign)
 import Tezos.Json (TezosWord64(..))
+import Util.Named ((.!))
+import Util.TypeLits
 
+import qualified Client.API as API
+import Client.Crypto
 import Client.Error
+import Client.Parser
 import Client.Types
 import Client.Util
-import Client.Crypto
-import Client.Parser
-import qualified Client.API as API
-import Util.MultiSig
-import Lorentz.Contracts.TZBTC (fromFlatParameter, Interface, FlatParameter(..), SafeParameter, Parameter)
-import qualified Util.IO as UIO (writeFileUtf8)
+import Lorentz.Contracts.TZBTC
+import qualified Lorentz.Contracts.TZBTC.MultiSig as MSig
+import Lorentz.Contracts.TZBTC.Types (StorageFields(..))
+import Lorentz.Contracts.TZBTC.Preprocess (migrationScripts, tzbtcContract, tzbtcContractRouter)
+import Lorentz.Contracts.TZBTC.V0 (mkEmptyStorageV0)
+import Lorentz.Contracts.TZBTC.V1 (originationParams)
+import Util.AbstractIO
 import Util.Editor
+import Util.MultiSig
+import qualified Util.IO as UIO (writeFileUtf8)
 
-appName, configFile :: FilePath -- TODO Move this somewhere common
+appName, configFile :: FilePath
 appName = "tzbtc"
 configFile = "config.json"
 
@@ -119,12 +94,12 @@ instance HasFilesystem IO where
   readFile = BS.readFile
   doesFileExist = Directory.doesFileExist
   decodeFileStrict = Aeson.decodeFileStrict
+  createDirectoryIfMissing f p = Directory.createDirectoryIfMissing f (unDirPath p)
 
 instance HasCmdLine IO  where
   parseCmdLine = execParser
+  printTextLn = putStrLn
   printStringLn = putStrLn
-  printLTextLn = LT.putStrLn
-  printTextLn = T.putStrLn
   printByteString = BSC.putStrLn
   getLineFromUser = getLine
 
@@ -133,58 +108,73 @@ instance HasConfig IO where
     configDir <- getUserConfigDir appName
     configPath <- getUserConfigFile appName configFile
     pure (DirPath configDir, configPath)
-  readConfig = do
-    (_, configPath) <- getConfigPaths
-    fileExists <- doesFileExist configPath
-    if fileExists then do
-      mbConfig <- decodeFileStrict configPath
-      case mbConfig of
-        Just config -> return $ Right config
-        Nothing -> return $ Left TzbtcClientConfigError
-    else return $ Left $ TzbtcClientConfigFileNotFound configPath
-  writeConfig c = do
-    (_, configFilePath) <- getConfigPaths
-    putStrLn  configFilePath
-    BSL.writeFile configFilePath $ encodePretty c
-  createDirectoryIfMissing f p = Directory.createDirectoryIfMissing f (unDirPath p)
+  readConfigText = readConfig_
+  readConfig = readConfig_
+  writeConfigFull = writeConfig
+  writeConfigPartial = writeConfig
+  writeConfigText = writeConfig
+
+readConfig_ :: (Aeson.FromJSON a, HasConfig m) => m (Either TzbtcClientError a)
+readConfig_ = do
+  (_, configPath) <- getConfigPaths
+  fileExists <- doesFileExist configPath
+  if fileExists then do
+    mbConfig <- decodeFileStrict configPath
+    case mbConfig of
+      Just config -> return $ Right config
+      Nothing -> return $ Left TzbtcClientConfigError
+  else return $ Left $ TzbtcClientConfigFileNotFound configPath
 
 instance HasTezosClient IO where
   getAddressAndPKForAlias a = do
-    config <- throwLeft $ readConfig @_ @ClientConfig
+    config <- throwLeft $ readConfig
     getAddressAndPKForAlias' a config
   signWithTezosClient a = do
-    config <- throwLeft $ readConfig @_ @ClientConfig
-    signWithTezosClient' a config
+    config <- throwLeft $ readConfig
+    signWithTezosClient' (first InternalByteString a) config
+  waitForOperation op = do
+    config@ClientConfig{..}  <- throwLeft $ readConfig
+    waitForOperationInclusion' op config
 
 instance HasTezosRpc IO where
-  runTransaction addr param = do
-    config <- throwLeft $ readConfig @_ @ClientConfig
-    runTransaction' addr param config
+  runTransactions addr param = do
+    config <- throwLeft $ readConfig
+    runTransactions' addr param config
   getStorage addr = do
-    config <- throwLeft $ readConfig @_ @ClientConfig
+    config <- throwLeft $ readConfig
     clientEnv <- getClientEnv' config
     throwClientError $ runClientM (API.getStorage addr) clientEnv
   getCounter addr = do
-    config <- throwLeft $ readConfig @_ @ClientConfig
+    config <- throwLeft $ readConfig
     clientEnv <- getClientEnv' config
     throwClientError $ runClientM (API.getCounter addr) clientEnv
-  getCosts ro = do
-    config <- throwLeft $ readConfig @_ @ClientConfig
-    clientEnv <- getClientEnv' config
-    throwLeft $ getCosts' clientEnv ro
   getFromBigMap bid scriptExpr = do
-    config@ClientConfig{..}  <- throwLeft $ readConfig @_ @ClientConfig
+    config@ClientConfig{..}  <- throwLeft $ readConfig
     clientEnv <- getClientEnv' config
     r <- runClientM (API.getFromBigMap bid scriptExpr) clientEnv
     case r of
       Left err -> pure $ Left $ TzbtcServantError err
       Right rawVal -> pure $ Right rawVal
-  waitForOperation op = do
-    config@ClientConfig{..}  <- throwLeft $ readConfig @_ @ClientConfig
-    waitForOperationInclusion' op config
+  deployTzbtcContract address redeem = do
+    deployTzbtcContract' address redeem
+
+writeConfig :: (Aeson.ToJSON a) => a -> IO ()
+writeConfig c = do
+  (_, configFilePath) <- getConfigPaths
+  putStrLn  configFilePath
+  BSL.writeFile configFilePath $ encodePretty c
 
 tezosNodeArgs :: ClientConfig -> [String]
 tezosNodeArgs ClientConfig{..} = ["-A", toString ccNodeAddress, "-P", show ccNodePort]
+  ++ bool [] ["-S"] ccNodeUseHttps
+
+waitForOperationInclusion :: Text -> ClientConfig -> IO ()
+waitForOperationInclusion op config@ClientConfig{..} = do
+  (exitCode, stdout', stderr') <- readProcessWithExitCode ccTezosClientExecutable
+    (tezosNodeArgs config <> ["wait", "for", toString op, "to", "be", "included"]) ""
+  case exitCode of
+    ExitSuccess -> putStr stdout'
+    ExitFailure _ -> putStr stderr'
 
 getAddressAndPKForAlias'
   :: Text -> ClientConfig -> IO (Either TzbtcClientError (Address, PublicKey))
@@ -225,11 +215,11 @@ injectOp opToInject sign config = do
   throwClientError $ runClientM
     (API.injectOperation (Just "main") $ prepareForInjection opToInject sign) clientEnv
 
-getCurrentChainId :: ClientEnv -> IO (Either ClientError Text)
-getCurrentChainId env = runClientM API.getMainChainId env
-
 getLastBlockHash :: ClientEnv -> IO (Either ClientError Text)
 getLastBlockHash env = runClientM API.getLastBlock env
+
+getCurrentBlockConstants :: ClientEnv -> Text -> IO (Either ClientError BlockConstants)
+getCurrentBlockConstants env block = runClientM (API.getBlockConstants block) env
 
 getAddressCounter :: ClientEnv -> Address -> IO (Either ClientError TezosWord64)
 getAddressCounter env address = runClientM (API.getCounter $ formatAddress address) env
@@ -241,12 +231,12 @@ dumbOp = TransactionOperation
   , toFee = 50000
   , toCounter = 0
   , toGasLimit = 800000
-  , toStorageLimit = 10000
+  , toStorageLimit = 60000
   , toAmount = 0
   , toDestination = genesisAddress2
   , toParameters = ParametersInternal
     { piEntrypoint = "default"
-    , piValue = paramToExpression $ fromFlatParameter $ Pause ()
+    , piValue = nicePackedValueToExpression $ fromFlatParameter $ Pause ()
     }
   -- Forge operation with given limits and get its hexadecimal representation
   }
@@ -259,48 +249,118 @@ addOperationPrefix :: InternalByteString -> InternalByteString
 addOperationPrefix (InternalByteString bs) =
   InternalByteString $ cons 0x03 bs
 
-runTransaction'
-  :: (ParamConstraints param)
-  => Address -> param -> ClientConfig -> IO ()
-runTransaction' to param config@ClientConfig{..} = do
-  clientEnv <- getClientEnv' config
-  lastBlockHash <- throwClientError $ getLastBlockHash clientEnv
-  (sourceAddr, _) <- throwLeft $ getAddressAndPKForAlias' ccUserAlias config
-  chainId <- throwClientError $ getCurrentChainId clientEnv
-  counter <- throwClientError $ getAddressCounter clientEnv sourceAddr
-  let opToRun = dumbOp
-        { toCounter = counter + 1
-        , toDestination = to
-        , toSource = sourceAddr
-        , toParameters = ParametersInternal
-          { piEntrypoint = "default"
-          , piValue = paramToExpression $ param
-          }
-        }
+-- | Datatype that contains various values required for
+-- chain operations.
+data OperationConstants = OperationConstants
+  { ocClientEnv :: ClientEnv
+  -- ^ Environment required for network operations
+  , ocLastBlockHash :: Text
+  -- ^ Block in which operations is going to be injected
+  , ocSourceAddr :: Address
+  -- ^ The address of the operations sender
+  , ocBlockConstants :: BlockConstants
+  -- ^ Information about block: chain_id and protocol
+  , ocCounter :: TezosWord64
+  -- ^ Sender counter
+  }
+
+-- | Function which obtains `OperationConstant` by given
+-- `ClientConfig`.
+preProcessOperation :: ClientConfig -> IO OperationConstants
+preProcessOperation config@ClientConfig{..} = do
+  ocClientEnv <- getClientEnv' config
+  ocLastBlockHash <- throwClientError $ getLastBlockHash ocClientEnv
+  (ocSourceAddr, _) <- throwLeft $ getAddressAndPKForAlias' ccUserAlias config
+  ocBlockConstants <-
+    throwClientError $ getCurrentBlockConstants ocClientEnv ocLastBlockHash
+  ocCounter <- throwClientError $ getAddressCounter ocClientEnv ocSourceAddr
+  pure OperationConstants{..}
+
+-- | Function which waits for operation to be included into
+-- the chain.
+postProcessOperation :: ClientConfig -> Text -> IO ()
+postProcessOperation config opHash = do
+  putStrLn $ "Operation hash: " <> opHash
+  waitForOperationInclusion opHash config
+
+toParametersInternals :: (NicePackedValue param) => EntrypointParam param -> ParametersInternal
+toParametersInternals = \case
+  DefaultEntrypoint param -> ParametersInternal
+    { piEntrypoint = "default"
+    , piValue = nicePackedValueToExpression param
+    }
+  Entrypoint ep param -> ParametersInternal
+    { piEntrypoint = ep
+    , piValue = nicePackedValueToExpression param
+    }
+
+-- It is possible to include multiple transaction within single operations batch
+-- so we are accepting list of param's here.
+runTransactions'
+  :: (NicePackedValue param)
+  => Address -> [EntrypointParam param] -> ClientConfig -> IO ()
+runTransactions' to params config@ClientConfig{..} = do
+  OperationConstants{..} <- preProcessOperation config
+  let opsToRun = map (\(param, i) -> dumbOp
+        { toDestination = to
+        , toSource = ocSourceAddr
+        , toCounter = ocCounter + (fromInteger i)
+        , toParameters = toParametersInternals param
+        }) $ zip params [1..]
   let runOp = RunOperation
         { roOperation =
           RunOperationInternal
-          { roiBranch = lastBlockHash
-          , roiContents = [opToRun]
+          { roiBranch = ocLastBlockHash
+          , roiContents = map (\opToRun -> Left opToRun) opsToRun
           , roiSignature = stubSignature
           }
-        , roChainId = chainId
+        , roChainId = bcChainId ocBlockConstants
         }
-  (consumedGas, storageSize) <- throwLeft $ getCosts' clientEnv runOp
-  hex <- throwClientError $ getOperationHex clientEnv ForgeOperation
-    { foBranch = lastBlockHash
-    , foContents = [opToRun { toGasLimit = consumedGas + 200
-                            , toStorageLimit = storageSize + 20
-                            , toFee = calcFees consumedGas storageSize
-                            }]
+  -- Perform run_operation with dumb signature in order
+  -- to estimate gas cost, storage size and paid storage diff
+  results <- getAppliedResults ocClientEnv (Left runOp)
+  -- Forge operation with given limits and get its hexadecimal representation
+  hex <- throwClientError $ getOperationHex ocClientEnv ForgeOperation
+    { foBranch = ocLastBlockHash
+    , foContents = map (\(opToRun, AppliedResult{..}) ->
+                          Left $ opToRun
+                          { toGasLimit = arConsumedGas + 200
+                          , toStorageLimit = arStorageSize + 20
+                          , toFee = calcFees arConsumedGas arPaidStorageDiff
+                          }
+                       ) $ zip opsToRun results
     }
+  -- Sign operation with sender secret key
   signRes <- signWithTezosClient' (Left $ addOperationPrefix hex) config
   case signRes of
     Left err -> putStrLn err
     Right signature' -> do
-      opHash <- injectOp (formatByteString hex) signature' config
-      putStrLn $ "Operation hash: " <> opHash
-      waitForOperationInclusion' opHash config
+      -- Sign and inject the operation
+      injectOp (formatByteString hex) signature' config >>=
+        (postProcessOperation config)
+
+getAppliedResults
+  :: ClientEnv -> Either RunOperation PreApplyOperation
+  -> IO [AppliedResult]
+getAppliedResults env op = do
+  results <- case op of
+    Left runOp ->
+      (sequence . (: [])) <$> throwLeft $ runClientM (API.runOperation runOp) env
+    Right preApplyOp ->
+      throwLeft $ runClientM (API.preApplyOperations [preApplyOp]) env
+  concatMapM handleRunRes results
+  where
+    handleRunRes :: MonadThrow m => RunRes -> m [AppliedResult]
+    handleRunRes RunRes{..} =
+      case rrOperationContents of
+        [] -> throwM $ TzbtcUnexpectedRunResult "empty result"
+        opContents ->
+          mapM (\(OperationContent (RunMetadata res internalOps)) ->
+                  let internalResults = map unInternalOperation internalOps in
+                    case foldr combineResults res internalResults of
+                      RunOperationApplied appliedRes -> pure appliedRes
+                      RunOperationFailed errors -> throwM (TzbtcRunFailed errors)
+               ) opContents
 
 -- | Add header, required by the Tezos RPC interface
 fixRequest :: Request -> IO Request
@@ -311,29 +371,13 @@ fixRequest req = return $
 
 getClientEnv' :: ClientConfig -> IO ClientEnv
 getClientEnv' ClientConfig{..} = do
-  manager' <- newManager $ defaultManagerSettings { managerModifyRequest = fixRequest }
-  let nodeUrl = BaseUrl Http (toString ccNodeAddress) ccNodePort ""
+  manager' <- newManager $ bool
+    (defaultManagerSettings { managerModifyRequest = fixRequest })
+    (tlsManagerSettings { managerModifyRequest = fixRequest })
+    ccNodeUseHttps
+  let nodeUrl = BaseUrl (bool Http Https ccNodeUseHttps)
+                (toString ccNodeAddress) ccNodePort ""
   return $ mkClientEnv manager' nodeUrl
-
-getCosts'
-  :: ClientEnv -> RunOperation
-  -> IO (Either TzbtcClientError (TezosWord64, TezosWord64))
-getCosts' env runOp = do
-  req <- runClientM (API.runOperation runOp) env
-  case req of
-    Left err -> return $ Left (TzbtcServantError err)
-    Right RunRes{..} -> do
-      case rrOperationContents of
-        [OperationContent (RunMetadata res internalOps)] ->
-          let internalResults = map unInternalOperation internalOps in
-          case foldr combineResults res internalResults of
-            RunOperationApplied consumedGas storageSize ->
-              return $ Right (consumedGas, storageSize)
-            RunOperationFailed errors ->
-              return $ Left (TzbtcRunFailed errors)
-        [] -> return $ Left $ TzbtcUnexpectedRunResult "empty result"
-        _ -> return $ Left $
-          TzbtcUnexpectedRunResult "expecting only one operation content"
 
 waitForOperationInclusion' :: Text -> ClientConfig -> IO ()
 waitForOperationInclusion' op config@ClientConfig{..} = do
@@ -344,16 +388,16 @@ waitForOperationInclusion' op config@ClientConfig{..} = do
     ExitFailure _ -> putStr stderr'
 
 runConfigEdit
-  :: (MonadThrow m, HasEditor m, HasConfig m, HasCmdLine m, HasFilesystem m)
+  :: (MonadThrow m, HasEditor m, HasConfig m, HasCmdLine m)
   => Bool -> ClientConfigPartial -> m ()
 runConfigEdit doEdit configPartial = do
   (_, path) <- getConfigPaths
   if doEdit then
     if hasDelta configPartial then do
-      econfig <- readConfig
+      econfig <- readConfigText
       case econfig of
-        Left err -> printTextLn (pretty err)
-        Right config -> writeConfig $ mergeConfig config configPartial
+        Left err -> printTextLn (pretty err :: Text)
+        Right config -> writeConfigText $ mergeConfig config configPartial
     else openEditor path (writeFile path)
   else printConfig path
   checkConfig
@@ -369,6 +413,7 @@ runConfigEdit doEdit configPartial = do
     mergeConfig cc ccp = ClientConfig
       (withDefaultConfig (ccNodeAddress cc) (ccNodeAddress ccp))
       (withDefaultConfig (ccNodePort cc) (ccNodePort ccp))
+      (withDefaultConfig (ccNodeUseHttps cc) (ccNodeUseHttps ccp))
       (withDefaultConfig (ccContractAddress cc) (ccContractAddress ccp))
       (withDefaultConfig (ccMultisigAddress cc) (ccMultisigAddress ccp))
       (withDefaultConfig (ccUserAlias cc) (ccUserAlias ccp))
@@ -380,19 +425,19 @@ runConfigEdit doEdit configPartial = do
 
 checkConfig :: (HasCmdLine m, HasConfig m) => m ()
 checkConfig = do
-  econfig <- readConfig @_ @ClientConfig
+  econfig <- readConfig
   case econfig of
-    Left _ -> printTextLn "WARNING! Config file is incomplete."
+    Left _ -> printStringLn "WARNING! Config file is incomplete."
     Right _ -> pass
 
 printConfig :: (HasFilesystem m, HasCmdLine m) => FilePath -> m ()
 printConfig path = do
   fileContents <- readFile path
-  printTextLn "Config file path:"
-  printTextLn "-----------------"
+  printStringLn "Config file path:"
+  printStringLn "-----------------"
   printStringLn path
-  printTextLn ""
-  printTextLn "Config file content:"
+  printStringLn ""
+  printStringLn "Config file content:"
   printStringLn "--------------------"
   printByteString fileContents
 
@@ -404,7 +449,7 @@ printConfig path = do
 -- 2. If a configuration file exists alredy, do not overwrite it, no matter
 -- what.
 setupClient
-  :: (HasCmdLine m, HasFilesystem m, HasConfig m)
+  :: (HasCmdLine m, HasConfig m)
   => ClientConfigPartial
   -> m ()
 setupClient configPartial = do
@@ -418,50 +463,56 @@ setupClient configPartial = do
     createDirectoryIfMissing True appPath
     case toConfigFilled configPartial of
       Just config -> do
-        writeConfig config
+        writeConfigFull config
         printStringLn $ "Config file has been written to " <> configFilePath
       Nothing -> do
-        writeConfig configPartial
+        writeConfigPartial configPartial
         printStringLn $ "Since the required configuration values were missing from the command, \
           \a config file, with placeholders in place of missing values has been \
           \written to, \n\n" <> configFilePath <> "\n\n\
           \Use `tzbtc-client setupClient --help` to see the command arguments."
 
-addrOrAliasToAddr :: (MonadThrow m, HasTezosClient m, HasConfig m) => Text -> m Address
+addrOrAliasToAddr :: (MonadThrow m, HasTezosClient m) => Text -> m Address
 addrOrAliasToAddr addrOrAlias =
   case parseAddress addrOrAlias of
     Right addr -> pure addr
     Left _ -> fst <$> (throwLeft $ getAddressAndPKForAlias addrOrAlias)
 
-runTzbtcContract :: (MonadThrow m, HasTezosRpc m, HasConfig m, HasTezosRpc m) => Parameter s -> m ()
+runTzbtcContract :: (MonadThrow m, HasTezosRpc m) => Parameter s -> m ()
 runTzbtcContract param = do
-  ClientConfig{..} <- throwLeft $ (readConfig @_ @ClientConfig)
-  runTransaction ccContractAddress param
+  ClientConfig{..} <- throwLeft readConfig
+  case ccContractAddress of
+    Nothing -> throwM TzbtcContractConfigUnavailable
+    Just contractAddr ->
+      runTransactions contractAddr [DefaultEntrypoint param]
 
-runMultisigContract :: (MonadThrow m, HasTezosRpc m, HasConfig m) => NonEmpty Package -> m ()
+runMultisigContract :: (MonadThrow m, MonadFail m, HasTezosRpc m) => NonEmpty Package -> m ()
 runMultisigContract packages = do
   config <- throwLeft $ readConfig
   package <- throwLeft $ pure $ mergePackages packages
   multisigAddr <- throwLeft $ pure (fst <$> getToSign package)
   (_, (_, keys')) <- getMultisigStorage multisigAddr config
-  (_, multisigParam) <- throwLeft $ pure $ mkMultiSigParam keys' packages
-  runTransaction multisigAddr multisigParam
+  (_, MSig.ParameterMain multisigParam) <- throwLeft $ pure $ mkMultiSigParam keys' packages
+  runTransactions multisigAddr [Entrypoint "main" multisigParam]
 
 getMultisigStorage
   :: (MonadThrow m, HasTezosRpc m) => Address -> ClientConfig -> m MSig.Storage
-getMultisigStorage addr config@ClientConfig{..} = do
-  mSigStorageRaw <- getStorage $ formatAddress addr -- @REVIEW
+getMultisigStorage addr ClientConfig{..} = do
+  mSigStorageRaw <- getStorage $ formatAddress addr
   throwLeft $ pure $ exprToValue @MSig.Storage mSigStorageRaw
 
-createMultisigPackage :: (MonadThrow m, HasConfig m, HasTezosRpc m, HasTezosClient m) => FilePath -> SafeParameter s -> m ()
+createMultisigPackage :: (MonadThrow m, HasConfig m, HasTezosRpc m) => FilePath -> SafeParameter s -> m ()
 createMultisigPackage packagePath parameter = do
-  config@ClientConfig{..} <- throwLeft $ readConfig
+  config@ClientConfig{..} <- throwLeft readConfig
   case ccMultisigAddress of
     Nothing -> throwLeft $ pure $ Left TzbtcMutlisigConfigUnavailable
     Just msAddr ->  do
       (counter, _) <- getMultisigStorage msAddr config
-      let package = mkPackage msAddr counter ccContractAddress parameter
-      writePackageToFile package packagePath
+      case ccContractAddress of
+        Nothing -> throwM TzbtcContractConfigUnavailable
+        Just contractAddr ->
+          let package = mkPackage msAddr counter contractAddr parameter in
+          writePackageToFile package packagePath
 
 writePackageToFile :: (HasFilesystem m) => Package -> FilePath -> m ()
 writePackageToFile package fileToWrite =
@@ -474,25 +525,25 @@ getPackageFromFile packageFilePath = do
     Left err -> Left $ "Failed to decode multisig package: " <> fromString err
     Right package -> Right package
 
-confirmAction :: (HasCmdLine m) => m ConfirmationResult
-confirmAction = do
-  printStringLn "Are you sure? [Y/N]"
+confirmAction :: (HasCmdLine m) => Text -> m ConfirmationResult
+confirmAction msg = do
+  printTextLn $ msg <> " [Y/N]"
   res <- getLineFromUser
   case res of
     x | x `elem` ["Y", "y", "yes"] -> pure Confirmed
     x | x `elem` ["N", "n", "no"] -> pure Canceled
-    _ -> confirmAction
+    _ -> confirmAction msg
 
 signPackageForConfiguredUser
-  :: ( MonadThrow m , HasCmdLine m , HasTezosClient m, HasConfig m)
+  :: ( MonadThrow m , HasCmdLine m , HasTezosClient m)
   => Package
   -> m (Either String Package)
 signPackageForConfiguredUser pkg = do
-  config@ClientConfig{..} <- throwLeft $ readConfig @_ @ClientConfig
+  ClientConfig{..} <- throwLeft readConfig
   (_, pk) <- throwLeft $ getAddressAndPKForAlias ccUserAlias
   printStringLn "You are going to sign the following package:\n"
   printStringLn $ pretty pkg
-  confirmationResult <- confirmAction
+  confirmationResult <- confirmAction "Are you sure?"
   case confirmationResult of
     Canceled -> pure $ Left $ "Package signing was canceled"
     Confirmed -> do
@@ -501,43 +552,35 @@ signPackageForConfiguredUser pkg = do
         Left err -> pure $ Left $ toString err
         Right signature' -> pure $ addSignature pkg (pk, signature')
 
-getFromLedger :: (MonadThrow m, HasTezosRpc m, HasConfig m) => Address -> m (Either UnpackError (Natural, Map Address Natural))
-getFromLedger addr = do
-  AlmostStorage{..} <- getTzbtcStorage
-  let scriptExpr = encodeBase58Check $ valueToScriptExpr addr
-  ledgerValueRaw <- getFromBigMap asBigMapId scriptExpr
-  case ledgerValueRaw of
-    Left err -> case err of
-      TzbtcServantError (Servant.FailureResponse _ Servant.Response{..}) -> do
-        if responseStatusCode == notFound404 then pure $ Right (0, Map.empty)
-        else throwM err
-      _ -> throwM err
-    Right rawVal -> pure $
-      exprToValue @(Natural, Map Address Natural) rawVal
-
 getTzbtcStorage
-  :: (MonadThrow m, HasConfig m, HasTezosRpc m) => m (AlmostStorage Interface)
-getTzbtcStorage = do
-  config <- throwLeft $ readConfig @_ @ClientConfig
-  storageRaw <- getStorage $ formatAddress $ ccContractAddress config
+  :: (MonadThrow m, HasTezosRpc m) => Address -> m (AlmostStorage Interface)
+getTzbtcStorage contractAddr = do
+  storageRaw <- getStorage $ formatAddress contractAddr
   throwLeft $ pure $ exprToValue @(AlmostStorage Interface) storageRaw
 
 getBalance :: (HasTezosRpc m) => Address -> m Natural
 getBalance addr = do
-  (balance, _) <- throwLeft $ getFromLedger addr
-  pure balance
+  mbLedgerValue <- getValueFromTzbtcUStoreSubmap @"ledger" @Address @LedgerValue addr
+  case mbLedgerValue of
+    Nothing -> pure 0
+    Just ledgerValue -> pure $ arg #balance . fst $ ledgerValue
 
 getAllowance :: (HasTezosRpc m) => Address -> Address -> m Natural
 getAllowance owner spender = do
-  (_, allowanceMap) <- throwLeft $ getFromLedger owner
-  maybe (pure 0) pure $ Map.lookup spender allowanceMap
+  mbLedgerValue <- getValueFromTzbtcUStoreSubmap @"ledger" @Address @LedgerValue owner
+  case mbLedgerValue of
+    Nothing -> pure 0
+    Just ledgerValue -> let approvals = arg #approvals . snd $ ledgerValue in
+      pure $ maybe 0 id $ Map.lookup spender approvals
 
-getFromTzbtcStorage :: (HasTezosRpc m) => (AlmostStorage Interface -> a) -> m a
-getFromTzbtcStorage field = do
-  storage <- getTzbtcStorage
-  pure $ field storage
+--getFromTzbtcStorage :: (HasTezosRpc m) => (AlmostStorage Interface -> a) -> m a
+--getFromTzbtcStorage field = do
+--  storage <- getTzbtcStorage
+--  pure $ field storage
 
-mainProgram :: (MonadThrow m, MonadFail m, HasTezosRpc m, HasTezosClient m, HasEditor m, HasCmdLine m) => m ()
+mainProgram
+  :: ( MonadThrow m , MonadFail m, HasTezosRpc m, HasEditor m, HasCmdLine m
+     ) => m ()
 mainProgram = do
   ClientArgs cmd dryRunFlag <- parseCmdLine programInfo
   case dryRunFlag of
@@ -570,17 +613,17 @@ mainProgram = do
           Nothing -> do
             [owner, spender] <- mapM addrOrAliasToAddr [owner', spender']
             allowance <- getAllowance owner spender
-            printTextLn $ "Allowance: " <> show allowance
+            printStringLn $ "Allowance: " <> show allowance
       CmdGetBalance owner' mbCallback' -> do
         case mbCallback' of
           Just callback' -> do
             [owner, callback] <- mapM addrOrAliasToAddr [owner', callback']
             runTzbtcContract $
-              fromFlatParameter $ GetBalance $ View owner (ContractAddr callback)
+              fromFlatParameter $ GetBalance $ View (#owner .! owner) (ContractAddr callback)
           Nothing -> do
             owner <- addrOrAliasToAddr owner'
             balance <- getBalance owner
-            printTextLn $ "Balance: " <> show balance
+            printStringLn $ "Balance: " <> show balance
       CmdAddOperator operator' mbMultisig -> do
         operator <- addrOrAliasToAddr operator'
         runMultisigTzbtcContract mbMultisig $
@@ -610,8 +653,7 @@ mainProgram = do
             runTzbtcContract $
               fromFlatParameter $ GetTotalSupply $ View () (ContractAddr callback)
           Nothing -> do
-            error "To be done in TBTC-55"
-            --printFieldFromStorage "Total supply: " (totalSupply . asFields) show
+            printFieldFromStorage @Natural #totalSupply "Total supply: " show
       CmdGetTotalMinted mbCallback' -> do
         case mbCallback' of
           Just callback' -> do
@@ -619,8 +661,7 @@ mainProgram = do
             runTzbtcContract $
               fromFlatParameter $ GetTotalMinted $ View () (ContractAddr callback)
           Nothing ->
-            error "To be done in TBTC-55"
-            --printFieldFromStorage "Total minted: " (totalMinted . asFields) show
+            printFieldFromStorage @Natural #totalMinted "Total minted: " show
       CmdGetTotalBurned mbCallback' -> do
         case mbCallback' of
           Just callback' -> do
@@ -628,8 +669,7 @@ mainProgram = do
             runTzbtcContract $
               fromFlatParameter $ GetTotalBurned $ View () (ContractAddr callback)
           Nothing ->
-            error "To be done in TBTC-55"
-            --printFieldFromStorage "Total burned: " (totalMinted . asFields) show
+            printFieldFromStorage @Natural #totalBurned "Total burned: " show
       CmdGetAdministrator mbCallback' -> do
         case mbCallback' of
           Just callback' -> do
@@ -637,9 +677,7 @@ mainProgram = do
             runTzbtcContract $
               fromFlatParameter $ GetAdministrator $ View () (ContractAddr callback)
           Nothing ->
-            error "To be done in TBTC-55"
-            --printFieldFromStorage
-            --"Admininstator: " (admin . asFields) formatAddress
+            printFieldFromStorage @Address #admin "Admininstator: " formatAddress
       CmdGetOpDescription packageFilePath -> do
         pkg <- getPackageFromFile packageFilePath
         case pkg of
@@ -671,6 +709,9 @@ mainProgram = do
         case pkgs of
           Left err -> printTextLn err
           Right packages -> runMultisigContract packages
+      CmdDeployContract admin' redeem' -> do
+        [admin, redeem] <- mapM addrOrAliasToAddr [admin', redeem']
+        deployTzbtcContract admin redeem
   where
     runMultisigTzbtcContract :: (HasCmdLine m, HasTezosRpc m) => (Maybe FilePath) -> Parameter a -> m ()
     runMultisigTzbtcContract mbMultisig param =
@@ -679,10 +720,15 @@ mainProgram = do
           Just subParam -> createMultisigPackage fp subParam
           _ -> printStringLn "Unable to call multisig for View entrypoints"
         Nothing -> runTzbtcContract param
-    _printFieldFromStorage :: Text -> (AlmostStorage Interface -> a) -> (a -> Text) -> IO ()
-    _printFieldFromStorage prefix fieldGetter formatter = do
-      field' <- getFromTzbtcStorage fieldGetter
-      putTextLn $ prefix <> formatter field'
+    printFieldFromStorage
+      :: forall t name m. (HasCmdLine m, HasTezosRpc m, HasStoreTemplateField t name)
+      => Label name -> Text -> (t -> Text) -> m ()
+    printFieldFromStorage _ prefix formatter = do
+      mbField <- getFieldFromTzbtcUStore @name @t
+      case mbField of
+        Just field' -> printTextLn $ prefix <> formatter field'
+        Nothing -> printTextLn $ "Field " <>
+          symbolValT' @name <> " not found in the contract storage"
     programInfo =
       info (helper <*> versionOption <*> clientArgParser) $
       mconcat
@@ -710,3 +756,146 @@ mainProgram = do
       , "  Operation hash is returned as a result.", linebreak
       ]
 
+
+type HasStoreTemplateField t name =
+  ( HasUField name t StoreTemplate
+  , NiceUnpackedValue t
+  )
+
+type HasStoreTemplateSubmap key value name =
+  ( HasUStore name key value StoreTemplate
+  , NicePackedValue key, NiceUnpackedValue value
+  )
+
+-- | Get field with given name from TZBTC contract UStore.
+--
+getFieldFromTzbtcUStore
+  :: forall name t m. (HasTezosRpc m, HasStoreTemplateField t name)
+  => m (Maybe t)
+getFieldFromTzbtcUStore =
+  getFromTzbtcUStore $ fieldNameToMText @name
+
+-- | Get value assosiated with given key from given submap of
+-- TZBTC contract UStore.
+getValueFromTzbtcUStoreSubmap
+  :: forall name key value m. (HasTezosRpc m, HasStoreTemplateSubmap key value name)
+  => key -> m (Maybe value)
+getValueFromTzbtcUStoreSubmap key =
+  getFromTzbtcUStore (fieldNameToMText @name , key)
+
+-- | Get value for given key from UStore.
+--
+-- UStore is basically `BigMap Bytestring ByteString`.
+-- So in order to get value from it we pack the key into
+-- `ByteString` and perform getting from BigMap using RPC call.
+-- After obtaining value we unpack it to the desired type.
+getFromTzbtcUStore
+  :: forall m key value.
+     ( NicePackedValue key
+     , NiceUnpackedValue value
+     , HasTezosRpc m
+     )
+  => key -> m (Maybe value)
+getFromTzbtcUStore key = do
+  ClientConfig{..} <- throwLeft readConfig
+  case ccContractAddress of
+    Nothing -> throwM TzbtcContractConfigUnavailable
+    Just contractAddr -> do
+      AlmostStorage{..} <- getTzbtcStorage contractAddr
+      let scriptExpr = encodeBase58Check . valueToScriptExpr . lPackValue $ key
+      fieldValueRaw <- getFromBigMap asBigMapId scriptExpr
+      case fieldValueRaw of
+        Left err -> case err of
+          TzbtcServantError (FailureResponse _ Response{..}) -> do
+            if responseStatusCode == notFound404 then pure Nothing
+            else throwM err
+          _ -> throwM err
+        Right veryRawVal -> do
+          rawVal <- throwLeft $ pure $ exprToValue @ByteString veryRawVal
+          fmap Just . throwLeft . pure $ lUnpackValue rawVal
+
+originateTzbtcContract
+  :: Address -> ClientConfig -> IO (Either TzbtcClientError Address)
+originateTzbtcContract admin config@ClientConfig{..} = do
+  OperationConstants{..} <- preProcessOperation config
+  let origOp = OriginationOperation
+        { ooKind = "origination"
+        , ooSource = ocSourceAddr
+        , ooFee = 50000
+        , ooCounter = ocCounter + 1
+        , ooGasLimit = 800000
+        , ooStorageLimit = 60000
+        , ooBalance = 0
+        , ooScript =
+          mkOriginationScript tzbtcContract (mkEmptyStorageV0 admin)
+        }
+  let runOp = RunOperation
+        { roOperation =
+          RunOperationInternal
+          { roiBranch = ocLastBlockHash
+          , roiContents = [Right origOp]
+          , roiSignature = stubSignature
+          }
+        , roChainId = bcChainId ocBlockConstants
+        }
+  -- Estimate limits and paid storage diff
+  -- We run only one op and expect to have only one result
+  [ar1] <- getAppliedResults ocClientEnv (Left runOp)
+  -- Update limits and fee
+  let updOrigOp = origOp { ooGasLimit = arConsumedGas ar1 + 200
+                         , ooStorageLimit = arStorageSize ar1 + 1000
+                         , ooFee = calcFees (arConsumedGas ar1) (arPaidStorageDiff ar1)
+                         }
+  hex <- throwClientError $ getOperationHex ocClientEnv ForgeOperation
+    { foBranch = ocLastBlockHash
+    , foContents = [Right updOrigOp]
+    }
+  signRes <- signWithTezosClient' (Left $ addOperationPrefix hex) config
+  case signRes of
+    Left err -> pure $ Left $ TzbtcOriginationError err
+    Right signature' -> do
+      let preApplyOp = PreApplyOperation
+            { paoProtocol = bcProtocol ocBlockConstants
+            , paoBranch = ocLastBlockHash
+            , paoContents = [Right updOrigOp]
+            , paoSignature = signature'
+            }
+      -- Perform operations preapplying in order to obtain contract address
+      -- We preapply only one op and expect to have only one result
+      [ar2] <- getAppliedResults ocClientEnv (Right preApplyOp)
+      injectOp (formatByteString hex) signature' config >>=
+        (postProcessOperation config)
+      case arOriginatedContracts ar2 of
+        [contractAddr] -> pure $ Right contractAddr
+        _ -> pure $ Left $ TzbtcOriginationError
+          "Error during contract origination, expecting to \
+          \originate exactly one contract."
+
+deployTzbtcContract' :: Address -> Address -> IO ()
+deployTzbtcContract' admin redeem = do
+  putTextLn "Originate contract"
+  config@ClientConfig{..} <- throwLeft readConfig
+  contractAddr <- throwLeft $ originateTzbtcContract admin config
+  let migration = migrationScripts (originationParams admin redeem mempty)
+      transactionsToTzbtc params = runTransactions' contractAddr params config
+  AlmostStorage{..} <- getTzbtcStorage contractAddr
+  putTextLn "Upgrade contract to V1"
+  transactionsToTzbtc $ (DefaultEntrypoint . fromFlatParameter) <$>
+    [ Upgrade ( #newVersion .! (currentVersion asFields + 1)
+              , #migrationScript .! manualConcatMigrationScripts migration
+              , #newCode .! tzbtcContractRouter
+              )
+    ]
+  putTextLn $ "Contract was successfully deployed. Contract address: " <>
+    formatAddress contractAddr
+  case ccContractAddress of
+    Nothing -> putTextLn "Current contract_address in the config is not set"
+    Just curAddr -> putTextLn $ "Current contract_address in the config is " <>
+      formatAddress curAddr
+  res <- confirmAction "Would you like to replace current contract_address \
+                       \with the newly deployed contract?"
+  case res of
+    Canceled -> pass
+    Confirmed -> do
+      (curConfig :: ClientConfig) <- throwLeft readConfig
+      writeConfig $ curConfig { ccContractAddress = Just contractAddr}

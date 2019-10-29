@@ -16,7 +16,6 @@ editConfigViaEditor _ =
 
 #else
 
-import Data.ByteString (writeFile)
 import Text.Editor (jsonTemplate, runUserEditorDWIMFile)
 
 editConfigViaEditor :: FilePath -> (ByteString -> IO ()) -> IO ()
