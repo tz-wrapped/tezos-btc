@@ -268,6 +268,8 @@ instance FromJSON RunOperationResult where
       "failed" -> RunOperationFailed <$> o .: "errors"
       "backtracked" ->
         RunOperationFailed <$> o .:? "errors" .!= []
+      "skipped" ->
+        RunOperationFailed <$> o .:? "errors" .!= []
       _ -> fail ("unexpected status " ++ status)
 
 data ParametersInternal = ParametersInternal
