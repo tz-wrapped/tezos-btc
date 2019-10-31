@@ -43,7 +43,7 @@ import Util.Instances ()
 
 type BurnParams = ("value" :! Natural)
 type OperatorParams = ("operator" :! Address)
-type GetBalanceParams = Address
+type GetBalanceParams = ("owner" :! Address)
 type SetRedeemAddressParams = ("redeem" :! Address)
 type PauseParams = Bool
 type TransferOwnershipParams = ("newOwner" :! Address)
@@ -108,7 +108,7 @@ data Parameter (interface :: [EntryPointKind])
   = GetVersion (View () Natural)
   -- TZBTC Entrypoints
   | GetAllowance        !(View ManagedLedger.GetAllowanceParams Natural)
-  | GetBalance          !(View Address Natural)
+  | GetBalance          !(View GetBalanceParams Natural)
   | GetTotalSupply      !(View () Natural)
   | GetTotalMinted      !(View () Natural)
   | GetTotalBurned      !(View () Natural)
@@ -229,7 +229,7 @@ newtype SafeView i o = SafeView { unSafeView :: (i, Address) }
 -- | Interface of the V1 contract.
 type Interface =
   [ "callGetAllowance" ?: (SafeView ManagedLedger.GetAllowanceParams Natural)
-  , "callGetBalance" ?: (SafeView Address Natural)
+  , "callGetBalance" ?: (SafeView GetBalanceParams Natural)
   , "callGetTotalSupply" ?: (SafeView () Natural)
   , "callGetTotalMinted" ?: (SafeView () Natural)
   , "callGetTotalBurned" ?: (SafeView () Natural)

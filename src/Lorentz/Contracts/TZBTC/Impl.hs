@@ -9,13 +9,11 @@ module Lorentz.Contracts.TZBTC.Impl
   ( Entrypoint
   , StorageC
   , ManagedLedger.approve
-  , ManagedLedger.approve'
   , ManagedLedger.getAdministrator
   , ManagedLedger.getAllowance
   , ManagedLedger.getBalance
   , ManagedLedger.getTotalSupply
   , ManagedLedger.transfer
-  , ManagedLedger.transfer'
   , acceptOwnership
   , addOperator
   , burn
@@ -37,7 +35,6 @@ import Fmt (Builder)
 import Util.Markdown (mdTicked)
 
 import Lorentz
-import Lorentz.Contracts.ManagedLedger.Athens ()
 import qualified Lorentz.Contracts.ManagedLedger.Impl as ManagedLedger
 import qualified Lorentz.Contracts.ManagedLedger.Types as ManagedLedger
 import Lorentz.Contracts.TZBTC.Types hiding (AddOperator, RemoveOperator)

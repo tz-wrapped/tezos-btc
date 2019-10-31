@@ -27,10 +27,9 @@ import qualified Data.Map as M
 
 import Lorentz
 import Lorentz.Contracts.Consumer
-import qualified Lorentz.Contracts.ManagedLedger.Proxy as MLProxy
 import Lorentz.Test.Integrational
 import Lorentz.UStore.Migration
-import Michelson.Interpret.Unpack (dummyUnpackEnv)
+import qualified Lorentz.Contracts.ApprovableLedgerInterface as AL
 import Lorentz.Contracts.ManagedLedger.Test
   (ApprovableLedger(..), OriginationParams(..), approvableLedgerSpec, originateManagedLedger)
 import Util.Named
@@ -40,15 +39,15 @@ import Lorentz.Contracts.TZBTC
 {-# ANN module ("HLint: ignore Reduce duplication" :: Text) #-}
 
 -- | Convert sane parameter to parameter of this contract.
-fromProxyParam :: MLProxy.SaneParameter -> Parameter s
+fromProxyParam :: AL.Parameter -> Parameter s
 fromProxyParam =
   \case
-    MLProxy.STransfer tp -> fromFlatParameter $ Transfer tp
-    MLProxy.SApprove ap' -> fromFlatParameter $ Approve ap'
-    MLProxy.SGetAllowance v -> fromFlatParameter $ GetAllowance v
-    MLProxy.SGetTotalSupply v ->
+    AL.Transfer tp -> fromFlatParameter $ Transfer tp
+    AL.Approve ap' -> fromFlatParameter $ Approve ap'
+    AL.GetAllowance v -> fromFlatParameter $ GetAllowance v
+    AL.GetTotalSupply v ->
       fromFlatParameter $ GetTotalSupply v
-    MLProxy.SGetBalance v ->
+    AL.GetBalance v ->
       fromFlatParameter $ GetBalance v
 
 -- Helpers to check storage state.
@@ -56,7 +55,7 @@ checkStorage
   :: (StoreTemplate -> Either ValidationError ())
   -> TZBTCStorage -> Either ValidationError ()
 checkStorage fn st =
-  case ustoreDecomposeFull dummyUnpackEnv $ dataMap st of
+  case ustoreDecomposeFull $ dataMap st of
     Right template -> fn template
     Left err -> error err
 
@@ -279,11 +278,11 @@ test_burn = testGroup "TZBTC contract `burn` test"
         withSender adminAddress $ do
           lCall c (fromFlatParameter $ AddOperator (#operator .! newOperatorAddress))
 
-        lCall c $ fromFlatParameter $ GetBalance (View redeemAddress_ consumer)
+        lCall c $ fromFlatParameter $ GetBalance (View (#owner .! redeemAddress_) consumer)
 
         withSender newOperatorAddress $ lCall c (fromFlatParameter $ Burn (#value .! 130))
 
-        lCall c $ fromFlatParameter $ GetBalance (View redeemAddress_ consumer)
+        lCall c $ fromFlatParameter $ GetBalance (View (#owner .! redeemAddress_) consumer)
         lCall c $ fromFlatParameter $ GetTotalBurned (View () consumer)
         lCall c $ fromFlatParameter $ GetTotalSupply (View () consumer)
         lCall c $ fromFlatParameter $ GetTotalMinted (View () consumer)
@@ -327,7 +326,7 @@ test_mint = testGroup "TZBTC contract `mint` test"
 
         withSender newOperatorAddress $ lCall c (fromFlatParameter $ Mint (#to .! alice, #value .! 130))
 
-        lCall c $ fromFlatParameter $ GetBalance (View alice consumer)
+        lCall c $ fromFlatParameter $ GetBalance (View (#owner .! alice) consumer)
         lCall c $ fromFlatParameter $ GetTotalBurned (View () consumer)
         lCall c $ fromFlatParameter $ GetTotalSupply (View () consumer)
         lCall c $ fromFlatParameter $ GetTotalMinted (View () consumer)

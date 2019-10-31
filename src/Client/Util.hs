@@ -21,7 +21,7 @@ import Tezos.Micheline (Expression)
 import Lorentz.Constraints
   (NicePackedValue, NiceUnpackedValue)
 import Lorentz.Pack (lPackValue, lUnpackValue)
-import Michelson.Interpret.Unpack (UnpackError, dummyUnpackEnv)
+import Michelson.Interpret.Unpack (UnpackError)
 import Tezos.Crypto (blake2b)
 
 import Client.Error (TzbtcClientError(..))
@@ -61,7 +61,7 @@ exprToValue
   :: forall t. (NiceUnpackedValue t)
   => Expression -> Either UnpackError t
 exprToValue =
-  lUnpackValue dummyUnpackEnv . BS.cons 0x05 . encode
+  lUnpackValue . BS.cons 0x05 . encode
 
 addExprPrefix :: ByteString -> ByteString
 addExprPrefix = (BS.pack [0x0D, 0x2C, 0x40, 0x1B] <>)

@@ -44,7 +44,6 @@ import Lorentz.Contracts.ManagedLedger.Types (LedgerValue)
 import Lorentz.Pack (lPackValue, lUnpackValue)
 import Lorentz.UStore (HasUField, HasUStore)
 import Lorentz.UStore.Common (fieldNameToMText)
-import Michelson.Interpret.Unpack (dummyUnpackEnv)
 import Michelson.Runtime.GState (genesisAddress1, genesisAddress2)
 import Michelson.Untyped (InternalByteString(..))
 import Tezos.Address (Address, formatAddress, parseAddress)
@@ -201,7 +200,7 @@ getFromTzbtcUStore key = do
       _ -> throwM err
     Right veryRawVal -> do
       rawVal <- throwLeft $ pure $ exprToValue @ByteString veryRawVal
-      fmap Just . throwLeft . pure $ lUnpackValue dummyUnpackEnv rawVal
+      fmap Just . throwLeft . pure $ lUnpackValue rawVal
 
 getTzbtcStorage
   :: ClientConfig -> ClientEnv -> IO (AlmostStorage Interface)

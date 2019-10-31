@@ -100,7 +100,7 @@ fetchSrcParam package =
   case decodeHex $ pkSrcParam package of
     Just hexDecoded ->
       case fromVal @((TZBTC.SafeParameter a), Natural, Address)
-          <$> unpackValue' dummyUnpackEnv hexDecoded of
+          <$> unpackValue' hexDecoded of
         Right (safeParameter, counter, caddress) ->
           case getToSign package of
             Right (msigAddr, _) ->
@@ -172,7 +172,7 @@ getToSign :: Package -> Either UnpackageError ToSign
 getToSign Package{..} =
   case decodeHex pkToSign of
     Just hexDecoded ->
-      case fromVal @ToSign <$> unpackValue' dummyUnpackEnv hexDecoded of
+      case fromVal @ToSign <$> unpackValue' hexDecoded of
         Right toSign -> Right toSign
         Left err -> Left $ UnpackFailure err
     Nothing -> Left HexDecodingFailure
