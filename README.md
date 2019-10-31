@@ -20,7 +20,8 @@ Use `tzbtc-client --help` to get a list of available commands.
 In order to use `tzbtc-client` you will need to obtain `tezos-client`
 executable. You can use one (built for babylonnet and mainnet) located in the
 [`bin/`](bin/) folder. `tezos-client` is used for key storing, operation signing and
-ledger interaction.
+ledger interaction. Also various forms of `tezos-client` distribution are presented in
+[tezos-client-packaging repo](https://github.com/serokell/tezos-client-packaging).
 
 ### `tzbtc-client` usage [↑](#tzbtc-client-executable)
 
@@ -122,11 +123,46 @@ Use `tzbtc --help` to get a list of available commands.
 
 You can build `tzbtc-client` and `tzbtc` from the sources.
 
-Build stack project `stack build`, thus you'll be able to run executables using
+There are two ways:
+* Build stack project `stack build`, thus you'll be able to run executables using
 `stack exec tzbtc` or `stack exec tzbtc-client`. Also you can use
 `stack install tzbtc --local-bin-path ./bin`, thus `tzbtc-client` and `tzbtc` binaries
 will be in `./bin` directory. Note that stack newer than 1.9 is
 not supported due to this bug: [commercialhaskell/stack#4984](https://github.com/commercialhaskell/stack/issues/4984).
+* Build static binaries from the stack project using nix. For this you will need to run:
+``` bash
+$(nix-build --no-link -A fullBuildScript) -o ./tzbtc-static
+```
+Static binaries will be located in `./tzbtc-static/bin` directory.
+
+### Building packages
+
+Once you've built static binary you can create `.deb` or `.rpm` package with
+`tzbtc-client`. In order to do that run the one of the following commands:
+```bash
+nix-build release.nix --arg tzbtc-client-binary <path to tzbtc-client binary> -A packageIntoRpm -o tzbtc-client-package
+nix-build release.nix --arg tzbtc-client-binary <path to tzbtc-client binary> -A packageIntoDeb -o tzbtc-client-package
+```
+After that the packages can be found in `./tzbtc-client-package` directory.
+
+## Obtain static binary or package
+
+You can either build them from the source code using nix or download the version from
+[latest release](https://github.com/serokell/tezos-btc/releases/latest).
+
+## Install packages
+
+Installing `.deb` package:
+```bash
+sudo apt install <path to deb file>
+#or
+sudo dpkg -i <path to deb file>
+```
+
+Installing `.rpm` package:
+```bash
+sudo yum localinstall <path to the rpm file>
+```
 
 ## Tests [↑](#TZBTC)
 
