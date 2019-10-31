@@ -8,51 +8,22 @@
 
 Wrapped Bitcoin on Tezos Blockchain called TZBTC
 
+## `tzbtc-client` executable
 
-## Build Instructions [↑](#TZBTC)
-
-`stack build`
-
-## Usage [↑](#TZBTC)
-
-Run `stack test` and explore the tests.
-
-### `tzbtc` executable
-
-
-You can use `tzbtc` executable in order to get contract code converted
-to Michelson, raw Michelson contract storage. This stuff can be used for
-contract origination via `tezos-client`.
-`parseContractParameter` subcommand can be used for debugging,
-it parses raw Michelson value to the TZBTC contract parameter.
-
-Use `tzbtc --help` to get a list of available commands.
-
-#### Contract origination
-
-Origination will become part of `tzbtc-client` in [TBTC-54](https://issues.serokell.io/issue/TBTC-54).
-Currently you should do the following:
-1. Print the contract itself: `stack exec -- tzbtc printContract > tzbtc.tz`.
-2. Print initial storage: `stack exec -- tzbtc printInitialStorage --admin-address tz1PPPYChg5xXHpGzygnNkmzPd1hyVRMxvJf --redeem-address tz1PPPYChg5xXHpGzygnNkmzPd1hyVRMxvJf`.
-3. Originate the contract using `tezos-client` or a wrapper script.
-For example `babylonnet.sh`: `./babylonnet.sh client originate contract tzbtc transferring 0 from ADDR running container:tzbtc.tz --init OUTPUT_FROM2 --burn-cap 1`.
-
-### `tzbtc-client` executable
-
-Also you can use `tzbtc-client` executable.
+You can use `tzbtc-client` executable.
 This executable performs transactions injection to the chain using remote
 tezos-node.
 
 Use `tzbtc-client --help` to get a list of available commands.
 
-#### `tzbtc-client` prerequisites
+### Prerequisites
 
 In order to use `tzbtc-client` you will need to obtain `tezos-client`
 executable. You can use one (built for alphanet) located in the
 `bin/` folder. `tezos-client` is used for key storing, operation signing and
 ledger interaction.
 
-#### `tzbtc-client` usage
+### `tzbtc-client` usage
 
 `setupClient` command is required for setting up `tzbtc-client`
 environment. It takes information about node, user information
@@ -118,7 +89,7 @@ E.g. `tzbtc-client pause --multisig`. This command will return encoded multisig 
 You can get operation description from this package using `tzbtc-client getOpDescription` command.
 
 There are two ways to sign multisig package:
-* Sign package via `tzbtc-client signPackage --package <package filepath>` command.
+* Sign package via `tzbtc-client signPackage --package `<package filepath>` command.
 Thus given package will be signed by the user configured during `tzbtc-client setupClient`.
 * Manually sign package. In order to extract bytes that needs to be signed you should use
 `tzbtc-client getBytesToSign` command. After these bytes are signed, the signature can be
@@ -127,6 +98,42 @@ added using `tzbtc-client addSignature` command.
 Once multisig operation initiator have obtained enough signed packages he can start this
 operation using `tzbtc-client callMultisig` command.
 
+## `tzbtc` executable
+
+You can use `tzbtc` executable in order to get contract code converted
+to Michelson, raw Michelson contract storage. This stuff can be used for
+contract origination via `tezos-client`.
+`parseContractParameter` subcommand can be used for debugging,
+it parses raw Michelson value to the TZBTC contract parameter.
+
+Use `tzbtc --help` to get a list of available commands.
+
+### Contract origination
+
+Origination will become part of `tzbtc-client` in [TBTC-54](https://issues.serokell.io/issue/TBTC-54).
+Currently you should do the following:
+1. Print the contract itself: `stack exec -- tzbtc printContract > tzbtc.tz`.
+2. Print initial storage: `stack exec -- tzbtc printInitialStorage --admin-address tz1PPPYChg5xXHpGzygnNkmzPd1hyVRMxvJf --redeem-address tz1PPPYChg5xXHpGzygnNkmzPd1hyVRMxvJf`.
+3. Originate the contract using `tezos-client` or a wrapper script.
+For example `babylonnet.sh`: `./babylonnet.sh client originate contract tzbtc transferring 0 from ADDR running container:tzbtc.tz --init OUTPUT_FROM2 --burn-cap 1`.
+
+
+## Build instructions [↑](#TZBTC)
+
+You can build `tzbtc-client` and `tzbtc` from the sources.
+
+There are two ways:
+* Build stack project `stack build`, thus you'll be able to run executables using
+`stack exec tzbtc` or `stack exec tzbtc-client`. Also you can use
+`stack install tzbtc --local-bin-path ./bin`, thus `tzbtc-client` and `tzbtc` binaries
+will be in `./bin` directory.
+* Build static binaries from the stack project using nix. For this you will need to run
+`$(nix-build --no-link -A fullBuildScript) -o ./tzbtc-static`. Static binaries
+will be located in `./tzbtc-static/bin` directory.
+
+## Tests
+
+Run `stack test` and explore the tests.
 
 ## Contract documentation
 
