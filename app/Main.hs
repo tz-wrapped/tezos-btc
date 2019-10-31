@@ -21,7 +21,7 @@ import Util.IO (writeFileUtf8)
 import CLI.Parser
 import Lorentz.Contracts.TZBTC
   ( Parameter, mkEmptyStorageV0, migrationScripts
-  , originationParams, tzbtcContractCode, tzbtcCompilationWay, tzbtcDoc
+  , originationParams, tzbtcContractCode, tzbtcDoc
   )
 import Lorentz.Contracts.TZBTC.Test (mkTestScenario)
 import qualified Lorentz.Contracts.TZBTC.V0 as V0
@@ -35,7 +35,7 @@ main = do
   cmd <- execParser programInfo
   case cmd of
     CmdPrintContract singleLine mbFilePath ->
-      printContract singleLine mbFilePath tzbtcCompilationWay V0.tzbtcContract
+      printContract singleLine mbFilePath V0.tzbtcContract
     CmdPrintInitialStorage adminAddress -> do
       putStrLn $ printLorentzValue True (mkEmptyStorageV0 adminAddress)
     CmdPrintDoc mbFilePath ->
@@ -57,15 +57,14 @@ main = do
             (migrationScripts $ originationParams admin redeem mempty)
   where
     printContract
-      :: (KnownValue parameter, KnownValue storage)
+      :: (ParameterEntryPoints parameter, NiceStorage storage)
       => Bool
       -> Maybe FilePath
-      -> LorentzCompilationWay parameter storage
       -> Contract parameter storage
       -> IO ()
-    printContract singleLine mbFilePath lcw  c =
+    printContract singleLine mbFilePath c =
       maybe putStrLn writeFileUtf8 mbFilePath $
-        printLorentzContract singleLine lcw c
+        printLorentzContract singleLine c
     programInfo =
       info (helper <*> versionOption <*> argParser) $
       mconcat

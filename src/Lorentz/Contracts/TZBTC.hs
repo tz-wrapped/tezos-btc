@@ -21,7 +21,6 @@ module Lorentz.Contracts.TZBTC
   , migrationScripts
   , originationParams
   , toSafeParam
-  , tzbtcCompilationWay
   , tzbtcContractCode
   , tzbtcDoc
   ) where
@@ -35,9 +34,6 @@ import Lorentz.Contracts.TZBTC.V1
 
 -- Implementation
 ----------------------------------------------------------------------------
-
-tzbtcCompilationWay :: (NiceStorage store) => LorentzCompilationWay TZBTCParameter store
-tzbtcCompilationWay = lcwEntryPointsRecursive
 
 toSafeParam :: Parameter a -> Maybe (SafeParameter a)
 toSafeParam (SafeEntrypoints s) = Just s

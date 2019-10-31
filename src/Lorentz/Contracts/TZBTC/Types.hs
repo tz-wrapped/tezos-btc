@@ -37,6 +37,7 @@ import Fmt ((+|), (|+), Buildable(..))
 
 import Lorentz
 import qualified Lorentz.Contracts.ManagedLedger.Types as ManagedLedger
+import Lorentz.EntryPoints (ParameterEntryPoints(..), pepRecursive)
 import Lorentz.Contracts.Upgradeable.Common (UContractRouter(..), MigrationScript)
 import Lorentz.Contracts.Upgradeable.EntryPointWise
 import Util.Instances ()
@@ -116,6 +117,9 @@ data Parameter (interface :: [EntryPointKind])
   | SafeEntrypoints (SafeParameter interface)
   deriving stock (Eq, Generic, Show)
   deriving anyclass IsoValue
+
+instance ParameterEntryPoints (Parameter s) where
+  parameterEntryPoints = pepRecursive
 
 instance Buildable (Parameter s) where
   build = \case
