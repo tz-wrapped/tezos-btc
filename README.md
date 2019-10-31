@@ -52,8 +52,8 @@ Use `tzbtc-client --help` to get a list of available commands.
 #### `tzbtc-client` prerequisites
 
 In order to use `tzbtc-client` you will need to obtain `tezos-client`
-executable. You can use one (built for alphanet) located in the
-`bin/` folder. `tezos-client` is used for key storing, operation signing and
+executable. You can use one (built for babylonnet and mainnet) located in the
+[`bin/`](bin/) folder. `tezos-client` is used for key storing, operation signing and
 ledger interaction.
 
 #### `tzbtc-client` usage
