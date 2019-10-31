@@ -140,13 +140,16 @@ writePackageToFile package fileToWrite =
 
 createMultisigPackage :: FilePath -> SafeParameter s -> IO ()
 createMultisigPackage packagePath parameter = do
-  config@ClientConfig{..} <- throwLeft $ readConfigFile
+  config@ClientConfig{..} <- throwLeft readConfigFile
   case ccMultisigAddress of
-    Nothing -> throwLeft $ pure $ Left TzbtcMutlisigConfigUnavailable
+    Nothing -> throwM TzbtcMutlisigConfigUnavailable
     Just msAddr ->  do
       (counter, _) <- getMultisigStorage msAddr config
-      let package = mkPackage msAddr counter ccContractAddress parameter
-      writePackageToFile package packagePath
+      case ccContractAddress of
+        Nothing -> throwM TzbtcContractConfigUnavailable
+        Just contractAddr ->
+          let package = mkPackage msAddr counter contractAddr parameter in
+          writePackageToFile package packagePath
 
 getMultisigStorage
   :: Address -> ClientConfig -> IO MSig.Storage
@@ -195,20 +198,23 @@ getFromTzbtcUStore
      )
   => key -> IO (Maybe value)
 getFromTzbtcUStore key = do
-  config@ClientConfig{..} <- throwLeft $ readConfigFile
-  clientEnv <- getClientEnv config
-  AlmostStorage{..} <- getTzbtcStorage ccContractAddress config clientEnv
-  let scriptExpr = encodeBase58Check . valueToScriptExpr . lPackValue $ key
-  fieldValueRaw <- runClientM (getFromBigMap asBigMapId scriptExpr) clientEnv
-  case fieldValueRaw of
-    Left err -> case err of
-      FailureResponse _ Response{..} -> do
-        if responseStatusCode == notFound404 then pure $ Nothing
-        else throwM err
-      _ -> throwM err
-    Right veryRawVal -> do
-      rawVal <- throwLeft $ pure $ exprToValue @ByteString veryRawVal
-      fmap Just . throwLeft . pure $ lUnpackValue rawVal
+  config@ClientConfig{..} <- throwLeft readConfigFile
+  case ccContractAddress of
+    Nothing -> throwM TzbtcContractConfigUnavailable
+    Just contractAddr -> do
+      clientEnv <- getClientEnv config
+      AlmostStorage{..} <- getTzbtcStorage contractAddr config clientEnv
+      let scriptExpr = encodeBase58Check . valueToScriptExpr . lPackValue $ key
+      fieldValueRaw <- runClientM (getFromBigMap asBigMapId scriptExpr) clientEnv
+      case fieldValueRaw of
+        Left err -> case err of
+          FailureResponse _ Response{..} -> do
+            if responseStatusCode == notFound404 then pure Nothing
+            else throwM err
+          _ -> throwM err
+        Right veryRawVal -> do
+          rawVal <- throwLeft $ pure $ exprToValue @ByteString veryRawVal
+          fmap Just . throwLeft . pure $ lUnpackValue rawVal
 
 getTzbtcStorage
   :: Address -> ClientConfig -> ClientEnv -> IO (AlmostStorage Interface)
@@ -272,7 +278,6 @@ injectOp opToInject sign config = do
   throwClientError $ runClientM
     (injectOperation (Just "main") $ prepareForInjection opToInject sign) clientEnv
 
-
 -- | Datatype that contains various values required for
 -- chain operations.
 data OperationConstants = OperationConstants
@@ -327,7 +332,7 @@ runTransactions to params config@ClientConfig{..} = do
         { roOperation =
           RunOperationInternal
           { roiBranch = ocLastBlockHash
-          , roiContents = map (\opToRun -> Left $ opToRun) opsToRun
+          , roiContents = map (\opToRun -> Left opToRun) opsToRun
           , roiSignature = stubSignature
           }
         , roChainId = bcChainId ocBlockConstants
@@ -356,7 +361,6 @@ runTransactions to params config@ClientConfig{..} = do
       injectOp (formatByteString hex) signature' config >>=
         (postProcessOperation config)
 
-
 originateTzbtcContract
   :: Address -> ClientConfig -> IO (Either TzbtcClientError Address)
 originateTzbtcContract admin config@ClientConfig{..} = do
@@ -376,7 +380,7 @@ originateTzbtcContract admin config@ClientConfig{..} = do
         { roOperation =
           RunOperationInternal
           { roiBranch = ocLastBlockHash
-          , roiContents = [Right $ origOp]
+          , roiContents = [Right origOp]
           , roiSignature = stubSignature
           }
         , roChainId = bcChainId ocBlockConstants
@@ -391,7 +395,7 @@ originateTzbtcContract admin config@ClientConfig{..} = do
                          }
   hex <- throwClientError $ getOperationHex ocClientEnv ForgeOperation
     { foBranch = ocLastBlockHash
-    , foContents = [Right $ updOrigOp]
+    , foContents = [Right updOrigOp]
     }
   signRes <- signWithTezosClient (Left $ addOperationPrefix hex) config
   case signRes of
@@ -400,7 +404,7 @@ originateTzbtcContract admin config@ClientConfig{..} = do
       let preApplyOp = PreApplyOperation
             { paoProtocol = bcProtocol ocBlockConstants
             , paoBranch = ocLastBlockHash
-            , paoContents = [Right $ updOrigOp]
+            , paoContents = [Right updOrigOp]
             , paoSignature = signature'
             }
       -- Perform operations preapplying in order to obtain contract address
@@ -417,7 +421,7 @@ originateTzbtcContract admin config@ClientConfig{..} = do
 deployTzbtcContract :: Address -> Address -> IO ()
 deployTzbtcContract admin redeem = do
   putTextLn "Originate contract"
-  config@ClientConfig{..} <- throwLeft $ readConfigFile
+  config@ClientConfig{..} <- throwLeft readConfigFile
   contractAddr <- throwLeft $ originateTzbtcContract admin config
   let migration = migrationScripts (originationParams admin redeem mempty)
       transactionsToTzbtc params = runTransactions contractAddr params config
@@ -432,6 +436,17 @@ deployTzbtcContract admin redeem = do
     ]
   putTextLn $ "Contract was successfully deployed. Contract address: " <>
     formatAddress contractAddr
+  case ccContractAddress of
+    Nothing -> putTextLn "Current contract_address in the config is not set"
+    Just curAddr -> putTextLn $ "Current contract_address in the config is " <>
+      formatAddress curAddr
+  res <- confirmAction "Would you like to replace current contract_address \
+                       \with the newly deployed contract?"
+  case res of
+    Canceled -> pass
+    Confirmed -> do
+      (curConfig :: ClientConfig) <- throwLeft readConfigFile
+      writeConfig $ curConfig { ccContractAddress = Just contractAddr}
 
 addOperationPrefix :: InternalByteString -> InternalByteString
 addOperationPrefix (InternalByteString bs) =
@@ -445,7 +460,7 @@ signWithTezosClient bs config@ClientConfig{..} = do
         Right formatedBS -> formatedBS
   (exitCode, stdout', stderr') <- readProcessWithExitCode ccTezosClientExecutable
     (tezosNodeArgs config <>
-     [ "sign", "bytes", toString $ toSign
+     [ "sign", "bytes", toString toSign
      , "for", toString ccUserAlias
      ]) ""
   case exitCode of
@@ -456,22 +471,22 @@ signWithTezosClient bs config@ClientConfig{..} = do
 
 data ConfirmationResult = Confirmed | Canceled
 
-confirmAction :: IO ConfirmationResult
-confirmAction = do
-  putTextLn "Are you sure? [Y/N]"
+confirmAction :: Text -> IO ConfirmationResult
+confirmAction msg = do
+  putTextLn $ msg <> " [Y/N]"
   res <- getLine
   case res of
     x | x `elem` ["Y", "y", "yes"] -> pure Confirmed
     x | x `elem` ["N", "n", "no"] -> pure Canceled
-    _ -> confirmAction
+    _ -> confirmAction msg
 
 signPackageForConfiguredUser :: Package -> IO (Either String Package)
 signPackageForConfiguredUser pkg = do
-  config@ClientConfig{..} <- throwLeft $ readConfigFile
+  config@ClientConfig{..} <- throwLeft readConfigFile
   (_, pk) <- throwLeft $ getAddressAndPKForAlias ccUserAlias config
   putTextLn "You are going to sign the following package:\n"
   putTextLn $ pretty pkg
-  confirmationResult <- confirmAction
+  confirmationResult <- confirmAction "Are you sure?"
   case confirmationResult of
     Canceled -> pure $ Left $ "Package signing was canceled"
     Confirmed -> do
@@ -507,7 +522,7 @@ addrOrAliasToAddr addrOrAlias =
   case parseAddress addrOrAlias of
     Right addr -> pure addr
     Left _ -> do
-      config <- throwLeft $ readConfigFile
+      config <- throwLeft readConfigFile
       (addr, _) <- throwLeft $ getAddressAndPKForAlias addrOrAlias config
       pure addr
 
@@ -548,12 +563,15 @@ writeConfig c =  do
 
 runTzbtcContract :: Parameter s -> IO ()
 runTzbtcContract param = do
-  config@ClientConfig{..} <- throwLeft $ readConfigFile
-  runTransactions ccContractAddress [param] config
+  config@ClientConfig{..} <- throwLeft readConfigFile
+  case ccContractAddress of
+    Nothing -> throwM TzbtcContractConfigUnavailable
+    Just contractAddr ->
+      runTransactions contractAddr [param] config
 
 runMultisigContract :: NonEmpty Package -> IO ()
 runMultisigContract packages = do
-  config <- throwLeft $ readConfigFile
+  config <- throwLeft readConfigFile
   package <- throwLeft $ pure $ mergePackages packages
   multisigAddr <- throwLeft $ pure (fst <$> getToSign package)
   (_, (_, keys')) <- getMultisigStorage multisigAddr config
@@ -608,4 +626,4 @@ printConfig path = do
   putTextLn ""
   putTextLn "Config file content:"
   putTextLn "--------------------"
-  BSL.putStrLn $ BSL.fromStrict $ fileContents
+  BSL.putStrLn $ BSL.fromStrict fileContents

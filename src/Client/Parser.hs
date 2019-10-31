@@ -102,7 +102,7 @@ clientArgRawParser = Opt.hsubparser $
     clientConfigParser = ClientConfig <$>
       (partialParser $ urlOption "node-url" "Node url") <*>
       (partialParser $ intOption "node-port" "Node port") <*>
-      (partialParser $ namedAddressOption Nothing "contract-address"
+      (partialParserMaybe $ namedAddressOption Nothing "contract-address"
       "Contract's address") <*>
       (partialParserMaybe $ namedAddressOption Nothing "multisig-address" "Multisig contract address") <*>
       (partialParser $ option str $ mconcat
@@ -115,8 +115,10 @@ clientArgRawParser = Opt.hsubparser $
     clientConfigParserEdit = ClientConfig <$>
       (partialParser $ urlOption "node-url" "Node url") <*>
       (partialParser $ intOption "node-port" "Node port") <*>
-      (partialParser $ namedAddressOption Nothing "contract-address"
-      "Contract's address") <*>
+      (partialParserFlattenMaybe $
+        optional $ nullableAddressOption
+          ! #name "contract-address"
+          ! #hinfo "TZBTC contract address. Use 'null' to clear current value.") <*>
       (partialParserFlattenMaybe $
         optional $ nullableAddressOption
           ! #name "multisig-address"

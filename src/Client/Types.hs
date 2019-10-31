@@ -328,7 +328,7 @@ type ClientConfigText = ClientConfigP 'ConfigText
 data ClientConfigP f = ClientConfig
   { ccNodeAddress :: ConfigC f Text "url to the tezos node"
   , ccNodePort :: ConfigC f Int "`rpc port of the tezos node"
-  , ccContractAddress :: ConfigC f Address "contract address"
+  , ccContractAddress :: ConfigC f (Maybe Address) "contract address"
   , ccMultisigAddress :: ConfigC f (Maybe Address) "multisig contract address"
   , ccUserAlias :: ConfigC f Text "user alias"
   , ccTezosClientExecutable :: ConfigC f FilePath "tezos-client executable path"
