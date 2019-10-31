@@ -28,19 +28,6 @@ it parses raw Michelson value to the TZBTC contract parameter.
 
 Use `tzbtc --help` to get a list of available commands.
 
-#### Contract origination
-
-Origination will become part of `tzbtc-client` in [TBTC-54](https://issues.serokell.io/issue/TBTC-54).
-Currently you should do the following:
-1. Print the contract itself: `stack exec -- tzbtc printContract > tzbtc.tz`.
-2. Print initial storage: `stack exec -- tzbtc printInitialStorage --admin-address tz1PPPYChg5xXHpGzygnNkmzPd1hyVRMxvJf --redeem-address tz1PPPYChg5xXHpGzygnNkmzPd1hyVRMxvJf`.
-3. Originate the contract using `tezos-client` or a wrapper script.
-For example `babylonnet.sh`: `./babylonnet.sh client originate contract tzbtc transferring 0 from ADDR running container:tzbtc.tz --init OUTPUT_FROM2 --burn-cap 1`.
-4. Save the migration parameters to a file using command `stack exec -- tzbtc migrate --version 1 --adminAddress tz1PPPYChg5xXHpGzygnNkmzPd1hyVRMxvJf --redeemAddress tz1PPPYChg5xXHpGzygnNkmzPd1hyVRMxvJf --output migration-scripts.txt`
-5. Call the contract originated in step 3 with parameters from `migration-scripts.txt` created in step 4. Each line will be one parameter, and thus require one separate call. After this the contract will be fully upgraded to a working version.
-
-Refer to `scripts/deploy.py` to see an implementation of this process.
-
 ### `tzbtc-client` executable
 
 Also you can use `tzbtc-client` executable.
@@ -58,9 +45,11 @@ ledger interaction.
 
 #### `tzbtc-client` usage
 
+##### Setup `tzbtc-client`
 `setupClient` command is required for setting up `tzbtc-client`
 environment. It takes information about node, user information
-(specifically address and name alias from the `tezos-client`), contract address
+(specifically name alias from the `tezos-client`), contracts addresses
+(TZBTC and multisig contracts)
 and also path to the `tezos-client` executable, which is used for
 transaction signing and ledger interaction. The `setupClient` command
 can be called without any values, which places a template config file in
@@ -70,6 +59,14 @@ arguments, `config --edit` command will open an editor (Not available in
 windows), with the config contents. After saving the content and
 closing the editor, the config file will be updated with the new
 contents.
+
+##### Deploy TZBTC contract using `tzbtc-client`
+
+Run `tzbtc-client deployTzbtcContract --admin tz1PPPYChg5xXHpGzygnNkmzPd1hyVRMxvJf --redeem tz1PPPYChg5xXHpGzygnNkmzPd1hyVRMxvJf`
+(specify desired admin and redeem addresses). After contract deploy it is possible to override existing contract address in the
+client config with the address of the newly originated contract.
+
+##### Interact with TZBTC contract
 
 Other commands will perform injection of desired transaction to the
 TZBTC contract. E.g. `tzbtc-client mint --to tz1U1h1YzBJixXmaTgpwDpZnbrYHX3fMSpvby --value 100500`
