@@ -28,4 +28,4 @@ steps:
    - nix-shell --run "make test-ci"
    - nix-shell --run "AUTH_TOKEN=serokell:$(cat ~/.config/serokell-bot-token) make upload-doc GIST_ID=3718bfe9de3197a42488101d184a8584"
    label: autodoc upload
-   branches: "master sras/tbtc64-upload-auto-doc"  # TODO: leave only master
+   branches: "master"
