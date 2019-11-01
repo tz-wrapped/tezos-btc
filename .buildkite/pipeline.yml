@@ -24,3 +24,8 @@ steps:
    - nix-shell --run "nix run nixpkgs.python3 -c bash scripts/ci-test.sh"
    - echo 'ci-test passed successfully'
    label: test && weeder && bats
+ - commands:
+   - nix-shell --run "make test-ci"
+   - ./scripts/ci/upload-autodoc.sh
+   label: autodoc upload
+   branches: "master"
