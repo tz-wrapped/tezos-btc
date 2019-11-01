@@ -3,6 +3,8 @@
 
 env:
   NIX_PATH: nixpkgs=https://github.com/nixos/nixpkgs/archive/b640dbd00877f51616750e347a32fbcb49d2968c.tar.gz
+  BUILDKITE_ARTIFACT_UPLOAD_DESTINATION: s3://tzbtc
+  BUILDKITE_S3_DEFAULT_REGION: us-east-2
 
 steps:
  - command: nix run nixpkgs.{gnumake,hlint,ncurses} -c make lint
