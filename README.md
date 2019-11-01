@@ -133,7 +133,7 @@ Run `stack test` and explore the tests.
 
 ## Contract documentation [↑](#TZBTC)
 
-Contract documentation is located in [ContractDoc.md](ContractDoc.md).
+Contract documentation is located at [ContractDoc.md](https://gist.github.com/serokell-bot/3718bfe9de3197a42488101d184a8584).
 
 ## Issue Tracker [↑](#TZBTC)
 
