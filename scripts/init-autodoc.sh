@@ -20,7 +20,7 @@ fi
 
 post_data=$(cat <<EOF
 {
-    "description": "Automatically generated documentation for  TZBTC contract",
+    "description": "Automatically generated documentation for TZBTC contract",
     "files": {
         "Documentation.md": {
             "content": "Stub"

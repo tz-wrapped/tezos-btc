@@ -35,7 +35,7 @@ fi
 doc=$(stack exec -- tzbtc printContractDoc)
 post_data=$(cat <<EOF
 {
-    "description": "Automatically generated documentation for Tezos BTG contract",
+    "description": "Automatically generated documentation for TZBTC contract",
     "files": {
         "Documentation.md": {
             "content": "$(echo "$doc" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'  -e 's/$/\\n/')"
