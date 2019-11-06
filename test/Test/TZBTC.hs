@@ -19,19 +19,19 @@ module Test.TZBTC
   , originateTzbtcV1ContractRaw
   ) where
 
-import Test.Tasty (TestTree, testGroup)
-import Test.Tasty.HUnit (testCase)
-import Test.Tasty.Hspec (testSpec)
-import qualified Data.Set as Set
 import qualified Data.Map as M
+import qualified Data.Set as Set
+import Test.Tasty (TestTree, testGroup)
+import Test.Tasty.Hspec (testSpec)
+import Test.Tasty.HUnit (testCase)
 
 import Lorentz
-import Lorentz.Contracts.Consumer
-import Lorentz.Test.Integrational
-import Lorentz.UStore.Migration
 import qualified Lorentz.Contracts.ApprovableLedgerInterface as AL
+import Lorentz.Contracts.Consumer
 import Lorentz.Contracts.ManagedLedger.Test
   (ApprovableLedger(..), OriginationParams(..), approvableLedgerSpec, originateManagedLedger)
+import Lorentz.Test.Integrational
+import Lorentz.UStore.Migration
 import Util.Named
 
 import Lorentz.Contracts.TZBTC
@@ -78,7 +78,7 @@ originateTzbtcV1ContractRaw redeem op = do
     upgradeParams =
       ( #newVersion .! 1
       , #migrationScript .! (manualConcatMigrationScripts $ migrationScripts o)
-      , #newCode tzbtcContractCode
+      , #newCode tzbtcContractRouter
       )
   withSender adminAddress $ lCall c (fromFlatParameter $ Upgrade upgradeParams)
   pure c
