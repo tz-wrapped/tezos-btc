@@ -20,5 +20,4 @@ addr2="tz1PPPYChg5xXHpGzygnNkmzPd1hyVRMxvJf"
 addr3="tz1g3oS1UPgWFFpxrc2pEn4sgV3ky1Z6Qaz2"
 addrKT="KT1L1Qa7PkDahr9X7K6sp8VdnbHzQxYqb3At"
 
-scripts/deploy.py --dry-run --owner "$addr1" --redeem "$addr2" --our-exe "$our_exe" > /dev/null
 scripts/test.py --dry-run --owner "$addr1" --contract "$addrKT" --address "$addr2" "$addr3" --our-exe "$our_exe" > /dev/null
