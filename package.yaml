@@ -5,7 +5,7 @@
 <<: !include "./hpack/module.yaml"
 
 name:                tzbtc
-version:             0.0.1
+version:             0.1.0
 
 extra-source-files:
 - README.md
