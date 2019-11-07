@@ -1,7 +1,7 @@
 <!--
  - SPDX-FileCopyrightText: 2019 Serokell <https://serokell.io>, 2019 Bitcoin Suisse
  -
- - SPDX-License-Identifier: LicenseRef-MPL-2.0
+ - SPDX-License-Identifier: MPL-2.0
  -->
 # Contribution Guidelines
 
