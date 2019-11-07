@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SPDX-FileCopyrightText: 2019 Serokell <https://serokell.io>
 #
-# SPDX-License-Identifier: LicenseRef-MPL-2.0
+# SPDX-License-Identifier: MPL-2.0
 
 # To make tput work in gitlab runner
 export TERM="${TERM:-xterm}"
