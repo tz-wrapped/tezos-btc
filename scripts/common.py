@@ -1,6 +1,6 @@
-# SPDX-FileCopyrightText: 2019 Serokell <https://serokell.io>, 2019 Bitcoin Suisse
+# SPDX-FileCopyrightText: 2019 Tocqueville Group, 2019 Bitcoin Suisse
 #
-# SPDX-License-Identifier: LicenseRef-MPL-2.0
+# SPDX-License-Identifier: AGPL-3.0-or-later
 
 import subprocess
 
