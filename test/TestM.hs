@@ -17,7 +17,6 @@ module TestM
   , TestError(..)
   ) where
 
-import Data.Aeson (FromJSON)
 import qualified Data.Map as Map
 import Options.Applicative as Opt
 
@@ -27,6 +26,7 @@ import Tezos.Crypto
 import Tezos.V005.Micheline (Expression)
 
 import Client.Error
+import Client.IO ()
 import Client.Types
 import Lorentz.Constraints
 import Lorentz.Contracts.TZBTC (OriginationParameters)
@@ -39,13 +39,15 @@ data Expectation
   | GetConfigPaths
   | ChecksFileExist
   | CreateDirectory
-  | ReadConfig
-  | WritesConfig
-  | WritesFile
+  | WritesFile FilePath (Maybe ByteString)
+  | WritesFileUtf8 FilePath
   | ReadsFile
   | ParseCmdLine
   | GetsUserConfirmation
   | RunsTransaction
+  | OpenEditor FilePath
+  | PrintByteString ByteString
+  | DeployTzbtcContract
   deriving (Eq, Show, Ord)
 
 -- | Specifiy how may time we expect an event to happen.
@@ -78,15 +80,9 @@ data Handlers m = Handlers
   , hWriteFile :: FilePath -> ByteString -> m ()
   , hReadFile :: FilePath -> m ByteString
   , hDoesFileExist :: FilePath -> m Bool
-  , hDecodeFileStrict :: forall a.(FromJSON a) => FilePath -> m (Maybe a)
   , hCreateDirectoryIfMissing :: Bool -> DirPath -> m ()
 
   , hGetConfigPaths :: m (DirPath, FilePath)
-  , hReadConfig :: m (Either TzbtcClientError ClientConfig)
-  , hReadConfigText :: m (Either TzbtcClientError ClientConfigText)
-  , hWriteConfigFull :: ClientConfig -> m ()
-  , hWriteConfigPartial :: ClientConfigPartial -> m ()
-  , hWriteConfigText :: ClientConfigText -> m ()
 
   , hParseCmdLine :: forall a. Opt.ParserInfo a -> m a
   , hPrintTextLn :: forall text. (Print text) => text -> m ()
@@ -123,26 +119,10 @@ instance HasFilesystem TestM where
   doesFileExist fp = do
     fn <- getHandler hDoesFileExist
     fn fp
-  decodeFileStrict fp = do
-    fn <- getHandler hDecodeFileStrict
-    fn fp
   createDirectoryIfMissing fl fp = do
     fn <- getHandler hCreateDirectoryIfMissing
     fn fl fp
-
-instance HasConfig TestM where
   getConfigPaths = join $ getHandler hGetConfigPaths
-  readConfig = join $ getHandler hReadConfig
-  readConfigText = join $ getHandler hReadConfigText
-  writeConfigFull c = do
-    fn <- getHandler hWriteConfigFull
-    fn c
-  writeConfigPartial c = do
-    fn <- getHandler hWriteConfigPartial
-    fn c
-  writeConfigText c = do
-    fn <- getHandler hWriteConfigText
-    fn c
 
 instance HasCmdLine TestM where
   parseCmdLine a = do

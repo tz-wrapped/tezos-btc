@@ -3,41 +3,30 @@
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
 module Client.IO.Config
-  ( getConfigPaths
-  , readConfig
+  ( readConfig
   , writeConfig
   ) where
 
-import Data.Aeson.Encode.Pretty (encodePretty)
-import qualified Data.Aeson as Aeson (ToJSON, FromJSON, decodeFileStrict)
+import Data.Aeson.Encode.Pretty as EP (Config(..), compare, defConfig, encodePretty')
+import qualified Data.Aeson as Aeson (ToJSON, FromJSON, decodeStrict)
 import qualified Data.ByteString.Lazy as BSL hiding (putStrLn)
-import qualified System.Directory as Directory (doesFileExist)
-import System.Environment.XDG.BaseDir (getUserConfigDir, getUserConfigFile)
 
 import Client.Error
-import Client.Types
-
-appName, configFile :: FilePath
-appName = "tzbtc"
-configFile = "config.json"
+import Util.AbstractIO hiding (readConfig)
 --
-readConfig :: (Aeson.FromJSON a) => FilePath -> IO (Either TzbtcClientError a)
+readConfig :: (Aeson.FromJSON a, HasFilesystem m) => FilePath -> m (Either TzbtcClientError a)
 readConfig configPath = do
-  fileExists <- Directory.doesFileExist configPath
+  fileExists <- doesFileExist configPath
   if fileExists then do
-    mbConfig <- Aeson.decodeFileStrict configPath
+    mbConfig <- Aeson.decodeStrict <$> readFile configPath
     case mbConfig of
       Just config -> return $ Right config
       Nothing -> return $ Left TzbtcClientConfigError
   else return $ Left $ TzbtcClientConfigFileNotFound configPath
 
-writeConfig :: (Aeson.ToJSON a) => FilePath -> a -> IO ()
+writeConfig :: (Aeson.ToJSON a, HasCmdLine m, HasFilesystem m) => FilePath -> a -> m ()
 writeConfig configFilePath c = do
-  putStrLn configFilePath
-  BSL.writeFile configFilePath $ encodePretty c
-
-getConfigPaths :: IO (DirPath, FilePath)
-getConfigPaths = do
-  configDir <- getUserConfigDir appName
-  configPath <- getUserConfigFile appName configFile
-  pure (DirPath configDir, configPath)
+  printStringLn configFilePath
+  writeFile configFilePath $ BSL.toStrict $ encodePretty' prettyConf c
+  where
+    prettyConf = defConfig { confCompare =  compare } -- Sort keys

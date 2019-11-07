@@ -49,7 +49,8 @@ instance Buildable TzbtcClientError where
     "Invalid client configuration. Use 'tzbtc-client setupClient'"
 
   build (TzbtcClientConfigFileNotFound p) =
-    "Config file was not found at : " +| (build p)
+    "Config file was not found at: " +| (build p) +|
+    ".\nUse 'tzbtc-client setupClient' command to create a sample config file."
 
   build TzbtcMutlisigConfigUnavailable =
     "Multi-sig configuration was not available"
