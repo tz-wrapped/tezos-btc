@@ -8,44 +8,23 @@
 
 Wrapped Bitcoin on Tezos Blockchain called TZBTC
 
+## `tzbtc-client` executable
 
-## Build Instructions [↑](#TZBTC)
-
-`stack build`
-
-## Usage [↑](#TZBTC)
-
-Run `stack test` and explore the tests.
-
-### `tzbtc` executable
-
-
-You can use `tzbtc` executable in order to get contract code converted
-to Michelson, raw Michelson contract storage. This stuff can be used for
-contract origination via `tezos-client`.
-`parseContractParameter` subcommand can be used for debugging,
-it parses raw Michelson value to the TZBTC contract parameter.
-
-Use `tzbtc --help` to get a list of available commands.
-
-### `tzbtc-client` executable
-
-Also you can use `tzbtc-client` executable.
-This executable performs transactions injection to the chain using remote
+This executable performs transactions injection to the chain using remote or local
 tezos-node.
 
 Use `tzbtc-client --help` to get a list of available commands.
 
-#### `tzbtc-client` prerequisites
+### Prerequisites
 
 In order to use `tzbtc-client` you will need to obtain `tezos-client`
 executable. You can use one (built for babylonnet and mainnet) located in the
 [`bin/`](bin/) folder. `tezos-client` is used for key storing, operation signing and
 ledger interaction.
 
-#### `tzbtc-client` usage
+### `tzbtc-client` usage [↑](#tzbtc-client-executable)
 
-##### Setup `tzbtc-client`
+#### Setup `tzbtc-client`
 `setupClient` command is required for setting up `tzbtc-client`
 environment. It takes information about node, user information
 (specifically name alias from the `tezos-client`), contracts addresses
@@ -60,20 +39,20 @@ windows), with the config contents. After saving the content and
 closing the editor, the config file will be updated with the new
 contents.
 
-##### Deploy TZBTC contract using `tzbtc-client`
+#### Deploy TZBTC contract using `tzbtc-client`
 
 Run `tzbtc-client deployTzbtcContract --admin tz1PPPYChg5xXHpGzygnNkmzPd1hyVRMxvJf --redeem tz1PPPYChg5xXHpGzygnNkmzPd1hyVRMxvJf`
 (specify desired admin and redeem addresses). After contract deploy it is possible to override existing contract address in the
 client config with the address of the newly originated contract.
 
-##### Interact with TZBTC contract
+#### Interact with TZBTC contract
 
 Other commands will perform injection of desired transaction to the
 TZBTC contract. E.g. `tzbtc-client mint --to tz1U1h1YzBJixXmaTgpwDpZnbrYHX3fMSpvby --value 100500`
 will mint 100500 tokens to the `tz1U1h1YzBJixXmaTgpwDpZnbrYHX3fMSpvby` address.
 This command will change actual contract storage in the chain.
 
-`tzbtc-client` interacts with the tezos node using [RPC API](https://tezos.gitlab.io/master/api/rpc.html).
+`tzbtc-client` interacts with the tezos node using [RPC API](https://tezos.gitlab.io/api/rpc.html).
 Transaction forging takes place in several stages:
 
 * Get latest block hash, in which our transaction is going to be injected.
@@ -128,8 +107,31 @@ added using `tzbtc-client addSignature` command.
 Once multisig operation initiator have obtained enough signed packages he can start this
 operation using `tzbtc-client callMultisig` command.
 
+## `tzbtc` executable
 
-## Contract documentation
+You can use `tzbtc` executable in order to get contract code converted
+to Michelson, raw Michelson contract storage. This stuff can be used for
+contract origination via `tezos-client`.
+`parseContractParameter` subcommand can be used for debugging,
+it parses raw Michelson value to the TZBTC contract parameter.
+
+Use `tzbtc --help` to get a list of available commands.
+
+## Build instructions [↑](#TZBTC)
+
+You can build `tzbtc-client` and `tzbtc` from the sources.
+
+Build stack project `stack build`, thus you'll be able to run executables using
+`stack exec tzbtc` or `stack exec tzbtc-client`. Also you can use
+`stack install tzbtc --local-bin-path ./bin`, thus `tzbtc-client` and `tzbtc` binaries
+will be in `./bin` directory. Note that stack newer than 1.9 is
+not supported due to this bug: [commercialhaskell/stack#4984](https://github.com/commercialhaskell/stack/issues/4984).
+
+## Tests [↑](#TZBTC)
+
+Run `stack test` and explore the tests.
+
+## Contract documentation [↑](#TZBTC)
 
 Contract documentation is located in [ContractDoc.md](ContractDoc.md).
 
