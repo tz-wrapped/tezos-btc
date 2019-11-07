@@ -24,6 +24,8 @@ data TzbtcClientError
   | TzbtcPublicKeyParseError Text CryptoParseError
   | TzbtcUnknownAliasError Text
   | TzbtcMutlisigConfigUnavailable
+  | TzbtcOriginationError Text
+  | TzbtcContractConfigUnavailable
 
 instance Buildable TzbtcClientError where
   build (TzbtcServantError err) = case err of
@@ -52,6 +54,10 @@ instance Buildable TzbtcClientError where
   build TzbtcMutlisigConfigUnavailable =
     "Multi-sig configuration was not available"
 
+  build TzbtcContractConfigUnavailable =
+    "TZBTC contract address is not specified in the config.\n\
+    \Use 'tzbtc-client deployContract' command to deploy the contract"
+
   build (TzbtcRunFailed errs) =
     "Transaction run have failed with " +| length errs |+ " errors:\n" +|
     mconcat (map ((<> "\n\n") . build) errs) |+ ""
@@ -64,6 +70,9 @@ instance Buildable TzbtcClientError where
 
   build (TzbtcUnknownAliasError alias) =
     "Unknown alias: " +| alias |+ ""
+
+  build (TzbtcOriginationError msg) =
+    "Error during contract origination:\n" +| msg |+ ""
 
 instance Show TzbtcClientError where
   show = pretty

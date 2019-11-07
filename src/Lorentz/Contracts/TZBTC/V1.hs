@@ -64,7 +64,7 @@ v1Impl = recFromTuple
     -- We convert an entry point from storage, that has an input of
     -- `SafeView` to an entry point that can accept a `View`.
     toSafeView
-      :: forall a b. (KnownValue b)
+      :: forall a b. (NiceParameter b)
       => Entrypoint (View a b) (UStore StoreTemplate)
       -> Entrypoint (SafeView a b) (UStore StoreTemplate)
     toSafeView ep = do

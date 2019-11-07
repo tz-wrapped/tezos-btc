@@ -4,6 +4,8 @@
  -}
 module Client.Types
   ( AlmostStorage (..)
+  , AppliedResult (..)
+  , BlockConstants (..)
   , ClientConfigP (..)
   , ClientConfig
   , ClientConfigPartial
@@ -12,8 +14,11 @@ module Client.Types
   , InternalOperation (..)
   , MichelsonExpression (..)
   , OperationContent (..)
+  , OriginationOperation (..)
+  , OriginationScript (..)
   , ParametersInternal (..)
   , Partial (..)
+  , PreApplyOperation (..)
   , RunError (..)
   , RunMetadata (..)
   , RunOperation (..)
@@ -30,11 +35,14 @@ module Client.Types
   , withDefault
   ) where
 
-import Data.Aeson (FromJSON(..), ToJSON(..), object, withObject, genericParseJSON, genericToJSON, (.=), (.:), (.:?), (.!=))
+import Data.Aeson
+  (FromJSON(..), ToJSON(..), Value(..), object, withObject, genericParseJSON,
+  genericToJSON, (.=), (.:), (.:?), (.!=))
 import Data.Aeson.Casing (aesonPrefix, snakeCase)
-import Data.Aeson.TH (deriveJSON)
+import Data.Aeson.TH (deriveFromJSON, deriveToJSON)
 import Data.List (isSuffixOf)
 import Data.Text as T (isPrefixOf)
+import Data.Vector (fromList)
 import Fmt (Buildable(..), (+|), (|+))
 import GHC.TypeLits
 import Options.Applicative
@@ -45,7 +53,7 @@ import Tezos.Json (TezosWord64(..))
 
 import Michelson.Typed (IsoValue)
 import Tezos.Address (Address)
-import Tezos.Crypto (Signature, encodeBase58Check)
+import Tezos.Crypto (Signature, encodeBase58Check, formatSignature)
 
 import Lorentz.Contracts.TZBTC.Types (StorageFields)
 
@@ -75,25 +83,55 @@ data AlmostStorage interface = AlmostStorage
 
 data ForgeOperation = ForgeOperation
   { foBranch :: Text
-  , foContents :: [TransactionOperation]
+  , foContents :: [Either TransactionOperation OriginationOperation]
   }
+
+
+contentsToJSON :: [Either TransactionOperation OriginationOperation] -> Value
+contentsToJSON = Array . fromList .
+  map (\case
+          Right transOp -> toJSON transOp
+          Left origOp -> toJSON origOp
+      )
 
 instance ToJSON ForgeOperation where
   toJSON ForgeOperation{..} = object
     [ "branch" .= toString foBranch
-    , "contents" .= toJSON foContents
+    , ("contents", contentsToJSON foContents)
     ]
 
 data RunOperationInternal = RunOperationInternal
   { roiBranch :: Text
-  , roiContents :: [TransactionOperation]
+  , roiContents :: [Either TransactionOperation OriginationOperation]
   , roiSignature :: Signature
   }
+
+instance ToJSON RunOperationInternal where
+  toJSON RunOperationInternal{..} = object
+    [ "branch" .= toString roiBranch
+    , ("contents", contentsToJSON roiContents)
+    , "signature" .= toJSON roiSignature
+    ]
 
 data RunOperation = RunOperation
   { roOperation :: RunOperationInternal
   , roChainId :: Text
   }
+
+data PreApplyOperation = PreApplyOperation
+  { paoProtocol :: Text
+  , paoBranch :: Text
+  , paoContents :: [Either TransactionOperation OriginationOperation]
+  , paoSignature :: Signature
+  }
+
+instance ToJSON PreApplyOperation where
+  toJSON PreApplyOperation{..} = object
+    [ "branch" .= toString paoBranch
+    , ("contents", contentsToJSON paoContents)
+    , "protocol" .= toString paoProtocol
+    , "signature" .= formatSignature paoSignature
+    ]
 
 data RunRes = RunRes
   { rrOperationContents :: [OperationContent]
@@ -125,6 +163,11 @@ newtype InternalOperation = InternalOperation
 instance FromJSON InternalOperation where
   parseJSON = withObject "internal_operation" $ \o ->
     InternalOperation <$> o .: "result"
+
+data BlockConstants = BlockConstants
+  { bcProtocol :: Text
+  , bcChainId :: Text
+  }
 
 data RunError
   = RuntimeError Address
@@ -180,15 +223,34 @@ instance Buildable RunError where
              \the storage or parameter field." :: Text)
 
 data RunOperationResult
-  = RunOperationApplied TezosWord64 TezosWord64
+  = RunOperationApplied AppliedResult
   | RunOperationFailed [RunError]
 
+data AppliedResult = AppliedResult
+  { arConsumedGas :: TezosWord64
+  , arStorageSize :: TezosWord64
+  , arPaidStorageDiff :: TezosWord64
+  , arOriginatedContracts :: [Address]
+  } deriving Show
+
+instance Semigroup AppliedResult where
+  (<>) ar1 ar2 = AppliedResult
+    { arConsumedGas = arConsumedGas ar1 + arConsumedGas ar2
+    , arStorageSize = arStorageSize ar1 + arStorageSize ar2
+    , arPaidStorageDiff = arPaidStorageDiff ar1 + arPaidStorageDiff ar2
+    , arOriginatedContracts = arOriginatedContracts ar1 <> arOriginatedContracts ar2
+    }
+
+instance Monoid AppliedResult where
+  mempty = AppliedResult 0 0 0 []
+
 combineResults :: RunOperationResult -> RunOperationResult -> RunOperationResult
-combineResults (RunOperationApplied c1 c2) (RunOperationApplied c3 c4) =
-  RunOperationApplied (c1 + c3) (c2 + c4)
-combineResults (RunOperationApplied _ _) (RunOperationFailed e) =
+combineResults
+  (RunOperationApplied res1) (RunOperationApplied res2) =
+  RunOperationApplied $ res1 <> res2
+combineResults (RunOperationApplied _) (RunOperationFailed e) =
   RunOperationFailed e
-combineResults (RunOperationFailed e) (RunOperationApplied _ _) =
+combineResults (RunOperationFailed e) (RunOperationApplied _) =
   RunOperationFailed e
 combineResults (RunOperationFailed e1) (RunOperationFailed e2) =
   RunOperationFailed $ e1 <> e2
@@ -197,9 +259,16 @@ instance FromJSON RunOperationResult where
   parseJSON = withObject "operation_costs" $ \o -> do
     status <- o .: "status"
     case status of
-      "applied" -> RunOperationApplied <$> o .: "consumed_gas" <*> o .: "storage_size"
+      "applied" -> RunOperationApplied <$>
+        (AppliedResult <$>
+          o .: "consumed_gas" <*> o .: "storage_size" <*>
+          o .:? "paid_storage_size_diff" .!= 0 <*>
+          o .:? "originated_contracts" .!= []
+        )
       "failed" -> RunOperationFailed <$> o .: "errors"
       "backtracked" ->
+        RunOperationFailed <$> o .:? "errors" .!= []
+      "skipped" ->
         RunOperationFailed <$> o .:? "errors" .!= []
       _ -> fail ("unexpected status " ++ status)
 
@@ -218,6 +287,22 @@ data TransactionOperation = TransactionOperation
   , toAmount :: TezosWord64
   , toDestination :: Address
   , toParameters :: ParametersInternal
+  }
+
+data OriginationScript = OriginationScript
+  { osCode :: Expression
+  , osStorage :: Expression
+  }
+
+data OriginationOperation = OriginationOperation
+  { ooKind :: Text
+  , ooSource :: Address
+  , ooFee :: TezosWord64
+  , ooCounter :: TezosWord64
+  , ooGasLimit :: TezosWord64
+  , ooStorageLimit :: TezosWord64
+  , ooBalance :: TezosWord64
+  , ooScript :: OriginationScript
   }
 
 data ConfigSt = ConfigFilled | ConfigPartial | ConfigText
@@ -243,7 +328,7 @@ type ClientConfigText = ClientConfigP 'ConfigText
 data ClientConfigP f = ClientConfig
   { ccNodeAddress :: ConfigC f Text "url to the tezos node"
   , ccNodePort :: ConfigC f Int "`rpc port of the tezos node"
-  , ccContractAddress :: ConfigC f Address "contract address"
+  , ccContractAddress :: ConfigC f (Maybe Address) "contract address"
   , ccMultisigAddress :: ConfigC f (Maybe Address) "multisig contract address"
   , ccUserAlias :: ConfigC f Text "user alias"
   , ccTezosClientExecutable :: ConfigC f FilePath "tezos-client executable path"
@@ -326,7 +411,9 @@ instance (FromJSON a) => FromJSON (TextConfig a) where
 instance FromJSON ClientConfig where
   parseJSON = genericParseJSON (aesonPrefix snakeCase)
 
-deriveJSON (aesonPrefix snakeCase) ''ParametersInternal
-deriveJSON (aesonPrefix snakeCase) ''TransactionOperation
-deriveJSON (aesonPrefix snakeCase) ''RunOperationInternal
-deriveJSON (aesonPrefix snakeCase) ''RunOperation
+deriveToJSON (aesonPrefix snakeCase) ''ParametersInternal
+deriveToJSON (aesonPrefix snakeCase) ''TransactionOperation
+deriveToJSON (aesonPrefix snakeCase) ''OriginationScript
+deriveToJSON (aesonPrefix snakeCase) ''OriginationOperation
+deriveToJSON (aesonPrefix snakeCase) ''RunOperation
+deriveFromJSON (aesonPrefix snakeCase) ''BlockConstants

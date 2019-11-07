@@ -44,10 +44,12 @@ library:
     - servant
     - servant-client
     - servant-client-core
+    - singletons
     - text
     - tezos-bake-monitor-lib
     - universum
     - safe-exceptions
+    - vector
     - vinyl
     - xdg-basedir
 

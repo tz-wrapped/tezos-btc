@@ -7,7 +7,9 @@
 
 module Lorentz.Contracts.TZBTC.V0
   ( Parameter(..)
+  , Interface
   , Storage(..)
+  , UStoreV0
   , mkEmptyStorageV0
   , tzbtcContract
   , tzbtcDoc
