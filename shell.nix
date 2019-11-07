@@ -10,7 +10,7 @@ with import (builtins.fetchGit {
 
 haskell.lib.buildStackProject {
   name = "myEnv";
-  buildInputs = [ ghc zlib curl ];
+  buildInputs = [ ghc zlib ];
   buildPhase = ''
     export LANG=en_US.UTF-8
     '';

@@ -3,47 +3,23 @@
 # SPDX-FileCopyrightText: 2019 Serokell <https://serokell.io>
 # SPDX-License-Identifier: LicenseRef-MPL-2.0
 
-# This script generates and publishes contract autodoc to gist.
-#
-# How to use:
-# 1. Manually create an empty gist or call `init-autodoc.sh`,
-#    copy ID of created gist.
-# 2. Call this script.
-#
-# Arguments:
-# 1. Gist ID, it will be updated in-place.
-# Env: AUTH_TOKEN variable should be <user_id>:<oauth_token> of gist author.
-#      You can create oauth token in your github profile:
-#      https://github.com/settings/tokens.
-#
-# Dependencies:
-# * curl
+set -e -o pipefail
 
-set -e
+git config --global user.email "hi@serokell.io"
+git config --global user.name "CI autodoc generator"
+git remote remove auth-origin 2> /dev/null || :
+git remote add auth-origin https://serokell:$(cat ~/.config/serokell-bot-token)@github.com/serokell/tezos-btc.git
+git fetch
 
-if [[ $1 == "" ]]; then
-    echo "Pass gist ID as the first argument"
-    exit 1
-fi
-gist_id=$1
-
-if [[ $AUTH_TOKEN == "" ]]; then
-    echo "Pass user_id:oauth_token token via AUTH_TOKEN env variable"
-    exit 1
-fi
-
-doc=$(stack exec -- tzbtc printContractDoc)
-post_data=$(cat <<EOF
-{
-    "description": "Automatically generated documentation for TZBTC contract",
-    "files": {
-        "Documentation.md": {
-            "content": "$(echo "$doc" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'  -e 's/$/\\n/')"
-        }
-    }
-}
-EOF
-)
-
-echo "$post_data" | curl -X PATCH https://api.github.com/gists/$gist_id -u $AUTH_TOKEN -d @-
-echo "Documentation updated: https://gist.github.com/$gist_id"
+our_branch="$BUILDKITE_BRANCH"
+doc_branch="autodoc/$our_branch"
+sha=$(git rev-parse --short HEAD)
+git checkout origin/$doc_branch
+git checkout -B $doc_branch
+git merge -X theirs origin/$our_branch
+mkdir -p ./autodoc
+nix-shell --run "stack exec tzbtc printContractDoc > TZBTC-contract.md"
+git add TZBTC-contract.md
+git commit --allow-empty -m "Documentation update for $sha"
+git push --set-upstream auth-origin $doc_branch
+git checkout @{-2}
