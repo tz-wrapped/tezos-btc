@@ -11,7 +11,7 @@ module Lorentz.Contracts.TZBTC.V0
   , Storage(..)
   , UStoreV0
   , mkEmptyStorageV0
-  , tzbtcContract
+  , tzbtcContractRaw
   , tzbtcDoc
   ) where
 
@@ -19,16 +19,15 @@ import Prelude hiding (drop, swap, (>>))
 
 import qualified Data.Text as T
 import Data.Vinyl.Derived (Label)
-import Fmt (Buildable (..), fmt)
+import Fmt (Buildable(..), fmt)
 
 import Lorentz
 import Lorentz.Contracts.Upgradeable.Common hiding (Parameter(..), Storage)
 import Michelson.Text
-import Michelson.Typed.Doc
-  (DComment(..), DDescription(..), contractDocToMarkdown)
 import qualified Michelson.Typed as T
-import Util.TypeLits
+import Michelson.Typed.Doc (DComment(..), DDescription(..), contractDocToMarkdown)
 import Util.Markdown
+import Util.TypeLits
 
 import Lorentz.Contracts.TZBTC.Types as Types
 
@@ -153,8 +152,11 @@ safeEntrypoints = entryCase @(SafeParameter Interface) (Proxy @UpgradeableEntryP
   where
     endWithMigration = migrateCode # nil # pair
 
-tzbtcContract :: Contract (Parameter Interface) UStoreV0
-tzbtcContract = do
+-- | Version 0 of TZBTC contract as written in Lorentz.
+-- It generally should not be used because we preprocess it before
+-- actually using. See 'Lorentz.Contracts.TZBTC.Preprocess'.
+tzbtcContractRaw :: Contract (Parameter Interface) UStoreV0
+tzbtcContractRaw = do
   unpair
   entryCase @(Parameter Interface) (Proxy @UpgradeableEntryPointKind)
     ( #cGetVersion /-> do
@@ -203,7 +205,7 @@ tzbtcDoc = contractDocToMarkdown . buildLorentzDoc $ do
     ]
   contractName "TZBTC" $ do
     doc $ DDescription "This contract is implemented using Lorentz language"
-    tzbtcContract
+    tzbtcContractRaw
     fakeCoerce
     clarifyParamBuildingSteps pbsContainedInSafeEntrypoints safeEntrypoints
 

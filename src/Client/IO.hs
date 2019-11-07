@@ -28,16 +28,14 @@ import qualified Data.ByteString.Lazy.Char8 as BSL (putStrLn)
 import qualified Data.Map as Map (lookup)
 import Fmt (pretty)
 import Named (Name(..), arg)
-import Network.HTTP.Client
-  (ManagerSettings(..), Request(..), newManager, defaultManagerSettings)
+import Network.HTTP.Client (ManagerSettings(..), Request(..), defaultManagerSettings, newManager)
 import Network.HTTP.Types.Status (notFound404)
 import Servant.Client
-  (BaseUrl(..), ClientError(..), ClientEnv, ResponseF(..), Scheme(..), mkClientEnv,
-  runClientM)
+  (BaseUrl(..), ClientEnv, ClientError(..), ResponseF(..), Scheme(..), mkClientEnv, runClientM)
 import System.Directory (createDirectoryIfMissing, doesFileExist)
+import System.Environment.XDG.BaseDir (getUserConfigDir, getUserConfigFile)
 import System.Exit (ExitCode(..))
 import System.Process (readProcessWithExitCode)
-import System.Environment.XDG.BaseDir (getUserConfigDir, getUserConfigFile)
 import Tezos.Json (TezosWord64(..))
 
 import Lorentz.Constraints (NicePackedValue, NiceUnpackedValue)
@@ -59,15 +57,14 @@ import Client.Parser
 import Client.Types
 import Client.Util
 import Lorentz.Contracts.TZBTC
-  (FlatParameter(..), Interface, SafeParameter,  StoreTemplate, Parameter,
-  fromFlatParameter)
-import Lorentz.Contracts.TZBTC.Types (StorageFields(..))
-import Lorentz.Contracts.TZBTC.V0 (mkEmptyStorageV0, tzbtcContract)
-import Lorentz.Contracts.TZBTC.V1
-  (migrationScripts, originationParams, tzbtcContractCode)
+  (FlatParameter(..), Interface, Parameter, SafeParameter, StoreTemplate, fromFlatParameter)
 import qualified Lorentz.Contracts.TZBTC.MultiSig as MSig
-import Util.MultiSig
+import Lorentz.Contracts.TZBTC.Preprocess (migrationScripts, tzbtcContract, tzbtcContractRouter)
+import Lorentz.Contracts.TZBTC.Types (StorageFields(..))
+import Lorentz.Contracts.TZBTC.V0 (mkEmptyStorageV0)
+import Lorentz.Contracts.TZBTC.V1 (originationParams)
 import Util.Editor
+import Util.MultiSig
 
 appName, configFile :: FilePath
 appName = "tzbtc"
@@ -431,7 +428,7 @@ deployTzbtcContract admin redeem = do
   transactionsToTzbtc $ fromFlatParameter <$>
     [ Upgrade ( #newVersion .! (currentVersion asFields + 1)
               , #migrationScript .! manualConcatMigrationScripts migration
-              , #newCode .! tzbtcContractCode
+              , #newCode .! tzbtcContractRouter
               )
     ]
   putTextLn $ "Contract was successfully deployed. Contract address: " <>

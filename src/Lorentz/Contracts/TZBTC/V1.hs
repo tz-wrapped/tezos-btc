@@ -8,11 +8,9 @@
 module Lorentz.Contracts.TZBTC.V1
   ( Interface
   , StoreTemplate(..)
-  , migrationScripts
+  , migrationScriptsRaw
   , originationParams
-  , printContractCode
-  , printMigrationCode
-  , tzbtcContractCode
+  , tzbtcContractRouterRaw
   )
 where
 
@@ -82,8 +80,9 @@ v1Impl = recFromTuple
     -- for almost each method.
     label //==> part = label /==> callPart (part # unpair)
 
-tzbtcContractCode :: UContractRouter Interface
-tzbtcContractCode = epwServe epwContract
+-- | Contract router before preprocessing.
+tzbtcContractRouterRaw :: UContractRouter Interface
+tzbtcContractRouterRaw = epwServe epwContract
 
 originationParams :: Address -> Address -> Map Address Natural -> OriginationParameters
 originationParams addr redeem balances =
@@ -95,8 +94,9 @@ originationParams addr redeem balances =
     , opTokencode = [mt|TZBTC|]
     }
 
-migrationScripts :: OriginationParameters -> [MigrationScript]
-migrationScripts op = migrateStorage op ++ epwCodeMigrations epwContract
+-- | Migrations to version 1 before preprocessing.
+migrationScriptsRaw :: OriginationParameters -> [MigrationScript]
+migrationScriptsRaw op = migrateStorage op ++ epwCodeMigrations epwContract
 
 epwContract :: EpwContract Interface StoreTemplate
 epwContract = mkEpwContract v1Impl epwFallbackFail
@@ -128,9 +128,3 @@ migrateStorage op =
   where
     templateToMigration :: StoreTemplate -> [MigrationScript]
     templateToMigration template = migrationToScript $ fillUStore template
-
-printContractCode :: LText
-printContractCode = printLorentzValue False $ tzbtcContractCode
-
-printMigrationCode :: OriginationParameters -> LText
-printMigrationCode op = printLorentzValue False $ migrationScripts op

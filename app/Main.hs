@@ -20,11 +20,9 @@ import Util.IO (writeFileUtf8)
 
 import CLI.Parser
 import Lorentz.Contracts.TZBTC
-  ( Parameter, mkEmptyStorageV0, migrationScripts
-  , originationParams, tzbtcContractCode, tzbtcDoc
-  )
+  (Parameter, migrationScripts, mkEmptyStorageV0, originationParams, tzbtcContract,
+  tzbtcContractRouter, tzbtcDoc)
 import Lorentz.Contracts.TZBTC.Test (mkTestScenario)
-import qualified Lorentz.Contracts.TZBTC.V0 as V0
 import Util.Migration
 
 -- Here in main function we will just accept commands from user
@@ -35,7 +33,7 @@ main = do
   cmd <- execParser programInfo
   case cmd of
     CmdPrintContract singleLine mbFilePath ->
-      printContract singleLine mbFilePath V0.tzbtcContract
+      printContract singleLine mbFilePath tzbtcContract
     CmdPrintInitialStorage adminAddress -> do
       putStrLn $ printLorentzValue True (mkEmptyStorageV0 adminAddress)
     CmdPrintDoc mbFilePath ->
@@ -53,7 +51,7 @@ main = do
       (arg #redeemAddress -> redeem)
       (arg #output -> fp) -> do
         (maybe putStrLn writeFileUtf8 fp) $
-          makeMigrationParams version_ tzbtcContractCode $
+          makeMigrationParams version_ tzbtcContractRouter $
             (migrationScripts $ originationParams admin redeem mempty)
   where
     printContract

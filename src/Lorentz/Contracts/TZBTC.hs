@@ -21,13 +21,14 @@ module Lorentz.Contracts.TZBTC
   , migrationScripts
   , originationParams
   , toSafeParam
-  , tzbtcContractCode
+  , tzbtcContractRouter
   , tzbtcDoc
   ) where
 
 import Lorentz
 
 import Lorentz.Contracts.TZBTC.FlatParameter
+import Lorentz.Contracts.TZBTC.Preprocess
 import Lorentz.Contracts.TZBTC.Types as Types
 import Lorentz.Contracts.TZBTC.V0
 import Lorentz.Contracts.TZBTC.V1

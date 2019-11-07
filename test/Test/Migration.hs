@@ -16,9 +16,9 @@ import Util.Named
 import Lorentz hiding (SomeContract)
 import Lorentz.Contracts.TZBTC as TZBTC
 import qualified Lorentz.Contracts.TZBTC.Types as TZBTCTypes
+import Lorentz.Contracts.Upgradeable.Common (UContractRouter, mkUContractRouter)
 import Lorentz.Test.Integrational
 import Lorentz.UStore.Migration
-import Lorentz.Contracts.Upgradeable.Common (UContractRouter, mkUContractRouter)
 
 {-# ANN module ("HLint: ignore Reduce duplication" :: Text) #-}
 
@@ -127,7 +127,7 @@ upgradeParams = let
   o = originationParams adminAddress redeemAddress_ mempty
   in ( #newVersion .! 1
      , #migrationScript .! (manualConcatMigrationScripts $ migrationScripts o)
-     , #newCode tzbtcContractCode
+     , #newCode tzbtcContractRouter
      )
 
 -- Some constants
