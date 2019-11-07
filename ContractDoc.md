@@ -71,7 +71,7 @@ Pass resulting value as parameter to the contract.
 
 This entry point is used to get balance in an account.
 
-**Parameter:** [`View`](#types-View) [`Address`](#types-Address) [`Natural`](#types-Natural)
+**Parameter:** [`View`](#types-View) (***owner*** : [`Address`](#types-Address)) [`Natural`](#types-Natural)
 
 <details>
   <summary><b>How to call this entry point</b></summary>
@@ -1374,6 +1374,18 @@ Address primitive.
 
 
 
+<a name="types-BigMap"></a>
+
+---
+
+### `BigMap`
+
+BigMap primitive.
+
+**Final Michelson representation (example):** `BigMap Integer Natural` = `big_map int nat`
+
+
+
 <a name="types-ByteString"></a>
 
 ---
@@ -1410,6 +1422,30 @@ Signed number.
 
 
 
+<a name="types-Lambda"></a>
+
+---
+
+### `Lambda`
+
+`Lambda i o` stands for a sequence of instructions which accepts stack of type `[i]` and returns stack of type `[o]`.
+
+**Final Michelson representation (example):** `Lambda Integer Natural` = `lambda int nat`
+
+
+
+<a name="types-List"></a>
+
+---
+
+### `List`
+
+List primitive.
+
+**Final Michelson representation (example):** `[Integer]` = `list int`
+
+
+
 <a name="types-MigrationScript"></a>
 
 ---
@@ -1424,6 +1460,20 @@ A code which updates storage in order to make in compliant with the new version 
 
 
 
+<a name="types-Named-entry"></a>
+
+---
+
+### `Named entry`
+
+Some entries have names for clarity.
+
+In resulting Michelson names may be mapped to annotations.
+
+**Final Michelson representation (example):** `number: Integer` = `int`
+
+
+
 <a name="types-Natural"></a>
 
 ---
@@ -1433,6 +1483,18 @@ A code which updates storage in order to make in compliant with the new version 
 Unsigned number.
 
 **Final Michelson representation:** `nat`
+
+
+
+<a name="types-Operation"></a>
+
+---
+
+### `Operation`
+
+Operation primitive.
+
+**Final Michelson representation:** `operation`
 
 
 
@@ -1506,6 +1568,20 @@ Parameter dispatching logic, main purpose of this code is to pass control to an 
 **Structure:** ([`Text`](#types-Text), [`ByteString`](#types-ByteString))
 
 **Final Michelson representation:** `pair string bytes`
+
+
+
+<a name="types-Upgradeale-storage"></a>
+
+---
+
+### `Upgradeale storage`
+
+Storage with not hardcoded structure, which allows upgrading the contract in place.
+
+**Structure:** ***unUStore*** :[`BigMap`](#types-BigMap) [`ByteString`](#types-ByteString) [`ByteString`](#types-ByteString)
+
+**Final Michelson representation:** `big_map bytes bytes`
 
 
 
