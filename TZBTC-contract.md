@@ -1504,7 +1504,7 @@ Operation primitive.
 
 ### `Parameter.SafeParameter`
 
-Parameter which does not have unsafe arguments, like raw `Contract p` values.
+Parameter which does not have unsafe arguments, for example raw `Contract p` values.
 
 **Structure:** *one of* 
 + **Run** [`UParam`](#types-Upgradable-parameter)
