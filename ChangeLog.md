@@ -5,3 +5,8 @@
  -->
 
 # Changelog for TZBTC
+
+0.1.0
+=====
+
+MVP release.

@@ -42,6 +42,8 @@ you must be able to justify that.
     - [ ] [README](../blob/master/README.md)
     - [ ] Haddock
     - [ ] [docs/](../blob/master/docs/)
+  - [ ] I updated [changelog](../blob/master/ChangeLog.md) unless I am sure my changes are
+        really minor.
 
 #### Stylistic guide (mandatory)
 
