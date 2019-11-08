@@ -54,7 +54,7 @@ library:
     - xdg-basedir
 
   when:
-    - condition: os(linux)
+    - condition: (!os(windows))
       dependencies: editor-open
 
 executables:
