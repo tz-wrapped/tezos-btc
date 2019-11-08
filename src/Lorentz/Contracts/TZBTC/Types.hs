@@ -97,7 +97,7 @@ data SafeParameter (interface :: [EntryPointKind])
 
 instance (Typeable interface) => TypeHasDoc (SafeParameter interface) where
   typeDocName _ = "Parameter.SafeParameter"
-  typeDocMdDescription = "Parameter which does not have unsafe arguments, like raw `Contract p` values."
+  typeDocMdDescription = "Parameter which does not have unsafe arguments, for example raw `Contract p` values."
   typeDocMdReference tp =
     customTypeDocMdReference ("Parameter.SafeParameter", DType tp) []
   typeDocHaskellRep = homomorphicTypeDocHaskellRep

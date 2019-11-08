@@ -16,8 +16,7 @@ doc_branch="autodoc/$our_branch"
 sha=$(git rev-parse --short HEAD)
 git checkout origin/$doc_branch
 git checkout -B $doc_branch
-git merge -X theirs origin/$our_branch
-mkdir -p ./autodoc
+git merge -X theirs origin/$our_branch -m "Upstream merge"
 nix-shell --run "stack exec tzbtc printContractDoc > TZBTC-contract.md"
 git add TZBTC-contract.md
 git commit --allow-empty -m "Documentation update for $sha"
