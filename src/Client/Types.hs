@@ -10,6 +10,7 @@ module Client.Types
   , ClientConfig
   , ClientConfigPartial
   , ClientConfigText
+  , EntrypointParam(..)
   , ForgeOperation (..)
   , InternalOperation (..)
   , MichelsonExpression (..)
@@ -168,6 +169,10 @@ data BlockConstants = BlockConstants
   { bcProtocol :: Text
   , bcChainId :: Text
   }
+
+data EntrypointParam param
+  = DefaultEntrypoint param
+  | Entrypoint Text param
 
 data RunError
   = RuntimeError Address
