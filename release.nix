@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2019 Bitcoin Suisse
 #
 # SPDX-License-Identifier: LicenseRef-Proprietary
-{ pkgs ? import ./pkgs.nix, tzbtc-client-binary }:
+{ pkgs ? import <nixpkgs> { }, tzbtc-client-binary }:
 with pkgs;
 
 let
@@ -24,13 +24,13 @@ let
   buildRpm = import ./packageRpm.nix { inherit stdenv writeTextFile; }
     (packageDesc // { arch = "x86_64"; });
 
-  inherit (pkgs.vmTools)
+  inherit (vmTools)
     makeImageFromDebDist makeImageFromRPMDist debDistros rpmDistros;
   ubuntuImage = makeImageFromDebDist debDistros.ubuntu1804x86_64;
   fedoraImage = makeImageFromRPMDist rpmDistros.fedora27x86_64;
 
 in rec {
-  inherit (pkgs.vmTools) runInLinuxImage;
+  inherit (vmTools) runInLinuxImage;
 
   packageIntoRpm = runInLinuxImage
     (buildRpm.packageRpm tzbtc-client-binary // { diskImage = fedoraImage; });
