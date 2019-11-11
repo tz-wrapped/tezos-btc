@@ -309,21 +309,29 @@ postProcessOperation config opHash = do
   putStrLn $ "Operation hash: " <> opHash
   waitForOperationInclusion opHash config
 
+toParametersInternals :: (NicePackedValue param) => EntrypointParam param -> ParametersInternal
+toParametersInternals = \case
+  DefaultEntrypoint param -> ParametersInternal
+    { piEntrypoint = "default"
+    , piValue = nicePackedValueToExpression param
+    }
+  Entrypoint ep param -> ParametersInternal
+    { piEntrypoint = ep
+    , piValue = nicePackedValueToExpression param
+    }
+
 -- It is possible to include multiple transaction within single operations batch
 -- so we are accepting list of param's here.
 runTransactions
   :: (NicePackedValue param)
-  => Address -> [param] -> ClientConfig -> IO ()
+  => Address -> [EntrypointParam param] -> ClientConfig -> IO ()
 runTransactions to params config@ClientConfig{..} = do
   OperationConstants{..} <- preProcessOperation config
   let opsToRun = map (\(param, i) -> dumbOp
         { toDestination = to
         , toSource = ocSourceAddr
         , toCounter = ocCounter + (fromInteger i)
-        , toParameters = ParametersInternal
-          { piEntrypoint = "default"
-          , piValue = nicePackedValueToExpression $ param
-          }
+        , toParameters = toParametersInternals param
         }) $ zip params [1..]
   let runOp = RunOperation
         { roOperation =
@@ -425,7 +433,7 @@ deployTzbtcContract admin redeem = do
   clientEnv <- getClientEnv config
   AlmostStorage{..} <- getTzbtcStorage contractAddr config clientEnv
   putTextLn "Upgrade contract to V1"
-  transactionsToTzbtc $ fromFlatParameter <$>
+  transactionsToTzbtc $ (DefaultEntrypoint . fromFlatParameter) <$>
     [ Upgrade ( #newVersion .! (currentVersion asFields + 1)
               , #migrationScript .! manualConcatMigrationScripts migration
               , #newCode .! tzbtcContractRouter
@@ -564,7 +572,7 @@ runTzbtcContract param = do
   case ccContractAddress of
     Nothing -> throwM TzbtcContractConfigUnavailable
     Just contractAddr ->
-      runTransactions contractAddr [param] config
+      runTransactions contractAddr [DefaultEntrypoint param] config
 
 runMultisigContract :: NonEmpty Package -> IO ()
 runMultisigContract packages = do
@@ -572,8 +580,8 @@ runMultisigContract packages = do
   package <- throwLeft $ pure $ mergePackages packages
   multisigAddr <- throwLeft $ pure (fst <$> getToSign package)
   (_, (_, keys')) <- getMultisigStorage multisigAddr config
-  (_, multisigParam) <- throwLeft $ pure $ mkMultiSigParam keys' packages
-  runTransactions multisigAddr [multisigParam] config
+  (_, MSig.ParameterMain multisigParam) <- throwLeft $ pure $ mkMultiSigParam keys' packages
+  runTransactions multisigAddr [Entrypoint "main" multisigParam] config
 
 checkConfig :: IO ()
 checkConfig = do
