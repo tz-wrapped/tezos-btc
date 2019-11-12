@@ -29,6 +29,7 @@ import qualified Data.Map as Map (lookup)
 import Fmt (pretty)
 import Named (Name(..), arg)
 import Network.HTTP.Client (ManagerSettings(..), Request(..), defaultManagerSettings, newManager)
+import Network.HTTP.Client.TLS (tlsManagerSettings)
 import Network.HTTP.Types.Status (notFound404)
 import Servant.Client
   (BaseUrl(..), ClientEnv, ClientError(..), ResponseF(..), Scheme(..), mkClientEnv, runClientM)
@@ -106,8 +107,12 @@ fixRequest req = return $
 
 getClientEnv :: ClientConfig -> IO ClientEnv
 getClientEnv ClientConfig{..} = do
-  manager' <- newManager $ defaultManagerSettings { managerModifyRequest = fixRequest }
-  let nodeUrl = BaseUrl Http (toString ccNodeAddress) ccNodePort ""
+  manager' <- newManager $ bool
+    (defaultManagerSettings { managerModifyRequest = fixRequest })
+    (tlsManagerSettings { managerModifyRequest = fixRequest })
+    ccNodeUseHttps
+  let nodeUrl = BaseUrl (bool Http Https ccNodeUseHttps)
+                (toString ccNodeAddress) ccNodePort ""
   return $ mkClientEnv manager' nodeUrl
 
 getAddressCounter :: ClientEnv -> Address -> IO (Either ClientError TezosWord64)
@@ -502,6 +507,7 @@ signPackageForConfiguredUser pkg = do
 
 tezosNodeArgs :: ClientConfig -> [String]
 tezosNodeArgs ClientConfig{..} = ["-A", toString ccNodeAddress, "-P", show ccNodePort]
+  ++ bool [] ["-S"] ccNodeUseHttps
 
 waitForOperationInclusion :: Text -> ClientConfig -> IO ()
 waitForOperationInclusion op config@ClientConfig{..} = do
@@ -613,6 +619,7 @@ runConfigEdit doEdit configPartial = do
     mergeConfig cc ccp = ClientConfig
       (withDefaultConfig (ccNodeAddress cc) (ccNodeAddress ccp))
       (withDefaultConfig (ccNodePort cc) (ccNodePort ccp))
+      (withDefaultConfig (ccNodeUseHttps cc) (ccNodeUseHttps ccp))
       (withDefaultConfig (ccContractAddress cc) (ccContractAddress ccp))
       (withDefaultConfig (ccMultisigAddress cc) (ccMultisigAddress ccp))
       (withDefaultConfig (ccUserAlias cc) (ccUserAlias ccp))

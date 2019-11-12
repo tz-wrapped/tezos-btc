@@ -16,7 +16,7 @@ import Fmt (pretty)
 import Named ((!))
 import Options.Applicative
   (argument, auto, eitherReader, help, long, metavar, option, optional,
-  showDefaultWith, str, strOption, switch, value)
+  showDefaultWith, short, str, strOption, switch, value)
 import qualified Options.Applicative as Opt
 import qualified Text.Megaparsec as P
   (Parsec, customFailure, many, parse, satisfy)
@@ -98,10 +98,14 @@ clientArgRawParser = Opt.hsubparser $
         editSwitch =
           switch (long "edit" <>
                   help "Edit config using command arguments")
+    useHttpsSwitch :: Opt.Parser Bool
+    useHttpsSwitch = switch
+       (short 'S' <> long "use-https" <> help "use HTTPS to communicate with the node")
     clientConfigParser :: Opt.Parser ClientConfigPartial
     clientConfigParser = ClientConfig <$>
       (partialParser $ urlOption "node-url" "Node url") <*>
       (partialParser $ intOption "node-port" "Node port") <*>
+      (partialParser $ useHttpsSwitch) <*>
       (partialParserMaybe $ namedAddressOption Nothing "contract-address"
       "Contract's address") <*>
       (partialParserMaybe $ namedAddressOption Nothing "multisig-address" "Multisig contract address") <*>
@@ -115,6 +119,7 @@ clientArgRawParser = Opt.hsubparser $
     clientConfigParserEdit = ClientConfig <$>
       (partialParser $ urlOption "node-url" "Node url") <*>
       (partialParser $ intOption "node-port" "Node port") <*>
+      (partialParser $ useHttpsSwitch) <*>
       (partialParserFlattenMaybe $
         optional $ nullableAddressOption
           ! #name "contract-address"

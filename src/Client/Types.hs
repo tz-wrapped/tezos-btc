@@ -332,7 +332,8 @@ type ClientConfigText = ClientConfigP 'ConfigText
 
 data ClientConfigP f = ClientConfig
   { ccNodeAddress :: ConfigC f Text "url to the tezos node"
-  , ccNodePort :: ConfigC f Int "`rpc port of the tezos node"
+  , ccNodePort :: ConfigC f Int "rpc port of the tezos node"
+  , ccNodeUseHttps :: ConfigC f Bool "define whether use HTTPS in requests to the node"
   , ccContractAddress :: ConfigC f (Maybe Address) "contract address"
   , ccMultisigAddress :: ConfigC f (Maybe Address) "multisig contract address"
   , ccUserAlias :: ConfigC f Text "user alias"
@@ -369,6 +370,7 @@ toConfigFilled :: ClientConfigPartial -> Maybe ClientConfig
 toConfigFilled p = ClientConfig
   <$> (toMaybe $ ccNodeAddress p)
   <*> (toMaybe $ ccNodePort p)
+  <*> (toMaybe $ withDefault' False $ ccNodeUseHttps p)
   <*> (toMaybe $ ccContractAddress p)
   <*> (toMaybe $ withDefault' Nothing $ ccMultisigAddress p)
   <*> (toMaybeText $ ccUserAlias p)
