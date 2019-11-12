@@ -31,6 +31,7 @@ library:
     - directory
     - hex-text
     - http-client
+    - http-client-tls
     - http-types
     - fmt
     - memory
