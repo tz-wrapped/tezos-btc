@@ -26,8 +26,9 @@ ledger interaction.
 
 #### Setup `tzbtc-client`
 `setupClient` command is required for setting up `tzbtc-client`
-environment. It takes information about node, user information
-(specifically name alias from the `tezos-client`), contracts addresses
+environment. It takes information about node (if node that you are going to use
+uses HTTPS, you will have to provide `--use-https` flag to `setupClient`),
+user information (specifically name alias from the `tezos-client`), contracts addresses
 (TZBTC and multisig contracts)
 and also path to the `tezos-client` executable, which is used for
 transaction signing and ledger interaction. The `setupClient` command
