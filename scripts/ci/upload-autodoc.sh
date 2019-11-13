@@ -18,7 +18,6 @@ sha=$(git rev-parse --short HEAD)
 git checkout origin/$doc_branch
 git checkout -B $doc_branch
 git merge -X theirs origin/$our_branch -m "Merge $our_branch"
-nix-shell --run "stack exec tzbtc printContractDoc > TZBTC-contract.md"
 git add TZBTC-contract.md
 git commit --allow-empty -m "Documentation update for $sha"
 git push --set-upstream auth-origin $doc_branch
