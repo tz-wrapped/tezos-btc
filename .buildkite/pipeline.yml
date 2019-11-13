@@ -8,12 +8,16 @@ env:
 steps:
  - command: nix run nixpkgs.{gnumake,hlint,ncurses} -c make lint
    label: make lint
+   branches: !autodoc/master
  - command: nix run nixpkgs.reuse -c reuse lint
    label: reuse lint
+   branches: !autodoc/master
  - command: .buildkite/check-trailing-whitespace.sh
+   branches: !autodoc/master
  - command: "nix run -f https://github.com/serokell/crossref-verifier/archive/master.tar.gz -c crossref-verify"
    label: crossref-verify
    soft_fail: true
+   branches: !autodoc/master
  - commands:
    - nix-shell --run "make test-ci"
    - echo +++ Weeder
@@ -28,6 +32,7 @@ steps:
    label: ${test_step}
    artifact_paths:
      - "TZBTC-contract.md"
+   branches: !autodoc/master
 
  - commands:
    - nix-shell --run "mkdir tmp"
@@ -35,8 +40,7 @@ steps:
    - nix-shell --run "cd tmp"
    - nix-shell --run "nix run -f https://github.com/serokell/crossref-verifier/archive/master.tar.gz -c crossref-verify"
    label: crossref-verify generated doc
-
-   branches: !autodoc/*
+   branches: !autodoc/master
 
  - commands:
    - nix-shell --run "buildkite-agent artifact download TZBTC-contract.md . --step \"${test_step}\""
