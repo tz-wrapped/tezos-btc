@@ -6,7 +6,7 @@ module Main
   ( main
   ) where
 
-import Client.IO
+import Client.Main
 
 main :: IO ()
 main = mainProgram

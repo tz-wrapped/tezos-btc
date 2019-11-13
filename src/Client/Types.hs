@@ -6,10 +6,12 @@ module Client.Types
   ( AlmostStorage (..)
   , AppliedResult (..)
   , BlockConstants (..)
-  , ClientConfigP (..)
   , ClientConfig
+  , ClientConfigP (..)
   , ClientConfigPartial
   , ClientConfigText
+  , ConfirmationResult(..)
+  , DirPath(..)
   , EntrypointParam(..)
   , ForgeOperation (..)
   , InternalOperation (..)
@@ -351,6 +353,10 @@ data ClientConfigP f = ClientConfig
   , ccUserAlias :: ConfigC f Text "user alias"
   , ccTezosClientExecutable :: ConfigC f FilePath "tezos-client executable path"
   } deriving (Generic)
+
+data ConfirmationResult = Confirmed | Canceled
+
+newtype DirPath = DirPath { unDirPath :: FilePath } deriving (Show ,Eq)
 
 -- For tests
 deriving instance Eq ClientConfig

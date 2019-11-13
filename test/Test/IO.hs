@@ -2,7 +2,6 @@
  -
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
-{-# OPTIONS_GHC -Wno-orphans #-}
 {-# OPTIONS_GHC -Wno-missing-signatures #-}
 
 module Test.IO
@@ -25,8 +24,7 @@ import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (Assertion, assertFailure, testCase)
 import Util.Named
 
-import Client.IO (mainProgram)
-import Client.Error
+import Client.Main (mainProgram)
 import Client.Types
 import Client.Util
 import qualified Lorentz.Contracts.TZBTC.MultiSig as MS
@@ -35,13 +33,10 @@ import qualified Lorentz.Contracts.TZBTC.Types as TZBTCTypes
 import Michelson.Typed.Haskell.Value (fromVal, toVal)
 import Tezos.Address
 import Tezos.Crypto
-import Util.AbstractIO
 import Util.MultiSig
+import TestM
 
 {-# ANN module ("HLint: ignore Reduce duplication" :: Text) #-}
-
-instance MonadFail (Either SomeException) where
-  fail s = Left $ toException $ TestError s
 
 -- Some configuration values to configure the
 -- base/default mock behavior.
@@ -76,10 +71,10 @@ defaultHandlers mi = Handlers
   , hDecodeFileStrict = \_ -> unavailable "decodeFileStrict"
   , hCreateDirectoryIfMissing = \_ _ -> unavailable "createDirectoryIfMissing"
   , hGetConfigPaths = do
-      removeExpectation GetConfigPaths
+      meetExpectation GetConfigPaths
       pure $ miConfigPaths mi
   , hReadConfig = do
-      removeExpectation ReadConfig
+      meetExpectation ReadConfig
       pure $ Right $ miConfig mi
   , hReadConfigText = unavailable "readConfigText"
   , hWriteConfigFull = \_ -> unavailable "writeConfigFull"
@@ -88,14 +83,14 @@ defaultHandlers mi = Handlers
   , hParseCmdLine = \p -> do
       case execParserPure defaultPrefs p (miCmdLine mi) of
         Success a -> do
-          removeExpectation ParseCmdLine
+          meetExpectation ParseCmdLine
           pure a
         Failure _ -> throwM $ TestError "CMDline parsing failed"
         _ -> throwM $ TestError "Unexpected cmd line autocompletion"
-  , hPrintStringLn = \_ -> removeExpectation PrintsMessage
-  , hPrintTextLn = \_ -> removeExpectation PrintsMessage
+  , hPrintStringLn = \_ -> meetExpectation PrintsMessage
+  , hPrintTextLn = \_ -> meetExpectation PrintsMessage
   , hPrintByteString = \_ -> unavailable "printByteString"
-  , hGetLineFromUser = unavailable "getLineFromUser"
+  , hConfirmAction = \_ -> unavailable "confirmAction"
   , hRunTransactions = \_ _ -> unavailable "runTransactions"
   , hGetStorage = \_ -> unavailable "getStorage"
   , hGetCounter = \_ -> unavailable "getCounter"
@@ -121,8 +116,8 @@ addExpectation :: (MonadState ST m) => Expectation -> ExpectationCount -> m ()
 addExpectation s i = state (\m -> ((), Map.insert s (ExpectationStatus i 0)  m))
 
 -- | Meet a previously set expectation
-removeExpectation :: forall m. (MonadThrow m, MonadState ST m) => Expectation -> m ()
-removeExpectation s = do
+meetExpectation :: forall m. (MonadThrow m, MonadState ST m) => Expectation -> m ()
+meetExpectation s = do
   m <- get
   case Map.lookup s m of
     Just es -> put $ Map.insert s (es { exOccurCount = exOccurCount es + 1 }) m
@@ -141,13 +136,6 @@ checkExpectations = do
       Multiple ->  exOccurCount es == 0
       Once -> exOccurCount es /= 1
       Exact x -> exOccurCount es /= x
-
-data TestError
-  = TestError String
-  | TZBTCError TzbtcClientError
-  deriving Show
-
-instance Exception TestError
 
 -- Some constants
 --
@@ -213,13 +201,13 @@ setupClientTestHandlers = (defaultHandlers (defaultMockInput { miCmdLine = ["set
       let
           expectedMessage = "Not overwriting the existing config file at, \n\n" <> configPath <> "\n\nPlease remove the file and try again"
       in if x == expectedMessage
-          then removeExpectation PrintsMessage
+          then meetExpectation PrintsMessage
           else throwM $ TestError "Unexpected message"
   , hGetConfigPaths = do
-      removeExpectation GetConfigPaths
+      meetExpectation GetConfigPaths
       pure (DirPath configDir, configPath)
   , hDoesFileExist = \x -> if x == configPath then do
-      removeExpectation ChecksFileExist
+      meetExpectation ChecksFileExist
       pure True
       else throwM $ TestError "Unexpected file existence check"
   }
@@ -241,21 +229,21 @@ test_setupClient = testGroup "`SetupClient` without arguments does not overwrite
 -- TestSetup client with out any arguments creates a template file
 setupClientWithoutArgsTestHandlers :: Handlers TestM
 setupClientWithoutArgsTestHandlers = setupClientTestHandlers
-  { hPrintStringLn = \_ -> removeExpectation PrintsMessage
+  { hPrintStringLn = \_ -> meetExpectation PrintsMessage
   , hGetConfigPaths = do
-      removeExpectation GetConfigPaths
+      meetExpectation GetConfigPaths
       pure (DirPath configDir, configPath)
   , hWriteConfigPartial = \c ->
       if c == expectedConfig
-      then removeExpectation WritesConfig
+      then meetExpectation WritesConfig
       else throwM $ TestError "Unexpected config file contents"
   , hCreateDirectoryIfMissing = \b x ->
       if unDirPath x ==  configDir && b
-        then removeExpectation CreateDirectory
+        then meetExpectation CreateDirectory
         else throwM $ TestError "Unexpected directiory creation request"
   , hDoesFileExist = \x -> if x == configPath
     then do
-      removeExpectation ChecksFileExist
+      meetExpectation ChecksFileExist
       pure False
     else throwM $ TestError $ "Unexpected file existence check"
   }
@@ -292,14 +280,14 @@ setupClientTemplateFullTestHandlers =
   (defaultHandlers (defaultMockInput { miCmdLine =  args}))
     { hWriteConfigFull = \c ->
         if c == expectedConfig
-        then removeExpectation WritesConfig
+        then meetExpectation WritesConfig
         else throwM $ TestError "Unexpected config file contents"
     , hCreateDirectoryIfMissing = \b x ->
-        if unDirPath x ==  configDir && b then removeExpectation CreateDirectory
+        if unDirPath x ==  configDir && b then meetExpectation CreateDirectory
         else throwM $ TestError "Unexpected directiory creation request"
     , hDoesFileExist = \x -> if x == configPath
         then do
-          removeExpectation ChecksFileExist
+          meetExpectation ChecksFileExist
           pure False
         else throwM $ TestError $ "Unexpected file existence check"
     }
@@ -346,7 +334,7 @@ multiSigCreationTestHandlers =
   (defaultHandlers (defaultMockInput { miCmdLine =  args}))
     { hReadConfig = case decode $ encode cc of
         Just x -> do
-          removeExpectation ReadConfig
+          meetExpectation ReadConfig
           pure $ Right x
         Nothing -> throwM $ TestError "Unexpected configuration decoding fail"
     , hRunTransactions = \_ _ -> throwM $ TestError "Unexpected `runTransactions` call"
@@ -357,7 +345,7 @@ multiSigCreationTestHandlers =
       if fp == multiSigFilePath
       then do
         packageOk <- checkPackage bs
-        if packageOk then removeExpectation WritesFile else throwM $ TestError "Package check failed"
+        if packageOk then meetExpectation WritesFile else throwM $ TestError "Package check failed"
       else throwM $ TestError "Unexpected multisig package file location"
     }
     where
@@ -410,23 +398,22 @@ test_createMultisigPackage = testGroup "Create multisig package"
 multisigSigningTestHandlers :: Handlers TestM
 multisigSigningTestHandlers =
   (defaultHandlers (defaultMockInput { miCmdLine =  args}))
-    { hGetLineFromUser = do
-        removeExpectation GetsLineFromUser
-        pure "y"
+    { hConfirmAction = \_ -> do
+        meetExpectation GetsUserConfirmation
+        pure Confirmed
     , hReadConfig = case decode $ encode cc of
         Just x -> do
-          removeExpectation ReadConfig
+          meetExpectation ReadConfig
           pure $ Right x
         Nothing -> throwM $ TestError "Unexpected configuration decoding fail"
-
     , hWriteFile = \fp bs -> do
         if fp == multiSigFilePath then do
           checkSignature_ bs
-          removeExpectation WritesFile
+          meetExpectation WritesFile
         else throwM $ TestError "Unexpected file path to write"
     , hReadFile = \fp -> do
         if fp == multiSigFilePath then do
-          removeExpectation ReadsFile
+          meetExpectation ReadsFile
           pure $ encodePackage multisigSignPackageTestPackage
         else throwM $ TestError "Unexpected file read"
     , hGetAddressAndPKForAlias = \a -> if a == johnAlias
@@ -475,7 +462,7 @@ test_multisigSignPackage = testGroup "Sign multisig package"
         addExpectation ReadConfig Once
         addExpectation ReadsFile Once
         addExpectation PrintsMessage Multiple
-        addExpectation GetsLineFromUser Once
+        addExpectation GetsUserConfirmation Once
         addExpectation WritesFile Once
         mainProgram
         checkExpectations
@@ -490,7 +477,7 @@ multisigExecutionTestHandlers =
   (defaultHandlers (defaultMockInput { miCmdLine =  args}))
     { hReadConfig = case decode $ encode cc of
         Just x -> do
-          removeExpectation ReadConfig
+          meetExpectation ReadConfig
           pure $ Right x
         Nothing -> throwM $ TestError "Unexpected configuration decoding fail"
     , hRunTransactions =  \addr params ->
@@ -507,7 +494,7 @@ multisigExecutionTestHandlers =
                       [ Just multisigExecutePackageTestSignatureAlice
                       , Just multisigExecutePackageTestSignatureBob
                       , Just multisigExecutePackageTestSignatureJohn
-                      ] then removeExpectation RunsTransaction
+                      ] then meetExpectation RunsTransaction
                     else throwM $ TestError "Unexpected signature list"
                 Nothing -> throwM $ TestError "Decoding parameter failed"
             [Entrypoint x _] -> throwM $ TestError $ "Unexpected entrypoint: " <> toString x
@@ -520,13 +507,13 @@ multisigExecutionTestHandlers =
     , hReadFile = \fp -> do
         case fp of
           "/home/user/multisig_package_bob" -> do
-            removeExpectation ReadsFile
+            meetExpectation ReadsFile
             encodePackage <$> addSignature_ multisigSignPackageTestPackage (bobAddressPK, multisigExecutePackageTestSignatureBob)
           "/home/user/multisig_package_alice" -> do
-            removeExpectation ReadsFile
+            meetExpectation ReadsFile
             encodePackage <$> addSignature_ multisigSignPackageTestPackage (aliceAddressPK, multisigExecutePackageTestSignatureAlice)
           "/home/user/multisig_package_john" -> do
-            removeExpectation ReadsFile
+            meetExpectation ReadsFile
             encodePackage <$> addSignature_ multisigSignPackageTestPackage (johnAddressPK, multisigExecutePackageTestSignatureJohn)
           _ -> throwM $ TestError "Unexpected file read"
     }
