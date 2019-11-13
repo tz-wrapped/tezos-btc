@@ -6,6 +6,11 @@
 
 # Changelog for TZBTC
 
+Unreleased
+==========
+
+* Add git revision to automatically generated contract documentation.
+
 0.1.0
 =====
 

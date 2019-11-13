@@ -134,7 +134,7 @@ Run `stack test` and explore the tests.
 
 ## Contract documentation [↑](#TZBTC)
 
-Contract documentation is located at [TBTC-contract.md](https://github.com/serokell/tezos-btc/blob/autodoc/master/TZBTC-contract.md).
+Contract documentation is located at [TZBTC-contract.md](https://github.com/serokell/tezos-btc/blob/autodoc/master/TZBTC-contract.md).
 
 ## Issue Tracker [↑](#TZBTC)
 
