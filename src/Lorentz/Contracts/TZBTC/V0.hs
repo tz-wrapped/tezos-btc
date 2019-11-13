@@ -23,9 +23,9 @@ import Fmt (Buildable(..), fmt)
 
 import Lorentz
 import Lorentz.Contracts.Upgradeable.Common hiding (Parameter(..), Storage)
+import Michelson.Doc (DComment(..), DDescription(..), contractDocToMarkdown)
 import Michelson.Text
 import qualified Michelson.Typed as T
-import Michelson.Doc (DComment(..), DDescription(..), contractDocToMarkdown)
 import Util.Markdown
 import Util.TypeLits
 
@@ -204,6 +204,8 @@ tzbtcDoc = contractDocToMarkdown . buildLorentzDoc $ do
     , "DX-License-Identifier: LicenseRef-Proprietary"
     ]
   contractName "TZBTC" $ do
+    doc $ $mkDGitRevision $ GitRepoSettings $
+      mappend "https://github.com/serokell/tezos-btc/commit/"
     doc $ DDescription "This contract is implemented using Lorentz language"
     tzbtcContractRaw
     fakeCoerce
