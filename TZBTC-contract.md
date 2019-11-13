@@ -6,6 +6,8 @@
 
 # TZBTC
 
+**Code revision:** [5aea9e1](https://github.com/serokell/tezos-btc/commit/5aea9e1ffd7ad1dd7e64904eddb241faa569ea80) *(Wed Nov 13 16:24:22 2019 +0300)*
+
 This contract is implemented using Lorentz language
 
 ## Top-level entry points of upgradeable contract.
