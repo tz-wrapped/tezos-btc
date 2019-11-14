@@ -28,6 +28,8 @@ verification:
     # Github-specific files
     - .github/pull_request_template.md
     - docs/pull_request_template.md
+    # [TBTC-73] Revert this hack!
+    - README.md
 
   # Glob patterns describing the files which do not physically exist in the repository
   # but should be treated as existing nevertheless.
