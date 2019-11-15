@@ -249,12 +249,12 @@ setupClientWithoutArgsTestHandlers = setupClientTestHandlers
   }
   where
     expectedConfig = ClientConfig
-     { ccNodeAddress = Unavilable
-     , ccNodePort = Unavilable
+     { ccNodeAddress = Unavailable
+     , ccNodePort = Unavailable
      , ccNodeUseHttps = Available False
-     , ccContractAddress = Unavilable
-     , ccMultisigAddress = Unavilable
-     , ccUserAlias = Unavilable
+     , ccContractAddress = Unavailable
+     , ccMultisigAddress = Unavailable
+     , ccUserAlias = Unavailable
      , ccTezosClientExecutable = Available "tezos-client"
      }
 

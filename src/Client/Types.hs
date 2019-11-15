@@ -326,7 +326,7 @@ data OriginationOperation = OriginationOperation
 
 data ConfigSt = ConfigFilled | ConfigPartial | ConfigText
 
-data Partial (label :: Symbol) a = Available a | Unavilable deriving (Eq, Show, Functor)
+data Partial (label :: Symbol) a = Available a | Unavailable deriving (Eq, Show, Functor)
 
 -- | This type is used to represent fields in a config where some of
 -- the fields can be placeholders. Let's us to read the partial config
@@ -374,14 +374,14 @@ partialParser p = toPartial <$> optional p
   where
     toPartial :: Maybe a -> Partial s a
     toPartial (Just a) = Available a
-    toPartial Nothing = Unavilable
+    toPartial Nothing = Unavailable
 
 partialParserMaybe :: Parser a -> Parser (Partial s (Maybe a))
 partialParserMaybe p = toPartialMaybe <$> optional p
   where
     toPartialMaybe :: Maybe a -> Partial s (Maybe a)
     toPartialMaybe (Just a) = Available (Just a)
-    toPartialMaybe Nothing = Unavilable
+    toPartialMaybe Nothing = Unavailable
 
 withDefault :: a -> Partial s a -> a
 withDefault _ (Available a) = a
@@ -412,7 +412,7 @@ toConfigFilled p = ClientConfig
 instance (ToJSON a, KnownSymbol l) => ToJSON (Partial l a) where
   toJSON v = case v of
     Available a -> toJSON a
-    Unavilable ->
+    Unavailable ->
       toJSON $ "-- Required field: "
         ++ (symbolVal (Proxy @l) ++ ", Replace this placeholder with proper value --")
 

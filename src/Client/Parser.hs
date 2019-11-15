@@ -142,7 +142,7 @@ clientArgRawParser = Opt.hsubparser $
           where
             unwrapOuter :: Maybe (Maybe a) -> Partial s (Maybe a)
             unwrapOuter (Just a) = Available a
-            unwrapOuter Nothing = Unavilable
+            unwrapOuter Nothing = Unavailable
 
     setupUserCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     setupUserCmd =

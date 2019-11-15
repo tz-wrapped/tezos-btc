@@ -173,7 +173,7 @@ runConfigEdit doEdit configPartial = do
 
     withDefaultConfig :: TextConfig a -> Partial s a -> TextConfig a
     withDefaultConfig _ (Available a) = ConfigVal a
-    withDefaultConfig a Unavilable = a
+    withDefaultConfig a Unavailable = a
 
 checkConfig :: (HasCmdLine m, HasConfig m) => m ()
 checkConfig = do
