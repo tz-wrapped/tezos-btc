@@ -55,23 +55,26 @@ mkOriginationScript contract Storage{..} = OriginationScript
     [ Expression_Prim $
       MichelinePrimAp (MichelinePrimitive "parameter")
       (fromList [typeToExpression @(Parameter Interface)])
+      (fromList [])
     , Expression_Prim $
       MichelinePrimAp (MichelinePrimitive "storage")
       (fromList [typeToExpression @UStoreV0])
+      (fromList [])
     , Expression_Prim $
       MichelinePrimAp (MichelinePrimitive "code")
       (fromList [codeToExpression $ compileLorentz contract])
+      (fromList [])
     ]
   -- Here we assume, that the storage has the following structure:
   -- (big_map, fields)
   , osStorage = Expression_Prim $
-    MichelinePrimAp (MichelinePrimitive "Pair") $ fromList
+    MichelinePrimAp (MichelinePrimitive "Pair") (fromList
     -- Here is another hack. We cannot pack big_map, but JSON representation
     -- (and thus Micheline representation) of big_map and basic map don't differ,
     -- so we convert basic map (made from our big_map) to Expression here.
     [ nicePackedValueToExpression $ (unBigMap . unUStore) dataMap
     , nicePackedValueToExpression fields
-    ]
+    ]) (fromList [])
   }
 
 calcFees :: TezosWord64 -> TezosWord64 -> TezosWord64

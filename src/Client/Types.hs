@@ -49,7 +49,7 @@ import GHC.TypeLits
 import Options.Applicative
 import Tezos.Base16ByteString (Base16ByteString(..))
 import Tezos.Micheline
-  (Expression(..), MichelinePrimAp(..), MichelinePrimitive(..))
+  (Expression(..), MichelinePrimAp(..), MichelinePrimitive(..), annotToText)
 import Tezos.Json (TezosWord64(..))
 
 import Michelson.Typed (IsoValue)
@@ -67,14 +67,15 @@ instance Buildable MichelsonExpression where
     Expression_String s -> build s
     Expression_Bytes b ->
       build $ encodeBase58Check $ unbase16ByteString b
-    Expression_Seq s -> "(" +| buildSeq s |+ ")"
-    Expression_Prim (MichelinePrimAp (MichelinePrimitive text) s) ->
+    Expression_Seq s -> "(" +| buildSeq (build . MichelsonExpression) s |+ ")"
+    Expression_Prim (MichelinePrimAp (MichelinePrimitive text) s annots) ->
       text <> " " |+ "(" +|
-      buildSeq s +| ")"
+      buildSeq (build . MichelsonExpression) s +| ") " +|
+      buildSeq (build . annotToText) annots
     where
-      buildSeq =
+      buildSeq buildElem =
         mconcat . intersperse ", " . map
-        (build . MichelsonExpression) . toList
+        buildElem . toList
 
 data AlmostStorage interface = AlmostStorage
   { asBigMapId :: Natural
