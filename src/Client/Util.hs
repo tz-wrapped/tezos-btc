@@ -5,11 +5,13 @@
 module Client.Util
   ( addTezosBytesPrefix
   , calcFees
+  , convertTypeToExpression
   , exprToValue
   , mkOriginationScript
   , nicePackedValueToExpression
   , throwClientError
   , throwLeft
+  , typeToExpression
   , valueToScriptExpr
   ) where
 
@@ -19,16 +21,20 @@ import Data.Singletons (SingI)
 import Servant.Client.Core (ClientError)
 import Tezos.Binary (encode, decode)
 import Tezos.Json (TezosWord64)
-import Tezos.Micheline (Expression(..), MichelinePrimAp(..), MichelinePrimitive(..))
+import Tezos.Micheline
+  (Annotation(..), Expression(..), MichelinePrimAp(..), MichelinePrimitive(..))
 
-import Lorentz (Contract, compileLorentz)
+import Lorentz (Contract, compileLorentz, compileLorentzContract)
 import Lorentz.Constraints (NicePackedValue, NiceUnpackedValue)
 import Lorentz.UStore.Types (UStore(..))
 import Lorentz.Pack (lPackValue, lUnpackValue)
 import Michelson.Interpret.Pack (packT', packCode')
 import Michelson.Interpret.Unpack (UnpackError)
-import Michelson.Typed (Instr)
+import Michelson.Typed (Instr, convertFullContract)
 import Michelson.Typed.Haskell.Value (BigMap(..), IsoValue(..))
+import Michelson.Untyped.Annotation (Annotation (..), FieldAnn, TypeAnn, noAnn)
+import Michelson.Untyped.Contract (Contract'(..))
+import qualified Michelson.Untyped.Type as U (Comparable(..), CT(..), T(..), Type(..))
 import Tezos.Crypto (blake2b)
 
 import Client.Error (TzbtcClientError(..))
@@ -54,7 +60,7 @@ mkOriginationScript contract Storage{..} = OriginationScript
   { osCode = Expression_Seq $ fromList
     [ Expression_Prim $
       MichelinePrimAp (MichelinePrimitive "parameter")
-      (fromList [typeToExpression @(Parameter Interface)])
+      (fromList [convertTypeToExpression $ para untypedContract])
       (fromList [])
     , Expression_Prim $
       MichelinePrimAp (MichelinePrimitive "storage")
@@ -76,6 +82,8 @@ mkOriginationScript contract Storage{..} = OriginationScript
     , nicePackedValueToExpression fields
     ]) (fromList [])
   }
+  where
+    untypedContract = convertFullContract $ compileLorentzContract contract
 
 calcFees :: TezosWord64 -> TezosWord64 -> TezosWord64
 calcFees consumedGas storageSize =
@@ -124,3 +132,95 @@ valueToScriptExpr
   :: forall t. (NicePackedValue t)
   => t -> ByteString
 valueToScriptExpr = addExprPrefix . blake2b . lPackValue
+
+
+-- | Function to convert `Untyped.Type` to Micheline `Expression`.
+--
+-- We cannot simply use `typeToExpression` for parameter type of our contract
+-- because Morley typed representation doesn't preserve annotations. However,
+-- after compiling and untyping Lorentz contract, parameter and storage represented
+-- as `Untyped.Type` has required annotations.
+--
+-- We use this function after compiling and converting the contract to
+-- untyped version, that's why `TypeParameter` and `TypeStorage` won't
+-- appear as an argument and we use `error` when we find them.
+convertTypeToExpression :: HasCallStack => U.Type -> Expression
+convertTypeToExpression type_ = case type_ of
+  (U.Type t_ typeAnn_) -> convertTToExpression t_ typeAnn_ noAnn
+  _ -> failWithError
+  where
+    failWithError = error "Cannot convert implicit type"
+    convertTToExpression :: HasCallStack => U.T -> TypeAnn -> FieldAnn -> Expression
+    convertTToExpression t typeAnn fieldAnn = case t of
+      U.Tc ct -> convertCTToExpression ct typeAnn fieldAnn
+      U.TKey -> mkLeafPrim "key"
+      U.TUnit -> mkLeafPrim "unit"
+      U.TSignature -> mkLeafPrim "signature"
+      U.TChainId -> mkLeafPrim "chain_id"
+      U.TOption (U.Type t' typeAnn') -> mkExpressionPrim "option"
+                   [convertTToExpression t' typeAnn' noAnn] typeAnn fieldAnn
+      U.TList (U.Type t' typeAnn') -> mkExpressionPrim "list"
+                   [convertTToExpression t' typeAnn' noAnn] typeAnn fieldAnn
+      U.TSet (U.Comparable ct' typeAnn') -> mkExpressionPrim "set"
+                   [convertCTToExpression ct' typeAnn' noAnn] typeAnn fieldAnn
+      U.TOperation -> mkLeafPrim "operation"
+      U.TContract (U.Type t' typeAnn') ->
+        mkExpressionPrim "contract" [convertTToExpression t' typeAnn' noAnn]
+        typeAnn fieldAnn
+      U.TPair fieldAnn1 fieldAnn2 (U.Type t1 typeAnn1) (U.Type t2 typeAnn2) ->
+        mkExpressionPrim "pair"
+        [ convertTToExpression t1 typeAnn1 fieldAnn1
+        , convertTToExpression t2 typeAnn2 fieldAnn2
+        ] typeAnn fieldAnn
+      U.TOr fieldAnn1 fieldAnn2 (U.Type t1 typeAnn1) (U.Type t2 typeAnn2) ->
+        mkExpressionPrim "or"
+        [ convertTToExpression t1 typeAnn1 fieldAnn1
+        , convertTToExpression t2 typeAnn2 fieldAnn2
+        ] typeAnn fieldAnn
+      U.TLambda (U.Type t1 typeAnn1) (U.Type t2 typeAnn2) ->
+        mkExpressionPrim "lambda"
+        [ convertTToExpression t1 typeAnn1 noAnn
+        , convertTToExpression t2 typeAnn2 noAnn
+        ] typeAnn fieldAnn
+      U.TMap (U.Comparable ct1 typeAnn1) (U.Type t2 typeAnn2) ->
+        mkExpressionPrim "map"
+        [ convertCTToExpression ct1 typeAnn1 noAnn
+        , convertTToExpression t2 typeAnn2 noAnn
+        ] typeAnn fieldAnn
+      U.TBigMap (U.Comparable ct1 typeAnn1) (U.Type t2 typeAnn2) ->
+        mkExpressionPrim "big_map"
+        [ convertCTToExpression ct1 typeAnn1 noAnn
+        , convertTToExpression t2 typeAnn2 noAnn
+        ] typeAnn fieldAnn
+      U.TOption _ -> failWithError
+      U.TList _ -> failWithError
+      U.TContract _ -> failWithError
+      U.TPair {} -> failWithError
+      U.TOr {} -> failWithError
+      U.TLambda {} -> failWithError
+      U.TMap {} -> failWithError
+      U.TBigMap {} -> failWithError
+      where
+        mkLeafPrim :: Text -> Expression
+        mkLeafPrim prim = mkExpressionPrim prim [] typeAnn fieldAnn
+    convertCTToExpression :: U.CT -> TypeAnn -> FieldAnn -> Expression
+    convertCTToExpression ct typeAnn fieldAnn = case ct of
+      U.CInt -> mkLeafPrim "int"
+      U.CNat -> mkLeafPrim "nat"
+      U.CString -> mkLeafPrim "string"
+      U.CMutez -> mkLeafPrim "mutez"
+      U.CBool -> mkLeafPrim "bool"
+      U.CKeyHash -> mkLeafPrim "key_hash"
+      U.CTimestamp -> mkLeafPrim "timestamp"
+      U.CBytes -> mkLeafPrim "bytes"
+      U.CAddress -> mkLeafPrim "address"
+      where
+        mkLeafPrim :: Text -> Expression
+        mkLeafPrim prim = mkExpressionPrim prim [] typeAnn fieldAnn
+    mkExpressionPrim :: Text -> [Expression] -> TypeAnn -> FieldAnn -> Expression
+    mkExpressionPrim prim childs typeAnn@(Annotation typeAnnText) fieldAnn@(Annotation fieldAnnText) =
+      Expression_Prim $ MichelinePrimAp (MichelinePrimitive prim) (fromList childs)
+      (fromList $
+       (bool [Annotation_Type typeAnnText] [] (typeAnn == noAnn)) <>
+       (bool [Annotation_Field fieldAnnText] [] (fieldAnn == noAnn))
+      )

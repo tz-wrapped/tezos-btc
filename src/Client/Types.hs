@@ -184,6 +184,8 @@ data RunError
   | InvalidPrimitive [Text] Text
   | InvalidSyntacticConstantError MichelsonExpression MichelsonExpression
   | UnexpectedContract
+  | IllFormedType MichelsonExpression
+  | UnexpectedOperation
 
 instance FromJSON RunError where
   parseJSON = withObject "preapply error" $ \o -> do
@@ -205,6 +207,10 @@ instance FromJSON RunError where
           InvalidSyntacticConstantError <$> o .: "expectedForm" <*> o .: "wrongExpression"
       x | "unexpected_contract" `isSuffixOf` x ->
           pure UnexpectedContract
+      x | "ill_formed_type" `isSuffixOf` x ->
+          IllFormedType <$> o .: "ill_formed_expression"
+      x | "unexpected_operation" `isSuffixOf` x ->
+          pure UnexpectedOperation
       _ -> fail ("unknown id: " <> id')
 
 instance Buildable RunError where
@@ -225,8 +231,13 @@ instance Buildable RunError where
       "Invalid syntatic constant error, expecting: " +| expectedForm |+ "\n" +|
       "But got: " +| wrongExpression |+ ""
     UnexpectedContract ->
-      build ("When parsing script, a contract type was found in \
-             \the storage or parameter field." :: Text)
+      "When parsing script, a contract type was found in \
+      \the storage or parameter field."
+    IllFormedType expr ->
+      "Ill formed type: " +| expr |+ ""
+    UnexpectedOperation ->
+      "When parsing script, an operation type was found in \
+      \the storage or parameter field"
 
 data RunOperationResult
   = RunOperationApplied AppliedResult
