@@ -9,8 +9,9 @@ let
   majorVersion = pkgDesc.majorVersion;
   minorVersion = pkgDesc.minorVersion;
   pkgRevision = pkgDesc.packageRevision;
+  pkgArch = pkgDesc.arch;
   bin = pkgDesc.bin;
-  pkgName = "${project}_${majorVersion}.${minorVersion}-${pkgRevision}";
+  pkgName = "${project}_${majorVersion}.${minorVersion}-${pkgRevision}_${pkgArch}";
 
   writeControlFile = writeTextFile {
     name = "control";
@@ -18,7 +19,7 @@ let
       Package: ${project}
       Version: ${majorVersion}.${minorVersion}-${pkgRevision}
       Priority: optional
-      Architecture: ${pkgDesc.arch}
+      Architecture: ${pkgArch}
       Depends: ${pkgDesc.dependencies}
       Maintainer: ${pkgDesc.maintainer}
       Description: ${project}
