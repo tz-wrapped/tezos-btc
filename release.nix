@@ -1,17 +1,27 @@
 # SPDX-FileCopyrightText: 2019 Bitcoin Suisse
 #
 # SPDX-License-Identifier: LicenseRef-Proprietary
-{ pkgs ? import <nixpkgs> { }, tzbtc-client-binary }:
+{ pkgs ? import <nixpkgs> { }, tzbtc-client-binary ? "./bin/tzbtc-client"}:
 with pkgs;
 
 let
   root = ./.;
+  staticProject = import ./default.nix {};
+  tzbtc-client-static = stdenv.mkDerivation {
+    name = "tzbtc-client";
+    phases = ["buildPhase"];
+
+    buildPhase = ''
+    $(${staticProject.fullBuildScript}) -o ${root}/tzbtc-static
+    cp ${root}/tzbtc-static/bin/tzbtc-client $out
+    '';
+  };
   packageDesc = {
     project = "tzbtc-client";
     majorVersion = "0";
     minorVersion = "1";
     packageRevision = "1";
-    bin = tzbtc-client-binary;
+    bin = tzbtc-client-static;
     arch = "amd64";
     license = "Proprietary";
     dependencies = "";
@@ -30,6 +40,7 @@ let
   fedoraImage = makeImageFromRPMDist rpmDistros.fedora27x86_64;
 
 in rec {
+  inherit tzbtc-client-static;
   inherit (vmTools) runInLinuxImage;
 
   packageIntoRpm = runInLinuxImage

@@ -7,7 +7,7 @@ let
   compiler = "ghc865";
 
   static-haskell-nix = fetchTarball
-    "https://github.com/nh2/static-haskell-nix/archive/475739275fbdfce025cd8a0e83f79164a7cdc66e.tar.gz";
+  "https://github.com/nh2/static-haskell-nix/archive/dafcc1e693c6bd78d317ba21b7a3224e5f852801.tar.gz";
 
   pkgs = import "${static-haskell-nix}/nixpkgs.nix";
 
@@ -24,8 +24,7 @@ let
       inherit cabalPackageName compiler stack2nix-output-path;
     };
 
-  fullBuildScript = pkgs.writeScript "stack2nix-and-build-script.sh" ''
-    #!${pkgs.stdenv.shell}
+  fullBuildScript = pkgs.writeShellScript "stack2nix-and-build-script.sh" ''
     set -eu -o pipefail
     STACK2NIX_OUTPUT_PATH=$(${stack2nix-script})
     export NIX_PATH=nixpkgs=${pkgs.path}

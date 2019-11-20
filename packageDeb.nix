@@ -13,6 +13,8 @@ let
   bin = pkgDesc.bin;
   pkgName = "${project}_${majorVersion}.${minorVersion}-${pkgRevision}_${pkgArch}";
 
+  staticProject = import ./default.nix;
+
   writeControlFile = writeTextFile {
     name = "control";
     text = ''
