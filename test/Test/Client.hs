@@ -4,22 +4,29 @@
  -}
 module Test.Client
   ( test_addressParser
+  , test_convertTypeToExpression
   , test_nicePackedValueToExpression
   , test_signatureParser
   ) where
 
 import Data.ByteString (cons)
+import Data.Sequence (fromList)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (Assertion, testCase, (@?=), (@?))
 import Tezos.Binary (encode)
+import Tezos.Micheline
+  (Annotation(..), Expression(..), MichelinePrimAp(..), MichelinePrimitive(..))
 
 import Michelson.Interpret.Unpack (UnpackError(..), unpackValue')
 import Michelson.Typed.Haskell.Value (IsoValue(..))
+import Michelson.Untyped.Annotation (ann, noAnn)
+import Michelson.Untyped.Type (CT(..), T(..), Type(..))
 import Lorentz.Test.Integrational (genesisAddress1)
 import Util.Named ((.!))
 
 import Client.Parser (parseAddressFromOutput, parseSignatureFromOutput)
-import Client.Util (nicePackedValueToExpression)
+import Client.Util
+  (convertTypeToExpression, nicePackedValueToExpression, typeToExpression)
 import Lorentz.Contracts.TZBTC.Types (SafeParameter(..))
 
 (@??) :: (Show a, HasCallStack) => a -> (a -> Bool) -> Assertion
@@ -96,4 +103,36 @@ test_addressParser = testGroup "Test parsing tezos-client output"
     ("Hash: tz1faCC6Fm9gorxDaa2TUmQsYXeCJyv6rFGJ \
      \Public Key: edpkuG18TvSJX8uPNyXetnpjDXqw92AhiTjE51y9cQ21pbGYzL3FYs" :: Text)
     @?? isLeft
+  ]
+
+test_convertTypeToExpression :: TestTree
+test_convertTypeToExpression = testGroup "Test converting Untyped.Type to Expression"
+  [ testCase "Same JSON for Haskell type and Untyped.Type without annotations" $
+    typeToExpression @(Either Integer ((), Bool)) @?=
+    convertTypeToExpression
+    (Type (TOr noAnn noAnn
+           (Type (Tc CInt) noAnn)
+           (Type (TPair noAnn noAnn
+                   (Type TUnit noAnn)
+                   (Type (Tc CBool) noAnn)
+                  ) noAnn)
+         ) noAnn
+    )
+  , testCase "Annotations on types are preserved in the JSON" $
+    convertTypeToExpression (Type (TOr (ann "kek") (ann "bek")
+                                   (Type (Tc CInt) noAnn)
+                                   (Type (Tc CNat) noAnn)
+                                  ) (ann "lol")) @?=
+    Expression_Prim (
+      MichelinePrimAp
+        (MichelinePrimitive "or")
+        (fromList [ Expression_Prim
+                    (MichelinePrimAp (MichelinePrimitive "int")
+                     (fromList []) (fromList [Annotation_Field "kek"])
+                    )
+                  , Expression_Prim
+                    (MichelinePrimAp (MichelinePrimitive "nat")
+                     (fromList []) (fromList [Annotation_Field "bek"]))])
+        (fromList [Annotation_Type "lol"])
+      )
   ]

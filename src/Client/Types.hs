@@ -49,7 +49,7 @@ import GHC.TypeLits
 import Options.Applicative
 import Tezos.Base16ByteString (Base16ByteString(..))
 import Tezos.Micheline
-  (Expression(..), MichelinePrimAp(..), MichelinePrimitive(..))
+  (Expression(..), MichelinePrimAp(..), MichelinePrimitive(..), annotToText)
 import Tezos.Json (TezosWord64(..))
 
 import Michelson.Typed (IsoValue)
@@ -67,14 +67,15 @@ instance Buildable MichelsonExpression where
     Expression_String s -> build s
     Expression_Bytes b ->
       build $ encodeBase58Check $ unbase16ByteString b
-    Expression_Seq s -> "(" +| buildSeq s |+ ")"
-    Expression_Prim (MichelinePrimAp (MichelinePrimitive text) s) ->
+    Expression_Seq s -> "(" +| buildSeq (build . MichelsonExpression) s |+ ")"
+    Expression_Prim (MichelinePrimAp (MichelinePrimitive text) s annots) ->
       text <> " " |+ "(" +|
-      buildSeq s +| ")"
+      buildSeq (build . MichelsonExpression) s +| ") " +|
+      buildSeq (build . annotToText) annots
     where
-      buildSeq =
+      buildSeq buildElem =
         mconcat . intersperse ", " . map
-        (build . MichelsonExpression) . toList
+        buildElem . toList
 
 data AlmostStorage interface = AlmostStorage
   { asBigMapId :: Natural
@@ -183,6 +184,8 @@ data RunError
   | InvalidPrimitive [Text] Text
   | InvalidSyntacticConstantError MichelsonExpression MichelsonExpression
   | UnexpectedContract
+  | IllFormedType MichelsonExpression
+  | UnexpectedOperation
 
 instance FromJSON RunError where
   parseJSON = withObject "preapply error" $ \o -> do
@@ -204,6 +207,10 @@ instance FromJSON RunError where
           InvalidSyntacticConstantError <$> o .: "expectedForm" <*> o .: "wrongExpression"
       x | "unexpected_contract" `isSuffixOf` x ->
           pure UnexpectedContract
+      x | "ill_formed_type" `isSuffixOf` x ->
+          IllFormedType <$> o .: "ill_formed_expression"
+      x | "unexpected_operation" `isSuffixOf` x ->
+          pure UnexpectedOperation
       _ -> fail ("unknown id: " <> id')
 
 instance Buildable RunError where
@@ -224,8 +231,13 @@ instance Buildable RunError where
       "Invalid syntatic constant error, expecting: " +| expectedForm |+ "\n" +|
       "But got: " +| wrongExpression |+ ""
     UnexpectedContract ->
-      build ("When parsing script, a contract type was found in \
-             \the storage or parameter field." :: Text)
+      "When parsing script, a contract type was found in \
+      \the storage or parameter field."
+    IllFormedType expr ->
+      "Ill formed type: " +| expr |+ ""
+    UnexpectedOperation ->
+      "When parsing script, an operation type was found in \
+      \the storage or parameter field"
 
 data RunOperationResult
   = RunOperationApplied AppliedResult
