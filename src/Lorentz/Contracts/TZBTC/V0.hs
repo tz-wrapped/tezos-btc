@@ -190,8 +190,13 @@ tzbtcContractRaw = do
         callUSafeViewEP #callGetOwner
     , #cSafeEntrypoints /-> do
         doc $ DDescription
-          "This entry point is used call the safe entrypoints of the contract. \
-          \`Contract p` and have to be handled additionally."
+          "This entry point is used to call the safe entrypoints of the contract. \
+          \Entrypoints are 'safe' because they don't have unsafe arguments, such \
+          \as arguments with type `contract p` so that they can be safely used in operations \
+          \that add them to the chain (since in babylon values with type `contract p` are prohibited in \
+          \storage and code constants), in contrast to various Get* entrypoints, which have \
+          \`contract p` and have to be handled additionally (basically, we have to pass simple \
+          \`address` instead of `contract p` and call `CONTRACT`, which can fail)."
         safeEntrypoints
     )
 
@@ -208,7 +213,17 @@ tzbtcDoc = contractDocToMarkdown . buildLorentzDoc $ do
   contractName "TZBTC" $ do
     doc $ $mkDGitRevision $ GitRepoSettings $
       mappend "https://github.com/serokell/tezos-btc/commit/"
-    doc $ DDescription "This contract is implemented using Lorentz language"
+    doc $ DDescription
+      "This contract is implemented using Lorentz language.\n\
+      \Basically, this contract is [FA1.2](https://gitlab.com/serokell/morley/tzip/blob/master/A/FA1.2.md)\
+      \-compatible approvable ledger that maps user addresses to their token balances. \
+      \The main idea of this token contract is to provide 1-to-1 correspondance with BTC.\n\
+      \There are two special entities for this contract:\n\
+      \* `owner` -- owner of the TZBTC contract, capable in unpausing contract, \
+      \adding/removing operators, transfering ownership and upgrading contract. \
+      \There is only one owner of the contract.\n\
+      \* `operator` -- entity which is capable in pausing the contract \
+      \minting and burning tokens. There may be several operators added by the owner."
     tzbtcContractRaw
     fakeCoerce
     clarifyParamBuildingSteps pbsContainedInSafeEntrypoints safeEntrypoints
