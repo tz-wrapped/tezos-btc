@@ -16,14 +16,12 @@ editConfigViaEditor _ =
 
 #else
 
-import Data.ByteString (writeFile)
 import Text.Editor (jsonTemplate, runUserEditorDWIMFile)
 
-editConfigViaEditor :: FilePath -> IO ()
-editConfigViaEditor path = do
+editConfigViaEditor :: FilePath -> (ByteString -> IO ()) -> IO ()
+editConfigViaEditor path fn = do
   newContents <- runUserEditorDWIMFile jsonTemplate path
-  writeFile path newContents
-  putTextLn "Config file was updated successfully"
+  fn newContents
 
 #endif
 
