@@ -76,12 +76,8 @@ executables:
     source-dirs: client
 
     dependencies:
-      - fmt
-      - morley
       - morley-prelude
-      - optparse-applicative
       - tzbtc
-      - vinyl
 
 tests:
   tzbtc-test:
@@ -107,3 +103,5 @@ tests:
     - text
     - hex-text
     - hspec
+    - mtl
+    - optparse-applicative

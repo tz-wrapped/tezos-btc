@@ -56,4 +56,4 @@ test_jsonEncodingOfPartialValues =
         assertBool "-- prefix is included" $
           (isPrefixOf "-- " $  Unsafe.fromJust $ decode $ encode partialValue )]
   where
-    partialValue = Unavilable :: Partial "fieldname" (Maybe Text)
+    partialValue = Unavailable :: Partial "fieldname" (Maybe Text)

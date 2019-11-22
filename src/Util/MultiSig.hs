@@ -15,6 +15,7 @@ module Util.MultiSig
   , mergePackages
   , getBytesToSign
   , getToSign
+  , fetchSrcParam
   )
 where
 
