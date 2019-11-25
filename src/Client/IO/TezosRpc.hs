@@ -11,14 +11,14 @@ module Client.IO.TezosRpc
 import Data.ByteString (cons)
 import Servant.Client (ClientEnv, runClientM)
 import Servant.Client.Core as Servant (ClientError(..))
-import Tezos.Micheline (Expression)
+import Tezos.Common.Json (TezosInt64)
+import Tezos.V005.Micheline (Expression)
 
 import Lorentz hiding (address, balance, chainId, cons, map)
 import Lorentz.UStore.Migration (manualConcatMigrationScripts)
 import Michelson.Runtime.GState (genesisAddress1, genesisAddress2)
 import Michelson.Untyped (InternalByteString(..))
 import Tezos.Address
-import Tezos.Json (TezosWord64(..))
 import Util.Named ((.!))
 
 import qualified Client.API as API
@@ -45,7 +45,7 @@ data OperationConstants = OperationConstants
   -- ^ The address of the operations sender
   , ocBlockConstants :: BlockConstants
   -- ^ Information about block: chain_id and protocol
-  , ocCounter :: TezosWord64
+  , ocCounter :: TezosInt64
   -- ^ Sender counter
   }
 
@@ -65,7 +65,7 @@ getLastBlockHash env = runClientM API.getLastBlock env
 getCurrentBlockConstants :: ClientEnv -> Text -> IO (Either ClientError BlockConstants)
 getCurrentBlockConstants env block = runClientM (API.getBlockConstants block) env
 
-getAddressCounter :: ClientEnv -> Address -> IO (Either ClientError TezosWord64)
+getAddressCounter :: ClientEnv -> Address -> IO (Either ClientError TezosInt64)
 getAddressCounter env address = runClientM (API.getCounter $ formatAddress address) env
 
 dumbOp :: TransactionOperation

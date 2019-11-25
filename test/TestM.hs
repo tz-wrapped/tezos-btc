@@ -23,8 +23,8 @@ import Options.Applicative as Opt
 
 import Tezos.Address
 import Tezos.Crypto
-import Tezos.Json (TezosWord64(..))
-import Tezos.Micheline (Expression)
+import Tezos.Common.Json (TezosInt64)
+import Tezos.V005.Micheline (Expression)
 
 import Client.Error
 import Client.Types
@@ -95,7 +95,7 @@ data Handlers m = Handlers
 
   , hRunTransactions :: forall param. (NicePackedValue param) => Address -> [EntrypointParam param] -> m ()
   , hGetStorage :: Text -> m Expression
-  , hGetCounter :: Text -> m TezosWord64
+  , hGetCounter :: Text -> m TezosInt64
   , hGetFromBigMap :: Natural -> Text -> m (Either TzbtcClientError Expression)
   , hWaitForOperation :: Text -> m ()
   , hDeployTzbtcContract :: Address -> Address -> m ()

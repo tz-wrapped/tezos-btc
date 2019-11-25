@@ -154,7 +154,6 @@ runConfigEdit doEdit configPartial = do
   else printConfig path
   checkConfig
   where
-
     -- Is there any change to the config at all?
     hasDelta ccp =
       isAvailable (ccNodeAddress ccp) || isAvailable (ccNodePort ccp) ||
@@ -372,4 +371,3 @@ getTzbtcStorage
 getTzbtcStorage contractAddr = do
   storageRaw <- getStorage $ formatAddress contractAddr
   throwLeft $ pure $ exprToValue @(AlmostStorage Interface StoreTemplate) storageRaw
-

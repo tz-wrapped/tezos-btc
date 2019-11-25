@@ -19,9 +19,9 @@ import qualified Data.ByteString as BS (cons, drop, pack)
 import Data.Sequence (fromList)
 import Data.Singletons (SingI)
 import Servant.Client.Core (ClientError)
-import Tezos.Binary (encode, decode)
-import Tezos.Json (TezosWord64)
-import Tezos.Micheline
+import Tezos.Common.Binary (encode, decode)
+import Tezos.Common.Json (TezosInt64)
+import Tezos.V005.Micheline
   (Annotation(..), Expression(..), MichelinePrimAp(..), MichelinePrimitive(..))
 
 import Lorentz (Contract, compileLorentz, compileLorentzContract)
@@ -85,7 +85,7 @@ mkOriginationScript contract Storage{..} = OriginationScript
   where
     untypedContract = convertFullContract $ compileLorentzContract contract
 
-calcFees :: TezosWord64 -> TezosWord64 -> TezosWord64
+calcFees :: TezosInt64 -> TezosInt64 -> TezosInt64
 calcFees consumedGas storageSize =
   minimalFees +
   minimalTezPerGas * consumedGas +

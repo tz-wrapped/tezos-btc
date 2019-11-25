@@ -17,8 +17,8 @@ module Client.API
 import Servant.API
   (Capture, Get, JSON, Post, ReqBody, QueryParam, (:>), (:<|>)(..))
 import Servant.Client (ClientM, client)
-import Tezos.Json (TezosWord64)
-import Tezos.Micheline (Expression)
+import Tezos.Common.Json (TezosInt64)
+import Tezos.V005.Micheline (Expression)
 
 import Michelson.Untyped (InternalByteString(..))
 
@@ -32,7 +32,7 @@ type NodeAPI =
   "injection/operation" :> QueryParam "chain" Text :> ReqBody '[JSON] Text
   :> Post '[JSON] Text :<|>
   "chains/main/blocks/head/context/contracts"
-  :> Capture "contract" Text :> "counter" :> Get '[JSON] TezosWord64 :<|>
+  :> Capture "contract" Text :> "counter" :> Get '[JSON] TezosInt64 :<|>
   "chains/main/blocks/head/helpers/scripts/run_operation"
   :> ReqBody '[JSON] RunOperation :> Post '[JSON] RunRes :<|>
   "chains/main/blocks/head/context/contracts"
@@ -50,7 +50,7 @@ nodeAPI = Proxy
 getLastBlock :: ClientM Text
 forgeOperation :: ForgeOperation -> ClientM InternalByteString
 injectOperation :: Maybe Text -> Text -> ClientM Text
-getCounter :: Text -> ClientM TezosWord64
+getCounter :: Text -> ClientM TezosInt64
 runOperation :: RunOperation -> ClientM RunRes
 getStorage :: Text -> ClientM Expression
 getBlockConstants :: Text -> ClientM BlockConstants

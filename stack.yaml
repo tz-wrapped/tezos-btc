@@ -22,7 +22,7 @@ extra-deps:
 - git:
     https://gitlab.com/obsidian.systems/tezos-bake-monitor-lib.git
   commit:
-    656f8fe8c9ea5b45686b927f8706b8bfc6a616ac
+    19a9ce57a0510bc3ad8a3f639d0a968a65024b86
   subdirs:
     - tezos-bake-monitor-lib
 
@@ -37,6 +37,7 @@ extra-deps:
 - functor-infix-0.0.5@sha256:cea21a321031f556d7a21b51e049493e7cb78baf64dd63f0d1a36de01c4c735b
 - hashing-0.1.0.1@sha256:98861f16791946cdf28e3c7a6ee9ac8b72d546d6e33c569c7087ef18253294e7
 - dependent-sum-0.6.2.0
+- dependent-sum-template-0.1.0.0
 - constraints-extras-0.3.0.2@sha256:bf6884be65958e9188ae3c9e5547abfd6d201df021bff8a4704c2c4fe1e1ae5b
 
 nix:

@@ -49,10 +49,10 @@ import Data.Vector (fromList)
 import Fmt (Buildable(..), (+|), (|+))
 import GHC.TypeLits
 import Options.Applicative
-import Tezos.Base16ByteString (Base16ByteString(..))
-import Tezos.Micheline
+import Tezos.Common.Base16ByteString (Base16ByteString(..))
+import Tezos.V005.Micheline
   (Expression(..), MichelinePrimAp(..), MichelinePrimitive(..), annotToText)
-import Tezos.Json (TezosWord64(..))
+import Tezos.Common.Json (StringEncode(..), TezosInt64)
 
 import Michelson.Typed (IsoValue)
 import Tezos.Address (Address)
@@ -65,7 +65,7 @@ newtype MichelsonExpression = MichelsonExpression Expression
 
 instance Buildable MichelsonExpression where
   build (MichelsonExpression expr) = case expr of
-    Expression_Int i -> build $ unTezosWord64 i
+    Expression_Int (StringEncode i) -> build $ i
     Expression_String s -> build s
     Expression_Bytes b ->
       build $ encodeBase58Check $ unbase16ByteString b
@@ -246,9 +246,9 @@ data RunOperationResult
   | RunOperationFailed [RunError]
 
 data AppliedResult = AppliedResult
-  { arConsumedGas :: TezosWord64
-  , arStorageSize :: TezosWord64
-  , arPaidStorageDiff :: TezosWord64
+  { arConsumedGas :: TezosInt64
+  , arStorageSize :: TezosInt64
+  , arPaidStorageDiff :: TezosInt64
   , arOriginatedContracts :: [Address]
   } deriving Show
 
@@ -299,11 +299,11 @@ data ParametersInternal = ParametersInternal
 data TransactionOperation = TransactionOperation
   { toKind :: Text
   , toSource :: Address
-  , toFee :: TezosWord64
-  , toCounter :: TezosWord64
-  , toGasLimit :: TezosWord64
-  , toStorageLimit :: TezosWord64
-  , toAmount :: TezosWord64
+  , toFee :: TezosInt64
+  , toCounter :: TezosInt64
+  , toGasLimit :: TezosInt64
+  , toStorageLimit :: TezosInt64
+  , toAmount :: TezosInt64
   , toDestination :: Address
   , toParameters :: ParametersInternal
   }
@@ -316,11 +316,11 @@ data OriginationScript = OriginationScript
 data OriginationOperation = OriginationOperation
   { ooKind :: Text
   , ooSource :: Address
-  , ooFee :: TezosWord64
-  , ooCounter :: TezosWord64
-  , ooGasLimit :: TezosWord64
-  , ooStorageLimit :: TezosWord64
-  , ooBalance :: TezosWord64
+  , ooFee :: TezosInt64
+  , ooCounter :: TezosInt64
+  , ooGasLimit :: TezosInt64
+  , ooStorageLimit :: TezosInt64
+  , ooBalance :: TezosInt64
   , ooScript :: OriginationScript
   }
 

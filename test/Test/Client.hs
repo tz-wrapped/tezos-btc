@@ -13,8 +13,8 @@ import Data.ByteString (cons)
 import Data.Sequence (fromList)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (Assertion, testCase, (@?=), (@?))
-import Tezos.Binary (encode)
-import Tezos.Micheline
+import Tezos.Common.Binary (encode)
+import Tezos.V005.Micheline
   (Annotation(..), Expression(..), MichelinePrimAp(..), MichelinePrimitive(..))
 
 import Michelson.Interpret.Unpack (UnpackError(..), unpackValue')
