@@ -10,4 +10,3 @@ import Client.Main
 
 main :: IO ()
 main = mainProgram
-

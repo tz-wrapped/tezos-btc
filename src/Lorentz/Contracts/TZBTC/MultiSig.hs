@@ -54,7 +54,7 @@ type ParamManage
 type ParamSignatures = [Maybe Signature]
 
 contractToLambda
-  :: forall a. Address -> SafeParameter a -> Lambda () [Operation]
+  :: forall i s. Address -> SafeParameter i s -> Lambda () [Operation]
 contractToLambda addr param = do
   drop
   push addr
@@ -63,7 +63,7 @@ contractToLambda addr param = do
   then do push (mkMTextUnsafe "Invalid contract type"); failWith
   else do
     push param
-    wrap_ @(TZBTC.Parameter a) #cSafeEntrypoints
+    wrap_ @(TZBTC.Parameter i s) #cSafeEntrypoints
     dip $ push $ toMutez 0
     transferTokens
     dip nil

@@ -8,6 +8,7 @@
 
 Unreleased
 ==========
+* Use more efficient `duupX` implementation when its parameter is greater than 2.
 
 0.1.1
 =====

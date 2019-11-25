@@ -72,7 +72,7 @@ v1Impl = recFromTuple
         contract
         if IsSome then nop else failCustom_ #unexpectedContractType
       pair
-      coerce_ @((a, ContractAddr b)) @(View a b)
+      coerce_ @((a, ContractRef b)) @(View a b)
       ep
 
     -- Helper operator which is essentially the same as `/==>` but
@@ -81,7 +81,7 @@ v1Impl = recFromTuple
     label //==> part = label /==> callPart (part # unpair)
 
 -- | Contract router before preprocessing.
-tzbtcContractRouterRaw :: UContractRouter Interface
+tzbtcContractRouterRaw :: UContractRouter Interface StoreTemplate
 tzbtcContractRouterRaw = epwServe epwContract
 
 originationParams :: Address -> Address -> Map Address Natural -> OriginationParameters

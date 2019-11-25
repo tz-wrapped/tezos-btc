@@ -6,13 +6,13 @@ module Lorentz.Contracts.TZBTC.Test
   ( mkTestScenario
   ) where
 
-import Lorentz.Common (TestScenario)
+import Lorentz.TestScenario (TestScenario)
 import Tezos.Address (Address)
 import Util.Named ((.!))
 
 import Lorentz.Contracts.TZBTC
 
-mkTestScenario :: Address -> [Address] -> Maybe (TestScenario (Parameter s))
+mkTestScenario :: Address -> [Address] -> Maybe (TestScenario (Parameter i s))
 mkTestScenario owner addresses = do
   case addresses of
     addr0 : addr1 : _ -> Just

@@ -30,6 +30,7 @@ import qualified Lorentz.Contracts.ApprovableLedgerInterface as AL
 import Lorentz.Contracts.Consumer
 import Lorentz.Contracts.ManagedLedger.Test
   (ApprovableLedger(..), OriginationParams(..), approvableLedgerSpec, originateManagedLedger)
+import Lorentz.Contracts.Upgradeable.Common (coerceUContractRouter)
 import Lorentz.Test.Integrational
 import Lorentz.UStore.Migration
 import Util.Named
@@ -39,7 +40,7 @@ import Lorentz.Contracts.TZBTC
 {-# ANN module ("HLint: ignore Reduce duplication" :: Text) #-}
 
 -- | Convert sane parameter to parameter of this contract.
-fromProxyParam :: AL.Parameter -> Parameter s
+fromProxyParam :: AL.Parameter -> Parameter i s
 fromProxyParam =
   \case
     AL.Transfer tp -> fromFlatParameter $ Transfer tp
@@ -70,7 +71,7 @@ checkField ef cf ms = checkStorage (\st ->
   else Left $ CustomValidationError ms)
 
 originateTzbtcV1ContractRaw
-  :: Address -> OriginationParams -> IntegrationalScenarioM (ContractAddr (Parameter Interface))
+  :: Address -> OriginationParams -> IntegrationalScenarioM (ContractRef (Parameter Interface StoreTemplate))
 originateTzbtcV1ContractRaw redeem op = do
   c <- lOriginate tzbtcContract "TZBTC Contract" (mkEmptyStorageV0 adminAddress) (toMutez 1000)
   let
@@ -78,12 +79,13 @@ originateTzbtcV1ContractRaw redeem op = do
     upgradeParams =
       ( #newVersion .! 1
       , #migrationScript .! (manualConcatMigrationScripts $ migrationScripts o)
-      , #newCode tzbtcContractRouter
+      , #newCode (coerceUContractRouter tzbtcContractRouter)
       )
   withSender adminAddress $ lCall c (fromFlatParameter $ Upgrade upgradeParams)
-  pure c
+  pure $ coerceContractRef c
 
-originateTzbtcV1Contract :: IntegrationalScenarioM (ContractAddr (Parameter Interface))
+originateTzbtcV1Contract
+  :: IntegrationalScenarioM (ContractRef (Parameter Interface StoreTemplate))
 originateTzbtcV1Contract = originateTzbtcV1ContractRaw redeemAddress_ $ OriginationParams
   { opAdmin = adminAddress
   , opBalances = M.fromList [(redeemAddress_, initialSupply)]

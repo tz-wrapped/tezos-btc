@@ -14,7 +14,7 @@ import Options.Applicative
 import Options.Applicative.Help.Pretty (Doc, linebreak)
 
 import Lorentz
-import Lorentz.Common (showTestScenario)
+import Lorentz.TestScenario (showTestScenario)
 import Paths_tzbtc (version)
 
 import CLI.Parser
@@ -41,7 +41,7 @@ main = do
       maybe printTextLn writeFileUtf8 mbFilePath tzbtcDoc
     CmdParseParameter t ->
       either (throwString . pretty) (printStringLn . pretty) $
-      parseLorentzValue @(Parameter _) t
+      parseLorentzValue @(Parameter _ _) t
     CmdTestScenario TestScenarioOptions {..} -> do
       maybe (throwString "Not enough addresses")
         (maybe printTextLn writeFileUtf8 tsoOutput) $

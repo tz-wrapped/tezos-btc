@@ -16,13 +16,16 @@ import Util.Named
 import Lorentz hiding (SomeContract)
 import Lorentz.Contracts.TZBTC as TZBTC
 import qualified Lorentz.Contracts.TZBTC.Types as TZBTCTypes
-import Lorentz.Contracts.Upgradeable.Common (UContractRouter, mkUContractRouter)
+import Lorentz.Contracts.TZBTC.V0 (StoreTemplateV0)
+import Lorentz.Contracts.Upgradeable.Common
+  (UContractRouter, coerceUContractRouter, mkUContractRouter)
 import Lorentz.Test.Integrational
 import Lorentz.UStore.Migration
 
 {-# ANN module ("HLint: ignore Reduce duplication" :: Text) #-}
 
-originateContract :: IntegrationalScenarioM (ContractAddr TZBTCParameter)
+originateContract
+  :: IntegrationalScenarioM (ContractRef (Parameter Interface StoreTemplateV0))
 originateContract = lOriginate tzbtcContract "TZBTC Contract" (mkEmptyStorageV0 adminAddress) (toMutez 1000)
 
 -- Test that all administrative endpoints can only be called as master
@@ -122,12 +125,12 @@ test_migratingVersion = testGroup "TZBTC contract migration version check"
         validate . Left $ lExpectCustomError #upgVersionMismatch (#expected .! 1, #actual 2)
   ]
 
-upgradeParams :: UpgradeParameters Interface
+upgradeParams :: UpgradeParameters Interface StoreTemplateV0
 upgradeParams = let
   o = originationParams adminAddress redeemAddress_ mempty
   in ( #newVersion .! 1
      , #migrationScript .! (manualConcatMigrationScripts $ migrationScripts o)
-     , #newCode tzbtcContractRouter
+     , #newCode (coerceUContractRouter tzbtcContractRouter)
      )
 
 -- Some constants
@@ -136,7 +139,7 @@ migrationScript = let
   o = originationParams adminAddress redeemAddress_ mempty
   in manualConcatMigrationScripts $ migrationScripts o
 
-emptyCode :: UContractRouter a
+emptyCode :: UContractRouter i s
 emptyCode = mkUContractRouter (Lorentz.drop # nil # pair)
 
 adminAddress :: Address

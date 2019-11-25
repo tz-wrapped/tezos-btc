@@ -261,10 +261,10 @@ deployTzbtcContract config@ClientConfig{..}  admin redeem = do
   pure contractAddr
   where
     getTzbtcStorage
-      :: Address -> IO (AlmostStorage Interface)
+      :: Address -> IO (AlmostStorage Interface StoreTemplate)
     getTzbtcStorage contractAddr = do
       storageRaw <- getStorage config $ formatAddress contractAddr
-      throwLeft $ pure $ exprToValue @(AlmostStorage Interface) storageRaw
+      throwLeft $ pure $ exprToValue @(AlmostStorage Interface StoreTemplate) storageRaw
 
 getStorage :: ClientConfig -> Text -> IO Expression
 getStorage config addr = do

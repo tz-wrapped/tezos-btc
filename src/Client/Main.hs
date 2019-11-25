@@ -15,7 +15,7 @@ import Options.Applicative.Help.Pretty (Doc, linebreak)
 
 import Lorentz hiding (address, balance, chainId, cons, map)
 import Lorentz.Macro (View(..))
-import Michelson.Typed.Haskell.Value (ContractAddr(..))
+import Lorentz.Value (ToContractRef(..))
 import Paths_tzbtc (version)
 import Tezos.Address
 import Util.Named ((.!))
@@ -62,7 +62,7 @@ mainProgram = do
           Just callback' -> do
             [owner, spender, callback] <- mapM addrOrAliasToAddr [owner', spender', callback']
             runTzbtcContract $ fromFlatParameter $ GetAllowance $
-              View (#owner .! owner, #spender .! spender) (ContractAddr callback)
+              View (#owner .! owner, #spender .! spender) (toContractRef callback)
           Nothing -> do
             [owner, spender] <- mapM addrOrAliasToAddr [owner', spender']
             allowance <- getAllowance owner spender
@@ -72,7 +72,7 @@ mainProgram = do
           Just callback' -> do
             [owner, callback] <- mapM addrOrAliasToAddr [owner', callback']
             runTzbtcContract $
-              fromFlatParameter $ GetBalance $ View (#owner .! owner) (ContractAddr callback)
+              fromFlatParameter $ GetBalance $ View (#owner .! owner) (toContractRef callback)
           Nothing -> do
             owner <- addrOrAliasToAddr owner'
             balance <- getBalance owner
@@ -104,7 +104,7 @@ mainProgram = do
           Just callback' -> do
             callback <- addrOrAliasToAddr callback'
             runTzbtcContract $
-              fromFlatParameter $ GetTotalSupply $ View () (ContractAddr callback)
+              fromFlatParameter $ GetTotalSupply $ View () (toContractRef callback)
           Nothing -> do
             printFieldFromStorage @Natural #totalSupply "Total supply: " show
       CmdGetTotalMinted mbCallback' -> do
@@ -112,7 +112,7 @@ mainProgram = do
           Just callback' -> do
             callback <- addrOrAliasToAddr callback'
             runTzbtcContract $
-              fromFlatParameter $ GetTotalMinted $ View () (ContractAddr callback)
+              fromFlatParameter $ GetTotalMinted $ View () (toContractRef callback)
           Nothing ->
             printFieldFromStorage @Natural #totalMinted "Total minted: " show
       CmdGetTotalBurned mbCallback' -> do
@@ -120,7 +120,7 @@ mainProgram = do
           Just callback' -> do
             callback <- addrOrAliasToAddr callback'
             runTzbtcContract $
-              fromFlatParameter $ GetTotalBurned $ View () (ContractAddr callback)
+              fromFlatParameter $ GetTotalBurned $ View () (toContractRef callback)
           Nothing ->
             printFieldFromStorage @Natural #totalBurned "Total burned: " show
       CmdGetAdministrator mbCallback' -> do
@@ -128,7 +128,7 @@ mainProgram = do
           Just callback' -> do
             callback <- addrOrAliasToAddr callback'
             runTzbtcContract $
-              fromFlatParameter $ GetAdministrator $ View () (ContractAddr callback)
+              fromFlatParameter $ GetAdministrator $ View () (toContractRef callback)
           Nothing ->
             printFieldFromStorage @Address #admin "Admininstator: " formatAddress
       CmdGetOpDescription packageFilePath -> do
@@ -166,7 +166,7 @@ mainProgram = do
         [admin, redeem] <- mapM addrOrAliasToAddr [admin', redeem']
         deployTzbtcContract admin redeem
   where
-    runMultisigTzbtcContract :: (HasCmdLine m, HasTezosRpc m) => (Maybe FilePath) -> Parameter a -> m ()
+    runMultisigTzbtcContract :: (HasCmdLine m, HasTezosRpc m) => (Maybe FilePath) -> Parameter i s -> m ()
     runMultisigTzbtcContract mbMultisig param =
       case mbMultisig of
         Just fp -> case toSafeParam param of

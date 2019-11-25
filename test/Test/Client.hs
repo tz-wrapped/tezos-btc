@@ -47,7 +47,7 @@ test_nicePackedValueToExpression = testGroup "Test converting Parameter to Miche
     Right (RemoveOperator (#operator .! genesisAddress1))
   ]
 
-parameterRoundTrip :: SafeParameter a -> Either UnpackError (SafeParameter a)
+parameterRoundTrip :: SafeParameter i s -> Either UnpackError (SafeParameter i s)
 parameterRoundTrip = fmap fromVal . unpackValue' .
   cons 0x05 . encode . nicePackedValueToExpression
 

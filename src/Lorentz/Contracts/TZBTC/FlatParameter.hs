@@ -25,12 +25,12 @@ import Lorentz.Contracts.TZBTC.Types
 -- | This is a type that is meant to hide details of how the actual parameter
 -- is structured, so that consumers of the contract are spared of any changes
 -- that might be required when the contract parameter changes structure.
-data FlatParameter interface
+data FlatParameter interface store
   = Run (UParam interface)
-  | Upgrade (UpgradeParameters interface)
+  | Upgrade (UpgradeParameters interface store)
   | EpwBeginUpgrade Natural  -- version
   | EpwApplyMigration MigrationScript
-  | EpwSetCode (UContractRouter interface)
+  | EpwSetCode (UContractRouter interface store)
   | EpwFinishUpgrade
   -- TZBTC Entrypoints
   | GetVersion (View () Natural)
@@ -52,7 +52,7 @@ data FlatParameter interface
   | TransferOwnership   !TransferOwnershipParams
   | AcceptOwnership     !AcceptOwnershipParams
 
-fromFlatParameter :: FlatParameter s -> TZBTC.Parameter s
+fromFlatParameter :: FlatParameter i s -> TZBTC.Parameter i s
 fromFlatParameter = \case
   Run a -> TZBTC.SafeEntrypoints $ TZBTC.Run a
   Upgrade a -> TZBTC.SafeEntrypoints $ TZBTC.Upgrade a

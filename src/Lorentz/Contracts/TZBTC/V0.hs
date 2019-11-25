@@ -9,6 +9,7 @@ module Lorentz.Contracts.TZBTC.V0
   ( Parameter(..)
   , Interface
   , Storage(..)
+  , StoreTemplateV0
   , UStoreV0
   , mkEmptyStorageV0
   , tzbtcContractRaw
@@ -49,7 +50,7 @@ mkEmptyStorageV0 admin = Storage
 
 type UStoreV0 = Storage Interface StoreTemplateV0
 
-emptyCode :: UContractRouter interface
+emptyCode :: UContractRouter interface store
 emptyCode = UContractRouter $ cdr # nil # pair
 
 -- | Entry point of upgradeable contract.
@@ -62,8 +63,8 @@ instance DocItem (DEntryPoint UpgradeableEntryPointKind) where
     "These are entry points of the contract."
   docItemToMarkdown = diEntryPointToMarkdown
 
-safeEntrypoints :: Entrypoint (SafeParameter Interface) UStoreV0
-safeEntrypoints = entryCase @(SafeParameter Interface) (Proxy @UpgradeableEntryPointKind)
+safeEntrypoints :: Entrypoint (SafeParameter Interface StoreTemplateV0) UStoreV0
+safeEntrypoints = entryCase @(SafeParameter Interface StoreTemplateV0) (Proxy @UpgradeableEntryPointKind)
   ( #cRun /-> do
       doc $ DDescription
         "This entry point is used to call the packed entrypoints in the contract."
@@ -155,10 +156,10 @@ safeEntrypoints = entryCase @(SafeParameter Interface) (Proxy @UpgradeableEntryP
 -- | Version 0 of TZBTC contract as written in Lorentz.
 -- It generally should not be used because we preprocess it before
 -- actually using. See 'Lorentz.Contracts.TZBTC.Preprocess'.
-tzbtcContractRaw :: Contract (Parameter Interface) UStoreV0
+tzbtcContractRaw :: Contract (Parameter Interface StoreTemplateV0) UStoreV0
 tzbtcContractRaw = do
   unpair
-  entryCase @(Parameter Interface) (Proxy @UpgradeableEntryPointKind)
+  entryCase @(Parameter Interface StoreTemplateV0) (Proxy @UpgradeableEntryPointKind)
     ( #cGetVersion /-> do
         doc $ DDescription
           "This entry point is used to get contract version."
@@ -262,7 +263,7 @@ callUSafeViewEP
   => Label ep
   -> Entrypoint (View vi vo) (Storage interface store)
 callUSafeViewEP epName = do
-  coerce_ @(View vi vo) @(vi, ContractAddr vo)
+  coerce_ @(View vi vo) @(vi, ContractRef vo)
   unpair
   dip address
   pair
@@ -321,7 +322,7 @@ applyMigration = do
   exec
   setField #dataMap
 
-migrateCode :: '[UContractRouter interface, Storage interface store] :-> '[Storage interface store]
+migrateCode :: '[UContractRouter interface store, Storage interface store] :-> '[Storage interface store]
 migrateCode = do
   dip (getField #fields)
   gcoerce_
