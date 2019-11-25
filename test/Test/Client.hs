@@ -22,12 +22,15 @@ import Michelson.Typed.Haskell.Value (IsoValue(..))
 import Michelson.Untyped.Annotation (ann, noAnn)
 import Michelson.Untyped.Type (CT(..), T(..), Type(..))
 import Lorentz.Test.Integrational (genesisAddress1)
+import Lorentz.UStore.Migration (manualConcatMigrationScripts)
 import Util.Named ((.!))
 
 import Client.Parser (parseAddressFromOutput, parseSignatureFromOutput)
 import Client.Util
   (convertTypeToExpression, nicePackedValueToExpression, typeToExpression)
 import Lorentz.Contracts.TZBTC.Types (SafeParameter(..))
+import Lorentz.Contracts.TZBTC.Preprocess (migrationScripts, tzbtcContractRouter)
+import Lorentz.Contracts.TZBTC.V1 (originationParams)
 
 (@??) :: (Show a, HasCallStack) => a -> (a -> Bool) -> Assertion
 (@??) val predicate =
@@ -45,7 +48,17 @@ test_nicePackedValueToExpression = testGroup "Test converting Parameter to Miche
   , testCase "RemoveOperator" $
     parameterRoundTrip (RemoveOperator (#operator .! genesisAddress1)) @?=
     Right (RemoveOperator (#operator .! genesisAddress1))
+  , testCase "Upgrade" $
+    parameterRoundTrip upgradeParam @?= Right upgradeParam
   ]
+  where
+    upgradeParam =
+      let migration = migrationScripts (originationParams ownerAddr ownerAddr mempty)
+          ownerAddr = genesisAddress1 in
+        Upgrade ( #newVersion .! 1
+                , #migrationScript .! manualConcatMigrationScripts migration
+                , #newCode .! tzbtcContractRouter
+                )
 
 parameterRoundTrip :: SafeParameter i s -> Either UnpackError (SafeParameter i s)
 parameterRoundTrip = fmap fromVal . unpackValue' .
