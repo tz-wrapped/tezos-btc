@@ -35,8 +35,8 @@ main = do
   case cmd of
     CmdPrintContract singleLine mbFilePath ->
       printContract singleLine mbFilePath tzbtcContract
-    CmdPrintInitialStorage adminAddress -> do
-      printTextLn $ printLorentzValue True (mkEmptyStorageV0 adminAddress)
+    CmdPrintInitialStorage ownerAddress -> do
+      printTextLn $ printLorentzValue True (mkEmptyStorageV0 ownerAddress)
     CmdPrintDoc mbFilePath ->
       maybe printTextLn writeFileUtf8 mbFilePath tzbtcDoc
     CmdParseParameter t ->
@@ -48,12 +48,12 @@ main = do
         showTestScenario <$> mkTestScenario tsoMaster tsoAddresses
     CmdMigrate
       (arg #version -> version_)
-      (arg #adminAddress -> admin)
+      (arg #ownerAddress -> owner)
       (arg #redeemAddress -> redeem)
       (arg #output -> fp) -> do
         (maybe printTextLn writeFileUtf8 fp) $
           makeMigrationParams version_ tzbtcContractRouter $
-            (migrationScripts $ originationParams admin redeem mempty)
+            (migrationScripts $ originationParams owner redeem mempty)
   where
     printContract
       :: ( ParameterEntryPoints parameter
@@ -88,7 +88,7 @@ usageDoc =
     , "EXAMPLE:", linebreak
     , "  tzbtc printInitialStorage --help", linebreak
     , "USAGE EXAMPLE:", linebreak
-    , "  tzbtc printInitialStorage --admin-address \
+    , "  tzbtc printInitialStorage --owner-address \
       \tz1U1h1YzBJixXmaTgpwDpZnbrYHX3fMSpvby"
     , linebreak
     , "                            --redeem-address \

@@ -76,7 +76,7 @@ originateTzbtc msig
 
 test_multisig :: TestTree
 test_multisig = testGroup "TZBTC contract multi-sig functionality test"
-  [ testCase "Test call to multisig to add an operator by admin works" $ do
+  [ testCase "Test call to multisig to add an operator by owner works" $ do
       -- Originate multisig with threshold 2 and a master pk list of
       -- three public keys
       withMultiSigContract 0 2 masterPKList $ \msig -> do
@@ -110,7 +110,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
       -- Originate multisig with threshold 2 and a master pk list of
       -- three public keys
       withMultiSigContract 0 2 masterPKList $ \msig -> do
-        -- Originate main contract with admin set to multisig
+        -- Originate main contract with owner set to multisig
         tzbtc <- originateTzbtc msig
         -- Make the multi-sig call that adds an operator
         let
@@ -134,7 +134,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
       -- Originate multisig with threshold 2 and a master pk list of
       -- three public keys
       withMultiSigContract 0 2 masterPKList $ \msig -> do
-        -- Originate main contract with admin set to multisig
+        -- Originate main contract with owner set to multisig
         tzbtc <- originateTzbtc msig
         -- Make the multi-sig call that adds an operator
         let
@@ -161,7 +161,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
       -- Originate multisig with threshold 2 and a master pk list of
       -- three public keys
       withMultiSigContract 0 2 masterPKList $ \msig -> do
-        -- Originate main contract with admin set to multisig
+        -- Originate main contract with owner set to multisig
         tzbtc <- originateTzbtc msig
         -- Make the multi-sig call that adds an operator
         let
@@ -195,7 +195,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
       -- Originate multisig with threshold 2 and a master pk list of
       -- three public keys
       withMultiSigContract 0 2 masterPKList $ \msig -> do
-        -- Originate main contract with admin set to multisig
+        -- Originate main contract with owner set to multisig
         tzbtc <- originateTzbtc msig
         -- Make the multi-sig call that adds an operator
         let

@@ -73,7 +73,7 @@ checkField ef cf ms = checkStorage (\st ->
 originateTzbtcV1ContractRaw
   :: Address -> OriginationParams -> IntegrationalScenarioM (ContractRef (Parameter Interface StoreTemplate))
 originateTzbtcV1ContractRaw redeem op = do
-  c <- lOriginate tzbtcContract "TZBTC Contract" (mkEmptyStorageV0 adminAddress) (toMutez 1000)
+  c <- lOriginate tzbtcContract "TZBTC Contract" (mkEmptyStorageV0 ownerAddress) (toMutez 1000)
   let
     o = originationParams (opAdmin op) redeem (opBalances op)
     upgradeParams =
@@ -81,13 +81,13 @@ originateTzbtcV1ContractRaw redeem op = do
       , #migrationScript .! (manualConcatMigrationScripts $ migrationScripts o)
       , #newCode (coerceUContractRouter tzbtcContractRouter)
       )
-  withSender adminAddress $ lCall c (fromFlatParameter $ Upgrade upgradeParams)
+  withSender ownerAddress $ lCall c (fromFlatParameter $ Upgrade upgradeParams)
   pure $ coerceContractRef c
 
 originateTzbtcV1Contract
   :: IntegrationalScenarioM (ContractRef (Parameter Interface StoreTemplate))
 originateTzbtcV1Contract = originateTzbtcV1ContractRaw redeemAddress_ $ OriginationParams
-  { opAdmin = adminAddress
+  { opAdmin = ownerAddress
   , opBalances = M.fromList [(redeemAddress_, initialSupply)]
   }
 
@@ -96,11 +96,11 @@ originateTzbtcV1Contract = originateTzbtcV1ContractRaw redeemAddress_ $ Originat
 newOperatorAddress :: Address
 newOperatorAddress = genesisAddress1
 
-adminAddress :: Address
-adminAddress = genesisAddress3
+ownerAddress :: Address
+ownerAddress = genesisAddress3
 
 redeemAddress_ :: Address
-redeemAddress_ = adminAddress
+redeemAddress_ = ownerAddress
 
 replaceAddress :: Address
 replaceAddress = genesisAddress2
@@ -119,18 +119,18 @@ initialSupply = 500
 test_addOperator :: TestTree
 test_addOperator = testGroup "TZBTC contract `addOperator` test"
   [ testCase
-      "Call to `addOperator` from random address gets denied with `senderIsNotAdmin` error." $
+      "Call to `addOperator` from random address gets denied with `senderIsNotOwner` error." $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
         withSender bob $ do
           lCall c (fromFlatParameter $ AddOperator (#operator .! newOperatorAddress))
         validate . Left $
-          lExpectCustomError_ #senderIsNotAdmin
+          lExpectCustomError_ #senderIsNotOwner
   , testCase
-      "Call to `addOperator` from admin adds operator to the set." $
+      "Call to `addOperator` from owner adds operator to the set." $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
-        withSender adminAddress $ do
+        withSender ownerAddress $ do
           lCall c (fromFlatParameter $ AddOperator (#operator .! newOperatorAddress))
         validate . Right $
           lExpectStorageUpdate c
@@ -141,25 +141,25 @@ test_addOperator = testGroup "TZBTC contract `addOperator` test"
 test_removeOperator :: TestTree
 test_removeOperator = testGroup "TZBTC contract `addOperator` test"
   [ testCase
-      "Call to `removeOperator` from random address gets denied with `senderIsNotAdmin` error." $
+      "Call to `removeOperator` from random address gets denied with `senderIsNotOwner` error." $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
         withSender bob $ do
           lCall c (fromFlatParameter $ RemoveOperator (#operator .! newOperatorAddress))
         validate . Left $
-          lExpectCustomError_ #senderIsNotAdmin
+          lExpectCustomError_ #senderIsNotOwner
 
   , testCase
-      "Call to `removeOperator` from admin removes operator from the set." $
+      "Call to `removeOperator` from owner removes operator from the set." $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
-        withSender adminAddress $ do
+        withSender ownerAddress $ do
           lCall c (fromFlatParameter $ AddOperator (#operator .! newOperatorAddress))
         validate . Right $
           lExpectStorageUpdate c
             (checkField operators
               (Set.member newOperatorAddress) "New operator not found")
-        withSender adminAddress $ do
+        withSender ownerAddress $ do
           lCall c (fromFlatParameter $ RemoveOperator (#operator .! newOperatorAddress))
         validate . Right $
           lExpectStorageUpdate c
@@ -170,18 +170,18 @@ test_removeOperator = testGroup "TZBTC contract `addOperator` test"
 test_transferOwnership :: TestTree
 test_transferOwnership = testGroup "TZBTC contract `transferOwnership` test"
   [ testCase
-      "Call to `transferOwnership` from random address gets denied with `senderIsNotAdmin` error." $
+      "Call to `transferOwnership` from random address gets denied with `senderIsNotOwner` error." $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
         withSender bob $ do
           lCall c (fromFlatParameter $ TransferOwnership (#newOwner .! replaceAddress))
         validate . Left $
-          lExpectCustomError_ #senderIsNotAdmin
+          lExpectCustomError_ #senderIsNotOwner
   , testCase
-      "Call to `transferOwnership` from admin address gets denied with `senderIsNotAdmin` error." $
+      "Call to `transferOwnership` from owner address gets denied with `senderIsNotOwner` error." $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
-        withSender adminAddress $ do
+        withSender ownerAddress $ do
           lCall c (fromFlatParameter $ TransferOwnership (#newOwner .! replaceAddress))
         validate . Right $
           lExpectStorageUpdate c
@@ -202,7 +202,7 @@ test_acceptOwnership = testGroup "TZBTC contract `acceptOwnership` test"
       "Call to `acceptOwnership` to transferring contract from random address gets denied with `senderIsNotNewOwner` error." $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
-        withSender adminAddress $ do
+        withSender ownerAddress $ do
           lCall c (fromFlatParameter $ TransferOwnership (#newOwner .! replaceAddress))
         withSender bob $ do
           lCall c (fromFlatParameter $ AcceptOwnership ())
@@ -212,19 +212,19 @@ test_acceptOwnership = testGroup "TZBTC contract `acceptOwnership` test"
       "Call to `acceptOwnership` to transferring contract from random address gets denied with `senderIsNotNewOwner` error." $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
-        withSender adminAddress $ do
+        withSender ownerAddress $ do
           lCall c (fromFlatParameter $ TransferOwnership (#newOwner .! replaceAddress))
         withSender replaceAddress $ do
           lCall c (fromFlatParameter $ AcceptOwnership ())
         validate . Right $
-          lExpectStorageUpdate c (checkField admin (== replaceAddress)  "Expected `admin` not found")
+          lExpectStorageUpdate c (checkField owner (== replaceAddress)  "Expected `owner` not found")
   , testCase
       "Call to `acceptOwnership` to transferring contract from current address gets denied with `senderIsNotNewOwner` error." $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
-        withSender adminAddress $ do
+        withSender ownerAddress $ do
           lCall c (fromFlatParameter $ TransferOwnership (#newOwner .! replaceAddress))
-        withSender adminAddress $ do
+        withSender ownerAddress $ do
           lCall c (fromFlatParameter $ AcceptOwnership ())
         validate . Left $
           lExpectCustomError_ #senderIsNotNewOwner
@@ -233,18 +233,18 @@ test_acceptOwnership = testGroup "TZBTC contract `acceptOwnership` test"
 test_setRedeemAddress :: TestTree
 test_setRedeemAddress = testGroup "TZBTC contract `setRedeemAddress` test"
   [ testCase
-      "Call to `setRedeemAddress` from random address is denied with `SenderIsNotAdmin` error" $
+      "Call to `setRedeemAddress` from random address is denied with `SenderIsNotOwner` error" $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
         withSender bob $ do
           lCall c (fromFlatParameter $ SetRedeemAddress (#redeem .! replaceAddress))
         validate . Left $
-          lExpectCustomError_ #senderIsNotAdmin
+          lExpectCustomError_ #senderIsNotOwner
   , testCase
       "Call to `setRedeemAddress` sets redeem address correctly" $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
-        withSender adminAddress $ do
+        withSender ownerAddress $ do
           lCall c (fromFlatParameter $ SetRedeemAddress (#redeem .! replaceAddress))
         validate . Right $
           lExpectStorageUpdate c
@@ -263,10 +263,10 @@ test_burn = testGroup "TZBTC contract `burn` test"
         validate . Left $
           lExpectCustomError_ #senderIsNotOperator
   , testCase
-      "Call to `burn` from admin address is denied with `SenderIsNotOperator` error" $
+      "Call to `burn` from owner address is denied with `SenderIsNotOperator` error" $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
-        withSender adminAddress $ do
+        withSender ownerAddress $ do
           lCall c (fromFlatParameter $ Burn (#value .! 100))
         validate . Left $
           lExpectCustomError_ #senderIsNotOperator
@@ -277,7 +277,7 @@ test_burn = testGroup "TZBTC contract `burn` test"
         consumer <- lOriginateEmpty contractConsumer "consumer"
 
         -- Add an operator
-        withSender adminAddress $ do
+        withSender ownerAddress $ do
           lCall c (fromFlatParameter $ AddOperator (#operator .! newOperatorAddress))
 
         lCall c $ fromFlatParameter $ GetBalance (View (#owner .! redeemAddress_) consumer)
@@ -309,10 +309,10 @@ test_mint = testGroup "TZBTC contract `mint` test"
         validate . Left $
           lExpectCustomError_ #senderIsNotOperator
   , testCase
-      "Call to `mint` from admin address is denied with `SenderIsNotOperator` error" $
+      "Call to `mint` from owner address is denied with `SenderIsNotOperator` error" $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
-        withSender adminAddress $ do
+        withSender ownerAddress $ do
           lCall c (fromFlatParameter $ Mint (#to .! alice, #value .! 100))
         validate . Left $
           lExpectCustomError_ #senderIsNotOperator
@@ -323,7 +323,7 @@ test_mint = testGroup "TZBTC contract `mint` test"
         consumer <- lOriginateEmpty contractConsumer "consumer"
 
         -- Add an operator
-        withSender adminAddress $ do
+        withSender ownerAddress $ do
           lCall c (fromFlatParameter $ AddOperator (#operator .! newOperatorAddress))
 
         withSender newOperatorAddress $ lCall c (fromFlatParameter $ Mint (#to .! alice, #value .! 130))
@@ -359,10 +359,10 @@ test_pause = testGroup "TZBTC contract `pause` test"
         validate . Left $
           lExpectCustomError_ #senderIsNotOperator
   , testCase
-      "Call to `pause` from admin address is denied with `SenderIsNotOperator` error" $
+      "Call to `pause` from owner address is denied with `SenderIsNotOperator` error" $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
-        withSender adminAddress $ do
+        withSender ownerAddress $ do
           lCall c (fromFlatParameter $ Pause ())
         validate . Left $
           lExpectCustomError_ #senderIsNotOperator
@@ -371,7 +371,7 @@ test_pause = testGroup "TZBTC contract `pause` test"
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
         -- Add an operator
-        withSender adminAddress $ do
+        withSender ownerAddress $ do
           lCall c (fromFlatParameter $ AddOperator (#operator .! newOperatorAddress))
 
         -- Call pause
@@ -385,30 +385,30 @@ test_pause = testGroup "TZBTC contract `pause` test"
 test_unpause :: TestTree
 test_unpause = testGroup "TZBTC contract `unpause` test"
   [ testCase
-      "Call to `unpause` from random address is denied with `SenderIsNotAdmin` error" $
+      "Call to `unpause` from random address is denied with `SenderIsNotOwner` error" $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
         withSender bob $ do
           lCall c (fromFlatParameter $ Unpause ())
         validate . Left $
-          lExpectCustomError_ #senderIsNotAdmin
+          lExpectCustomError_ #senderIsNotOwner
   , testCase
-      "Call to `unpause` from operator address is denied with `SenderIsNotAdmin` error" $
+      "Call to `unpause` from operator address is denied with `SenderIsNotOwner` error" $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
         -- Add an operator
-        withSender adminAddress $ do
+        withSender ownerAddress $ do
           lCall c (fromFlatParameter $ AddOperator (#operator .! newOperatorAddress))
         withSender newOperatorAddress $ do
           lCall c (fromFlatParameter $ Unpause ())
         validate . Left $
-          lExpectCustomError_ #senderIsNotAdmin
+          lExpectCustomError_ #senderIsNotOwner
   , testCase
-      "Call to `unpause` from admin unsets the paused status" $
+      "Call to `unpause` from owner unsets the paused status" $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
         -- Add an operator
-        withSender adminAddress $ do
+        withSender ownerAddress $ do
           lCall c (fromFlatParameter $ AddOperator (#operator .! newOperatorAddress))
         -- Mint some coins for alice.
         withSender newOperatorAddress $ lCall c (fromFlatParameter $ Mint (#to .! alice, #value .! 200))
@@ -420,7 +420,7 @@ test_unpause = testGroup "TZBTC contract `unpause` test"
             (checkField paused id "Unexpected Paused status")
 
         -- Call unpause
-        withSender adminAddress $ lCall c (fromFlatParameter $ Unpause ())
+        withSender ownerAddress $ lCall c (fromFlatParameter $ Unpause ())
 
         validate . Right $
           lExpectStorageUpdate c
@@ -434,7 +434,7 @@ test_bookkeeping = testGroup "TZBTC contract bookkeeping views test"
         integrationalTestExpectation $ do
           v1 <- originateTzbtcV1Contract
           -- Add an operator
-          withSender adminAddress $ do
+          withSender ownerAddress $ do
             lCall v1 (fromFlatParameter $ AddOperator (#operator .! newOperatorAddress))
           withSender newOperatorAddress $ do
             -- Mint and burn some tokens

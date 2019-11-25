@@ -189,7 +189,7 @@ getAppliedResults env op = do
 
 originateTzbtcContract
   :: Address -> ClientConfig -> IO (Either TzbtcClientError Address)
-originateTzbtcContract admin config@ClientConfig{..} = do
+originateTzbtcContract owner config@ClientConfig{..} = do
   OperationConstants{..} <- preProcessOperation config
   let origOp = OriginationOperation
         { ooKind = "origination"
@@ -200,7 +200,7 @@ originateTzbtcContract admin config@ClientConfig{..} = do
         , ooStorageLimit = 60000
         , ooBalance = 0
         , ooScript =
-          mkOriginationScript tzbtcContract (mkEmptyStorageV0 admin)
+          mkOriginationScript tzbtcContract (mkEmptyStorageV0 owner)
         }
   let runOp = RunOperation
         { roOperation =
@@ -245,10 +245,10 @@ originateTzbtcContract admin config@ClientConfig{..} = do
           \originate exactly one contract."
 
 deployTzbtcContract :: ClientConfig -> Address -> Address -> IO Address
-deployTzbtcContract config@ClientConfig{..}  admin redeem = do
+deployTzbtcContract config@ClientConfig{..} owner redeem = do
   putTextLn "Originate contract"
-  contractAddr <- throwLeft $ originateTzbtcContract admin config
-  let migration = migrationScripts (originationParams admin redeem mempty)
+  contractAddr <- throwLeft $ originateTzbtcContract owner config
+  let migration = migrationScripts (originationParams owner redeem mempty)
       transactionsToTzbtc params = runTransactions contractAddr params config
   AlmostStorage{..} <- getTzbtcStorage contractAddr
   putTextLn "Upgrade contract to V1"

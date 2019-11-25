@@ -39,7 +39,7 @@ data FlatParameter interface store
   | GetTotalSupply      !(View () Natural)
   | GetTotalMinted      !(View () Natural)
   | GetTotalBurned      !(View () Natural)
-  | GetAdministrator    !(View () Address)
+  | GetOwner            !(View () Address)
   | Transfer            !TransferParams
   | Approve             !ApproveParams
   | Mint                !MintParams
@@ -79,5 +79,5 @@ fromFlatParameter = \case
   GetTotalSupply a -> TZBTC.GetTotalSupply a
   GetTotalMinted a -> TZBTC.GetTotalMinted a
   GetTotalBurned a -> TZBTC.GetTotalBurned a
-  GetAdministrator a -> TZBTC.GetAdministrator a
+  GetOwner a -> TZBTC.GetOwner a
 

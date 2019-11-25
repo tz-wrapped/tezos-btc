@@ -3,7 +3,7 @@
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
 module Test.Migration
-  ( test_adminCheck
+  ( test_ownerCheck
   , test_notMigratingStatus
   , test_migratingStatus
   , test_migratingVersion
@@ -26,34 +26,34 @@ import Lorentz.UStore.Migration
 
 originateContract
   :: IntegrationalScenarioM (ContractRef (Parameter Interface StoreTemplateV0))
-originateContract = lOriginate tzbtcContract "TZBTC Contract" (mkEmptyStorageV0 adminAddress) (toMutez 1000)
+originateContract = lOriginate tzbtcContract "TZBTC Contract" (mkEmptyStorageV0 ownerAddress) (toMutez 1000)
 
--- Test that all administrative endpoints can only be called as master
-test_adminCheck :: TestTree
-test_adminCheck = testGroup "TZBTC contract migration endpoints test"
-  [  testCase "Test call to administrative endpoints are only available to master" $
+-- Test that all owneristrative endpoints can only be called as master
+test_ownerCheck :: TestTree
+test_ownerCheck = testGroup "TZBTC contract migration endpoints test"
+  [  testCase "Test call to owneristrative endpoints are only available to master" $
       integrationalTestExpectation $ do
         -- Originate a V0 contract
         v0 <- originateContract
         withSender bob $ lCall v0 $ fromFlatParameter $ EpwBeginUpgrade 1
-        validate . Left $ lExpectCustomError_ #senderIsNotAdmin
+        validate . Left $ lExpectCustomError_ #senderIsNotOwner
   , testCase "Test call to `ApplyMigration` endpoints are only available to master" $
       integrationalTestExpectation $ do
         v0 <- originateContract
         withSender bob $ lCall v0 $ fromFlatParameter $ EpwApplyMigration migrationScript
-        validate . Left $ lExpectCustomError_ #senderIsNotAdmin
+        validate . Left $ lExpectCustomError_ #senderIsNotOwner
 
   , testCase "Test call to `SetCode` endpoints are only available to master" $
       integrationalTestExpectation $ do
         v0 <- originateContract
         withSender bob $ lCall v0 $ fromFlatParameter $ EpwSetCode emptyCode
-        validate . Left $ lExpectCustomError_ #senderIsNotAdmin
+        validate . Left $ lExpectCustomError_ #senderIsNotOwner
 
   , testCase "Test call to `FinishUpgrade` endpoints are only available to master" $
       integrationalTestExpectation $ do
         v0 <- originateContract
         withSender bob $ lCall v0 $ fromFlatParameter $ EpwFinishUpgrade
-        validate . Left $ lExpectCustomError_ #senderIsNotAdmin
+        validate . Left $ lExpectCustomError_ #senderIsNotOwner
   ]
 
 -- Test that migration entrypoints check a not migrating status
@@ -63,19 +63,19 @@ test_notMigratingStatus = testGroup "TZBTC contract migration status not active 
       integrationalTestExpectation $ do
         -- Originate a V0 contract
         v0 <- originateContract
-        withSender adminAddress $ lCall v0 $ fromFlatParameter $ EpwApplyMigration migrationScript
+        withSender ownerAddress $ lCall v0 $ fromFlatParameter $ EpwApplyMigration migrationScript
         validate . Left $ lExpectCustomError_ #upgContractIsNotMigrating
 
   ,  testCase "Test call to `EpwSetCode` that require a non-migrating state fails in migrating state" $
       integrationalTestExpectation $ do
         v0 <- originateContract
-        withSender adminAddress $ lCall v0 $ fromFlatParameter $ EpwSetCode emptyCode
+        withSender ownerAddress $ lCall v0 $ fromFlatParameter $ EpwSetCode emptyCode
         validate . Left $ lExpectCustomError_ #upgContractIsNotMigrating
 
   ,  testCase "Test call to `EpwFinishUpgrade` that require a non-migrating state fails in migrating state" $
       integrationalTestExpectation $ do
         v0 <- originateContract
-        withSender adminAddress $ lCall v0 $ fromFlatParameter $ EpwFinishUpgrade
+        withSender ownerAddress $ lCall v0 $ fromFlatParameter $ EpwFinishUpgrade
         validate . Left $ lExpectCustomError_ #upgContractIsNotMigrating
   ]
 
@@ -85,21 +85,21 @@ test_migratingStatus = testGroup "TZBTC contract migration status active check"
   [  testCase "Test call to `Upgrade` that require a non-migrating state fails in migrating state" $
       integrationalTestExpectation $ do
         v0 <- originateContract
-        withSender adminAddress $ lCall v0 $ fromFlatParameter $ EpwBeginUpgrade 1
-        withSender adminAddress $ lCall v0 $ fromFlatParameter $ Upgrade upgradeParams
+        withSender ownerAddress $ lCall v0 $ fromFlatParameter $ EpwBeginUpgrade 1
+        withSender ownerAddress $ lCall v0 $ fromFlatParameter $ Upgrade upgradeParams
         validate . Left $ lExpectCustomError_ #upgContractIsMigrating
   , testCase "Test call to `Run` that require a non-migrating state fails in migrating state" $
       integrationalTestExpectation $ do
         v0 <- originateContract
-        withSender adminAddress $ lCall v0 $ fromFlatParameter $ EpwBeginUpgrade 1
-        withSender adminAddress $ lCall v0 $ fromFlatParameter $ Run $ mkUParam #callBurn (#value .! 100)
+        withSender ownerAddress $ lCall v0 $ fromFlatParameter $ EpwBeginUpgrade 1
+        withSender ownerAddress $ lCall v0 $ fromFlatParameter $ Run $ mkUParam #callBurn (#value .! 100)
         validate . Left $ lExpectCustomError_ #upgContractIsMigrating
 
   , testCase "Test call to `Burn` that require a non-migrating state fails in migrating state" $
       integrationalTestExpectation $ do
         v0 <- originateContract
-        withSender adminAddress $ lCall v0 $ fromFlatParameter $ EpwBeginUpgrade 1
-        withSender adminAddress $ lCall v0 $ fromFlatParameter $ Burn (#value .! 100)
+        withSender ownerAddress $ lCall v0 $ fromFlatParameter $ EpwBeginUpgrade 1
+        withSender ownerAddress $ lCall v0 $ fromFlatParameter $ Burn (#value .! 100)
         validate . Left $ lExpectCustomError_ #upgContractIsMigrating
   ]
 
@@ -109,8 +109,8 @@ test_migratingVersion = testGroup "TZBTC contract migration version check"
   [  testCase "Test EpwFinishUpgrade bumps version" $
       integrationalTestExpectation $ do
         v0 <- originateContract
-        withSender adminAddress $ lCall v0 $ fromFlatParameter $ EpwBeginUpgrade 1
-        withSender adminAddress $ lCall v0 $ fromFlatParameter $ EpwFinishUpgrade
+        withSender ownerAddress $ lCall v0 $ fromFlatParameter $ EpwBeginUpgrade 1
+        withSender ownerAddress $ lCall v0 $ fromFlatParameter $ EpwFinishUpgrade
         let
           checkVersion s =
             if (TZBTCTypes.currentVersion . TZBTCTypes.fields) s == 1
@@ -121,13 +121,13 @@ test_migratingVersion = testGroup "TZBTC contract migration version check"
   , testCase "Test upgrades to unknown versions are denied " $
       integrationalTestExpectation $ do
         v0 <- originateContract
-        withSender adminAddress $ lCall v0 $ fromFlatParameter $ EpwBeginUpgrade 2
+        withSender ownerAddress $ lCall v0 $ fromFlatParameter $ EpwBeginUpgrade 2
         validate . Left $ lExpectCustomError #upgVersionMismatch (#expected .! 1, #actual 2)
   ]
 
 upgradeParams :: UpgradeParameters Interface StoreTemplateV0
 upgradeParams = let
-  o = originationParams adminAddress redeemAddress_ mempty
+  o = originationParams ownerAddress redeemAddress_ mempty
   in ( #newVersion .! 1
      , #migrationScript .! (manualConcatMigrationScripts $ migrationScripts o)
      , #newCode (coerceUContractRouter tzbtcContractRouter)
@@ -136,17 +136,17 @@ upgradeParams = let
 -- Some constants
 migrationScript :: MigrationScript
 migrationScript = let
-  o = originationParams adminAddress redeemAddress_ mempty
+  o = originationParams ownerAddress redeemAddress_ mempty
   in manualConcatMigrationScripts $ migrationScripts o
 
 emptyCode :: UContractRouter i s
 emptyCode = mkUContractRouter (Lorentz.drop # nil # pair)
 
-adminAddress :: Address
-adminAddress = genesisAddress3
+ownerAddress :: Address
+ownerAddress = genesisAddress3
 
 redeemAddress_ :: Address
-redeemAddress_ = adminAddress
+redeemAddress_ = ownerAddress
 
 bob :: Address
 bob = genesisAddress5

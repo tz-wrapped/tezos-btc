@@ -111,7 +111,7 @@ data Parameter (interface :: [EntryPointKind]) store
   | GetTotalSupply      !(View () Natural)
   | GetTotalMinted      !(View () Natural)
   | GetTotalBurned      !(View () Natural)
-  | GetAdministrator    !(View () Address)
+  | GetOwner            !(View () Address)
   | SafeEntrypoints (SafeParameter interface store)
   deriving stock (Eq, Generic, Show)
   deriving anyclass IsoValue
@@ -131,8 +131,8 @@ instance Buildable (Parameter i s) where
       "Get total minted"
     GetTotalBurned _ ->
       "Get total burned"
-    GetAdministrator _ ->
-      "Get administrator"
+    GetOwner _ ->
+      "Get owner"
     GetVersion _ ->
       "Get contract version"
     SafeEntrypoints param -> case param of
@@ -194,7 +194,7 @@ data Storage interface store = Storage
 -- | Template for the wrapped UStore which will hold the upgradeable code
 -- and fields
 data StoreTemplate = StoreTemplate
-  { admin         :: UStoreField Address
+  { owner         :: UStoreField Address
   , paused        :: UStoreField Bool
   , totalSupply   :: UStoreField Natural
   , totalBurned   :: UStoreField Natural
@@ -235,7 +235,7 @@ type Interface =
   , "callGetTotalSupply" ?: (SafeView () Natural)
   , "callGetTotalMinted" ?: (SafeView () Natural)
   , "callGetTotalBurned" ?: (SafeView () Natural)
-  , "callGetAdministrator" ?: (SafeView () Address)
+  , "callGetOwner" ?: (SafeView () Address)
   , "callTransfer" ?: ManagedLedger.TransferParams
   , "callApprove" ?: ManagedLedger.ApproveParams
   , "callMint" ?: ManagedLedger.MintParams
@@ -276,6 +276,10 @@ type instance ErrorArg "senderIsNotNewOwner" = ()
 -- of the operators.
 type instance ErrorArg "senderIsNotOperator" = ()
 
+-- | For `add/removeOperator`, `setRedeemAddress`, `pause/unpause` entrypoints,
+-- if the sender is not the owner of the contract.
+type instance ErrorArg "senderIsNotOwner" = ()
+
 -- | For calls that can only be run during a migration
 type instance ErrorArg "upgContractIsNotMigrating" = ()
 
@@ -314,3 +318,8 @@ instance CustomErrorHasDoc "senderIsNotOperator" where
   customErrClass = ErrClassBadArgument
   customErrDocMdCause =
     "Sender has to be an operator to call this entrypoint"
+
+instance CustomErrorHasDoc "senderIsNotOwner" where
+  customErrClass = ErrClassBadArgument
+  customErrDocMdCause =
+    "Sender has to be an owner to call this entrypoint"

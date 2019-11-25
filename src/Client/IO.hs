@@ -372,3 +372,4 @@ getTzbtcStorage
 getTzbtcStorage contractAddr = do
   storageRaw <- getStorage $ formatAddress contractAddr
   throwLeft $ pure $ exprToValue @(AlmostStorage Interface StoreTemplate) storageRaw
+

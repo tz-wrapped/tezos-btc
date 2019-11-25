@@ -32,17 +32,17 @@ import Util.TypeLits
 
 import Lorentz.Contracts.TZBTC.Types as Types
 
--- | Template for the wrapped UStore which will hold the admin address
+-- | Template for the wrapped UStore which will hold the owner address
 -- only
 data StoreTemplateV0 = StoreTemplateV0
-  { admin         :: UStoreField Address
+  { owner :: UStoreField Address
   } deriving stock Generic
 
 mkEmptyStorageV0 :: Address -> UStoreV0
-mkEmptyStorageV0 admin = Storage
-  { dataMap = mkUStore (StoreTemplateV0 $ UStoreField admin)
+mkEmptyStorageV0 owner = Storage
+  { dataMap = mkUStore (StoreTemplateV0 $ UStoreField owner)
   , fields = StorageFields
-    { contractRouter  = emptyCode
+    { contractRouter = emptyCode
     , currentVersion = 0
     , migrating = False
     }
@@ -184,13 +184,14 @@ tzbtcContractRaw = do
         doc $ DDescription
           "This entry point is used to get total number of burned tokens."
         callUSafeViewEP #callGetTotalBurned
-    , #cGetAdministrator /-> do
+    , #cGetOwner /-> do
         doc $ DDescription
-          "This entry point is used to get current administrator."
-        callUSafeViewEP #callGetAdministrator
+          "This entry point is used to get current owner."
+        callUSafeViewEP #callGetOwner
     , #cSafeEntrypoints /-> do
         doc $ DDescription
-          "This entry point is used call the safe entrypoints of the contract."
+          "This entry point is used call the safe entrypoints of the contract. \
+          \`Contract p` and have to be handled additionally."
         safeEntrypoints
     )
 
@@ -270,12 +271,12 @@ callUSafeViewEP epName = do
   coerce_ @((vi, Address)) @(SafeView vi vo)
   callUEp epName
 
-ensureMaster :: (HasUField "admin" Address store) => '[Storage interface store] :-> '[Storage interface store]
+ensureMaster :: (HasUField "owner" Address store) => '[Storage interface store] :-> '[Storage interface store]
 ensureMaster = do
   getField #dataMap;
-  ustoreToField #admin
+  ustoreToField #owner
   sender; eq
-  if_ (nop) (failCustom_ #senderIsNotAdmin)
+  if_ (nop) (failCustom_ #senderIsNotOwner)
 
 ensureNotMigrating :: '[Storage interface store] :-> '[Storage interface store]
 ensureNotMigrating = do

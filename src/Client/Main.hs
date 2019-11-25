@@ -123,14 +123,14 @@ mainProgram = do
               fromFlatParameter $ GetTotalBurned $ View () (toContractRef callback)
           Nothing ->
             printFieldFromStorage @Natural #totalBurned "Total burned: " show
-      CmdGetAdministrator mbCallback' -> do
+      CmdGetOwner mbCallback' -> do
         case mbCallback' of
           Just callback' -> do
             callback <- addrOrAliasToAddr callback'
             runTzbtcContract $
-              fromFlatParameter $ GetAdministrator $ View () (toContractRef callback)
+              fromFlatParameter $ GetOwner $ View () (toContractRef callback)
           Nothing ->
-            printFieldFromStorage @Address #admin "Admininstator: " formatAddress
+            printFieldFromStorage @Address #owner "Owner: " formatAddress
       CmdGetOpDescription packageFilePath -> do
         pkg <- getPackageFromFile packageFilePath
         case pkg of
@@ -162,9 +162,9 @@ mainProgram = do
         case pkgs of
           Left err -> printTextLn err
           Right packages -> runMultisigContract packages
-      CmdDeployContract admin' redeem' -> do
-        [admin, redeem] <- mapM addrOrAliasToAddr [admin', redeem']
-        deployTzbtcContract admin redeem
+      CmdDeployContract owner' redeem' -> do
+        [owner, redeem] <- mapM addrOrAliasToAddr [owner', redeem']
+        deployTzbtcContract owner redeem
   where
     runMultisigTzbtcContract :: (HasCmdLine m, HasTezosRpc m) => (Maybe FilePath) -> Parameter i s -> m ()
     runMultisigTzbtcContract mbMultisig param =
