@@ -10,7 +10,7 @@ let
     project = "tzbtc-client";
     majorVersion = "0";
     minorVersion = "1";
-    packageRevision = "0";
+    packageRevision = "1";
     bin = tzbtc-client-binary;
     arch = "amd64";
     license = "Proprietary";

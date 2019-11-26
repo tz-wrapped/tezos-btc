@@ -9,7 +9,19 @@
 Unreleased
 ==========
 
-* Add git revision to automatically generated contract documentation.
+0.1.1
+=====
+
+* [#74](https://github.com/serokell/tezos-btc/pull/74)
+  Preserve annotations during automatic deploy.
+* [#66](https://github.com/serokell/tezos-btc/pull/66)
+  Add HTTPS support.
+* [#65](https://github.com/serokell/tezos-btc/pull/65)
+  Fix multisig call.
+* [#64](https://github.com/serokell/tezos-btc/pull/64)
+  Fix build on MacOS.
+* [#68](https://github.com/serokell/tezos-btc/pull/68)
+  Add git revision to automatically generated contract documentation.
 
 0.1.0
 =====
