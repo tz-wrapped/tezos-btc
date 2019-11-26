@@ -6,7 +6,7 @@
 
 # TZBTC
 
-**Code revision:** [50ac6f2](https://github.com/serokell/tezos-btc/commit/50ac6f200f719bbd609216e4346ed1664cc5177a) *(Fri Nov 22 15:59:19 2019 +0530)*
+**Code revision:** [c0aa341](https://github.com/serokell/tezos-btc/commit/c0aa341f5b5534f040e618c982fc37dfe456093a) *(Tue Nov 26 18:17:06 2019 +0300)*
 
 This contract is implemented using Lorentz language
 
