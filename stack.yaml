@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: LicenseRef-Proprietary
 #
-resolver: lts-14.0
+resolver: lts-14.15
 
 packages:
 - .
