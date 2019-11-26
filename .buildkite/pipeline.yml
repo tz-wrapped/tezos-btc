@@ -47,4 +47,15 @@ steps:
    - nix-shell --run "buildkite-agent artifact download TZBTC-contract.md tmp/ --step \"${test_step}\""
    - ./scripts/ci/upload-autodoc.sh
    label: autodoc upload
-   branches: "master"
+   branches: master
+
+ - commands:
+   - "$(nix-build --no-link -A fullBuildScript) -o tzbtc-static"
+   - nix-build release.nix --arg tzbtc-client-binary "tzbtc-static/bin/tzbtc-client" -A packageIntoDeb -o tzbtc-client-deb
+   - nix-build release.nix --arg tzbtc-client-binary "tzbtc-static/bin/tzbtc-client" -A packageIntoRpm -o tzbtc-client-rpm
+   label: packaging
+   branches: master
+   artifact_paths:
+     - ./tzbtc-static/bin/tzbtc-client
+     - ./tzbtc-client-deb/*
+     - ./tzbtc-client-rpm/*
