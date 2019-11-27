@@ -49,13 +49,13 @@
     --address "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --dry-run
 }
 
-@test "invoking tzbtc-client 'getAdministrator' command" {
-  stack exec -- tzbtc-client getAdministrator\
+@test "invoking tzbtc-client 'getOwner' command" {
+  stack exec -- tzbtc-client getOwner\
     --callback "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46" --dry-run
 }
 
-@test "invoking tzbtc-client 'getAdministrator' command without callback" {
-  stack exec -- tzbtc-client getAdministrator --dry-run
+@test "invoking tzbtc-client 'getOwner' command without callback" {
+  stack exec -- tzbtc-client getOwner --dry-run
 }
 
 @test "invoking tzbtc-client 'getTotalSupply' command" {
@@ -112,7 +112,7 @@
 }
 
 @test "deploy contract" {
-  stack exec -- tzbtc-client deployTzbtcContract --admin boba --redeem boba --dry-run
+  stack exec -- tzbtc-client deployTzbtcContract --owner boba --redeem boba --dry-run
 }
 
 @test "invoking tzbtc 'printContract' command" {
@@ -120,7 +120,7 @@
 }
 
 @test "invoking tzbtc 'migrate' command" {
-  stack exec -- tzbtc migrate --version 1 --adminAddress "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --redeemAddress "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"
+  stack exec -- tzbtc migrate --version 1 --ownerAddress "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --redeemAddress "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"
 }
 
 @test "invoking tzbtc 'printContract' command with --oneline flag" {
@@ -138,8 +138,8 @@
 }
 
 @test "invoking tzbtc 'printInitialStorage' command" {
-  result="$(stack exec -- tzbtc printInitialStorage --admin-address tz1f1S7V2hZJ3mhj47djb5j1saek8c2yB2Cx)"
-  [ "$result" == 'Pair { Elt 0x05010000000561646d696e 0x050a000000160000d476acd953eb55d38c398c85c3f53e19b62b167a } (Pair { CDR; NIL operation; PAIR } (Pair 0 False))' ]
+  result="$(stack exec -- tzbtc printInitialStorage --owner-address tz1f1S7V2hZJ3mhj47djb5j1saek8c2yB2Cx)"
+  [ "$result" == 'Pair { Elt 0x0501000000056f776e6572 0x050a000000160000d476acd953eb55d38c398c85c3f53e19b62b167a } (Pair { CDR; NIL operation; PAIR } (Pair 0 False))' ]
 }
 
 @test "invoking 'parseContractParameter' command to parse burn parameter" {

@@ -49,17 +49,15 @@ type SetRedeemAddressParams = ("redeem" :! Address)
 type PauseParams = Bool
 type TransferOwnershipParams = ("newOwner" :! Address)
 type AcceptOwnershipParams = ()
-type Entrypoint param store
-  = '[ param, store ] :-> ContractOut store
 
-type UpgradeParameters interface =
+type UpgradeParameters interface store =
   ( "newVersion" :! Natural
   , "migrationScript" :! MigrationScript
-  , "newCode" :! UContractRouter interface
+  , "newCode" :! UContractRouter interface store
   )
 
-deriving instance Eq (UContractRouter interface)
-deriving instance Show (UContractRouter interface)
+deriving instance Eq (UContractRouter interface store)
+deriving instance Show (UContractRouter interface store)
 
 deriving instance Eq MigrationScript
 
@@ -69,16 +67,16 @@ deriving instance Eq MigrationScript
 -- | This is a type that is supposed to wrap all the 'safe' entrypoints ie the
 -- ones that have arguments that does not contain things like raw contract
 -- values that are forbidden in operations that would end up in the chain.
-data SafeParameter (interface :: [EntryPointKind])
+data SafeParameter (interface :: [EntryPointKind]) store
   = Run (UParam interface)
-  | Upgrade (UpgradeParameters interface)
+  | Upgrade (UpgradeParameters interface store)
 
   -- Entrypoint-wise upgrades are currently not protected from version mismatch
   -- in subsequent transactions, so the user ought to be careful with them.
   -- This behavior may change in future if deemed desirable.
   | EpwBeginUpgrade Natural  -- version
   | EpwApplyMigration ("migrationscript" :! MigrationScript)
-  | EpwSetCode ("contractcode" :! (UContractRouter interface))
+  | EpwSetCode ("contractcode" :! (UContractRouter interface store))
   | EpwFinishUpgrade
   -- TZBTC Entrypoints
   | Transfer            !ManagedLedger.TransferParams
@@ -95,7 +93,7 @@ data SafeParameter (interface :: [EntryPointKind])
   deriving stock (Eq, Generic, Show)
   deriving anyclass IsoValue
 
-instance (Typeable interface) => TypeHasDoc (SafeParameter interface) where
+instance (Typeable interface, Typeable store) => TypeHasDoc (SafeParameter interface store) where
   typeDocName _ = "Parameter.SafeParameter"
   typeDocMdDescription = "Parameter which does not have unsafe arguments, like raw `Contract p` values."
   typeDocMdReference tp =
@@ -105,7 +103,7 @@ instance (Typeable interface) => TypeHasDoc (SafeParameter interface) where
   typeDocDependencies = genericTypeDocDependencies
 
 -- | The actual parameter of the main TZBTC contract.
-data Parameter (interface :: [EntryPointKind])
+data Parameter (interface :: [EntryPointKind]) store
   = GetVersion (View () Natural)
   -- TZBTC Entrypoints
   | GetAllowance        !(View ManagedLedger.GetAllowanceParams Natural)
@@ -113,15 +111,15 @@ data Parameter (interface :: [EntryPointKind])
   | GetTotalSupply      !(View () Natural)
   | GetTotalMinted      !(View () Natural)
   | GetTotalBurned      !(View () Natural)
-  | GetAdministrator    !(View () Address)
-  | SafeEntrypoints (SafeParameter interface)
+  | GetOwner            !(View () Address)
+  | SafeEntrypoints (SafeParameter interface store)
   deriving stock (Eq, Generic, Show)
   deriving anyclass IsoValue
 
-instance ParameterEntryPoints (Parameter s) where
+instance ParameterEntryPoints (Parameter i s) where
   parameterEntryPoints = pepRecursive
 
-instance Buildable (Parameter s) where
+instance Buildable (Parameter i s) where
   build = \case
     GetAllowance (View (arg #owner -> owner, arg #spender -> spender) _) ->
       "Get allowance for " +| owner |+ " from " +| spender |+ ""
@@ -133,8 +131,8 @@ instance Buildable (Parameter s) where
       "Get total minted"
     GetTotalBurned _ ->
       "Get total burned"
-    GetAdministrator _ ->
-      "Get administrator"
+    GetOwner _ ->
+      "Get owner"
     GetVersion _ ->
       "Get contract version"
     SafeEntrypoints param -> case param of
@@ -179,8 +177,8 @@ instance Buildable (Parameter s) where
 ---------------------------------------------------------------------------
 
 -- | The concrete fields of the contract
-data StorageFields interface = StorageFields
-  { contractRouter  :: UContractRouter interface
+data StorageFields interface store = StorageFields
+  { contractRouter  :: UContractRouter interface store
   , currentVersion :: Natural
   , migrating :: Bool
   } deriving stock (Generic, Show)
@@ -189,14 +187,14 @@ data StorageFields interface = StorageFields
 -- | The concrete storage of the contract
 data Storage interface store = Storage
   { dataMap :: UStore store
-  , fields :: StorageFields interface
+  , fields :: StorageFields interface store
   } deriving stock (Generic, Show)
     deriving anyclass IsoValue
 
 -- | Template for the wrapped UStore which will hold the upgradeable code
 -- and fields
 data StoreTemplate = StoreTemplate
-  { admin         :: UStoreField Address
+  { owner         :: UStoreField Address
   , paused        :: UStoreField Bool
   , totalSupply   :: UStoreField Natural
   , totalBurned   :: UStoreField Natural
@@ -237,7 +235,7 @@ type Interface =
   , "callGetTotalSupply" ?: (SafeView () Natural)
   , "callGetTotalMinted" ?: (SafeView () Natural)
   , "callGetTotalBurned" ?: (SafeView () Natural)
-  , "callGetAdministrator" ?: (SafeView () Address)
+  , "callGetOwner" ?: (SafeView () Address)
   , "callTransfer" ?: ManagedLedger.TransferParams
   , "callApprove" ?: ManagedLedger.ApproveParams
   , "callMint" ?: ManagedLedger.MintParams
@@ -257,7 +255,7 @@ type TZBTCPartInstr param store =
   '[[Operation], UStore store]
 
 type TZBTCStorage = Storage Interface StoreTemplate
-type TZBTCParameter = Parameter Interface
+type TZBTCParameter = Parameter Interface StoreTemplate
 
 ----------------------------------------------------------------------------
 -- Errors
@@ -277,6 +275,10 @@ type instance ErrorArg "senderIsNotNewOwner" = ()
 -- | For the burn/mint/pause entry point, if the sender is not one
 -- of the operators.
 type instance ErrorArg "senderIsNotOperator" = ()
+
+-- | For `add/removeOperator`, `setRedeemAddress`, `pause/unpause` entrypoints,
+-- if the sender is not the owner of the contract.
+type instance ErrorArg "senderIsNotOwner" = ()
 
 -- | For calls that can only be run during a migration
 type instance ErrorArg "upgContractIsNotMigrating" = ()
@@ -316,3 +318,8 @@ instance CustomErrorHasDoc "senderIsNotOperator" where
   customErrClass = ErrClassBadArgument
   customErrDocMdCause =
     "Sender has to be an operator to call this entrypoint"
+
+instance CustomErrorHasDoc "senderIsNotOwner" where
+  customErrClass = ErrClassBadArgument
+  customErrDocMdCause =
+    "Sender has to be an owner to call this entrypoint"

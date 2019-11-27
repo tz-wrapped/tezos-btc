@@ -15,7 +15,7 @@ import Lorentz.Contracts.Upgradeable.Common (UContractRouter, MigrationScript)
 
 makeMigrationParams
   :: Natural
-  -> UContractRouter Interface
+  -> UContractRouter Interface StoreTemplate
   -> [MigrationScript]
   -> LText
 makeMigrationParams version contractCode scripts = case version of

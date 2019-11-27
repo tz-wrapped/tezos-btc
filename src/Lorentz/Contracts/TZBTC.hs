@@ -36,6 +36,6 @@ import Lorentz.Contracts.TZBTC.V1
 -- Implementation
 ----------------------------------------------------------------------------
 
-toSafeParam :: Parameter a -> Maybe (SafeParameter a)
+toSafeParam :: Parameter i s -> Maybe (SafeParameter i s)
 toSafeParam (SafeEntrypoints s) = Just s
 toSafeParam _ = Nothing

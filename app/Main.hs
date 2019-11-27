@@ -14,7 +14,7 @@ import Options.Applicative
 import Options.Applicative.Help.Pretty (Doc, linebreak)
 
 import Lorentz
-import Lorentz.Common (showTestScenario)
+import Lorentz.TestScenario (showTestScenario)
 import Paths_tzbtc (version)
 
 import CLI.Parser
@@ -35,25 +35,25 @@ main = do
   case cmd of
     CmdPrintContract singleLine mbFilePath ->
       printContract singleLine mbFilePath tzbtcContract
-    CmdPrintInitialStorage adminAddress -> do
-      printTextLn $ printLorentzValue True (mkEmptyStorageV0 adminAddress)
+    CmdPrintInitialStorage ownerAddress -> do
+      printTextLn $ printLorentzValue True (mkEmptyStorageV0 ownerAddress)
     CmdPrintDoc mbFilePath ->
       maybe printTextLn writeFileUtf8 mbFilePath tzbtcDoc
     CmdParseParameter t ->
       either (throwString . pretty) (printStringLn . pretty) $
-      parseLorentzValue @(Parameter _) t
+      parseLorentzValue @(Parameter _ _) t
     CmdTestScenario TestScenarioOptions {..} -> do
       maybe (throwString "Not enough addresses")
         (maybe printTextLn writeFileUtf8 tsoOutput) $
         showTestScenario <$> mkTestScenario tsoMaster tsoAddresses
     CmdMigrate
       (arg #version -> version_)
-      (arg #adminAddress -> admin)
+      (arg #ownerAddress -> owner)
       (arg #redeemAddress -> redeem)
       (arg #output -> fp) -> do
         (maybe printTextLn writeFileUtf8 fp) $
           makeMigrationParams version_ tzbtcContractRouter $
-            (migrationScripts $ originationParams admin redeem mempty)
+            (migrationScripts $ originationParams owner redeem mempty)
   where
     printContract
       :: ( ParameterEntryPoints parameter
@@ -88,7 +88,7 @@ usageDoc =
     , "EXAMPLE:", linebreak
     , "  tzbtc printInitialStorage --help", linebreak
     , "USAGE EXAMPLE:", linebreak
-    , "  tzbtc printInitialStorage --admin-address \
+    , "  tzbtc printInitialStorage --owner-address \
       \tz1U1h1YzBJixXmaTgpwDpZnbrYHX3fMSpvby"
     , linebreak
     , "                            --redeem-address \

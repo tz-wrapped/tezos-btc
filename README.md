@@ -43,8 +43,8 @@ contents.
 
 #### Deploy TZBTC contract using `tzbtc-client`
 
-Run `tzbtc-client deployTzbtcContract --admin tz1PPPYChg5xXHpGzygnNkmzPd1hyVRMxvJf --redeem tz1PPPYChg5xXHpGzygnNkmzPd1hyVRMxvJf`
-(specify desired admin and redeem addresses). After contract deploy it is possible to override existing contract address in the
+Run `tzbtc-client deployTzbtcContract --owner tz1PPPYChg5xXHpGzygnNkmzPd1hyVRMxvJf --redeem tz1PPPYChg5xXHpGzygnNkmzPd1hyVRMxvJf`
+(specify desired owner and redeem addresses). After contract deploy it is possible to override existing contract address in the
 client config with the address of the newly originated contract.
 
 #### Interact with TZBTC contract
@@ -91,7 +91,7 @@ public keys in its storage.
 `add/removeOperator`, `pause`, `unpause`, `setRedeemAddress`, `transferOwnership`,
 `startMigrateTo/From`)
 In order to perform these actions make sure, that multisig contract's address is
-an admin/operator of the TZBTC contract.
+an owner/operator of the TZBTC contract.
 
 All administrative operations can be performed using multisig.
 In order to create multisig package you should provide `--multisig` flag.

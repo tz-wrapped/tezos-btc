@@ -18,15 +18,16 @@ import Michelson.Optimizer (OptimizerConf(..))
 
 import Lorentz.Contracts.TZBTC.Types (OriginationParameters)
 import Lorentz.Contracts.TZBTC.V0
-import Lorentz.Contracts.TZBTC.V1 (migrationScriptsRaw, tzbtcContractRouterRaw)
+import Lorentz.Contracts.TZBTC.V1
+  (StoreTemplate, migrationScriptsRaw, tzbtcContractRouterRaw)
 import Lorentz.Contracts.Upgradeable.Common.Base
 
 -- | Preprocessed version of V0 contract.
-tzbtcContract :: Contract (Parameter Interface) UStoreV0
+tzbtcContract :: Contract (Parameter Interface StoreTemplateV0) UStoreV0
 tzbtcContract = preprocess tzbtcContractRaw
 
 -- | Preprocessed version of contract router for V1.
-tzbtcContractRouter :: UContractRouter Interface
+tzbtcContractRouter :: UContractRouter Interface StoreTemplate
 tzbtcContractRouter =
   UContractRouter . preprocess . unContractCode $ tzbtcContractRouterRaw
 

@@ -53,7 +53,7 @@ data ClientArgsRaw
   | CmdGetTotalSupply (Maybe AddrOrAlias)
   | CmdGetTotalMinted (Maybe AddrOrAlias)
   | CmdGetTotalBurned (Maybe AddrOrAlias)
-  | CmdGetAdministrator (Maybe AddrOrAlias)
+  | CmdGetOwner (Maybe AddrOrAlias)
   | CmdSetupClient ClientConfigPartial
   | CmdGetOpDescription FilePath
   | CmdGetBytesToSign FilePath
@@ -77,7 +77,7 @@ clientArgRawParser = Opt.hsubparser $
   <> removeOperatorCmd <> pauseCmd <> unpauseCmd
   <> setRedeemAddressCmd <> transferOwnershipCmd <> acceptOwnershipCmd
   <> getTotalSupplyCmd <>  getTotalMintedCmd <> getTotalBurnedCmd
-  <> getAdministratorCmd <> setupUserCmd <> getOpDescriptionCmd
+  <> getOwnerCmd <> setupUserCmd <> getOpDescriptionCmd
   <> getBytesToSignCmd <> getTotalBurnedCmd
   <> addSignatureCmd <> signPackageCmd <> callMultisigCmd
   <> configCmd <> deployCmd
@@ -282,13 +282,13 @@ clientArgRawParser = Opt.hsubparser $
           mbAddrOrAliasOption "callback" "Callback address")
          "Get amount of burned tokens")
 
-    getAdministratorCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
-    getAdministratorCmd =
+    getOwnerCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
+    getOwnerCmd =
       (mkCommandParser
-         "getAdministrator"
-         (CmdGetAdministrator <$>
+         "getOwner"
+         (CmdGetOwner <$>
           mbAddrOrAliasOption "callback" "Callback address")
-         "Get current contract administrator")
+         "Get current contract owner")
 
     getOpDescriptionCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     getOpDescriptionCmd =
@@ -337,7 +337,7 @@ clientArgRawParser = Opt.hsubparser $
       mkCommandParser
       "deployTzbtcContract"
       (CmdDeployContract <$>
-       addrOrAliasOption "admin" "Address of the administrator" <*>
+       addrOrAliasOption "owner" "Address of the owner" <*>
        addrOrAliasOption "redeem" "Redeem address"
       )
       "Deploy TZBTC contract to the chain"

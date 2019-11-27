@@ -64,7 +64,6 @@ executables:
 
     dependencies:
       - fmt
-      - lorentz-contracts
       - morley-prelude
       - morley
       - optparse-applicative
