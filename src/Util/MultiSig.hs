@@ -95,12 +95,12 @@ instance Buildable Package where
 -- is meaningless (and probably dangerous) if it does not match with the
 -- packed bytesequence that is being signed on.
 fetchSrcParam
-  :: forall a. Package
-  -> Either UnpackageError (TZBTC.Parameter a)
+  :: forall i s. Package
+  -> Either UnpackageError (TZBTC.Parameter i s)
 fetchSrcParam package =
   case decodeHex $ pkSrcParam package of
     Just hexDecoded ->
-      case fromVal @((TZBTC.SafeParameter a), Natural, Address)
+      case fromVal @((TZBTC.SafeParameter i s), Natural, Address)
           <$> unpackValue' hexDecoded of
         Right (safeParameter, counter, caddress) ->
           case getToSign package of
@@ -131,7 +131,7 @@ mkPackage
   :: Address
   -> Natural
   -> Address
-  -> TZBTC.SafeParameter a -> Package
+  -> TZBTC.SafeParameter i s -> Package
 mkPackage msigAddress counter tzbtc param
   = let msigLambda = contractToLambda tzbtc param
     -- Create the Lambda for required action
@@ -233,7 +233,7 @@ addSignature package sig =
 mkMultiSigParam
   :: [PublicKey]
   -> NonEmpty Package
-  -> Either UnpackageError (ContractAddr MSig.Parameter, MSig.Parameter)
+  -> Either UnpackageError (ContractRef MSig.Parameter, MSig.Parameter)
 mkMultiSigParam pks packages = do
   package <- mergePackages packages
   toSign <- getToSign package
@@ -242,14 +242,14 @@ mkMultiSigParam pks packages = do
     mkParameter
       :: ToSign
       -> [(PublicKey, Signature)]
-      -> (ContractAddr MSig.Parameter, MSig.Parameter)
+      -> (ContractRef MSig.Parameter, MSig.Parameter)
     mkParameter (address_, payload) sigs =
       -- There should be as may signatures in the submitted request
       -- as there are keys in the contract's storage. Not all keys should
       -- be present, but they should be marked as absent using Nothing values [1].
       -- So we pad the list with Nothings to make up for missing signatures.
       -- [1] https://github.com/murbard/smart-contracts/blob/master/multisig/michelson/generic.tz#L63
-      (ContractAddr address_, ParameterMain (payload, sortSigs sigs))
+      (toContractRef address_, ParameterMain (payload, sortSigs sigs))
     sortSigs :: [(PublicKey, Signature)] -> [Maybe Signature]
     sortSigs sigs = flip lookup sigs <$> pks
 

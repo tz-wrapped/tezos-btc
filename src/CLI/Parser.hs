@@ -37,9 +37,9 @@ data CmdLnArgs
   | CmdTestScenario TestScenarioOptions
   | CmdMigrate
       ("version" :! Natural)
-      ("adminAddress" :! Address)
+      ("ownerAddress" :! Address)
       ("redeemAddress" :! Address)
-      ( "output" :! Maybe FilePath)
+      ("output" :! Maybe FilePath)
 
 data TestScenarioOptions = TestScenarioOptions
   { tsoMaster :: !Address
@@ -66,8 +66,8 @@ argParser = hsubparser $
       (mkCommandParser
          "printInitialStorage"
          (CmdPrintInitialStorage
-            <$> namedAddressOption Nothing "admin-address" "Administrator's address")
-         "Print initial contract storage with the given administrator and \
+            <$> namedAddressOption Nothing "owner-address" "Owner's address")
+         "Print initial contract storage with the given owner and \
          \redeem addresses")
     printDoc :: Opt.Mod Opt.CommandFields CmdLnArgs
     printDoc =
@@ -94,7 +94,7 @@ argParser = hsubparser $
           (CmdMigrate
             <$> getParser "Target version"
             <*> getParser "Redeem address"
-            <*> getParser "Administrator's address"
+            <*> getParser "Owner's address"
             <*> (#output <.!> outputOption))
           "Print migration scripts.")
 

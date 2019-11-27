@@ -21,7 +21,6 @@ import qualified Data.Map as M
 import Lorentz
 import Lorentz.Contracts.Upgradeable.EntryPointWise
 import Lorentz.Contracts.Upgradeable.Common.Base
-import qualified Lorentz.Contracts.ManagedLedger.Impl as ManagedLedger
 import Util.TypeTuple.Class
 import Util.Named
 
@@ -37,7 +36,7 @@ v1Impl = recFromTuple
       TZBTC.getTotal #totalMinted "Return total number of minted tokens")
   , #callGetTotalBurned //==> (toSafeView $
       TZBTC.getTotal #totalBurned "Return total number of burned tokens")
-  , #callGetAdministrator //==> (toSafeView ManagedLedger.getAdministrator)
+  , #callGetOwner //==> (toSafeView TZBTC.getOwner)
   , #callTransfer //==> TZBTC.transfer
   , #callApprove //==> TZBTC.approve
   , #callMint //==> TZBTC.mint
@@ -72,7 +71,7 @@ v1Impl = recFromTuple
         contract
         if IsSome then nop else failCustom_ #unexpectedContractType
       pair
-      coerce_ @((a, ContractAddr b)) @(View a b)
+      coerce_ @((a, ContractRef b)) @(View a b)
       ep
 
     -- Helper operator which is essentially the same as `/==>` but
@@ -81,7 +80,7 @@ v1Impl = recFromTuple
     label //==> part = label /==> callPart (part # unpair)
 
 -- | Contract router before preprocessing.
-tzbtcContractRouterRaw :: UContractRouter Interface
+tzbtcContractRouterRaw :: UContractRouter Interface StoreTemplate
 tzbtcContractRouterRaw = epwServe epwContract
 
 originationParams :: Address -> Address -> Map Address Natural -> OriginationParameters
@@ -104,8 +103,8 @@ epwContract = mkEpwContract v1Impl epwFallbackFail
 originationParamsToStoreTemplate :: OriginationParameters -> StoreTemplate
 originationParamsToStoreTemplate OriginationParameters {..} = let
   total = Prelude.sum $ M.elems opBalances
-  in  StoreTemplate
-    { admin = UStoreField opMaster
+  in StoreTemplate
+    { owner = UStoreField opMaster
     , paused = UStoreField False
     , totalSupply = UStoreField total
     , totalMinted = UStoreField total

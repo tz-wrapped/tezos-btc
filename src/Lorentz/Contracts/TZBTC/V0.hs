@@ -9,6 +9,7 @@ module Lorentz.Contracts.TZBTC.V0
   ( Parameter(..)
   , Interface
   , Storage(..)
+  , StoreTemplateV0
   , UStoreV0
   , mkEmptyStorageV0
   , tzbtcContractRaw
@@ -31,17 +32,17 @@ import Util.TypeLits
 
 import Lorentz.Contracts.TZBTC.Types as Types
 
--- | Template for the wrapped UStore which will hold the admin address
+-- | Template for the wrapped UStore which will hold the owner address
 -- only
 data StoreTemplateV0 = StoreTemplateV0
-  { admin         :: UStoreField Address
+  { owner :: UStoreField Address
   } deriving stock Generic
 
 mkEmptyStorageV0 :: Address -> UStoreV0
-mkEmptyStorageV0 admin = Storage
-  { dataMap = mkUStore (StoreTemplateV0 $ UStoreField admin)
+mkEmptyStorageV0 owner = Storage
+  { dataMap = mkUStore (StoreTemplateV0 $ UStoreField owner)
   , fields = StorageFields
-    { contractRouter  = emptyCode
+    { contractRouter = emptyCode
     , currentVersion = 0
     , migrating = False
     }
@@ -49,7 +50,7 @@ mkEmptyStorageV0 admin = Storage
 
 type UStoreV0 = Storage Interface StoreTemplateV0
 
-emptyCode :: UContractRouter interface
+emptyCode :: UContractRouter interface store
 emptyCode = UContractRouter $ cdr # nil # pair
 
 -- | Entry point of upgradeable contract.
@@ -62,8 +63,8 @@ instance DocItem (DEntryPoint UpgradeableEntryPointKind) where
     "These are entry points of the contract."
   docItemToMarkdown = diEntryPointToMarkdown
 
-safeEntrypoints :: Entrypoint (SafeParameter Interface) UStoreV0
-safeEntrypoints = entryCase @(SafeParameter Interface) (Proxy @UpgradeableEntryPointKind)
+safeEntrypoints :: Entrypoint (SafeParameter Interface StoreTemplateV0) UStoreV0
+safeEntrypoints = entryCase @(SafeParameter Interface StoreTemplateV0) (Proxy @UpgradeableEntryPointKind)
   ( #cRun /-> do
       doc $ DDescription
         "This entry point is used to call the packed entrypoints in the contract."
@@ -155,10 +156,10 @@ safeEntrypoints = entryCase @(SafeParameter Interface) (Proxy @UpgradeableEntryP
 -- | Version 0 of TZBTC contract as written in Lorentz.
 -- It generally should not be used because we preprocess it before
 -- actually using. See 'Lorentz.Contracts.TZBTC.Preprocess'.
-tzbtcContractRaw :: Contract (Parameter Interface) UStoreV0
+tzbtcContractRaw :: Contract (Parameter Interface StoreTemplateV0) UStoreV0
 tzbtcContractRaw = do
   unpair
-  entryCase @(Parameter Interface) (Proxy @UpgradeableEntryPointKind)
+  entryCase @(Parameter Interface StoreTemplateV0) (Proxy @UpgradeableEntryPointKind)
     ( #cGetVersion /-> do
         doc $ DDescription
           "This entry point is used to get contract version."
@@ -183,13 +184,19 @@ tzbtcContractRaw = do
         doc $ DDescription
           "This entry point is used to get total number of burned tokens."
         callUSafeViewEP #callGetTotalBurned
-    , #cGetAdministrator /-> do
+    , #cGetOwner /-> do
         doc $ DDescription
-          "This entry point is used to get current administrator."
-        callUSafeViewEP #callGetAdministrator
+          "This entry point is used to get current owner."
+        callUSafeViewEP #callGetOwner
     , #cSafeEntrypoints /-> do
         doc $ DDescription
-          "This entry point is used call the safe entrypoints of the contract."
+          "This entry point is used to call the safe entrypoints of the contract. \
+          \Entrypoints are 'safe' because they don't have unsafe arguments, such \
+          \as arguments with type `contract p` so that they can be safely used in operations \
+          \that add them to the chain (since in babylon values with type `contract p` are prohibited in \
+          \storage and code constants), in contrast to various Get* entrypoints, which have \
+          \`contract p` and have to be handled additionally (basically, we have to pass simple \
+          \`address` instead of `contract p` and call `CONTRACT`, which can fail)."
         safeEntrypoints
     )
 
@@ -206,7 +213,17 @@ tzbtcDoc = contractDocToMarkdown . buildLorentzDoc $ do
   contractName "TZBTC" $ do
     doc $ $mkDGitRevision $ GitRepoSettings $
       mappend "https://github.com/serokell/tezos-btc/commit/"
-    doc $ DDescription "This contract is implemented using Lorentz language"
+    doc $ DDescription
+      "This contract is implemented using Lorentz language.\n\
+      \Basically, this contract is [FA1.2](https://gitlab.com/serokell/morley/tzip/blob/master/A/FA1.2.md)\
+      \-compatible approvable ledger that maps user addresses to their token balances. \
+      \The main idea of this token contract is to provide 1-to-1 correspondance with BTC.\n\
+      \There are two special entities for this contract:\n\
+      \* `owner` -- owner of the TZBTC contract, capable in unpausing contract, \
+      \adding/removing operators, transfering ownership and upgrading contract. \
+      \There is only one owner of the contract.\n\
+      \* `operator` -- entity which is capable in pausing the contract \
+      \minting and burning tokens. There may be several operators added by the owner."
     tzbtcContractRaw
     fakeCoerce
     clarifyParamBuildingSteps pbsContainedInSafeEntrypoints safeEntrypoints
@@ -262,19 +279,19 @@ callUSafeViewEP
   => Label ep
   -> Entrypoint (View vi vo) (Storage interface store)
 callUSafeViewEP epName = do
-  coerce_ @(View vi vo) @(vi, ContractAddr vo)
+  coerce_ @(View vi vo) @(vi, ContractRef vo)
   unpair
   dip address
   pair
   coerce_ @((vi, Address)) @(SafeView vi vo)
   callUEp epName
 
-ensureMaster :: (HasUField "admin" Address store) => '[Storage interface store] :-> '[Storage interface store]
+ensureMaster :: (HasUField "owner" Address store) => '[Storage interface store] :-> '[Storage interface store]
 ensureMaster = do
   getField #dataMap;
-  ustoreToField #admin
+  ustoreToField #owner
   sender; eq
-  if_ (nop) (failCustom_ #senderIsNotAdmin)
+  if_ (nop) (failCustom_ #senderIsNotOwner)
 
 ensureNotMigrating :: '[Storage interface store] :-> '[Storage interface store]
 ensureNotMigrating = do
@@ -321,7 +338,7 @@ applyMigration = do
   exec
   setField #dataMap
 
-migrateCode :: '[UContractRouter interface, Storage interface store] :-> '[Storage interface store]
+migrateCode :: '[UContractRouter interface store, Storage interface store] :-> '[Storage interface store]
 migrateCode = do
   dip (getField #fields)
   gcoerce_

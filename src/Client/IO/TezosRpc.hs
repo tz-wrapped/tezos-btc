@@ -11,14 +11,14 @@ module Client.IO.TezosRpc
 import Data.ByteString (cons)
 import Servant.Client (ClientEnv, runClientM)
 import Servant.Client.Core as Servant (ClientError(..))
-import Tezos.Micheline (Expression)
+import Tezos.Common.Json (TezosInt64)
+import Tezos.V005.Micheline (Expression)
 
 import Lorentz hiding (address, balance, chainId, cons, map)
 import Lorentz.UStore.Migration (manualConcatMigrationScripts)
 import Michelson.Runtime.GState (genesisAddress1, genesisAddress2)
 import Michelson.Untyped (InternalByteString(..))
 import Tezos.Address
-import Tezos.Json (TezosWord64(..))
 import Util.Named ((.!))
 
 import qualified Client.API as API
@@ -45,7 +45,7 @@ data OperationConstants = OperationConstants
   -- ^ The address of the operations sender
   , ocBlockConstants :: BlockConstants
   -- ^ Information about block: chain_id and protocol
-  , ocCounter :: TezosWord64
+  , ocCounter :: TezosInt64
   -- ^ Sender counter
   }
 
@@ -65,7 +65,7 @@ getLastBlockHash env = runClientM API.getLastBlock env
 getCurrentBlockConstants :: ClientEnv -> Text -> IO (Either ClientError BlockConstants)
 getCurrentBlockConstants env block = runClientM (API.getBlockConstants block) env
 
-getAddressCounter :: ClientEnv -> Address -> IO (Either ClientError TezosWord64)
+getAddressCounter :: ClientEnv -> Address -> IO (Either ClientError TezosInt64)
 getAddressCounter env address = runClientM (API.getCounter $ formatAddress address) env
 
 dumbOp :: TransactionOperation
@@ -189,7 +189,7 @@ getAppliedResults env op = do
 
 originateTzbtcContract
   :: Address -> ClientConfig -> IO (Either TzbtcClientError Address)
-originateTzbtcContract admin config@ClientConfig{..} = do
+originateTzbtcContract owner config@ClientConfig{..} = do
   OperationConstants{..} <- preProcessOperation config
   let origOp = OriginationOperation
         { ooKind = "origination"
@@ -200,7 +200,7 @@ originateTzbtcContract admin config@ClientConfig{..} = do
         , ooStorageLimit = 60000
         , ooBalance = 0
         , ooScript =
-          mkOriginationScript tzbtcContract (mkEmptyStorageV0 admin)
+          mkOriginationScript tzbtcContract (mkEmptyStorageV0 owner)
         }
   let runOp = RunOperation
         { roOperation =
@@ -245,10 +245,10 @@ originateTzbtcContract admin config@ClientConfig{..} = do
           \originate exactly one contract."
 
 deployTzbtcContract :: ClientConfig -> Address -> Address -> IO Address
-deployTzbtcContract config@ClientConfig{..}  admin redeem = do
+deployTzbtcContract config@ClientConfig{..} owner redeem = do
   putTextLn "Originate contract"
-  contractAddr <- throwLeft $ originateTzbtcContract admin config
-  let migration = migrationScripts (originationParams admin redeem mempty)
+  contractAddr <- throwLeft $ originateTzbtcContract owner config
+  let migration = migrationScripts (originationParams owner redeem mempty)
       transactionsToTzbtc params = runTransactions contractAddr params config
   AlmostStorage{..} <- getTzbtcStorage contractAddr
   putTextLn "Upgrade contract to V1"
@@ -261,10 +261,10 @@ deployTzbtcContract config@ClientConfig{..}  admin redeem = do
   pure contractAddr
   where
     getTzbtcStorage
-      :: Address -> IO (AlmostStorage Interface)
+      :: Address -> IO (AlmostStorage Interface StoreTemplate)
     getTzbtcStorage contractAddr = do
       storageRaw <- getStorage config $ formatAddress contractAddr
-      throwLeft $ pure $ exprToValue @(AlmostStorage Interface) storageRaw
+      throwLeft $ pure $ exprToValue @(AlmostStorage Interface StoreTemplate) storageRaw
 
 getStorage :: ClientConfig -> Text -> IO Expression
 getStorage config addr = do

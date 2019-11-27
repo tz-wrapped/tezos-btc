@@ -19,9 +19,9 @@ import qualified Data.ByteString as BS (cons, drop, pack)
 import Data.Sequence (fromList)
 import Data.Singletons (SingI)
 import Servant.Client.Core (ClientError)
-import Tezos.Binary (encode, decode)
-import Tezos.Json (TezosWord64)
-import Tezos.Micheline
+import Tezos.Common.Binary (encode, decode)
+import Tezos.Common.Json (TezosInt64)
+import Tezos.V005.Micheline
   (Annotation(..), Expression(..), MichelinePrimAp(..), MichelinePrimitive(..))
 
 import Lorentz (Contract, compileLorentz, compileLorentzContract)
@@ -40,7 +40,7 @@ import Tezos.Crypto (blake2b)
 import Client.Error (TzbtcClientError(..))
 import Client.Types
 import Lorentz.Contracts.TZBTC.Types (Storage(..))
-import Lorentz.Contracts.TZBTC.V0 (Interface, Parameter(..), UStoreV0)
+import Lorentz.Contracts.TZBTC.V0 (Interface, Parameter(..), StoreTemplateV0, UStoreV0)
 
 nicePackedValueToExpression
   :: forall param.
@@ -55,7 +55,7 @@ codeToExpression :: Instr inp out -> Expression
 codeToExpression = decode . packCode'
 
 mkOriginationScript
-  :: Contract (Parameter Interface) UStoreV0 -> UStoreV0 -> OriginationScript
+  :: Contract (Parameter Interface StoreTemplateV0) UStoreV0 -> UStoreV0 -> OriginationScript
 mkOriginationScript contract Storage{..} = OriginationScript
   { osCode = Expression_Seq $ fromList
     [ Expression_Prim $
@@ -85,7 +85,7 @@ mkOriginationScript contract Storage{..} = OriginationScript
   where
     untypedContract = convertFullContract $ compileLorentzContract contract
 
-calcFees :: TezosWord64 -> TezosWord64 -> TezosWord64
+calcFees :: TezosInt64 -> TezosInt64 -> TezosInt64
 calcFees consumedGas storageSize =
   minimalFees +
   minimalTezPerGas * consumedGas +

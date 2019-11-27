@@ -154,7 +154,6 @@ runConfigEdit doEdit configPartial = do
   else printConfig path
   checkConfig
   where
-
     -- Is there any change to the config at all?
     hasDelta ccp =
       isAvailable (ccNodeAddress ccp) || isAvailable (ccNodePort ccp) ||
@@ -230,7 +229,7 @@ addrOrAliasToAddr addrOrAlias =
     Right addr -> pure addr
     Left _ -> fst <$> (throwLeft $ getAddressAndPKForAlias addrOrAlias)
 
-runTzbtcContract :: (MonadThrow m, HasTezosRpc m) => Parameter s -> m ()
+runTzbtcContract :: (MonadThrow m, HasTezosRpc m) => Parameter i s -> m ()
 runTzbtcContract param = do
   ClientConfig{..} <- throwLeft readConfig
   case ccContractAddress of
@@ -253,7 +252,7 @@ getMultisigStorage addr ClientConfig{..} = do
   mSigStorageRaw <- getStorage $ formatAddress addr
   throwLeft $ pure $ exprToValue @MSig.Storage mSigStorageRaw
 
-createMultisigPackage :: (MonadThrow m, HasConfig m, HasTezosRpc m) => FilePath -> SafeParameter s -> m ()
+createMultisigPackage :: (MonadThrow m, HasConfig m, HasTezosRpc m) => FilePath -> SafeParameter i s -> m ()
 createMultisigPackage packagePath parameter = do
   config@ClientConfig{..} <- throwLeft readConfig
   case ccMultisigAddress of
@@ -278,7 +277,7 @@ getPackageFromFile packageFilePath = do
     Right package -> Right package
 
 signPackageForConfiguredUser
-  :: ( MonadThrow m, HasCmdLine m, HasTezosClient m)
+  :: (MonadThrow m, HasCmdLine m, HasTezosClient m)
   => Package
   -> m (Either String Package)
 signPackageForConfiguredUser pkg = do
@@ -368,7 +367,7 @@ getFromTzbtcUStore key = do
           fmap Just . throwLeft . pure $ lUnpackValue rawVal
 
 getTzbtcStorage
-  :: (HasTezosRpc m) => Address -> m (AlmostStorage Interface)
+  :: (HasTezosRpc m) => Address -> m (AlmostStorage Interface StoreTemplate)
 getTzbtcStorage contractAddr = do
   storageRaw <- getStorage $ formatAddress contractAddr
-  throwLeft $ pure $ exprToValue @(AlmostStorage Interface) storageRaw
+  throwLeft $ pure $ exprToValue @(AlmostStorage Interface StoreTemplate) storageRaw

@@ -22,8 +22,8 @@ import Options.Applicative as Opt
 
 import Tezos.Address
 import Tezos.Crypto
-import Tezos.Json (TezosWord64(..))
-import Tezos.Micheline (Expression)
+import Tezos.Common.Json (TezosInt64)
+import Tezos.V005.Micheline (Expression)
 
 import Client.Error
 import Client.Types
@@ -59,7 +59,7 @@ class (Monad m) => HasCmdLine m where
 class (HasTezosClient m, HasConfig m, Monad m, MonadThrow m) => HasTezosRpc m where
   runTransactions :: (NicePackedValue param) => Address -> [EntrypointParam param] -> m ()
   getStorage :: Text -> m Expression
-  getCounter :: Text -> m TezosWord64
+  getCounter :: Text -> m TezosInt64
   getFromBigMap :: Natural -> Text -> m (Either TzbtcClientError Expression)
   deployTzbtcContract :: Address -> Address -> m ()
 

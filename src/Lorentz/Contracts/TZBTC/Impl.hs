@@ -9,7 +9,6 @@ module Lorentz.Contracts.TZBTC.Impl
   ( Entrypoint
   , StorageC
   , ManagedLedger.approve
-  , ManagedLedger.getAdministrator
   , ManagedLedger.getAllowance
   , ManagedLedger.getBalance
   , ManagedLedger.getTotalSupply
@@ -17,6 +16,7 @@ module Lorentz.Contracts.TZBTC.Impl
   , acceptOwnership
   , addOperator
   , burn
+  , getOwner
   , getTotal
   , mint
   , pause
@@ -40,7 +40,7 @@ import qualified Lorentz.Contracts.ManagedLedger.Types as ManagedLedger
 import Lorentz.Contracts.TZBTC.Types hiding (AddOperator, RemoveOperator)
 
 type StorageC store = StorageContains store
-  [ "admin" := Address
+  [ "owner" := Address
   , "paused" := Bool
   , "totalSupply" := Natural
   , "totalMinted" := Natural
@@ -58,6 +58,13 @@ getTotal
 getTotal bp entrypointDoc = do
   doc $ DDescription entrypointDoc
   view_ $ do cdr; stToField bp
+
+getOwner
+  :: (StoreHasField store "owner" Address)
+  => Entrypoint (View () Address) store
+getOwner = do
+  doc $ DDescription "This view return the current contract owner"
+  view_ (do cdr; stToField #owner)
 
 -- | Burn the specified amount of tokens from redeem address. Since it
 -- is not possible to burn from any other address, this entry point does
@@ -141,14 +148,14 @@ mint = do
   dip authorizeOperator
   mint_
 
--- | Add a new operator to the set of Operators. Only admin is allowed to call this
+-- | Add a new operator to the set of Operators. Only owner is allowed to call this
 -- entrypoint.
 addOperator :: forall store. StorageC store => Entrypoint OperatorParams store
 addOperator = do
   doc $ DDescription "Add operator with given address."
   addRemoveOperator AddOperator
 
--- | Add an operator from the set of Operators. Only admin is allowed to call this
+-- | Add an operator from the set of Operators. Only owner is allowed to call this
 -- entrypoint.
 removeOperator :: StorageC store => Entrypoint OperatorParams store
 removeOperator = do
@@ -164,7 +171,7 @@ addRemoveOperator
       StorageC store
   => OperatorAction -> Entrypoint OperatorParams store
 addRemoveOperator ar = do
-  dip authorizeAdmin
+  dip authorizeOwner
   stackType @'[OperatorParams, store]
   -- Unwrap operator address
   fromNamed #operator
@@ -187,7 +194,7 @@ setRedeemAddress
   => Entrypoint SetRedeemAddressParams store
 setRedeemAddress = do
   doc $ DDescription "Update `redeem` address, from which tokens can be burned."
-  dip authorizeAdmin
+  dip authorizeOwner
   -- Unwrap operator address
   fromNamed #redeem
   -- Set redeem address
@@ -196,13 +203,13 @@ setRedeemAddress = do
 
 -- | Start the transfer of ownership to a new owner. This stores the
 -- address of the new owner in the `newOwner` field in storage. Only
--- admin is allowed to make this call.
+-- owner is allowed to make this call.
 transferOwnership
   :: StorageC store
   => Entrypoint TransferOwnershipParams store
 transferOwnership = do
   doc $ DDescription "Start the transfer ownership to a new owner."
-  dip authorizeAdmin
+  dip authorizeOwner
   -- Unwrap new owner address
   fromNamed #newOwner
   -- Make a `Some` value and..
@@ -221,7 +228,7 @@ acceptOwnership = do
   -- Get `newOwner` address from storage
   stGetField #newOwner
   ifSome (do
-    stSetField #admin
+    stSetField #owner
     none
     stSetField #newOwner -- Reset newOwner field to None.
     ) (failCustom_ #notInTransferOwnershipMode)
@@ -239,13 +246,19 @@ pause = do
   finishNoOp
 
 -- | Resume end user actions if the contract is in a paused state.
--- This is callable only by the admin.
+-- This is callable only by the owner.
 unpause :: StorageC store => Entrypoint () store
 unpause = do
   doc $ DDescription "Unpause the contract and resume end users actions."
   drop
   push False
-  ManagedLedger.setPause
+  setPause
+
+setPause :: StorageC store => Entrypoint Bool store
+setPause = do
+  dip authorizeOwner
+  stSetField #paused
+  nil; pair
 
 data DRequireRole = DRequireRole Builder
 
@@ -255,14 +268,14 @@ instance DocItem DRequireRole where
   docItemToMarkdown _ (DRequireRole role) =
     "The sender has to be the " <> mdTicked role <> "."
 
--- | Check that the sender is admin
-authorizeAdmin
+-- | Check that the sender is owner
+authorizeOwner
   :: StorageC store
   => store : s :-> store : s
-authorizeAdmin = do
-  doc $ DRequireRole "admin"
-  stGetField #admin; sender; eq
-  if_ nop (failCustom_ #senderIsNotAdmin)
+authorizeOwner = do
+  doc $ DRequireRole "owner"
+  stGetField #owner; sender; eq
+  if_ nop (failCustom_ #senderIsNotOwner)
 
 -- | Check that the address of the sender is an address that is
 -- present in the `newOwner` storage field.
