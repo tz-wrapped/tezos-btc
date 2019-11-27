@@ -6,9 +6,13 @@
 
 # TZBTC
 
-**Code revision:** [ed5ae5e](https://github.com/serokell/tezos-btc/commit/ed5ae5e8f202c5d43905679a67ff3e2d3edca7e3) *(Tue Nov 26 19:05:15 2019 +0300)*
+**Code revision:** [6bea302](https://github.com/serokell/tezos-btc/commit/6bea302e5f45be7d4e38f5e840bdef1f74614bc2) *(Wed Nov 27 13:02:06 2019 +0300)*
 
-This contract is implemented using Lorentz language
+This contract is implemented using Lorentz language.
+Basically, this contract is [FA1.2](https://gitlab.com/serokell/morley/tzip/blob/master/A/FA1.2.md)-compatible approvable ledger that maps user addresses to their token balances. The main idea of this token contract is to provide 1-to-1 correspondance with BTC.
+There are two special entities for this contract:
+* `owner` -- owner of the TZBTC contract, capable in unpausing contract, adding/removing operators, transfering ownership and upgrading contract. There is only one owner of the contract.
+* `operator` -- entity which is capable in pausing the contract minting and burning tokens. There may be several operators added by the owner.
 
 ## Top-level entry points of upgradeable contract.
 
@@ -45,7 +49,7 @@ Pass resulting value as parameter to the contract.
 
 This entry point is used to get allowance for an account.
 
-**Parameter:** [`View`](#types-View) (***owner*** : [`Address`](#types-Address), ***spender*** : [`Address`](#types-Address)) [`Natural`](#types-Natural)
+**Parameter:** [`View`](#types-View) (***owner*** : [`Address`](#types-Address-simplified), ***spender*** : [`Address`](#types-Address-simplified)) [`Natural`](#types-Natural)
 
 <details>
   <summary><b>How to call this entry point</b></summary>
@@ -73,7 +77,7 @@ Pass resulting value as parameter to the contract.
 
 This entry point is used to get balance in an account.
 
-**Parameter:** [`View`](#types-View) (***owner*** : [`Address`](#types-Address)) [`Natural`](#types-Natural)
+**Parameter:** [`View`](#types-View) (***owner*** : [`Address`](#types-Address-simplified)) [`Natural`](#types-Natural)
 
 <details>
   <summary><b>How to call this entry point</b></summary>
@@ -181,18 +185,18 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-### `GetAdministrator`
+### `GetOwner`
 
-This entry point is used to get current administrator.
+This entry point is used to get current owner.
 
-**Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Address`](#types-Address)
+**Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Address`](#types-Address-simplified)
 
 <details>
   <summary><b>How to call this entry point</b></summary>
 
 0. Construct parameter for the entry point.
-1. Wrap into `GetAdministrator` constructor.
-    + **In Haskell:** `GetAdministrator (·)`
+1. Wrap into `GetOwner` constructor.
+    + **In Haskell:** `GetOwner (·)`
     + **In Michelson:** `Right (Right (Left (·)))`
 
 Pass resulting value as parameter to the contract.
@@ -211,7 +215,7 @@ Pass resulting value as parameter to the contract.
 
 ### `SafeEntrypoints`
 
-This entry point is used call the safe entrypoints of the contract.
+This entry point is used to call the safe entrypoints of the contract. Entrypoints are 'safe' because they don't have unsafe arguments, such as arguments with type `contract p` so that they can be safely used in operations that add them to the chain (since in babylon values with type `contract p` are prohibited in storage and code constants), in contrast to various Get* entrypoints, which have `contract p` and have to be handled additionally (basically, we have to pass simple `address` instead of `contract p` and call `CONTRACT`, which can fail).
 
 **Parameter:** [`Parameter.SafeParameter`](#types-Parameter.SafeParameter)
 
@@ -292,7 +296,7 @@ Pass resulting value as parameter to the contract.
 
 
 **Possible errors:**
-* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+* [`SenderIsNotOwner`](#errors-SenderIsNotOwner) — Sender has to be an owner to call this entrypoint
 
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
@@ -327,7 +331,7 @@ Pass resulting value as parameter to the contract.
 
 
 **Possible errors:**
-* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+* [`SenderIsNotOwner`](#errors-SenderIsNotOwner) — Sender has to be an owner to call this entrypoint
 
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
@@ -362,7 +366,7 @@ Pass resulting value as parameter to the contract.
 
 
 **Possible errors:**
-* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+* [`SenderIsNotOwner`](#errors-SenderIsNotOwner) — Sender has to be an owner to call this entrypoint
 
 * [`UpgContractIsNotMigrating`](#errors-UpgContractIsNotMigrating) — An migration related operation was requested when contract is not in a state of migration
 
@@ -395,7 +399,7 @@ Pass resulting value as parameter to the contract.
 
 
 **Possible errors:**
-* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+* [`SenderIsNotOwner`](#errors-SenderIsNotOwner) — Sender has to be an owner to call this entrypoint
 
 * [`UpgContractIsNotMigrating`](#errors-UpgContractIsNotMigrating) — An migration related operation was requested when contract is not in a state of migration
 
@@ -428,7 +432,7 @@ Pass resulting value as parameter to the contract.
 
 
 **Possible errors:**
-* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+* [`SenderIsNotOwner`](#errors-SenderIsNotOwner) — Sender has to be an owner to call this entrypoint
 
 * [`UpgContractIsNotMigrating`](#errors-UpgContractIsNotMigrating) — An migration related operation was requested when contract is not in a state of migration
 
@@ -440,7 +444,7 @@ Pass resulting value as parameter to the contract.
 
 This entry point is used transfer tokens from one account to another.
 
-**Parameter:** (***from*** : [`Address`](#types-Address), ***to*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
+**Parameter:** (***from*** : [`Address`](#types-Address-simplified), ***to*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
 
 <details>
   <summary><b>How to call this entry point</b></summary>
@@ -471,7 +475,7 @@ Pass resulting value as parameter to the contract.
 
 This entry point is used approve transfer of tokens from one account to another.
 
-**Parameter:** (***spender*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
+**Parameter:** (***spender*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
 
 <details>
   <summary><b>How to call this entry point</b></summary>
@@ -502,7 +506,7 @@ Pass resulting value as parameter to the contract.
 
 This entry point is used mint new tokes for an account.
 
-**Parameter:** (***to*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
+**Parameter:** (***to*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
 
 <details>
   <summary><b>How to call this entry point</b></summary>
@@ -564,7 +568,7 @@ Pass resulting value as parameter to the contract.
 
 This entry point is used to add a new operator.
 
-**Parameter:** ***operator*** : [`Address`](#types-Address)
+**Parameter:** ***operator*** : [`Address`](#types-Address-simplified)
 
 <details>
   <summary><b>How to call this entry point</b></summary>
@@ -595,7 +599,7 @@ Pass resulting value as parameter to the contract.
 
 This entry point is used to remove an operator.
 
-**Parameter:** ***operator*** : [`Address`](#types-Address)
+**Parameter:** ***operator*** : [`Address`](#types-Address-simplified)
 
 <details>
   <summary><b>How to call this entry point</b></summary>
@@ -626,7 +630,7 @@ Pass resulting value as parameter to the contract.
 
 This entry point is used to set the redeem address.
 
-**Parameter:** ***redeem*** : [`Address`](#types-Address)
+**Parameter:** ***redeem*** : [`Address`](#types-Address-simplified)
 
 <details>
   <summary><b>How to call this entry point</b></summary>
@@ -719,7 +723,7 @@ Pass resulting value as parameter to the contract.
 
 This entry point is used to transfer ownership to a new owner.
 
-**Parameter:** ***newOwner*** : [`Address`](#types-Address)
+**Parameter:** ***newOwner*** : [`Address`](#types-Address-simplified)
 
 <details>
   <summary><b>How to call this entry point</b></summary>
@@ -835,7 +839,7 @@ Pass resulting value as parameter to the contract.
 
 
 **Possible errors:**
-* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+* [`SenderIsNotOwner`](#errors-SenderIsNotOwner) — Sender has to be an owner to call this entrypoint
 
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
@@ -870,7 +874,7 @@ Pass resulting value as parameter to the contract.
 
 
 **Possible errors:**
-* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+* [`SenderIsNotOwner`](#errors-SenderIsNotOwner) — Sender has to be an owner to call this entrypoint
 
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
@@ -905,7 +909,7 @@ Pass resulting value as parameter to the contract.
 
 
 **Possible errors:**
-* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+* [`SenderIsNotOwner`](#errors-SenderIsNotOwner) — Sender has to be an owner to call this entrypoint
 
 * [`UpgContractIsNotMigrating`](#errors-UpgContractIsNotMigrating) — An migration related operation was requested when contract is not in a state of migration
 
@@ -938,7 +942,7 @@ Pass resulting value as parameter to the contract.
 
 
 **Possible errors:**
-* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+* [`SenderIsNotOwner`](#errors-SenderIsNotOwner) — Sender has to be an owner to call this entrypoint
 
 * [`UpgContractIsNotMigrating`](#errors-UpgContractIsNotMigrating) — An migration related operation was requested when contract is not in a state of migration
 
@@ -971,7 +975,7 @@ Pass resulting value as parameter to the contract.
 
 
 **Possible errors:**
-* [`SenderIsNotAdmin`](#errors-SenderIsNotAdmin) — Entrypoint executed not by its administrator.
+* [`SenderIsNotOwner`](#errors-SenderIsNotOwner) — Sender has to be an owner to call this entrypoint
 
 * [`UpgContractIsNotMigrating`](#errors-UpgContractIsNotMigrating) — An migration related operation was requested when contract is not in a state of migration
 
@@ -983,7 +987,7 @@ Pass resulting value as parameter to the contract.
 
 This entry point is used transfer tokens from one account to another.
 
-**Parameter:** (***from*** : [`Address`](#types-Address), ***to*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
+**Parameter:** (***from*** : [`Address`](#types-Address-simplified), ***to*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
 
 <details>
   <summary><b>How to call this entry point</b></summary>
@@ -1014,7 +1018,7 @@ Pass resulting value as parameter to the contract.
 
 This entry point is used approve transfer of tokens from one account to another.
 
-**Parameter:** (***spender*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
+**Parameter:** (***spender*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
 
 <details>
   <summary><b>How to call this entry point</b></summary>
@@ -1045,7 +1049,7 @@ Pass resulting value as parameter to the contract.
 
 This entry point is used mint new tokes for an account.
 
-**Parameter:** (***to*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
+**Parameter:** (***to*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
 
 <details>
   <summary><b>How to call this entry point</b></summary>
@@ -1107,7 +1111,7 @@ Pass resulting value as parameter to the contract.
 
 This entry point is used to add a new operator.
 
-**Parameter:** ***operator*** : [`Address`](#types-Address)
+**Parameter:** ***operator*** : [`Address`](#types-Address-simplified)
 
 <details>
   <summary><b>How to call this entry point</b></summary>
@@ -1138,7 +1142,7 @@ Pass resulting value as parameter to the contract.
 
 This entry point is used to remove an operator.
 
-**Parameter:** ***operator*** : [`Address`](#types-Address)
+**Parameter:** ***operator*** : [`Address`](#types-Address-simplified)
 
 <details>
   <summary><b>How to call this entry point</b></summary>
@@ -1169,7 +1173,7 @@ Pass resulting value as parameter to the contract.
 
 This entry point is used to set the redeem address.
 
-**Parameter:** ***redeem*** : [`Address`](#types-Address)
+**Parameter:** ***redeem*** : [`Address`](#types-Address-simplified)
 
 <details>
   <summary><b>How to call this entry point</b></summary>
@@ -1262,7 +1266,7 @@ Pass resulting value as parameter to the contract.
 
 This entry point is used to transfer ownership to a new owner.
 
-**Parameter:** ***newOwner*** : [`Address`](#types-Address)
+**Parameter:** ***newOwner*** : [`Address`](#types-Address-simplified)
 
 <details>
   <summary><b>How to call this entry point</b></summary>
@@ -1364,13 +1368,13 @@ Tuple of size 3.
 
 
 
-<a name="types-Address"></a>
+<a name="types-Address-simplified"></a>
 
 ---
 
-### `Address`
+### `Address simplified`
 
-Address primitive.
+This is similar to Michelson Address, but does not retain entrypoint name if it refers to a contract.
 
 **Final Michelson representation:** `address`
 
@@ -1400,6 +1404,20 @@ Bytes primitive.
 
 
 
+<a name="types-Code-lparenextended-lambdarparen"></a>
+
+---
+
+### `Code (extended lambda)`
+
+`Code i o` stands for a sequence of instructions which accepts stack of type `i` and returns stack of type `o`.
+
+When both `i` and `o` are of length 1, this primitive corresponds to the Michelson lambda. In more complex cases code is surrounded with `pair`and `unpair` instructions until fits into mentioned restriction.
+
+**Final Michelson representation (example):** `Code [Integer, Natural, MText, ()] [ByteString]` = `lambda (pair (pair (pair int nat) string) unit) bytes`
+
+
+
 <a name="types-Contract"></a>
 
 ---
@@ -1408,7 +1426,7 @@ Bytes primitive.
 
 Contract primitive with given type of parameter.
 
-**Final Michelson representation (example):** `ContractAddr Integer` = `contract int`
+**Final Michelson representation (example):** `ContractRef Integer` = `contract int`
 
 
 
@@ -1421,18 +1439,6 @@ Contract primitive with given type of parameter.
 Signed number.
 
 **Final Michelson representation:** `int`
-
-
-
-<a name="types-Lambda"></a>
-
----
-
-### `Lambda`
-
-`Lambda i o` stands for a sequence of instructions which accepts stack of type `[i]` and returns stack of type `[o]`.
-
-**Final Michelson representation (example):** `Lambda Integer Natural` = `lambda int nat`
 
 
 
@@ -1454,9 +1460,9 @@ List primitive.
 
 ### `MigrationScript`
 
-A code which updates storage in order to make in compliant with the new version of the contract.
+A code which updates storage in order to make it compliant with the new version of the contract.
 
-**Structure:** ***migrationScript*** :[`Lambda`](#types-Lambda) [`UStore`](#types-Upgradeale-storage) [`UStore`](#types-Upgradeale-storage)
+**Structure:** ***migrationScript*** :[`Code`](#types-Code-lparenextended-lambdarparen) **[**[`UStore`](#types-Upgradeable-storage)**]** **[**[`UStore`](#types-Upgradeable-storage)**]**
 
 **Final Michelson representation:** `lambda (big_map bytes bytes) (big_map bytes bytes)`
 
@@ -1515,16 +1521,16 @@ Parameter which does not have unsafe arguments, like raw `Contract p` values.
 + **EpwApplyMigration** (***migrationscript*** : [`MigrationScript`](#types-MigrationScript))
 + **EpwSetCode** (***contractcode*** : [`UContractRouter`](#types-UContractRouter))
 + **EpwFinishUpgrade** ()
-+ **Transfer** (***from*** : [`Address`](#types-Address), ***to*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
-+ **Approve** (***spender*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
-+ **Mint** (***to*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
++ **Transfer** (***from*** : [`Address`](#types-Address-simplified), ***to*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
++ **Approve** (***spender*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
++ **Mint** (***to*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
 + **Burn** (***value*** : [`Natural`](#types-Natural))
-+ **AddOperator** (***operator*** : [`Address`](#types-Address))
-+ **RemoveOperator** (***operator*** : [`Address`](#types-Address))
-+ **SetRedeemAddress** (***redeem*** : [`Address`](#types-Address))
++ **AddOperator** (***operator*** : [`Address`](#types-Address-simplified))
++ **RemoveOperator** (***operator*** : [`Address`](#types-Address-simplified))
++ **SetRedeemAddress** (***redeem*** : [`Address`](#types-Address-simplified))
 + **Pause** [`()`](#types-lparenrparen)
 + **Unpause** [`()`](#types-lparenrparen)
-+ **TransferOwnership** (***newOwner*** : [`Address`](#types-Address))
++ **TransferOwnership** (***newOwner*** : [`Address`](#types-Address-simplified))
 + **AcceptOwnership** [`()`](#types-lparenrparen)
 
 
@@ -1553,7 +1559,7 @@ Not every text literal is valid string, see list of constraints in the [Official
 
 Parameter dispatching logic, main purpose of this code is to pass control to an entrypoint carrying the main logic of the contract.
 
-**Structure:** ***unContractCode*** :[`Lambda`](#types-Lambda) ([`UParam`](#types-Upgradable-parameter), [`UStore`](#types-Upgradeale-storage)) ([`List`](#types-List) [`Operation`](#types-Operation), [`UStore`](#types-Upgradeale-storage))
+**Structure:** ***unContractCode*** :[`Code`](#types-Code-lparenextended-lambdarparen) **[**([`UParam`](#types-Upgradable-parameter), [`UStore`](#types-Upgradeable-storage))**]** **[**([`List`](#types-List) [`Operation`](#types-Operation), [`UStore`](#types-Upgradeable-storage))**]**
 
 **Final Michelson representation:** `lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))`
 
@@ -1573,11 +1579,11 @@ Parameter dispatching logic, main purpose of this code is to pass control to an 
 
 
 
-<a name="types-Upgradeale-storage"></a>
+<a name="types-Upgradeable-storage"></a>
 
 ---
 
-### `Upgradeale storage`
+### `Upgradeable storage`
 
 Storage with not hardcoded structure, which allows upgrading the contract in place.
 
@@ -1596,7 +1602,7 @@ Storage with not hardcoded structure, which allows upgrading the contract in pla
 `View a r` accepts an argument of type `a` and callback contract which accepts `r` and returns result via calling that contract.
 Read more in [A1 conventions document](https://gitlab.com/tzip/tzip/blob/master/A/A1.md#view-entry-points).
 
-**Structure (example):** `View () Integer` = ([`()`](#types-lparenrparen), [`ContractAddr`](#types-Contract) [`Integer`](#types-Integer))
+**Structure (example):** `View () Integer` = ([`()`](#types-lparenrparen), [`ContractRef`](#types-Contract) [`Integer`](#types-Integer))
 
 **Final Michelson representation (example):** `View () Integer` = `pair unit (contract int)`
 
@@ -1657,17 +1663,17 @@ We distinquish several error classes:
 
 **Representation:** Textual error message, see [`Text`](#types-Text).
 
-<a name="errors-SenderIsNotAdmin"></a>
+<a name="errors-SenderIsNotOwner"></a>
 
 ---
 
-### `SenderIsNotAdmin`
+### `SenderIsNotOwner`
 
-**Class:** Action exception
+**Class:** Bad argument
 
-**Fires if:** Entrypoint executed not by its administrator.
+**Fires if:** Sender has to be an owner to call this entrypoint
 
-**Representation:** `("SenderIsNotAdmin", ())`.
+**Representation:** `("SenderIsNotOwner", ())`.
 
 <a name="errors-UpgContractIsMigrating"></a>
 
