@@ -19,22 +19,22 @@ import qualified Data.ByteString as BS (cons, drop, pack)
 import Data.Sequence (fromList)
 import Data.Singletons (SingI)
 import Servant.Client.Core (ClientError)
-import Tezos.Common.Binary (encode, decode)
+import Tezos.Common.Binary (decode, encode)
 import Tezos.Common.Json (TezosInt64)
 import Tezos.V005.Micheline
   (Annotation(..), Expression(..), MichelinePrimAp(..), MichelinePrimitive(..))
 
 import Lorentz (Contract, compileLorentz, compileLorentzContract)
 import Lorentz.Constraints (NicePackedValue, NiceUnpackedValue)
-import Lorentz.UStore.Types (UStore(..))
 import Lorentz.Pack (lPackValue, lUnpackValue)
-import Michelson.Interpret.Pack (packT', packCode')
+import Lorentz.UStore.Types (UStore(..))
+import Michelson.Interpret.Pack (packCode', packT')
 import Michelson.Interpret.Unpack (UnpackError)
 import Michelson.Typed (Instr, convertFullContract)
 import Michelson.Typed.Haskell.Value (BigMap(..), IsoValue(..))
-import Michelson.Untyped.Annotation (Annotation (..), FieldAnn, TypeAnn, noAnn)
+import Michelson.Untyped.Annotation (Annotation(..), FieldAnn, TypeAnn, noAnn)
 import Michelson.Untyped.Contract (Contract'(..))
-import qualified Michelson.Untyped.Type as U (Comparable(..), CT(..), T(..), Type(..))
+import qualified Michelson.Untyped.Type as U (CT(..), Comparable(..), T(..), Type(..))
 import Tezos.Crypto (blake2b)
 
 import Client.Error (TzbtcClientError(..))
@@ -147,10 +147,8 @@ valueToScriptExpr = addExprPrefix . blake2b . lPackValue
 -- appear as an argument and we use `error` when we find them.
 convertTypeToExpression :: HasCallStack => U.Type -> Expression
 convertTypeToExpression type_ = case type_ of
-  (U.Type t_ typeAnn_) -> convertTToExpression t_ typeAnn_ noAnn
-  _ -> failWithError
+  U.Type t_ typeAnn_ -> convertTToExpression t_ typeAnn_ noAnn
   where
-    failWithError = error "Cannot convert implicit type"
     convertTToExpression :: HasCallStack => U.T -> TypeAnn -> FieldAnn -> Expression
     convertTToExpression t typeAnn fieldAnn = case t of
       U.Tc ct -> convertCTToExpression ct typeAnn fieldAnn
@@ -193,14 +191,6 @@ convertTypeToExpression type_ = case type_ of
         [ convertCTToExpression ct1 typeAnn1 noAnn
         , convertTToExpression t2 typeAnn2 noAnn
         ] typeAnn fieldAnn
-      U.TOption _ -> failWithError
-      U.TList _ -> failWithError
-      U.TContract _ -> failWithError
-      U.TPair {} -> failWithError
-      U.TOr {} -> failWithError
-      U.TLambda {} -> failWithError
-      U.TMap {} -> failWithError
-      U.TBigMap {} -> failWithError
       where
         mkLeafPrim :: Text -> Expression
         mkLeafPrim prim = mkExpressionPrim prim [] typeAnn fieldAnn

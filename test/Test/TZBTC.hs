@@ -27,11 +27,10 @@ import Test.Tasty.HUnit (testCase)
 
 import Lorentz
 import qualified Lorentz.Contracts.ApprovableLedgerInterface as AL
-import Lorentz.Contracts.Consumer
 import Lorentz.Contracts.ManagedLedger.Test
   (ApprovableLedger(..), OriginationParams(..), approvableLedgerSpec, originateManagedLedger)
 import Lorentz.Contracts.Upgradeable.Common (coerceUContractRouter)
-import Lorentz.Test.Integrational
+import Lorentz.Test
 import Lorentz.UStore.Migration
 import Util.Named
 
