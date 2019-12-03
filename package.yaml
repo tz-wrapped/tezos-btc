@@ -34,7 +34,6 @@ library:
     - http-client-tls
     - http-types
     - fmt
-    - memory
     - morley
     - morley-ledgers
     - morley-prelude

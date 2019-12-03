@@ -14,27 +14,28 @@ module Test.IO
   , test_multisigExecutePackage
   ) where
 
-import Data.Aeson (encode, decode)
+import Data.Aeson (decode, encode)
 import qualified Data.Map as Map
 import qualified Data.Text as T
 import qualified Data.Typeable as Typ (cast)
-import Text.Hex (decodeHex)
 import Options.Applicative (ParserResult(..), defaultPrefs, execParserPure)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (Assertion, assertFailure, testCase)
+import Text.Hex (decodeHex)
 import Util.Named
 
 import Client.Main (mainProgram)
 import Client.Types
 import Client.Util
-import qualified Lorentz.Contracts.TZBTC.MultiSig as MS
 import qualified Lorentz.Contracts.TZBTC as TZBTC
+import qualified Lorentz.Contracts.TZBTC.MultiSig as MS
 import qualified Lorentz.Contracts.TZBTC.Types as TZBTCTypes
 import Michelson.Typed.Haskell.Value (fromVal, toVal)
+import TestM
 import Tezos.Address
 import Tezos.Crypto
+import qualified Tezos.Crypto.Ed25519 as Ed25519
 import Util.MultiSig
-import TestM
 
 {-# ANN module ("HLint: ignore Reduce duplication" :: Text) #-}
 
@@ -139,38 +140,28 @@ checkExpectations = do
 
 -- Some constants
 --
-unsafeParsePublicKey :: Text -> PublicKey
-unsafeParsePublicKey x = either (error . show) id $ parsePublicKey x
-
-unsafeParseSecretKey :: Text -> SecretKey
-unsafeParseSecretKey x = either (error . show) id $ parseSecretKey x
-
-johnAddressRaw = "tz1dceuVQAueJyw3YXHZeRMe93XbeiCbGSes"
-johnAddress = unsafeParseAddress johnAddressRaw
-johnAddressPKRaw = "edpkuZjJ7wnk5Y4vCrXABmDBEd3fEEqX8yt71S3TnuyiCg5q4D4YGC"
-johnAddressPK = unsafeParsePublicKey johnAddressPKRaw
-johnSecretKeyRaw = "edsk3Dmh1qdoSwkpGWkKaLDFKBcTRdHaUsQ2otoFE7cVBzHBdgfx9d"
-johnSecretKey = unsafeParseSecretKey johnSecretKeyRaw
+johnAddress = mkKeyAddress johnAddressPK
+johnAddressPK = PublicKeyEd25519 . Ed25519.toPublic $ johnSecretKey
+johnSecretKey = Ed25519.detSecretKey "john"
 johnAlias = "john"
 
-bobAddressPKRaw = "edpkvGM6onCG3yi7YCgRgtHtF9ZqacjiAve3pKk6mNi1ftooG3A9wN"
-bobAddressPK = unsafeParsePublicKey bobAddressPKRaw
-bobSecretKeyRaw = "edsk3M7Z2qUrDDXGzb8Xw5KSYnv9WNgmaw1eLNv3x9rGRXNjFjjRZp"
-bobSecretKey = unsafeParseSecretKey bobSecretKeyRaw
+bobAddressPK = PublicKeyEd25519 . Ed25519.toPublic $ bobSecretKey
+bobSecretKey = Ed25519.detSecretKey "bob"
 
-aliceAddressPKRaw = "edpkv8ey3XsdoYVVFEwBq7phjnUpdquYk5nCWj8CGZt1gAiivZYzV7"
-aliceAddressPK = unsafeParsePublicKey aliceAddressPKRaw
-aliceSecretKeyRaw = "edsk4XyAoKu2vXk7HweT3WjGoMwUeaeboN3kexdkNdfF4qMFb5sDwn"
-aliceSecretKey = unsafeParseSecretKey aliceSecretKeyRaw
+aliceAddressPK = PublicKeyEd25519 . Ed25519.toPublic $ aliceSecretKey
+aliceSecretKey = Ed25519.detSecretKey "alice"
 
-contractAddressRaw = "KT1HmhmNcZKmm2NsuyahdXAaHQwYfWfdrBxi" :: String
-contractAddress = unsafeParseAddress $ toText contractAddressRaw
+contractAddressRaw :: IsString s => s
+contractAddressRaw = "KT1HmhmNcZKmm2NsuyahdXAaHQwYfWfdrBxi"
+contractAddress = unsafeParseAddress contractAddressRaw
 
-multiSigAddressRaw = "KT1MLCp7v3NiY9xeLe4XyPoS4AEgfXT7X5PX" :: String
-multiSigAddress = unsafeParseAddress $ toText multiSigAddressRaw
+multiSigAddressRaw :: IsString s => s
+multiSigAddressRaw = "KT1MLCp7v3NiY9xeLe4XyPoS4AEgfXT7X5PX"
+multiSigAddress = unsafeParseAddress multiSigAddressRaw
 
-operatorAddress1Raw = "tz1cLwfiFZWA4ZgDdxKiMgxACvGZbTJ2tiQQ" :: String
-operatorAddress1 = unsafeParseAddress $ toText operatorAddress1Raw
+operatorAddress1Raw :: IsString s => s
+operatorAddress1Raw = "tz1cLwfiFZWA4ZgDdxKiMgxACvGZbTJ2tiQQ"
+operatorAddress1 = unsafeParseAddress operatorAddress1Raw
 
 configPath = "/home/user/.config/tzbtc/config.json"
 
@@ -178,9 +169,9 @@ configDir = "/home/user/.config/tzbtc"
 
 multiSigFilePath = "/home/user/multisig_package"
 
-sign_ :: SecretKey -> Text -> Signature
+sign_ :: Ed25519.SecretKey -> Text -> Signature
 sign_ sk bs = case decodeHex (T.drop 2 bs) of
-  Just dbs -> sign sk dbs
+  Just dbs -> SignatureEd25519 $ Ed25519.sign sk dbs
   Nothing -> error "Error with making signatures"
 
 -- Test that no operations are called if the --dry-run flag
@@ -338,7 +329,7 @@ multiSigCreationTestHandlers =
           pure $ Right x
         Nothing -> throwM $ TestError "Unexpected configuration decoding fail"
     , hRunTransactions = \_ _ -> throwM $ TestError "Unexpected `runTransactions` call"
-    , hGetStorage = \x -> if x == toText multiSigAddressRaw
+    , hGetStorage = \x -> if x == multiSigAddressRaw
       then pure $ nicePackedValueToExpression (MS.mkStorage 14 3 [])
       else throwM $ TestError "Unexpected contract address"
     , hWriteFile = \fp bs -> do
@@ -501,7 +492,7 @@ multisigExecutionTestHandlers =
             [DefaultEntrypoint _] -> throwM $ TestError "Unexpected default entrypoint"
             _ -> throwM $ TestError "Unexpected multiple parameters"
         else throwM $ TestError "Unexpected multisig address"
-    , hGetStorage = \x -> if x == toText multiSigAddressRaw
+    , hGetStorage = \x -> if x == multiSigAddressRaw
         then pure $ nicePackedValueToExpression (MS.mkStorage 14 3 [aliceAddressPK, bobAddressPK, johnAddressPK])
         else throwM $ TestError "Unexpected contract address"
     , hReadFile = \fp -> do

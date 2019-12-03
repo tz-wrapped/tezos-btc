@@ -6,44 +6,34 @@ module Test.MultiSig (test_multisig) where
 
 import qualified Data.Set as Set
 import qualified Data.Text as T (drop)
-import Test.Tasty (TestTree, testGroup)
 import Test.Hspec (Expectation)
+import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (assertBool, assertEqual, testCase)
 
 import Lorentz hiding (SomeContract)
 import Lorentz.Contracts.ManagedLedger.Test (OriginationParams(..))
 import Lorentz.Contracts.TZBTC as TZBTC
-import qualified Lorentz.Contracts.TZBTC.Types as TZBTCTypes (SafeParameter(..))
 import Lorentz.Contracts.TZBTC.MultiSig as MSig
+import qualified Lorentz.Contracts.TZBTC.Types as TZBTCTypes (SafeParameter(..))
 import Lorentz.Test.Integrational
 import Michelson.Runtime (prepareContract)
 import Michelson.Test (originate)
 import Michelson.Typed.Convert
 import qualified Michelson.Untyped as U
+import Test.TZBTC (checkField, originateTzbtcV1ContractRaw)
 import Text.Hex (decodeHex)
-import Tezos.Crypto
 import Tezos.Address
-import Test.TZBTC (originateTzbtcV1ContractRaw, checkField)
+import Tezos.Crypto
+import qualified Tezos.Crypto.Ed25519 as Ed25519
 import Util.MultiSig as MSig
 import Util.Named
 
 {-# ANN module ("HLint: ignore Reduce duplication" :: Text) #-}
 
-unsafeParsePublicKey :: Text -> PublicKey
-unsafeParsePublicKey x = either (error . show) id $ parsePublicKey x
-
-unsafeParseSecretKey :: Text -> SecretKey
-unsafeParseSecretKey x = either (error . show) id $ parseSecretKey x
-
-addSignature_ :: ByteString -> (Text, Text) -> Either String Package
+addSignature_ :: ByteString -> (PublicKey, Signature) -> Either String Package
 addSignature_ e (pk, sig) = do
-  case parsePublicKey pk of
-    Right pubk -> case parseSignature sig of
-      Right sig_ -> do
-        f <- decodePackage e :: Either String Package
-        addSignature f (pubk, sig_)
-      _ -> Left "Error"
-    _ -> Left "Error"
+  f <- decodePackage e :: Either String Package
+  addSignature f (pk, sig)
 
 withMultiSigContract
   :: Natural
@@ -58,9 +48,9 @@ withMultiSigContract counter thresh pkList callback = do
       (untypeValue $ toVal (MSig.mkStorage counter thresh pkList)) (toMutez 0)
     callback msig
 
-sign_ :: SecretKey -> Text -> Signature
+sign_ :: Ed25519.SecretKey -> Text -> Signature
 sign_ sk bs = case decodeHex (T.drop 2 bs) of
-  Just dbs -> sign sk dbs
+  Just dbs -> SignatureEd25519 $ Ed25519.sign sk dbs
   Nothing -> error "Error with making signatures"
 
 originateTzbtc
@@ -92,10 +82,10 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           -- Signing the bytes
           alicePackage = fromRight_ "Adding signature failed" $
             addSignature_ encodedPackage
-            (alicePKRaw, formatSignature $ sign_ aliceSK bytesToSign)
+            (alicePK, sign_ aliceSK bytesToSign)
           carlosPackage = fromRight_ "Adding signature failed" $
             addSignature_ encodedPackage
-            (carlosPKRaw, formatSignature $ sign_ carlosSK bytesToSign)
+            (carlosPK, sign_ carlosSK bytesToSign)
           --Make multisig param
           (msaddr, mparam) = fromRight_ "Making multisig parameter failed" $
             MSig.mkMultiSigParam masterPKList ((alicePackage) :| [carlosPackage])
@@ -121,7 +111,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           -- Signing the bytes
           alicePackage = fromRight_ "Adding signature failed" $
             addSignature_ encodedPackage
-            (alicePKRaw, formatSignature $ sign_ aliceSK bytesToSign)
+            (alicePK, sign_ aliceSK bytesToSign)
           --Make multisig param. We use only one signature instead of
           --the require threshold of two signatures.
           (_, mparam) = fromRight_ "Making multisig parameter failed" $
@@ -146,10 +136,10 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           alicePackage = fromRight_ "Adding signature failed" $
             -- Make a bad signature. Use Alice's public key but Bob's secret.
             addSignature_ encodedPackage
-            (alicePKRaw, formatSignature $ sign_ bobSK bytesToSign)
+            (alicePK, sign_ bobSK bytesToSign)
           carlosPackage = fromRight_ "Adding signature failed" $
             addSignature_ encodedPackage
-            (carlosPKRaw, formatSignature $ sign_ carlosSK bytesToSign)
+            (carlosPK, sign_ carlosSK bytesToSign)
           --Make multisig param
           (msaddr, mparam) = fromRight_ "Making multisig parameter failed" $
             MSig.mkMultiSigParam masterPKList ((alicePackage) :| [carlosPackage])
@@ -173,10 +163,10 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           alicePackage = fromRight_ "Adding signature failed" $
             --Use Alice's public key but bob's secret.
             addSignature_ encodedPackage
-            (alicePKRaw, formatSignature $ sign_ aliceSK bytesToSign)
+            (alicePK, sign_ aliceSK bytesToSign)
           carlosPackage = fromRight_ "Adding signature failed" $
             addSignature_ encodedPackage
-            (carlosPKRaw, formatSignature $ sign_ carlosSK bytesToSign)
+            (carlosPK, sign_ carlosSK bytesToSign)
           --Make multisig param
           (msaddr, mparam) = fromRight_ "Making multisig parameter failed" $
             MSig.mkMultiSigParam masterPKList ((alicePackage) :| [carlosPackage])
@@ -209,10 +199,10 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           alicePackage = fromRight_ "Adding signature failed" $
             --Use Alice's public key but bob's secret.
             addSignature_ encodedPackage
-            (alicePKRaw, formatSignature $ sign_ aliceSK bytesToSign)
+            (alicePK, sign_ aliceSK bytesToSign)
           carlosPackage = fromRight_ "Adding signature failed" $
             addSignature_ encodedPackage
-            (carlosPKRaw, formatSignature $ sign_ carlosSK bytesToSign)
+            (carlosPK, sign_ carlosSK bytesToSign)
           --Make multisig param
           (msaddr, mparam) = fromRight_ "Making multisig parameter failed" $
             MSig.mkMultiSigParam masterPKList ((alicePackage) :| [carlosPackage])
@@ -252,9 +242,9 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         carlosSig = sign_ carlosSK bytesToSign
         alicePackage = fromRight_ "Adding signature failed" $
           --Use Alice's public key but bob's secret.
-          addSignature_ encodedPackage (alicePKRaw, formatSignature aliceSig)
+          addSignature_ encodedPackage (alicePK, aliceSig)
         carlosPackage = fromRight_ "Adding signature failed" $
-          addSignature_ encodedPackage (carlosPKRaw, formatSignature carlosSig)
+          addSignature_ encodedPackage (carlosPK, carlosSig)
         --Make multisig param, but extract the signature list
         mparam = fromRight_ "Making multisig parameter failed" $
           MSig.mkMultiSigParam masterPKList ((carlosPackage) :| [alicePackage])
@@ -296,16 +286,12 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
     operatorAddress :: Address
     operatorAddress = genesisAddress5
 
-    alicePKRaw = "edpkvKTdd6kd4JpMk9fFdmay4zdboWUHRkax5hthJrtDHQ6Gstyn5b"
-    bobPKRaw = "edpktrycE9jd2jtFnv5ndie9P9842wZzToPXhBrWxZrLorKbJXEZSf"
-    carlosPKRaw = "edpkvFrVEBQWQfc4z1rE2g6TFsZJjpTeLwcEBy9icc7VqRXfvg9TD1"
+    aliceSK = Ed25519.detSecretKey "aa"
+    bobSK = Ed25519.detSecretKey "bbb"
+    carlosSK = Ed25519.detSecretKey "cccc"
 
-    alicePK = unsafeParsePublicKey alicePKRaw
-    bobPK = unsafeParsePublicKey bobPKRaw
-    carlosPK = unsafeParsePublicKey carlosPKRaw
-
-    aliceSK = unsafeParseSecretKey "edsk4PPtShemob8MbUacQ4pUQfcq1iLwTwpWE37M97e3H9sZqT4wLd"
-    bobSK = unsafeParseSecretKey "edsk4S74qyLz74CZyMr2qKCKKmnb8a94yX5pCp5LjutbBkSdhixQyT"
-    carlosSK = unsafeParseSecretKey "edsk2jKGAnpoBMMqmyRQdwmZSjW9qiTozrWkPkLpbeNToNSsNUCxwY"
+    alicePK = PublicKeyEd25519 . Ed25519.toPublic $ aliceSK
+    bobPK = PublicKeyEd25519 . Ed25519.toPublic $ bobSK
+    carlosPK = PublicKeyEd25519 . Ed25519.toPublic $ carlosSK
 
     masterPKList = [alicePK, bobPK, carlosPK]

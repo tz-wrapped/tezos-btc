@@ -39,7 +39,7 @@ import Lorentz.Contracts.ManagedLedger.Types
 import Lorentz.UStore.Common
 import Michelson.Untyped (InternalByteString(..))
 import Tezos.Address
-import Tezos.Crypto hiding (sign)
+import Tezos.Crypto
 
 import qualified Client.API as API
 import Client.Error
