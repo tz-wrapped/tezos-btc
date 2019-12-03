@@ -33,7 +33,7 @@ let
   };
 
 in rec {
-  packageRpm = binary:
+  packageRpm =
     stdenv.mkDerivation {
       name = "${pkgName}.rpm";
 
