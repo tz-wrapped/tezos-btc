@@ -30,8 +30,8 @@ let
   morley-repo = {
     name = "morley";
     url = "https://gitlab.com/morley-framework/morley.git";
-    rev = "fba24c6271c2ae1ba4b2c956ab3d2e398d22297c";
-    sha256 = "07dd2i9mh6r4bni77gpbk6nclimkp0hcqs3d2g2wq9nznm4rygj2";
+    rev = "ee40fe4e2b08c7e24a90c9112de0c7ad936cc47d";
+    sha256 = "0z5nyyx14jy561i6mb91frzg9kw21ryps4psm0pmv71d5wnz8hs6";
   };
   gpl = true; # false: not supported yet
   tezos-btc = { buildPkgs, hostPkgs }:
@@ -75,8 +75,8 @@ let
           name = "tezos-bake-monitor-lib";
           url =
             "https://gitlab.com/obsidian.systems/tezos-bake-monitor-lib.git";
-          rev = "656f8fe8c9ea5b45686b927f8706b8bfc6a616ac";
-          sha256 = "02z8aqccfkbl0snvambaqjpjzcx18ag3apvx4xsfrvpn8l5dhj7c";
+          rev = "19a9ce57a0510bc3ad8a3f639d0a968a65024b86";
+          sha256 = "0ypf7z2c9w59rz7hymzdyx87783qdfp3kygs9jl8qnmbfslmi8jr";
           subdir = name;
         }
       ];
