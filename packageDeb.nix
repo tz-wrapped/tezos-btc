@@ -29,7 +29,7 @@ let
   };
 
 in rec {
-  packageDeb = binary:
+  packageDeb =
     stdenv.mkDerivation {
       name = "${pkgName}.deb";
 
