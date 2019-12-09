@@ -77,8 +77,8 @@ dummyOriginationParameters owner redeem balances = OriginationParameters
   { opOwner = owner
   , opRedeemAddress = redeem
   , opBalances = balances
-  , opTokenname = [mt|Test token|]
-  , opTokencode = [mt|TEST|]
+  , opTokenName = [mt|Test token|]
+  , opTokenCode = [mt|TEST|]
   }
 
 originateTzbtcV1ContractRaw

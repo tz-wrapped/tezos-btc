@@ -169,8 +169,8 @@ mainProgram = do
             { opOwner = owner
             , opRedeemAddress = redeem
             , opBalances = mempty
-            , opTokenname = dcoTokenName
-            , opTokencode = dcoTokenCode
+            , opTokenName = dcoTokenName
+            , opTokenCode = dcoTokenCode
             }
         deployTzbtcContract originationParams
   where

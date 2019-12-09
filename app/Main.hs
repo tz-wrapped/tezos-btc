@@ -58,8 +58,8 @@ main = do
             { opOwner = owner
             , opRedeemAddress = redeem
             , opBalances = mempty
-            , opTokenname = tokenName
-            , opTokencode = tokenCode
+            , opTokenName = tokenName
+            , opTokenCode = tokenCode
             }
         maybe printTextLn writeFileUtf8 fp $
           makeMigrationParams version_ tzbtcContractRouter $

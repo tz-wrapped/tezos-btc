@@ -202,8 +202,13 @@ data StoreTemplate = StoreTemplate
   , newOwner      :: UStoreField (Maybe Address)
   , operators     :: UStoreField (Set Address)
   , redeemAddress :: UStoreField Address
-  , tokenname     :: UStoreField MText
-  , tokencode     :: UStoreField MText
+  , tokenName     :: UStoreField MText
+  -- ^ Name of the token, can be set to an arbitrary string. It is
+  -- meta information that is not used by the contract, only stored.
+  , tokenCode     :: UStoreField MText
+  -- ^ Textual code of the token, can be set to an arbitrary
+  -- (presumably short) string. It is meta information that is not
+  -- used by the contract, only stored.
   , code          :: MText |~> EntryPointImpl StoreTemplate
   , fallback      :: UStoreField $ EpwFallback StoreTemplate
   , ledger        :: Address |~> ManagedLedger.LedgerValue
@@ -211,13 +216,13 @@ data StoreTemplate = StoreTemplate
 
 type UStoreV1 = UStore StoreTemplate
 
--- The data required to initialize the V1 version of the contract storage.
+-- | The data required to initialize the V1 version of the contract storage.
 data OriginationParameters = OriginationParameters
   { opOwner :: !Address
   , opRedeemAddress :: !Address
   , opBalances :: !(Map Address Natural)
-  , opTokenname :: !MText
-  , opTokencode :: !MText
+  , opTokenName :: !MText
+  , opTokenCode :: !MText
   }
 
 -- | A safe view to act as argument to the inner stored procedures that
