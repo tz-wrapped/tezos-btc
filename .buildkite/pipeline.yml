@@ -4,7 +4,7 @@
 env:
   NIX_PATH: nixpkgs=channel:nixos-unstable
   test_step: "test && weeder && bats"
-  crossref_verify: "nix run -f https://github.com/serokell/crossref-verifier/archive/master.tar.gz -c crossref-verify --mode local-only"
+  crossref_verify: "nix run -f https://github.com/serokell/crossref-verifier/archive/f97ded8356e5afe4d3ebdeaccd4eed504bb99b0f.tar.gz -c crossref-verify --mode local-only"
 
 steps:
  - command: nix run nixpkgs.{gnumake,hlint,ncurses} -c make lint

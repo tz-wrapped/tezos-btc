@@ -34,10 +34,10 @@ library:
     - http-client-tls
     - http-types
     - fmt
-    - memory
     - morley
-    - lorentz-contracts
+    - morley-ledgers
     - morley-prelude
+    - morley-upgradeable
     - named
     - optparse-applicative
     - megaparsec
@@ -87,20 +87,21 @@ tests:
 
     dependencies:
     - aeson
-    - tzbtc
-    - morley-prelude
-    - universum
-    - tasty
-    - tasty-hunit
-    - tasty-hspec
-    - morley
-    - containers
-    - lorentz-contracts
-    - lorentz-contracts-test
-    - tezos-bake-monitor-lib
     - bytestring
-    - text
+    - containers
     - hex-text
     - hspec
+    - morley-prelude
+    - morley
+    - morley-ledgers
+    - morley-ledgers-test
+    - morley-upgradeable
     - mtl
     - optparse-applicative
+    - tasty
+    - tasty-hspec
+    - tasty-hunit
+    - tezos-bake-monitor-lib
+    - text
+    - tzbtc
+    - universum

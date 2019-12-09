@@ -12,11 +12,12 @@ extra-deps:
     https://gitlab.com/morley-framework/morley.git
     # ^ CI cannot use ssh, so we use http clone here
   commit:
-    ee40fe4e2b08c7e24a90c9112de0c7ad936cc47d # master
+    d551ff08b86713d1eb7bbd8d28ae66a4ddfe217b # master
   subdirs:
     - .
-    - lorentz-contracts
-    - lorentz-contracts-test
+    - morley-ledgers
+    - morley-ledgers-test
+    - morley-upgradeable
     - prelude
 
 - git:

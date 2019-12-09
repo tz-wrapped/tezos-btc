@@ -8,19 +8,18 @@ module Client.Crypto
   , unsafeParseSignature
   ) where
 
-import qualified Data.ByteArray as BA (convert)
 import Fmt (pretty)
 import Text.Hex (encodeHex)
 
 import Michelson.Untyped (InternalByteString(..))
-import Tezos.Crypto (Signature(..), parseSignature)
+import Tezos.Crypto (Signature, parseSignature, signatureToBytes)
 
 formatByteString :: InternalByteString -> Text
 formatByteString (InternalByteString bs) = encodeHex bs
 
 prepareForInjection :: Text -> Signature -> Text
-prepareForInjection operationHex (Signature signature') =
-  operationHex <> (encodeHex . BA.convert) signature'
+prepareForInjection operationHex signature =
+  operationHex <> (encodeHex . signatureToBytes) signature
 
 unsafeParseSignature :: HasCallStack => Text -> Signature
 unsafeParseSignature = either (error . pretty) id . parseSignature
