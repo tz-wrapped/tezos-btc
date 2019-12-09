@@ -32,10 +32,17 @@ v1Impl = recFromTuple
   , #callGetBalance //==> (toSafeView TZBTC.getBalance)
   , #callGetTotalSupply //==> (toSafeView TZBTC.getTotalSupply)
   , #callGetTotalMinted //==> (toSafeView $
-      TZBTC.getTotal #totalMinted "Return total number of minted tokens")
+      TZBTC.getSingleField #totalMinted "the total number of minted tokens")
   , #callGetTotalBurned //==> (toSafeView $
-      TZBTC.getTotal #totalBurned "Return total number of burned tokens")
-  , #callGetOwner //==> (toSafeView TZBTC.getOwner)
+      TZBTC.getSingleField #totalBurned "the total number of burned tokens")
+  , #callGetOwner //==> (toSafeView $
+      TZBTC.getSingleField #owner "the current contract owner")
+  , #callGetTokenName //==> (toSafeView $
+      TZBTC.getSingleField #tokenName "the token name")
+  , #callGetTokenCode //==> (toSafeView $
+      TZBTC.getSingleField #tokenCode "the token code")
+  , #callGetRedeemAddress //==> (toSafeView $
+      TZBTC.getSingleField #redeemAddress "the redeem address")
   , #callTransfer //==> TZBTC.transfer
   , #callApprove //==> TZBTC.approve
   , #callMint //==> TZBTC.mint

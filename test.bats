@@ -143,7 +143,7 @@
 }
 
 @test "invoking 'parseContractParameter' command to parse burn parameter" {
-  raw_parameter="Right (Right (Right (Right (Left (Left (Right 100500))))))"
+  raw_parameter="Right (Right (Right (Right (Right (Left (Left (Right 100500)))))))"
   exec_command="stack exec -- tzbtc parseContractParameter '${raw_parameter}'"
   result=$(eval $exec_command)
   [ "$result" == 'Burn, value = 100500' ]

@@ -14,6 +14,7 @@ module Test.TZBTC
   , test_bookkeeping
   , test_addOperator
   , test_removeOperator
+  , unit_get_meta
 
   -- * Utilities
   , checkField
@@ -25,7 +26,7 @@ import qualified Data.Map as M
 import qualified Data.Set as Set
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.Hspec (testSpec)
-import Test.Tasty.HUnit (testCase)
+import Test.Tasty.HUnit (Assertion, testCase)
 
 import Lorentz
 import qualified Lorentz.Contracts.ApprovableLedgerInterface as AL
@@ -72,13 +73,19 @@ checkField ef cf ms = checkStorage (\st ->
   then Right ()
   else Left $ CustomValidationError ms)
 
+dummyTokenName :: MText
+dummyTokenName = [mt|Test token|]
+
+dummyTokenCode :: MText
+dummyTokenCode = [mt|TEST|]
+
 dummyOriginationParameters :: Address -> Address -> Map Address Natural -> OriginationParameters
 dummyOriginationParameters owner redeem balances = OriginationParameters
   { opOwner = owner
   , opRedeemAddress = redeem
   , opBalances = balances
-  , opTokenName = [mt|Test token|]
-  , opTokenCode = [mt|TEST|]
+  , opTokenName = dummyTokenName
+  , opTokenCode = dummyTokenCode
   }
 
 originateTzbtcV1ContractRaw
@@ -463,6 +470,22 @@ test_bookkeeping = testGroup "TZBTC contract bookkeeping views test"
           -- Check expectations
           validate . Right $
             lExpectViewConsumerStorage consumer [610, 630, 20]
+
+          -- Check redeem address getter (we need another consumer
+          -- because the type is different).
+          withSender ownerAddress $ do
+            lCall v1 (fromFlatParameter $ SetRedeemAddress (#redeem .! newOperatorAddress))
+          consumerAddr <- lOriginateEmpty contractConsumer "consumer"
+          lCall v1 $ fromFlatParameter $ GetRedeemAddress (View () consumerAddr)
+          validate . Right $
+            lExpectViewConsumerStorage consumerAddr [newOperatorAddress]
   ]
 
--- New Tests End
+unit_get_meta :: Assertion
+unit_get_meta = integrationalTestExpectation $ do
+  v1 <- originateTzbtcV1Contract
+  consumer <- lOriginateEmpty contractConsumer "consumer"
+  lCall v1 $ fromFlatParameter $ GetTokenName (View () consumer)
+  lCall v1 $ fromFlatParameter $ GetTokenCode (View () consumer)
+  validate . Right $
+    lExpectViewConsumerStorage consumer [dummyTokenName, dummyTokenCode]

@@ -16,8 +16,7 @@ module Lorentz.Contracts.TZBTC.Impl
   , acceptOwnership
   , addOperator
   , burn
-  , getOwner
-  , getTotal
+  , getSingleField
   , mint
   , pause
   , removeOperator
@@ -51,20 +50,15 @@ type StorageC store = StorageContains store
   , "ledger" := Address ~> LedgerValue
   ]
 
-getTotal
-  :: forall store a.
-    (StoreHasField store a Natural)
-  => Label a -> Markdown -> Entrypoint (View () Natural) store
-getTotal bp entrypointDoc = do
-  doc $ DDescription entrypointDoc
-  view_ $ do cdr; stToField bp
-
-getOwner
-  :: (StoreHasField store "owner" Address)
-  => Entrypoint (View () Address) store
-getOwner = do
-  doc $ DDescription "This view return the current contract owner"
-  view_ (do cdr; stToField #owner)
+-- | A view entrypoint that has no arguments and returns a single
+-- value from the storage as is.
+getSingleField
+  :: forall store label val.
+    (StoreHasField store label val, NiceParameter val)
+  => Label label -> Markdown -> Entrypoint (View () val) store
+getSingleField label entrypointDoc = do
+  doc $ DDescription $ "This view returns " <> entrypointDoc
+  view_ $ do cdr; stToField label
 
 -- | Burn the specified amount of tokens from redeem address. Since it
 -- is not possible to burn from any other address, this entry point does

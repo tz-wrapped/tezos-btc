@@ -112,6 +112,9 @@ data Parameter (interface :: [EntryPointKind]) store
   | GetTotalMinted      !(View () Natural)
   | GetTotalBurned      !(View () Natural)
   | GetOwner            !(View () Address)
+  | GetTokenName        !(View () MText)
+  | GetTokenCode        !(View () MText)
+  | GetRedeemAddress    !(View () Address)
   | SafeEntrypoints (SafeParameter interface store)
   deriving stock (Eq, Generic, Show)
   deriving anyclass IsoValue
@@ -133,6 +136,12 @@ instance Buildable (Parameter i s) where
       "Get total burned"
     GetOwner _ ->
       "Get owner"
+    GetTokenName _ ->
+      "Get token name"
+    GetTokenCode _ ->
+      "Get token code"
+    GetRedeemAddress _ ->
+      "Get redeem address"
     GetVersion _ ->
       "Get contract version"
     SafeEntrypoints param -> case param of
@@ -241,6 +250,9 @@ type Interface =
   , "callGetTotalMinted" ?: (SafeView () Natural)
   , "callGetTotalBurned" ?: (SafeView () Natural)
   , "callGetOwner" ?: (SafeView () Address)
+  , "callGetTokenName" ?: (SafeView () MText)
+  , "callGetTokenCode" ?: (SafeView () MText)
+  , "callGetRedeemAddress" ?: (SafeView () Address)
   , "callTransfer" ?: ManagedLedger.TransferParams
   , "callApprove" ?: ManagedLedger.ApproveParams
   , "callMint" ?: ManagedLedger.MintParams
