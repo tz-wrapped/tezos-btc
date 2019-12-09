@@ -4,6 +4,10 @@
 # SPDX-License-Identifier: LicenseRef-Proprietary
 #
 
+setup () {
+  callback="KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46"
+}
+
 @test "invoking tzbtc-client 'approve' command" {
   stack exec -- tzbtc-client approve\
           --spender "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" --value 100 --dry-run
@@ -29,7 +33,7 @@
   stack exec -- tzbtc-client getAllowance\
     --owner "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"\
     --spender "tz3VEZ4k6a4Wx42iyev6i2aVAptTRLEAivNN"\
-    --callback "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46" --dry-run
+    --callback "$callback" --dry-run
 }
 
 @test "invoking tzbtc-client 'getAllowance' command without callback" {
@@ -41,7 +45,7 @@
 @test "invoking tzbtc-client 'getBalance' command" {
   stack exec -- tzbtc-client getBalance\
     --address "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"\
-    --callback "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46" --dry-run
+    --callback "$callback" --dry-run
 }
 
 @test "invoking tzbtc-client 'getBalance' command without callback" {
@@ -51,16 +55,43 @@
 
 @test "invoking tzbtc-client 'getOwner' command" {
   stack exec -- tzbtc-client getOwner\
-    --callback "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46" --dry-run
+    --callback "$callback" --dry-run
 }
 
 @test "invoking tzbtc-client 'getOwner' command without callback" {
   stack exec -- tzbtc-client getOwner --dry-run
 }
 
+@test "invoking tzbtc-client 'getTokenName' command" {
+  stack exec -- tzbtc-client getTokenName\
+    --callback "$callback" --dry-run
+}
+
+@test "invoking tzbtc-client 'getTokenName' command without callback" {
+  stack exec -- tzbtc-client getTokenName --dry-run
+}
+
+@test "invoking tzbtc-client 'getTokenCode' command" {
+  stack exec -- tzbtc-client getTokenCode\
+    --callback "$callback" --dry-run
+}
+
+@test "invoking tzbtc-client 'getTokenCode' command without callback" {
+  stack exec -- tzbtc-client getTokenCode --dry-run
+}
+
+@test "invoking tzbtc-client 'getRedeemAddress' command" {
+  stack exec -- tzbtc-client getRedeemAddress\
+    --callback "$callback" --dry-run
+}
+
+@test "invoking tzbtc-client 'getRedeemAddress' command without callback" {
+  stack exec -- tzbtc-client getRedeemAddress --dry-run
+}
+
 @test "invoking tzbtc-client 'getTotalSupply' command" {
   stack exec -- tzbtc-client getTotalSupply\
-    --callback "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46" --dry-run
+    --callback "$callback" --dry-run
 }
 
 @test "invoking tzbtc-client 'getTotalSupply' command without callback" {
@@ -69,7 +100,7 @@
 
 @test "invoking tzbtc-client 'getTotalMinted' command" {
   stack exec -- tzbtc-client getTotalMinted\
-    --callback "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46" --dry-run
+    --callback "$callback" --dry-run
 }
 
 @test "invoking tzbtc-client 'getTotalMinted' command without callback" {
@@ -78,7 +109,7 @@
 
 @test "invoking tzbtc-client 'getTotalBurned' command" {
   stack exec -- tzbtc-client getTotalBurned\
-    --callback "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46" --dry-run
+    --callback "$callback" --dry-run
 }
 
 @test "invoking tzbtc-client 'getTotalBurned' command without callback" {
