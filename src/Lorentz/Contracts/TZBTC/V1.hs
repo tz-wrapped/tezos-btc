@@ -9,7 +9,6 @@ module Lorentz.Contracts.TZBTC.V1
   ( Interface
   , StoreTemplate(..)
   , migrationScriptsRaw
-  , originationParams
   , tzbtcContractRouterRaw
   )
 where
@@ -19,10 +18,10 @@ import Prelude hiding (drop, (>>))
 import qualified Data.Map as M
 
 import Lorentz
-import Lorentz.Contracts.Upgradeable.EntryPointWise
 import Lorentz.Contracts.Upgradeable.Common.Base
-import Util.TypeTuple.Class
+import Lorentz.Contracts.Upgradeable.EntryPointWise
 import Util.Named
+import Util.TypeTuple.Class
 
 import qualified Lorentz.Contracts.TZBTC.Impl as TZBTC
 import Lorentz.Contracts.TZBTC.Types
@@ -83,16 +82,6 @@ v1Impl = recFromTuple
 tzbtcContractRouterRaw :: UContractRouter Interface StoreTemplate
 tzbtcContractRouterRaw = epwServe epwContract
 
-originationParams :: Address -> Address -> Map Address Natural -> OriginationParameters
-originationParams addr redeem balances =
-  OriginationParameters
-    { opMaster = addr
-    , opRedeemAddress = redeem
-    , opBalances = balances
-    , opTokenname = [mt|TZBTC|]
-    , opTokencode = [mt|TZBTC|]
-    }
-
 -- | Migrations to version 1 before preprocessing.
 migrationScriptsRaw :: OriginationParameters -> [MigrationScript]
 migrationScriptsRaw op = migrateStorage op : epwCodeMigrations epwContract
@@ -104,7 +93,7 @@ originationParamsToStoreTemplate :: OriginationParameters -> StoreTemplate
 originationParamsToStoreTemplate OriginationParameters {..} = let
   total = Prelude.sum $ M.elems opBalances
   in StoreTemplate
-    { owner = UStoreField opMaster
+    { owner = UStoreField opOwner
     , paused = UStoreField False
     , totalSupply = UStoreField total
     , totalMinted = UStoreField total

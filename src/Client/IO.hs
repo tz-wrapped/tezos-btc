@@ -122,9 +122,9 @@ instance HasTezosRpc IO where
     case r of
       Left err -> pure $ Left $ TzbtcServantError err
       Right rawVal -> pure $ Right rawVal
-  deployTzbtcContract address redeem = do
+  deployTzbtcContract op = do
     config@ClientConfig{..} <- throwLeft readConfig
-    contractAddr <- IO.deployTzbtcContract config address redeem
+    contractAddr <- IO.deployTzbtcContract config op
     putTextLn $ "Contract was successfully deployed. Contract address: " <>
       formatAddress contractAddr
     case ccContractAddress of

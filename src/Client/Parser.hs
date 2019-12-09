@@ -2,10 +2,13 @@
  -
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
+{-# LANGUAGE ApplicativeDo #-}
+
 module Client.Parser
   ( AddrOrAlias
   , ClientArgs(..)
   , ClientArgsRaw(..)
+  , DeployContractOptions (..)
   , clientArgParser
   , parseAddressFromOutput
   , parseSignatureFromOutput
@@ -15,17 +18,17 @@ import Data.Char (isAlpha, isDigit, toUpper)
 import Fmt (pretty)
 import Named ((!))
 import Options.Applicative
-  (argument, auto, eitherReader, help, long, metavar, option, optional,
-  showDefaultWith, short, str, strOption, switch, value)
+  (argument, auto, eitherReader, help, long, metavar, option, optional, short, showDefaultWith,
+  str, strOption, switch, value)
 import qualified Options.Applicative as Opt
-import qualified Text.Megaparsec as P
-  (Parsec, customFailure, many, parse, satisfy)
-import Text.Megaparsec.Char (space, eol)
+import qualified Text.Megaparsec as P (Parsec, customFailure, many, parse, satisfy)
+import Text.Megaparsec.Char (eol, space)
 import Text.Megaparsec.Char.Lexer (symbol)
 import Text.Megaparsec.Error (ParseErrorBundle, ShowErrorComponent(..))
 
-import Tezos.Crypto (PublicKey, Signature, parsePublicKey, parseSignature)
+import Michelson.Text (MText, mt)
 import Tezos.Address (Address, parseAddress)
+import Tezos.Crypto (PublicKey, Signature, parsePublicKey, parseSignature)
 
 import CLI.Parser
 import Client.Types
@@ -61,7 +64,14 @@ data ClientArgsRaw
   | CmdSignPackage FilePath
   | CmdCallMultisig (NonEmpty FilePath)
   | CmdConfig Bool ClientConfigPartial
-  | CmdDeployContract AddrOrAlias AddrOrAlias
+  | CmdDeployContract !DeployContractOptions
+
+data DeployContractOptions = DeployContractOptions
+  { dcoOwner :: !AddrOrAlias
+  , dcoRedeem :: !AddrOrAlias
+  , dcoTokenName :: !MText
+  , dcoTokenCode :: !MText
+  }
 
 clientArgParser :: Opt.Parser ClientArgs
 clientArgParser = ClientArgs <$> clientArgRawParser <*> dryRunSwitch
@@ -336,11 +346,18 @@ clientArgRawParser = Opt.hsubparser $
     deployCmd =
       mkCommandParser
       "deployTzbtcContract"
-      (CmdDeployContract <$>
-       addrOrAliasOption "owner" "Address of the owner" <*>
-       addrOrAliasOption "redeem" "Redeem address"
-      )
+      (CmdDeployContract <$> deployContractOptions)
       "Deploy TZBTC contract to the chain"
+      where
+        deployContractOptions :: Opt.Parser DeployContractOptions
+        deployContractOptions = do
+          dcoOwner <- addrOrAliasOption "owner" "Address of the owner"
+          dcoRedeem <- addrOrAliasOption "redeem" "Redeem address"
+          dcoTokenName <-
+            mTextOption (Just [mt|TZBTC|]) "token-name" "Name of this token"
+          dcoTokenCode <-
+            mTextOption (Just [mt|TZBTC|]) "token-code" "Token code"
+          pure DeployContractOptions {..}
 
 addrOrAliasOption :: String -> String -> Opt.Parser AddrOrAlias
 addrOrAliasOption name hInfo =
@@ -374,7 +391,7 @@ natOption name hInfo =
   ]
 
 burnParamsParser :: Opt.Parser BurnParams
-burnParamsParser = getParser "Amount to burn"
+burnParamsParser = getParser Nothing "Amount to burn"
 
 urlOption :: String -> String -> Opt.Parser Text
 urlOption name hInfo = option str $

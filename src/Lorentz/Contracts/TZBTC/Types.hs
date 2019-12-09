@@ -33,13 +33,13 @@ module Lorentz.Contracts.TZBTC.Types
   , UStoreV1
   ) where
 
-import Fmt ((+|), (|+), Buildable(..))
+import Fmt (Buildable(..), (+|), (|+))
 
 import Lorentz
 import qualified Lorentz.Contracts.ManagedLedger.Types as ManagedLedger
-import Lorentz.EntryPoints (ParameterEntryPoints(..), pepRecursive)
-import Lorentz.Contracts.Upgradeable.Common (UContractRouter(..), MigrationScript)
+import Lorentz.Contracts.Upgradeable.Common (MigrationScript, UContractRouter(..))
 import Lorentz.Contracts.Upgradeable.EntryPointWise
+import Lorentz.EntryPoints (ParameterEntryPoints(..), pepRecursive)
 import Util.Instances ()
 
 type BurnParams = ("value" :! Natural)
@@ -213,7 +213,7 @@ type UStoreV1 = UStore StoreTemplate
 
 -- The data required to initialize the V1 version of the contract storage.
 data OriginationParameters = OriginationParameters
-  { opMaster :: !Address
+  { opOwner :: !Address
   , opRedeemAddress :: !Address
   , opBalances :: !(Map Address Natural)
   , opTokenname :: !MText

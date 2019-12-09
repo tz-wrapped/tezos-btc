@@ -12,25 +12,25 @@ module Test.Client
 import Data.ByteString (cons)
 import Data.Sequence (fromList)
 import Test.Tasty (TestTree, testGroup)
-import Test.Tasty.HUnit (Assertion, testCase, (@?=), (@?))
+import Test.Tasty.HUnit (Assertion, testCase, (@?), (@?=))
 import Tezos.Common.Binary (encode)
 import Tezos.V005.Micheline
   (Annotation(..), Expression(..), MichelinePrimAp(..), MichelinePrimitive(..))
 
+import Lorentz.Test.Integrational (genesisAddress1)
+import Lorentz.UStore.Migration (manualConcatMigrationScripts)
 import Michelson.Interpret.Unpack (UnpackError(..), unpackValue')
 import Michelson.Typed.Haskell.Value (IsoValue(..))
 import Michelson.Untyped.Annotation (ann, noAnn)
 import Michelson.Untyped.Type (CT(..), T(..), Type(..))
-import Lorentz.Test.Integrational (genesisAddress1)
-import Lorentz.UStore.Migration (manualConcatMigrationScripts)
 import Util.Named ((.!))
 
 import Client.Parser (parseAddressFromOutput, parseSignatureFromOutput)
-import Client.Util
-  (convertTypeToExpression, nicePackedValueToExpression, typeToExpression)
-import Lorentz.Contracts.TZBTC.Types (SafeParameter(..))
+import Client.Util (convertTypeToExpression, nicePackedValueToExpression, typeToExpression)
 import Lorentz.Contracts.TZBTC.Preprocess (migrationScripts, tzbtcContractRouter)
-import Lorentz.Contracts.TZBTC.V1 (originationParams)
+import Lorentz.Contracts.TZBTC.Types
+
+import Test.TZBTC (dummyOriginationParameters)
 
 (@??) :: (Show a, HasCallStack) => a -> (a -> Bool) -> Assertion
 (@??) val predicate =
@@ -53,8 +53,11 @@ test_nicePackedValueToExpression = testGroup "Test converting Parameter to Miche
   ]
   where
     upgradeParam =
-      let migration = migrationScripts (originationParams ownerAddr ownerAddr mempty)
-          ownerAddr = genesisAddress1 in
+      let
+        ownerAddr = genesisAddress1
+        origParams = dummyOriginationParameters ownerAddr ownerAddr mempty
+        migration = migrationScripts origParams
+      in
         Upgrade ( #newVersion .! 1
                 , #migrationScript .! manualConcatMigrationScripts migration
                 , #newCode .! tzbtcContractRouter

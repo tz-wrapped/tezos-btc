@@ -22,13 +22,14 @@ import qualified Data.Map as Map
 import Options.Applicative as Opt
 
 import Tezos.Address
-import Tezos.Crypto
 import Tezos.Common.Json (TezosInt64)
+import Tezos.Crypto
 import Tezos.V005.Micheline (Expression)
 
 import Client.Error
 import Client.Types
 import Lorentz.Constraints
+import Lorentz.Contracts.TZBTC (OriginationParameters)
 
 import Util.AbstractIO
 
@@ -98,7 +99,7 @@ data Handlers m = Handlers
   , hGetCounter :: Text -> m TezosInt64
   , hGetFromBigMap :: Natural -> Text -> m (Either TzbtcClientError Expression)
   , hWaitForOperation :: Text -> m ()
-  , hDeployTzbtcContract :: Address -> Address -> m ()
+  , hDeployTzbtcContract :: OriginationParameters -> m ()
 
   , hGetAddressAndPKForAlias :: Text -> m (Either TzbtcClientError (Address, PublicKey))
   , hSignWithTezosClient :: Either ByteString Text -> m (Either Text Signature)
@@ -173,9 +174,9 @@ instance HasTezosRpc TestM where
   getFromBigMap n t = do
     fn <- getHandler hGetFromBigMap
     fn n t
-  deployTzbtcContract a b = do
+  deployTzbtcContract op = do
     fn <- getHandler hDeployTzbtcContract
-    fn a b
+    fn op
 
 instance HasTezosClient TestM where
   getAddressAndPKForAlias a = do

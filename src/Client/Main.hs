@@ -162,9 +162,17 @@ mainProgram = do
         case pkgs of
           Left err -> printTextLn err
           Right packages -> runMultisigContract packages
-      CmdDeployContract owner' redeem' -> do
-        [owner, redeem] <- mapM addrOrAliasToAddr [owner', redeem']
-        deployTzbtcContract owner redeem
+      CmdDeployContract DeployContractOptions {..} -> do
+        [owner, redeem] <- mapM addrOrAliasToAddr [dcoOwner, dcoRedeem]
+        let
+          originationParams = OriginationParameters
+            { opOwner = owner
+            , opRedeemAddress = redeem
+            , opBalances = mempty
+            , opTokenname = dcoTokenName
+            , opTokencode = dcoTokenCode
+            }
+        deployTzbtcContract originationParams
   where
     runMultisigTzbtcContract :: (HasCmdLine m, HasTezosRpc m) => (Maybe FilePath) -> Parameter i s -> m ()
     runMultisigTzbtcContract mbMultisig param =

@@ -112,7 +112,7 @@
 }
 
 @test "deploy contract" {
-  stack exec -- tzbtc-client deployTzbtcContract --owner boba --redeem boba --dry-run
+  stack exec -- tzbtc-client deployTzbtcContract --owner boba --redeem boba --token-name Kukareq --token-code Cococoq --dry-run
 }
 
 @test "invoking tzbtc 'printContract' command" {
@@ -120,7 +120,7 @@
 }
 
 @test "invoking tzbtc 'migrate' command" {
-  stack exec -- tzbtc migrate --version 1 --ownerAddress "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --redeemAddress "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"
+  stack exec -- tzbtc migrate --version 1 --ownerAddress "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --redeemAddress "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --tokenCode aa
 }
 
 @test "invoking tzbtc 'printContract' command with --oneline flag" {
@@ -149,18 +149,18 @@
   [ "$result" == 'Burn, value = 100500' ]
 }
 
-@test "invoking tzbtc 'setupClient' command without arguments" {
+@test "invoking tzbtc-client 'setupClient' command without arguments" {
   stack exec -- tzbtc-client setupClient
 }
 
-@test "invoking tzbtc 'config' command without arguments" {
+@test "invoking tzbtc-client 'config' command without arguments" {
   stack exec -- tzbtc-client config
 }
 
-@test "invoking tzbtc 'config --edit' command with available arguments" {
+@test "invoking tzbtc-client 'config --edit' command with available arguments" {
   stack exec -- tzbtc-client config --edit --node-url "localhost" --node-port "9900" --contract-address "KT1HmhmNcZKmm2NsuyahdXAaHQwYfWfdrBxi" --multisig-address "KT1HmhmNcZKmm2NsuyahdXAaHQwYfWfdrBxi" --alias alice --tezos-client /local/bin/tezos-client
 }
 
-@test "invoking tzbtc 'setupClient' command with arguments" {
+@test "invoking tzbtc-client 'setupClient' command with arguments" {
   stack exec -- tzbtc-client setupClient --node-url "localhost" --node-port "9900" --use-https --contract-address "KT1HmhmNcZKmm2NsuyahdXAaHQwYfWfdrBxi" --multisig-address "KT1HmhmNcZKmm2NsuyahdXAaHQwYfWfdrBxi" --alias alice --tezos-client /local/bin/tezos-client
 }

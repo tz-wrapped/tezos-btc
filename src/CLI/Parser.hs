@@ -8,6 +8,7 @@ module CLI.Parser
   , HasParser(..)
   , addressArgument
   , addressOption
+  , mTextOption
   , argParser
   , mkCommandParser
   , namedAddressOption
@@ -17,7 +18,7 @@ module CLI.Parser
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
 
 import Data.Char (toUpper)
-import Fmt (pretty)
+import Fmt (Buildable, pretty)
 import Named (Name(..), NamedF(..), (!))
 import Options.Applicative
   (argument, auto, command, eitherReader, help, hsubparser, info, long, metavar, option, progDesc,
@@ -25,6 +26,7 @@ import Options.Applicative
 import qualified Options.Applicative as Opt
 
 import Lorentz ((:!))
+import Michelson.Text (MText, mkMText, mt)
 import Tezos.Address (Address, parseAddress)
 import Util.Named
 
@@ -39,6 +41,8 @@ data CmdLnArgs
       ("version" :! Natural)
       ("ownerAddress" :! Address)
       ("redeemAddress" :! Address)
+      ("tokenName" :! MText)
+      ("tokenCode" :! MText)
       ("output" :! Maybe FilePath)
 
 data TestScenarioOptions = TestScenarioOptions
@@ -92,9 +96,11 @@ argParser = hsubparser $
       (mkCommandParser
           "migrate"
           (CmdMigrate
-            <$> getParser "Target version"
-            <*> getParser "Redeem address"
-            <*> getParser "Owner's address"
+            <$> getParser Nothing "Target version"
+            <*> getParser Nothing "Redeem address"
+            <*> getParser Nothing "Owner's address"
+            <*> getParser (Just $ #tokenName .! [mt|TZBTC|]) "Token name"
+            <*> getParser (Just $ #tokenCode .! [mt|TZBTC|]) "Token code"
             <*> (#output <.!> outputOption))
           "Print migration scripts.")
 
@@ -129,21 +135,29 @@ instance HasReader Int where
 instance HasReader Text where
   getReader = str
 
+instance HasReader MText where
+  getReader = eitherReader (first toString . mkMText . toText)
+
 instance HasReader Address where
   getReader = eitherReader parseAddrDo
 
 -- | Typeclass used to define general instance for named fields
 class HasParser a where
-  getParser :: String -> Opt.Parser a
+  getParser :: Maybe a -> String -> Opt.Parser a
 
 instance
-  (HasReader a, KnownSymbol name) =>
+  (Buildable a, HasReader a, KnownSymbol name) =>
     HasParser ((name :: Symbol) :! a)  where
-  getParser hInfo =
+  getParser defValue hInfo =
     let
       name = (symbolVal (Proxy @name))
     in option ((Name @name) <.!> getReader) $
-         mconcat [ long name , metavar (toUpper <$> name), help hInfo ]
+         mconcat
+         [ long name
+         , metavar (toUpper <$> name)
+         , help hInfo
+         , maybeAddDefault pretty defValue
+         ]
 
 testScenarioOptions :: Opt.Parser TestScenarioOptions
 testScenarioOptions = TestScenarioOptions <$>
@@ -159,6 +173,16 @@ addressOption defAddress hInfo =
     , long "address"
     , help hInfo
     , maybeAddDefault pretty defAddress
+    ]
+
+mTextOption :: Maybe MText -> String -> String -> Opt.Parser MText
+mTextOption defValue name hInfo =
+  option getReader $
+  mconcat
+    [ metavar "MICHELSON STRING"
+    , long name
+    , help hInfo
+    , maybeAddDefault pretty defValue
     ]
 
 namedAddressOption :: Maybe Address -> String -> String -> Opt.Parser Address
