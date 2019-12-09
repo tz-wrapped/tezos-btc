@@ -24,7 +24,7 @@ steps:
    - echo +++ Weeder
    - nix-shell --run "nix run nixpkgs.haskellPackages.weeder -c weeder ."
    - echo +++ Bats
-   - nix-shell --run "nix run nixpkgs.bats -c bats test.bats"
+   - nix-shell --run "nix run nixpkgs.bats -c bats bats/*.bats"
    - echo 'bats passed successfully'
    - echo +++ Smoke
    - nix-shell --run "nix run nixpkgs.python3 -c bash scripts/ci-test.sh"
