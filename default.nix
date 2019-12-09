@@ -30,8 +30,8 @@ let
   morley-repo = {
     name = "morley";
     url = "https://gitlab.com/morley-framework/morley.git";
-    rev = "ee40fe4e2b08c7e24a90c9112de0c7ad936cc47d";
-    sha256 = "0z5nyyx14jy561i6mb91frzg9kw21ryps4psm0pmv71d5wnz8hs6";
+    rev = "d551ff08b86713d1eb7bbd8d28ae66a4ddfe217b";
+    sha256 = "1kz4n55ck9fw1klfnq97wwvsla0vd40hyxcy1nnsfgwi61bl80xc";
   };
   gpl = true; # false: not supported yet
   tezos-btc = { buildPkgs, hostPkgs }:
@@ -64,11 +64,15 @@ let
           subdir = "prelude";
         })
         (morley-repo // rec {
-          name = "lorentz-contracts";
+          name = "morley-ledgers";
           subdir = name;
         })
         (morley-repo // rec {
-          name = "lorentz-contracts-test";
+          name = "morley-ledgers-test";
+          subdir = name;
+        })
+        (morley-repo // rec {
+          name = "morley-upgradeable";
           subdir = name;
         })
         rec {

@@ -28,7 +28,7 @@
 @test "invoking tzbtc-client 'getAllowance' command" {
   stack exec -- tzbtc-client getAllowance\
     --owner "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"\
-    --spender "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx"\
+    --spender "tz3VEZ4k6a4Wx42iyev6i2aVAptTRLEAivNN"\
     --callback "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46" --dry-run
 }
 
