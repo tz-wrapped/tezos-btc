@@ -2,10 +2,13 @@
  -
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
+{-# LANGUAGE ApplicativeDo #-}
+
 module Client.Parser
   ( AddrOrAlias
   , ClientArgs(..)
   , ClientArgsRaw(..)
+  , DeployContractOptions (..)
   , clientArgParser
   , parseAddressFromOutput
   , parseSignatureFromOutput
@@ -15,17 +18,17 @@ import Data.Char (isAlpha, isDigit, toUpper)
 import Fmt (pretty)
 import Named ((!))
 import Options.Applicative
-  (argument, auto, eitherReader, help, long, metavar, option, optional,
-  showDefaultWith, short, str, strOption, switch, value)
+  (argument, auto, eitherReader, help, long, metavar, option, optional, short, showDefaultWith,
+  str, strOption, switch, value)
 import qualified Options.Applicative as Opt
-import qualified Text.Megaparsec as P
-  (Parsec, customFailure, many, parse, satisfy)
-import Text.Megaparsec.Char (space, eol)
+import qualified Text.Megaparsec as P (Parsec, customFailure, many, parse, satisfy)
+import Text.Megaparsec.Char (eol, space)
 import Text.Megaparsec.Char.Lexer (symbol)
 import Text.Megaparsec.Error (ParseErrorBundle, ShowErrorComponent(..))
 
-import Tezos.Crypto (PublicKey, Signature, parsePublicKey, parseSignature)
+import Michelson.Text (MText, mt)
 import Tezos.Address (Address, parseAddress)
+import Tezos.Crypto (PublicKey, Signature, parsePublicKey, parseSignature)
 
 import CLI.Parser
 import Client.Types
@@ -54,6 +57,9 @@ data ClientArgsRaw
   | CmdGetTotalMinted (Maybe AddrOrAlias)
   | CmdGetTotalBurned (Maybe AddrOrAlias)
   | CmdGetOwner (Maybe AddrOrAlias)
+  | CmdGetTokenName (Maybe AddrOrAlias)
+  | CmdGetTokenCode (Maybe AddrOrAlias)
+  | CmdGetRedeemAddress (Maybe AddrOrAlias)
   | CmdSetupClient ClientConfigPartial
   | CmdGetOpDescription FilePath
   | CmdGetBytesToSign FilePath
@@ -61,7 +67,14 @@ data ClientArgsRaw
   | CmdSignPackage FilePath
   | CmdCallMultisig (NonEmpty FilePath)
   | CmdConfig Bool ClientConfigPartial
-  | CmdDeployContract AddrOrAlias AddrOrAlias
+  | CmdDeployContract !DeployContractOptions
+
+data DeployContractOptions = DeployContractOptions
+  { dcoOwner :: !AddrOrAlias
+  , dcoRedeem :: !AddrOrAlias
+  , dcoTokenName :: !MText
+  , dcoTokenCode :: !MText
+  }
 
 clientArgParser :: Opt.Parser ClientArgs
 clientArgParser = ClientArgs <$> clientArgRawParser <*> dryRunSwitch
@@ -77,7 +90,8 @@ clientArgRawParser = Opt.hsubparser $
   <> removeOperatorCmd <> pauseCmd <> unpauseCmd
   <> setRedeemAddressCmd <> transferOwnershipCmd <> acceptOwnershipCmd
   <> getTotalSupplyCmd <>  getTotalMintedCmd <> getTotalBurnedCmd
-  <> getOwnerCmd <> setupUserCmd <> getOpDescriptionCmd
+  <> getOwnerCmd <> getTokenNameCmd <> getTokenCodeCmd <> getRedeemAddressCmd
+  <> setupUserCmd <> getOpDescriptionCmd
   <> getBytesToSignCmd <> getTotalBurnedCmd
   <> addSignatureCmd <> signPackageCmd <> callMultisigCmd
   <> configCmd <> deployCmd
@@ -191,7 +205,7 @@ clientArgRawParser = Opt.hsubparser $
          (CmdGetAllowance <$>
           ((,) <$> addrOrAliasOption "owner" "Address of the owner" <*>
           addrOrAliasOption "spender" "Address of the spender") <*>
-          mbAddrOrAliasOption "callback" "Callback address"
+          callbackParser
          )
          "Get allowance for an account")
     getBalanceCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
@@ -200,7 +214,7 @@ clientArgRawParser = Opt.hsubparser $
          "getBalance"
          (CmdGetBalance <$>
           addrOrAliasOption "address" "Address of the owner" <*>
-          mbAddrOrAliasOption "callback" "Callback address"
+          callbackParser
          )
          "Get balance for an account")
     addOperatorCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
@@ -262,33 +276,45 @@ clientArgRawParser = Opt.hsubparser $
     getTotalSupplyCmd =
       (mkCommandParser
          "getTotalSupply"
-         (CmdGetTotalSupply <$>
-          mbAddrOrAliasOption "callback" "Callback address")
+         (CmdGetTotalSupply <$> callbackParser)
          "Get total supply")
 
     getTotalMintedCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     getTotalMintedCmd =
       (mkCommandParser
          "getTotalMinted"
-         (CmdGetTotalMinted <$>
-          mbAddrOrAliasOption "callback" "Callback address")
+         (CmdGetTotalMinted <$> callbackParser)
          "Get amount of minted tokens")
 
     getTotalBurnedCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     getTotalBurnedCmd =
-      (mkCommandParser
-         "getTotalBurned"
-         (CmdGetTotalBurned <$>
-          mbAddrOrAliasOption "callback" "Callback address")
+      (mkCommandParser "getTotalBurned"
+         (CmdGetTotalBurned <$> callbackParser)
          "Get amount of burned tokens")
 
     getOwnerCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     getOwnerCmd =
-      (mkCommandParser
-         "getOwner"
-         (CmdGetOwner <$>
-          mbAddrOrAliasOption "callback" "Callback address")
+      (mkCommandParser "getOwner"
+         (CmdGetOwner <$> callbackParser)
          "Get current contract owner")
+
+    getTokenNameCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
+    getTokenNameCmd =
+      (mkCommandParser "getTokenName"
+         (CmdGetTokenName <$> callbackParser)
+         "Get the token name")
+
+    getTokenCodeCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
+    getTokenCodeCmd =
+      (mkCommandParser "getTokenCode"
+         (CmdGetTokenCode <$> callbackParser)
+         "Get the token code")
+
+    getRedeemAddressCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
+    getRedeemAddressCmd =
+      (mkCommandParser "getRedeemAddress"
+         (CmdGetRedeemAddress <$> callbackParser)
+         "Get the redeem address code")
 
     getOpDescriptionCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     getOpDescriptionCmd =
@@ -336,11 +362,21 @@ clientArgRawParser = Opt.hsubparser $
     deployCmd =
       mkCommandParser
       "deployTzbtcContract"
-      (CmdDeployContract <$>
-       addrOrAliasOption "owner" "Address of the owner" <*>
-       addrOrAliasOption "redeem" "Redeem address"
-      )
+      (CmdDeployContract <$> deployContractOptions)
       "Deploy TZBTC contract to the chain"
+      where
+        deployContractOptions :: Opt.Parser DeployContractOptions
+        deployContractOptions = do
+          dcoOwner <- addrOrAliasOption "owner" "Address of the owner"
+          dcoRedeem <- addrOrAliasOption "redeem" "Redeem address"
+          dcoTokenName <-
+            mTextOption (Just [mt|TZBTC|]) "token-name" "Name of this token"
+          dcoTokenCode <-
+            mTextOption (Just [mt|TZBTC|]) "token-code" "Token code"
+          pure DeployContractOptions {..}
+
+    callbackParser :: Opt.Parser (Maybe AddrOrAlias)
+    callbackParser = mbAddrOrAliasOption "callback" "Callback address"
 
 addrOrAliasOption :: String -> String -> Opt.Parser AddrOrAlias
 addrOrAliasOption name hInfo =
@@ -374,7 +410,7 @@ natOption name hInfo =
   ]
 
 burnParamsParser :: Opt.Parser BurnParams
-burnParamsParser = getParser "Amount to burn"
+burnParamsParser = getParser Nothing "Amount to burn"
 
 urlOption :: String -> String -> Opt.Parser Text
 urlOption name hInfo = option str $

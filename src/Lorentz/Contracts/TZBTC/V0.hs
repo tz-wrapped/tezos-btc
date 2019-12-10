@@ -188,6 +188,18 @@ tzbtcContractRaw = do
         doc $ DDescription
           "This entry point is used to get current owner."
         callUSafeViewEP #callGetOwner
+    , #cGetTokenName /-> do
+        doc $ DDescription
+          "This entry point is used to get token name."
+        callUSafeViewEP #callGetTokenName
+    , #cGetTokenCode /-> do
+        doc $ DDescription
+          "This entry point is used to get token code."
+        callUSafeViewEP #callGetTokenCode
+    , #cGetRedeemAddress /-> do
+        doc $ DDescription
+          "This entry point is used to get redeem address."
+        callUSafeViewEP #callGetRedeemAddress
     , #cSafeEntrypoints /-> do
         doc $ DDescription
           "This entry point is used to call the safe entrypoints of the contract. \

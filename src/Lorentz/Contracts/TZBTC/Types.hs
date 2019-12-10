@@ -33,13 +33,13 @@ module Lorentz.Contracts.TZBTC.Types
   , UStoreV1
   ) where
 
-import Fmt ((+|), (|+), Buildable(..))
+import Fmt (Buildable(..), (+|), (|+))
 
 import Lorentz
 import qualified Lorentz.Contracts.ManagedLedger.Types as ManagedLedger
-import Lorentz.EntryPoints (ParameterEntryPoints(..), pepRecursive)
-import Lorentz.Contracts.Upgradeable.Common (UContractRouter(..), MigrationScript)
+import Lorentz.Contracts.Upgradeable.Common (MigrationScript, UContractRouter(..))
 import Lorentz.Contracts.Upgradeable.EntryPointWise
+import Lorentz.EntryPoints (ParameterEntryPoints(..), pepRecursive)
 import Util.Instances ()
 
 type BurnParams = ("value" :! Natural)
@@ -112,6 +112,9 @@ data Parameter (interface :: [EntryPointKind]) store
   | GetTotalMinted      !(View () Natural)
   | GetTotalBurned      !(View () Natural)
   | GetOwner            !(View () Address)
+  | GetTokenName        !(View () MText)
+  | GetTokenCode        !(View () MText)
+  | GetRedeemAddress    !(View () Address)
   | SafeEntrypoints (SafeParameter interface store)
   deriving stock (Eq, Generic, Show)
   deriving anyclass IsoValue
@@ -133,6 +136,12 @@ instance Buildable (Parameter i s) where
       "Get total burned"
     GetOwner _ ->
       "Get owner"
+    GetTokenName _ ->
+      "Get token name"
+    GetTokenCode _ ->
+      "Get token code"
+    GetRedeemAddress _ ->
+      "Get redeem address"
     GetVersion _ ->
       "Get contract version"
     SafeEntrypoints param -> case param of
@@ -202,8 +211,13 @@ data StoreTemplate = StoreTemplate
   , newOwner      :: UStoreField (Maybe Address)
   , operators     :: UStoreField (Set Address)
   , redeemAddress :: UStoreField Address
-  , tokenname     :: UStoreField MText
-  , tokencode     :: UStoreField MText
+  , tokenName     :: UStoreField MText
+  -- ^ Name of the token, can be set to an arbitrary string. It is
+  -- meta information that is not used by the contract, only stored.
+  , tokenCode     :: UStoreField MText
+  -- ^ Textual code of the token, can be set to an arbitrary
+  -- (presumably short) string. It is meta information that is not
+  -- used by the contract, only stored.
   , code          :: MText |~> EntryPointImpl StoreTemplate
   , fallback      :: UStoreField $ EpwFallback StoreTemplate
   , ledger        :: Address |~> ManagedLedger.LedgerValue
@@ -211,13 +225,13 @@ data StoreTemplate = StoreTemplate
 
 type UStoreV1 = UStore StoreTemplate
 
--- The data required to initialize the V1 version of the contract storage.
+-- | The data required to initialize the V1 version of the contract storage.
 data OriginationParameters = OriginationParameters
-  { opMaster :: !Address
+  { opOwner :: !Address
   , opRedeemAddress :: !Address
   , opBalances :: !(Map Address Natural)
-  , opTokenname :: !MText
-  , opTokencode :: !MText
+  , opTokenName :: !MText
+  , opTokenCode :: !MText
   }
 
 -- | A safe view to act as argument to the inner stored procedures that
@@ -236,6 +250,9 @@ type Interface =
   , "callGetTotalMinted" ?: (SafeView () Natural)
   , "callGetTotalBurned" ?: (SafeView () Natural)
   , "callGetOwner" ?: (SafeView () Address)
+  , "callGetTokenName" ?: (SafeView () MText)
+  , "callGetTokenCode" ?: (SafeView () MText)
+  , "callGetRedeemAddress" ?: (SafeView () Address)
   , "callTransfer" ?: ManagedLedger.TransferParams
   , "callApprove" ?: ManagedLedger.ApproveParams
   , "callMint" ?: ManagedLedger.MintParams
