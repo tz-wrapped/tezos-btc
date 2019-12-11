@@ -6,7 +6,7 @@
 
 # TZBTC
 
-**Code revision:** [817484d](https://github.com/serokell/tezos-btc/commit/817484dad0d7a8865f37de593814d710e31a2395) *(Mon Dec 9 14:27:16 2019 +0300)*
+**Code revision:** [2be70c0](https://github.com/serokell/tezos-btc/commit/2be70c08bbffad2e73f71285657751778b826a61) *(Tue Dec 10 18:12:58 2019 +0300)*
 
 This contract is implemented using Lorentz language.
 Basically, this contract is [FA1.2](https://gitlab.com/serokell/morley/tzip/blob/master/A/FA1.2.md)-compatible approvable ledger that maps user addresses to their token balances. The main idea of this token contract is to provide 1-to-1 correspondance with BTC.
@@ -113,7 +113,7 @@ This entry point is used to get total number of tokens.
 0. Construct parameter for the entry point.
 1. Wrap into `GetTotalSupply` constructor.
     + **In Haskell:** `GetTotalSupply (·)`
-    + **In Michelson:** `Left (Right (Right (·)))`
+    + **In Michelson:** `Left (Right (Right (Left (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -141,7 +141,7 @@ This entry point is used to get total number of minted tokens.
 0. Construct parameter for the entry point.
 1. Wrap into `GetTotalMinted` constructor.
     + **In Haskell:** `GetTotalMinted (·)`
-    + **In Michelson:** `Right (Left (Left (·)))`
+    + **In Michelson:** `Left (Right (Right (Right (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -169,7 +169,7 @@ This entry point is used to get total number of burned tokens.
 0. Construct parameter for the entry point.
 1. Wrap into `GetTotalBurned` constructor.
     + **In Haskell:** `GetTotalBurned (·)`
-    + **In Michelson:** `Right (Left (Right (·)))`
+    + **In Michelson:** `Right (Left (Left (·)))`
 
 Pass resulting value as parameter to the contract.
 
@@ -197,7 +197,91 @@ This entry point is used to get current owner.
 0. Construct parameter for the entry point.
 1. Wrap into `GetOwner` constructor.
     + **In Haskell:** `GetOwner (·)`
+    + **In Michelson:** `Right (Left (Right (Left (·))))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+**Possible errors:**
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
+
+
+
+---
+
+### `GetTokenName`
+
+This entry point is used to get token name.
+
+**Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Text`](#types-Text)
+
+<details>
+  <summary><b>How to call this entry point</b></summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `GetTokenName` constructor.
+    + **In Haskell:** `GetTokenName (·)`
+    + **In Michelson:** `Right (Left (Right (Right (·))))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+**Possible errors:**
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
+
+
+
+---
+
+### `GetTokenCode`
+
+This entry point is used to get token code.
+
+**Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Text`](#types-Text)
+
+<details>
+  <summary><b>How to call this entry point</b></summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `GetTokenCode` constructor.
+    + **In Haskell:** `GetTokenCode (·)`
     + **In Michelson:** `Right (Right (Left (·)))`
+
+Pass resulting value as parameter to the contract.
+
+</details>
+<p>
+
+
+
+**Possible errors:**
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
+
+
+
+---
+
+### `GetRedeemAddress`
+
+This entry point is used to get redeem address.
+
+**Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Address`](#types-Address-simplified)
+
+<details>
+  <summary><b>How to call this entry point</b></summary>
+
+0. Construct parameter for the entry point.
+1. Wrap into `GetRedeemAddress` constructor.
+    + **In Haskell:** `GetRedeemAddress (·)`
+    + **In Michelson:** `Right (Right (Right (Left (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -225,7 +309,7 @@ This entry point is used to call the safe entrypoints of the contract. Entrypoin
 0. Construct parameter for the entry point.
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (·)))`
+    + **In Michelson:** `Right (Right (Right (Right (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -255,7 +339,7 @@ This entry point is used to call the packed entrypoints in the contract.
     + **In Michelson:** `Left (Left (Left (Left (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (·)))`
+    + **In Michelson:** `Right (Right (Right (Right (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -286,7 +370,7 @@ This entry point is used to update the contract to a new version.
     + **In Michelson:** `Left (Left (Left (Right (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (·)))`
+    + **In Michelson:** `Right (Right (Right (Right (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -321,7 +405,7 @@ This entry point is used to start an entrypoint wise upgrade of the contract.
     + **In Michelson:** `Left (Left (Right (Left (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (·)))`
+    + **In Michelson:** `Right (Right (Right (Right (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -356,7 +440,7 @@ This entry point is used to apply an migration script as part of an upgrade.
     + **In Michelson:** `Left (Left (Right (Right (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (·)))`
+    + **In Michelson:** `Right (Right (Right (Right (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -389,7 +473,7 @@ This entry point is used to set the dispatching code that calls the packed entry
     + **In Michelson:** `Left (Right (Left (Left (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (·)))`
+    + **In Michelson:** `Right (Right (Right (Right (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -422,7 +506,7 @@ This entry point is used to mark that an upgrade has been finsihed.
     + **In Michelson:** `Left (Right (Left (Right (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (·)))`
+    + **In Michelson:** `Right (Right (Right (Right (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -455,7 +539,7 @@ This entry point is used transfer tokens from one account to another.
     + **In Michelson:** `Left (Right (Right (Left (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (·)))`
+    + **In Michelson:** `Right (Right (Right (Right (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -486,7 +570,7 @@ This entry point is used approve transfer of tokens from one account to another.
     + **In Michelson:** `Left (Right (Right (Right (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (·)))`
+    + **In Michelson:** `Right (Right (Right (Right (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -517,7 +601,7 @@ This entry point is used mint new tokes for an account.
     + **In Michelson:** `Right (Left (Left (Left (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (·)))`
+    + **In Michelson:** `Right (Right (Right (Right (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -548,7 +632,7 @@ This entry point is used burn tokes from the redeem address.
     + **In Michelson:** `Right (Left (Left (Right (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (·)))`
+    + **In Michelson:** `Right (Right (Right (Right (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -579,7 +663,7 @@ This entry point is used to add a new operator.
     + **In Michelson:** `Right (Left (Right (Left (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (·)))`
+    + **In Michelson:** `Right (Right (Right (Right (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -610,7 +694,7 @@ This entry point is used to remove an operator.
     + **In Michelson:** `Right (Left (Right (Right (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (·)))`
+    + **In Michelson:** `Right (Right (Right (Right (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -641,7 +725,7 @@ This entry point is used to set the redeem address.
     + **In Michelson:** `Right (Right (Left (Left (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (·)))`
+    + **In Michelson:** `Right (Right (Right (Right (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -672,7 +756,7 @@ This entry point is used to pause the contract.
     + **In Michelson:** `Right (Right (Left (Right (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (·)))`
+    + **In Michelson:** `Right (Right (Right (Right (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -703,7 +787,7 @@ This entry point is used to resume the contract during a paused state.
     + **In Michelson:** `Right (Right (Right (Left (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (·)))`
+    + **In Michelson:** `Right (Right (Right (Right (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -734,7 +818,7 @@ This entry point is used to transfer ownership to a new owner.
     + **In Michelson:** `Right (Right (Right (Right (Left (·)))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (·)))`
+    + **In Michelson:** `Right (Right (Right (Right (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -765,7 +849,7 @@ This entry point is used to accept ownership by a new owner.
     + **In Michelson:** `Right (Right (Right (Right (Right (·)))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (·)))`
+    + **In Michelson:** `Right (Right (Right (Right (·))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -798,7 +882,7 @@ This entry point is used to call the packed entrypoints in the contract.
     + **In Michelson:** `Left (Left (Left (Left (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right ((·))))`
+    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -829,7 +913,7 @@ This entry point is used to update the contract to a new version.
     + **In Michelson:** `Left (Left (Left (Right (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right ((·))))`
+    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -864,7 +948,7 @@ This entry point is used to start an entrypoint wise upgrade of the contract.
     + **In Michelson:** `Left (Left (Right (Left (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right ((·))))`
+    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -899,7 +983,7 @@ This entry point is used to apply an migration script as part of an upgrade.
     + **In Michelson:** `Left (Left (Right (Right (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right ((·))))`
+    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -932,7 +1016,7 @@ This entry point is used to set the dispatching code that calls the packed entry
     + **In Michelson:** `Left (Right (Left (Left (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right ((·))))`
+    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -965,7 +1049,7 @@ This entry point is used to mark that an upgrade has been finsihed.
     + **In Michelson:** `Left (Right (Left (Right (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right ((·))))`
+    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -998,7 +1082,7 @@ This entry point is used transfer tokens from one account to another.
     + **In Michelson:** `Left (Right (Right (Left (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right ((·))))`
+    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -1029,7 +1113,7 @@ This entry point is used approve transfer of tokens from one account to another.
     + **In Michelson:** `Left (Right (Right (Right (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right ((·))))`
+    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -1060,7 +1144,7 @@ This entry point is used mint new tokes for an account.
     + **In Michelson:** `Right (Left (Left (Left (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right ((·))))`
+    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -1091,7 +1175,7 @@ This entry point is used burn tokes from the redeem address.
     + **In Michelson:** `Right (Left (Left (Right (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right ((·))))`
+    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -1122,7 +1206,7 @@ This entry point is used to add a new operator.
     + **In Michelson:** `Right (Left (Right (Left (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right ((·))))`
+    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -1153,7 +1237,7 @@ This entry point is used to remove an operator.
     + **In Michelson:** `Right (Left (Right (Right (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right ((·))))`
+    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -1184,7 +1268,7 @@ This entry point is used to set the redeem address.
     + **In Michelson:** `Right (Right (Left (Left (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right ((·))))`
+    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -1215,7 +1299,7 @@ This entry point is used to pause the contract.
     + **In Michelson:** `Right (Right (Left (Right (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right ((·))))`
+    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -1246,7 +1330,7 @@ This entry point is used to resume the contract during a paused state.
     + **In Michelson:** `Right (Right (Right (Left (·))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right ((·))))`
+    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -1277,7 +1361,7 @@ This entry point is used to transfer ownership to a new owner.
     + **In Michelson:** `Right (Right (Right (Right (Left (·)))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right ((·))))`
+    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
 
 Pass resulting value as parameter to the contract.
 
@@ -1308,7 +1392,7 @@ This entry point is used to accept ownership by a new owner.
     + **In Michelson:** `Right (Right (Right (Right (Right (·)))))`
 1. Wrap into `SafeEntrypoints` constructor.
     + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right ((·))))`
+    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
 
 Pass resulting value as parameter to the contract.
 
