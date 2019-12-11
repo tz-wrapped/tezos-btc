@@ -18,13 +18,13 @@ import Lorentz.TestScenario (showTestScenario)
 import Paths_tzbtc (version)
 
 import CLI.Parser
+import Client.IO ()
 import Lorentz.Contracts.TZBTC
-  (Parameter, migrationScripts, mkEmptyStorageV0, originationParams, tzbtcContract,
+  (OriginationParameters(..), Parameter, migrationScripts, mkEmptyStorageV0, tzbtcContract,
   tzbtcContractRouter, tzbtcDoc)
 import Lorentz.Contracts.TZBTC.Test (mkTestScenario)
-import Util.Migration
 import Util.AbstractIO
-import Client.IO ()
+import Util.Migration
 
 -- Here in main function we will just accept commands from user
 -- and print the smart contract parameter by using `printLorentzValue`
@@ -50,10 +50,20 @@ main = do
       (arg #version -> version_)
       (arg #ownerAddress -> owner)
       (arg #redeemAddress -> redeem)
+      (arg #tokenName -> tokenName)
+      (arg #tokenCode -> tokenCode)
       (arg #output -> fp) -> do
-        (maybe printTextLn writeFileUtf8 fp) $
+        let
+          originationParams = OriginationParameters
+            { opOwner = owner
+            , opRedeemAddress = redeem
+            , opBalances = mempty
+            , opTokenName = tokenName
+            , opTokenCode = tokenCode
+            }
+        maybe printTextLn writeFileUtf8 fp $
           makeMigrationParams version_ tzbtcContractRouter $
-            (migrationScripts $ originationParams owner redeem mempty)
+            (migrationScripts originationParams)
   where
     printContract
       :: ( ParameterEntryPoints parameter

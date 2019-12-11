@@ -6,16 +6,24 @@
 
 # Changelog for TZBTC
 
+Changes that affect Michelson code are tagged with `[CONTRACT]`.
+
 Unreleased
 ==========
+
+* [#80](https://github.com/serokell/tezos-btc/pull/80)
+  - Add `--token-name` and `--token-code` options to the deploy command.
+  - [CONTRACT] Rename `tokenname` and `tokencode` to `tokenName` and `tokenCode` (affects migration to v1, changes storage representation).
+  - [CONTRACT] Add `GetTokenName`, `GetTokenCode` and `GetRedeemAddress` view entrypoints.
+  - Expose new entrypoints from CLI.
 
 * [#77](https://github.com/serokell/tezos-btc/pull/77)
   Support tz2 and tz3 address in CLI.
 
-* Use more efficient `duupX` implementation when its parameter is greater than 2.
+* [CONTRACT] Use more efficient `duupX` implementation when its parameter is greater than 2.
 
 * [#75](https://github.com/serokell/tezos-btc/pull/75)
-  Rename administrator to owner.
+  [CONTRACT] Rename administrator to owner.
 
 0.1.1
 =====

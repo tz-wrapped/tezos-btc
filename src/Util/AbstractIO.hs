@@ -21,13 +21,14 @@ import Data.Aeson (FromJSON)
 import Options.Applicative as Opt
 
 import Tezos.Address
-import Tezos.Crypto
 import Tezos.Common.Json (TezosInt64)
+import Tezos.Crypto
 import Tezos.V005.Micheline (Expression)
 
 import Client.Error
 import Client.Types
 import Lorentz.Constraints
+import Lorentz.Contracts.TZBTC (OriginationParameters)
 
 -- File system operations
 class (Monad m) => HasFilesystem m  where
@@ -61,7 +62,7 @@ class (HasTezosClient m, HasConfig m, Monad m, MonadThrow m) => HasTezosRpc m wh
   getStorage :: Text -> m Expression
   getCounter :: Text -> m TezosInt64
   getFromBigMap :: Natural -> Text -> m (Either TzbtcClientError Expression)
-  deployTzbtcContract :: Address -> Address -> m ()
+  deployTzbtcContract :: OriginationParameters -> m ()
 
 -- Interaction with tezos client binary
 class (HasConfig m, Monad m) => HasTezosClient m where

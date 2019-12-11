@@ -8,7 +8,7 @@ module Client.Main
 
 import Data.Version (showVersion)
 import Data.Vinyl
-import Fmt (pretty)
+import Fmt (Buildable, pretty)
 import Options.Applicative
   (footerDoc, fullDesc, header, help, helper, info, infoOption, long, progDesc)
 import Options.Applicative.Help.Pretty (Doc, linebreak)
@@ -17,7 +17,6 @@ import Lorentz hiding (address, balance, chainId, cons, map)
 import Lorentz.Macro (View(..))
 import Lorentz.Value (ToContractRef(..))
 import Paths_tzbtc (version)
-import Tezos.Address
 import Util.Named ((.!))
 import Util.TypeLits
 
@@ -28,12 +27,13 @@ import Util.AbstractIO
 import Util.MultiSig
 
 mainProgram
-  :: ( MonadThrow m
-     , MonadFail m
-     , HasTezosRpc m
-     , HasEditor m
-     , HasCmdLine m
-     ) => m ()
+  :: forall m.
+  ( MonadThrow m
+  , MonadFail m
+  , HasTezosRpc m
+  , HasEditor m
+  , HasCmdLine m
+  ) => m ()
 mainProgram = do
   ClientArgs cmd dryRunFlag <- parseCmdLine programInfo
   case dryRunFlag of
@@ -99,38 +99,20 @@ mainProgram = do
           fromFlatParameter $ TransferOwnership (#newOwner .! newOwner)
       CmdAcceptOwnership p -> runTzbtcContract $
         fromFlatParameter $ AcceptOwnership p
-      CmdGetTotalSupply mbCallback' -> do
-        case mbCallback' of
-          Just callback' -> do
-            callback <- addrOrAliasToAddr callback'
-            runTzbtcContract $
-              fromFlatParameter $ GetTotalSupply $ View () (toContractRef callback)
-          Nothing -> do
-            printFieldFromStorage @Natural #totalSupply "Total supply: " show
-      CmdGetTotalMinted mbCallback' -> do
-        case mbCallback' of
-          Just callback' -> do
-            callback <- addrOrAliasToAddr callback'
-            runTzbtcContract $
-              fromFlatParameter $ GetTotalMinted $ View () (toContractRef callback)
-          Nothing ->
-            printFieldFromStorage @Natural #totalMinted "Total minted: " show
-      CmdGetTotalBurned mbCallback' -> do
-        case mbCallback' of
-          Just callback' -> do
-            callback <- addrOrAliasToAddr callback'
-            runTzbtcContract $
-              fromFlatParameter $ GetTotalBurned $ View () (toContractRef callback)
-          Nothing ->
-            printFieldFromStorage @Natural #totalBurned "Total burned: " show
-      CmdGetOwner mbCallback' -> do
-        case mbCallback' of
-          Just callback' -> do
-            callback <- addrOrAliasToAddr callback'
-            runTzbtcContract $
-              fromFlatParameter $ GetOwner $ View () (toContractRef callback)
-          Nothing ->
-            printFieldFromStorage @Address #owner "Owner: " formatAddress
+      CmdGetTotalSupply callback -> do
+        simpleGetter #totalSupply "Total supply" GetTotalSupply callback
+      CmdGetTotalMinted callback -> do
+        simpleGetter #totalMinted "Total minted" GetTotalMinted callback
+      CmdGetTotalBurned callback -> do
+        simpleGetter #totalBurned "Total burned" GetTotalBurned callback
+      CmdGetOwner callback ->
+        simpleGetter #owner "Owner" GetOwner callback
+      CmdGetTokenName callback ->
+        simpleGetter #tokenName "Token name" GetTokenName callback
+      CmdGetTokenCode callback ->
+        simpleGetter #tokenCode "Token code" GetTokenCode callback
+      CmdGetRedeemAddress callback ->
+        simpleGetter #redeemAddress "Redeem address" GetRedeemAddress callback
       CmdGetOpDescription packageFilePath -> do
         pkg <- getPackageFromFile packageFilePath
         case pkg of
@@ -162,11 +144,19 @@ mainProgram = do
         case pkgs of
           Left err -> printTextLn err
           Right packages -> runMultisigContract packages
-      CmdDeployContract owner' redeem' -> do
-        [owner, redeem] <- mapM addrOrAliasToAddr [owner', redeem']
-        deployTzbtcContract owner redeem
+      CmdDeployContract DeployContractOptions {..} -> do
+        [owner, redeem] <- mapM addrOrAliasToAddr [dcoOwner, dcoRedeem]
+        let
+          originationParams = OriginationParameters
+            { opOwner = owner
+            , opRedeemAddress = redeem
+            , opBalances = mempty
+            , opTokenName = dcoTokenName
+            , opTokenCode = dcoTokenCode
+            }
+        deployTzbtcContract originationParams
   where
-    runMultisigTzbtcContract :: (HasCmdLine m, HasTezosRpc m) => (Maybe FilePath) -> Parameter i s -> m ()
+    runMultisigTzbtcContract :: Maybe FilePath -> Parameter i s -> m ()
     runMultisigTzbtcContract mbMultisig param =
       case mbMultisig of
         Just fp -> case toSafeParam param of
@@ -174,12 +164,12 @@ mainProgram = do
           _ -> printStringLn "Unable to call multisig for View entrypoints"
         Nothing -> runTzbtcContract param
     printFieldFromStorage
-      :: forall t name m. (HasCmdLine m, HasTezosRpc m, HasStoreTemplateField t name)
-      => Label name -> Text -> (t -> Text) -> m ()
-    printFieldFromStorage _ prefix formatter = do
+      :: forall t name. (HasStoreTemplateField t name, Buildable t)
+      => Label name -> Text -> m ()
+    printFieldFromStorage _ descr = do
       mbField <- getFieldFromTzbtcUStore @name @t
       case mbField of
-        Just field' -> printTextLn $ prefix <> formatter field'
+        Just field' -> printTextLn $ descr <> ": " <> pretty field'
         Nothing -> printTextLn $ "Field " <>
           symbolValT' @name <> " not found in the contract storage"
     programInfo =
@@ -208,3 +198,16 @@ mainProgram = do
       , "  to the chain.", linebreak
       , "  Operation hash is returned as a result.", linebreak
       ]
+
+    simpleGetter ::
+      forall a name i s.
+      (HasStoreTemplateField a name, Buildable a, NiceParameter a) =>
+      Label name -> Text -> (View () a -> FlatParameter i s) ->
+      Maybe AddrOrAlias -> m ()
+    simpleGetter label descr mkFlatParam = \case
+      Just callback' -> do
+        callback <- addrOrAliasToAddr callback'
+        runTzbtcContract $
+          fromFlatParameter $ mkFlatParam $ View () (toContractRef callback)
+      Nothing -> do
+        printFieldFromStorage @a label descr

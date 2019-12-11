@@ -9,7 +9,6 @@ module Lorentz.Contracts.TZBTC.V1
   ( Interface
   , StoreTemplate(..)
   , migrationScriptsRaw
-  , originationParams
   , tzbtcContractRouterRaw
   )
 where
@@ -19,10 +18,10 @@ import Prelude hiding (drop, (>>))
 import qualified Data.Map as M
 
 import Lorentz
-import Lorentz.Contracts.Upgradeable.EntryPointWise
 import Lorentz.Contracts.Upgradeable.Common.Base
-import Util.TypeTuple.Class
+import Lorentz.Contracts.Upgradeable.EntryPointWise
 import Util.Named
+import Util.TypeTuple.Class
 
 import qualified Lorentz.Contracts.TZBTC.Impl as TZBTC
 import Lorentz.Contracts.TZBTC.Types
@@ -33,10 +32,17 @@ v1Impl = recFromTuple
   , #callGetBalance //==> (toSafeView TZBTC.getBalance)
   , #callGetTotalSupply //==> (toSafeView TZBTC.getTotalSupply)
   , #callGetTotalMinted //==> (toSafeView $
-      TZBTC.getTotal #totalMinted "Return total number of minted tokens")
+      TZBTC.getSingleField #totalMinted "the total number of minted tokens")
   , #callGetTotalBurned //==> (toSafeView $
-      TZBTC.getTotal #totalBurned "Return total number of burned tokens")
-  , #callGetOwner //==> (toSafeView TZBTC.getOwner)
+      TZBTC.getSingleField #totalBurned "the total number of burned tokens")
+  , #callGetOwner //==> (toSafeView $
+      TZBTC.getSingleField #owner "the current contract owner")
+  , #callGetTokenName //==> (toSafeView $
+      TZBTC.getSingleField #tokenName "the token name")
+  , #callGetTokenCode //==> (toSafeView $
+      TZBTC.getSingleField #tokenCode "the token code")
+  , #callGetRedeemAddress //==> (toSafeView $
+      TZBTC.getSingleField #redeemAddress "the redeem address")
   , #callTransfer //==> TZBTC.transfer
   , #callApprove //==> TZBTC.approve
   , #callMint //==> TZBTC.mint
@@ -83,16 +89,6 @@ v1Impl = recFromTuple
 tzbtcContractRouterRaw :: UContractRouter Interface StoreTemplate
 tzbtcContractRouterRaw = epwServe epwContract
 
-originationParams :: Address -> Address -> Map Address Natural -> OriginationParameters
-originationParams addr redeem balances =
-  OriginationParameters
-    { opMaster = addr
-    , opRedeemAddress = redeem
-    , opBalances = balances
-    , opTokenname = [mt|TZBTC|]
-    , opTokencode = [mt|TZBTC|]
-    }
-
 -- | Migrations to version 1 before preprocessing.
 migrationScriptsRaw :: OriginationParameters -> [MigrationScript]
 migrationScriptsRaw op = migrateStorage op : epwCodeMigrations epwContract
@@ -104,7 +100,7 @@ originationParamsToStoreTemplate :: OriginationParameters -> StoreTemplate
 originationParamsToStoreTemplate OriginationParameters {..} = let
   total = Prelude.sum $ M.elems opBalances
   in StoreTemplate
-    { owner = UStoreField opMaster
+    { owner = UStoreField opOwner
     , paused = UStoreField False
     , totalSupply = UStoreField total
     , totalMinted = UStoreField total
@@ -112,8 +108,8 @@ originationParamsToStoreTemplate OriginationParameters {..} = let
     , newOwner = UStoreField Nothing
     , operators = UStoreField mempty
     , redeemAddress = UStoreField opRedeemAddress
-    , tokenname = UStoreField opTokenname
-    , tokencode = UStoreField opTokencode
+    , tokenName = UStoreField opTokenName
+    , tokenCode = UStoreField opTokenCode
     , code = UStoreSubMap mempty
     , fallback = UStoreField epwFallbackFail
     , ledger = UStoreSubMap $ toLedgerValue <$> opBalances

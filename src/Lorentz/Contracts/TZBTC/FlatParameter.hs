@@ -16,11 +16,11 @@ import Lorentz
 import Lorentz.Contracts.Upgradeable.Common hiding (Parameter(..), Storage, mkEmptyStorage)
 import Util.Named
 
-import qualified Lorentz.Contracts.TZBTC.Types as TZBTC
 import Lorentz.Contracts.TZBTC.Types
-  ( UpgradeParameters, GetAllowanceParams, GetBalanceParams, TransferParams, ApproveParams
-  , MintParams, BurnParams, OperatorParams, SetRedeemAddressParams
-  , TransferOwnershipParams, AcceptOwnershipParams)
+  (AcceptOwnershipParams, ApproveParams, BurnParams, GetAllowanceParams, GetBalanceParams,
+  MintParams, OperatorParams, SetRedeemAddressParams, TransferOwnershipParams, TransferParams,
+  UpgradeParameters)
+import qualified Lorentz.Contracts.TZBTC.Types as TZBTC
 
 -- | This is a type that is meant to hide details of how the actual parameter
 -- is structured, so that consumers of the contract are spared of any changes
@@ -40,6 +40,9 @@ data FlatParameter interface store
   | GetTotalMinted      !(View () Natural)
   | GetTotalBurned      !(View () Natural)
   | GetOwner            !(View () Address)
+  | GetTokenName        !(View () MText)
+  | GetTokenCode        !(View () MText)
+  | GetRedeemAddress    !(View () Address)
   | Transfer            !TransferParams
   | Approve             !ApproveParams
   | Mint                !MintParams
@@ -80,4 +83,6 @@ fromFlatParameter = \case
   GetTotalMinted a -> TZBTC.GetTotalMinted a
   GetTotalBurned a -> TZBTC.GetTotalBurned a
   GetOwner a -> TZBTC.GetOwner a
-
+  GetTokenName a -> TZBTC.GetTokenName a
+  GetTokenCode a -> TZBTC.GetTokenCode a
+  GetRedeemAddress a -> TZBTC.GetRedeemAddress a

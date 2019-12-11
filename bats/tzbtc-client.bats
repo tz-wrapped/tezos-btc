@@ -4,6 +4,10 @@
 # SPDX-License-Identifier: LicenseRef-Proprietary
 #
 
+setup () {
+  callback="KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46"
+}
+
 @test "invoking tzbtc-client 'approve' command" {
   stack exec -- tzbtc-client approve\
           --spender "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" --value 100 --dry-run
@@ -29,7 +33,7 @@
   stack exec -- tzbtc-client getAllowance\
     --owner "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"\
     --spender "tz3VEZ4k6a4Wx42iyev6i2aVAptTRLEAivNN"\
-    --callback "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46" --dry-run
+    --callback "$callback" --dry-run
 }
 
 @test "invoking tzbtc-client 'getAllowance' command without callback" {
@@ -41,7 +45,7 @@
 @test "invoking tzbtc-client 'getBalance' command" {
   stack exec -- tzbtc-client getBalance\
     --address "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"\
-    --callback "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46" --dry-run
+    --callback "$callback" --dry-run
 }
 
 @test "invoking tzbtc-client 'getBalance' command without callback" {
@@ -51,16 +55,43 @@
 
 @test "invoking tzbtc-client 'getOwner' command" {
   stack exec -- tzbtc-client getOwner\
-    --callback "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46" --dry-run
+    --callback "$callback" --dry-run
 }
 
 @test "invoking tzbtc-client 'getOwner' command without callback" {
   stack exec -- tzbtc-client getOwner --dry-run
 }
 
+@test "invoking tzbtc-client 'getTokenName' command" {
+  stack exec -- tzbtc-client getTokenName\
+    --callback "$callback" --dry-run
+}
+
+@test "invoking tzbtc-client 'getTokenName' command without callback" {
+  stack exec -- tzbtc-client getTokenName --dry-run
+}
+
+@test "invoking tzbtc-client 'getTokenCode' command" {
+  stack exec -- tzbtc-client getTokenCode\
+    --callback "$callback" --dry-run
+}
+
+@test "invoking tzbtc-client 'getTokenCode' command without callback" {
+  stack exec -- tzbtc-client getTokenCode --dry-run
+}
+
+@test "invoking tzbtc-client 'getRedeemAddress' command" {
+  stack exec -- tzbtc-client getRedeemAddress\
+    --callback "$callback" --dry-run
+}
+
+@test "invoking tzbtc-client 'getRedeemAddress' command without callback" {
+  stack exec -- tzbtc-client getRedeemAddress --dry-run
+}
+
 @test "invoking tzbtc-client 'getTotalSupply' command" {
   stack exec -- tzbtc-client getTotalSupply\
-    --callback "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46" --dry-run
+    --callback "$callback" --dry-run
 }
 
 @test "invoking tzbtc-client 'getTotalSupply' command without callback" {
@@ -69,7 +100,7 @@
 
 @test "invoking tzbtc-client 'getTotalMinted' command" {
   stack exec -- tzbtc-client getTotalMinted\
-    --callback "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46" --dry-run
+    --callback "$callback" --dry-run
 }
 
 @test "invoking tzbtc-client 'getTotalMinted' command without callback" {
@@ -78,7 +109,7 @@
 
 @test "invoking tzbtc-client 'getTotalBurned' command" {
   stack exec -- tzbtc-client getTotalBurned\
-    --callback "KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46" --dry-run
+    --callback "$callback" --dry-run
 }
 
 @test "invoking tzbtc-client 'getTotalBurned' command without callback" {
@@ -112,55 +143,21 @@
 }
 
 @test "deploy contract" {
-  stack exec -- tzbtc-client deployTzbtcContract --owner boba --redeem boba --dry-run
+  stack exec -- tzbtc-client deployTzbtcContract --owner boba --redeem boba --token-name Kukareq --token-code Cococoq --dry-run
 }
 
-@test "invoking tzbtc 'printContract' command" {
-  stack exec -- tzbtc printContract
-}
-
-@test "invoking tzbtc 'migrate' command" {
-  stack exec -- tzbtc migrate --version 1 --ownerAddress "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --redeemAddress "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"
-}
-
-@test "invoking tzbtc 'printContract' command with --oneline flag" {
-  result="$(stack exec -- tzbtc printContract --oneline)"
-  [[ "$result" == *"%transfer"* ]]
-  [[ "$result" == *"%approve"* ]]
-  [[ "$result" == *"%getBalance"* ]]
-  [[ "$result" == *"%getAllowance"* ]]
-  [[ "$result" == *"%getTotalSupply"* ]]
-  [[ "$result" == *"%mint"* ]]
-}
-
-@test "invoking tzbtc 'printContractDoc' command" {
-  stack exec -- tzbtc printContractDoc
-}
-
-@test "invoking tzbtc 'printInitialStorage' command" {
-  result="$(stack exec -- tzbtc printInitialStorage --owner-address tz1f1S7V2hZJ3mhj47djb5j1saek8c2yB2Cx)"
-  [ "$result" == 'Pair { Elt 0x0501000000056f776e6572 0x050a000000160000d476acd953eb55d38c398c85c3f53e19b62b167a } (Pair { CDR; NIL operation; PAIR } (Pair 0 False))' ]
-}
-
-@test "invoking 'parseContractParameter' command to parse burn parameter" {
-  raw_parameter="Right (Right (Right (Right (Left (Left (Right 100500))))))"
-  exec_command="stack exec -- tzbtc parseContractParameter '${raw_parameter}'"
-  result=$(eval $exec_command)
-  [ "$result" == 'Burn, value = 100500' ]
-}
-
-@test "invoking tzbtc 'setupClient' command without arguments" {
+@test "invoking tzbtc-client 'setupClient' command without arguments" {
   stack exec -- tzbtc-client setupClient
 }
 
-@test "invoking tzbtc 'config' command without arguments" {
+@test "invoking tzbtc-client 'config' command without arguments" {
   stack exec -- tzbtc-client config
 }
 
-@test "invoking tzbtc 'config --edit' command with available arguments" {
+@test "invoking tzbtc-client 'config --edit' command with available arguments" {
   stack exec -- tzbtc-client config --edit --node-url "localhost" --node-port "9900" --contract-address "KT1HmhmNcZKmm2NsuyahdXAaHQwYfWfdrBxi" --multisig-address "KT1HmhmNcZKmm2NsuyahdXAaHQwYfWfdrBxi" --alias alice --tezos-client /local/bin/tezos-client
 }
 
-@test "invoking tzbtc 'setupClient' command with arguments" {
+@test "invoking tzbtc-client 'setupClient' command with arguments" {
   stack exec -- tzbtc-client setupClient --node-url "localhost" --node-port "9900" --use-https --contract-address "KT1HmhmNcZKmm2NsuyahdXAaHQwYfWfdrBxi" --multisig-address "KT1HmhmNcZKmm2NsuyahdXAaHQwYfWfdrBxi" --alias alice --tezos-client /local/bin/tezos-client
 }

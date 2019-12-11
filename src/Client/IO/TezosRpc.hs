@@ -32,7 +32,6 @@ import Lorentz.Contracts.TZBTC
 import Lorentz.Contracts.TZBTC.Preprocess (migrationScripts, tzbtcContract, tzbtcContractRouter)
 import Lorentz.Contracts.TZBTC.Types (StorageFields(..))
 import Lorentz.Contracts.TZBTC.V0 (mkEmptyStorageV0)
-import Lorentz.Contracts.TZBTC.V1 (originationParams)
 
 -- | Datatype that contains various values required for
 -- chain operations.
@@ -244,11 +243,11 @@ originateTzbtcContract owner config@ClientConfig{..} = do
           "Error during contract origination, expecting to \
           \originate exactly one contract."
 
-deployTzbtcContract :: ClientConfig -> Address -> Address -> IO Address
-deployTzbtcContract config@ClientConfig{..} owner redeem = do
+deployTzbtcContract :: ClientConfig -> OriginationParameters -> IO Address
+deployTzbtcContract config@ClientConfig{..} op = do
   putTextLn "Originate contract"
-  contractAddr <- throwLeft $ originateTzbtcContract owner config
-  let migration = migrationScripts (originationParams owner redeem mempty)
+  contractAddr <- throwLeft $ originateTzbtcContract (opOwner op) config
+  let migration = migrationScripts op
       transactionsToTzbtc params = runTransactions contractAddr params config
   AlmostStorage{..} <- getTzbtcStorage contractAddr
   putTextLn "Upgrade contract to V1"
