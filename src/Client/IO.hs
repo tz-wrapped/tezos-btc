@@ -22,7 +22,7 @@ module Client.IO
   , writePackageToFile
   ) where
 
-import qualified Data.Aeson as Aeson (FromJSON, ToJSON, decodeFileStrict)
+import qualified Data.Aeson as Aeson (ToJSON, FromJSON)
 import qualified Data.ByteString as BS (readFile, writeFile)
 import qualified Data.ByteString.Char8 as BSC (putStrLn)
 import qualified Data.Map as Map
@@ -48,6 +48,7 @@ import qualified Client.IO.Config as IO
 import qualified Client.IO.HttpClient as IO
 import qualified Client.IO.TezosClient as IO
 import qualified Client.IO.TezosRpc as IO
+import qualified Client.IO.FileSystem as IO
 import Client.Types
 import Client.Util
 import Lorentz.Contracts.TZBTC
@@ -65,8 +66,8 @@ instance HasFilesystem IO where
   writeFileUtf8 = UIO.writeFileUtf8
   readFile = BS.readFile
   doesFileExist = Directory.doesFileExist
-  decodeFileStrict = Aeson.decodeFileStrict
   createDirectoryIfMissing f p = Directory.createDirectoryIfMissing f (unDirPath p)
+  getConfigPaths = IO.getConfigPaths
 
 instance HasCmdLine IO  where
   parseCmdLine = execParser
@@ -75,22 +76,21 @@ instance HasCmdLine IO  where
   printByteString = BSC.putStrLn
   confirmAction = IO.confirmAction
 
-instance HasConfig IO where
-  getConfigPaths = IO.getConfigPaths
+instance (Monad m, HasCmdLine m, HasFilesystem m) => HasConfig m where
   readConfigText = readConfig_
   readConfig = readConfig_
   writeConfigFull = writeConfig_
   writeConfigPartial = writeConfig_
   writeConfigText = writeConfig_
 
-readConfig_ :: (Aeson.FromJSON a) => IO (Either TzbtcClientError a)
+readConfig_ :: (Aeson.FromJSON a, HasFilesystem m) => m (Either TzbtcClientError a)
 readConfig_ = do
-  p <- snd <$> IO.getConfigPaths
+  p <- snd <$> getConfigPaths
   IO.readConfig p
 
-writeConfig_ :: (Aeson.ToJSON a) => a -> IO ()
+writeConfig_ :: (Aeson.ToJSON a, HasCmdLine m, HasFilesystem m) => a -> m ()
 writeConfig_ config = do
-  p <- snd <$> IO.getConfigPaths
+  p <- snd <$> getConfigPaths
   IO.writeConfig p config
 
 instance HasTezosClient IO where

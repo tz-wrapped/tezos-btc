@@ -17,7 +17,6 @@ module Util.AbstractIO
   , HasTezosRpc(..)
   ) where
 
-import Data.Aeson (FromJSON)
 import Options.Applicative as Opt
 
 import Tezos.Address
@@ -36,12 +35,11 @@ class (Monad m) => HasFilesystem m  where
   writeFile :: FilePath -> ByteString -> m ()
   readFile :: FilePath -> m ByteString
   doesFileExist :: FilePath -> m Bool
-  decodeFileStrict :: (FromJSON a) => FilePath -> m (Maybe a)
   createDirectoryIfMissing :: Bool -> DirPath -> m ()
+  getConfigPaths :: m (DirPath, FilePath)
 
 -- Config paths, reads and writes
 class (Monad m, HasFilesystem m) => HasConfig m  where
-  getConfigPaths :: m (DirPath, FilePath)
   readConfig :: m (Either TzbtcClientError ClientConfig)
   readConfigText :: m (Either TzbtcClientError ClientConfigText)
   writeConfigFull :: ClientConfig -> m ()
