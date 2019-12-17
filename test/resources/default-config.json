@@ -1,0 +1,9 @@
+{
+    "contract_address": "-- Optional field: contract address, Replace this placeholder with proper value or `null` if not required --",
+    "multisig_address": "-- Optional field: multisig contract address, Replace this placeholder with proper value or `null` if not required --",
+    "node_address": "-- Required field: url to the tezos node, Replace this placeholder with proper value --",
+    "node_port": "-- Required field: rpc port of the tezos node, Replace this placeholder with proper value --",
+    "node_use_https": false,
+    "tezos_client_executable": "tezos-client",
+    "user_alias": "-- Required field: user alias, Replace this placeholder with proper value --"
+}

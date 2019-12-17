@@ -392,7 +392,7 @@ toConfigFilled p = ClientConfig
   <$> (toMaybe $ ccNodeAddress p)
   <*> (toMaybe $ ccNodePort p)
   <*> (toMaybe $ withDefault' False $ ccNodeUseHttps p)
-  <*> (toMaybe $ ccContractAddress p)
+  <*> (toMaybe $ withDefault' Nothing $ ccContractAddress p)
   <*> (toMaybe $ withDefault' Nothing $ ccMultisigAddress p)
   <*> (toMaybeText $ ccUserAlias p)
   <*> (toMaybe $ ccTezosClientExecutable p)
@@ -409,12 +409,17 @@ toConfigFilled p = ClientConfig
     toMaybeText (Available a) = if T.isPrefixOf "-- " a then Nothing else Just a
     toMaybeText _ = Nothing
 
-instance (ToJSON a, KnownSymbol l) => ToJSON (Partial l a) where
+instance {-# OVERLAPPABLE #-} (ToJSON a, KnownSymbol l) => ToJSON (Partial l a) where
   toJSON v = case v of
     Available a -> toJSON a
     Unavailable ->
       toJSON $ "-- Required field: "
         ++ (symbolVal (Proxy @l) ++ ", Replace this placeholder with proper value --")
+
+instance (ToJSON a, KnownSymbol l) => ToJSON (Partial l (Maybe a)) where
+  toJSON v = case v of
+    Available a -> toJSON a
+    Unavailable -> toJSON $ "-- Optional field: " ++ (symbolVal (Proxy @l) ++ ", Replace this placeholder with proper value or `null` if not required --")
 
 instance ToJSON ClientConfigPartial where
   toJSON = genericToJSON (aesonPrefix snakeCase)
