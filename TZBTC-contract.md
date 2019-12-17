@@ -6,7 +6,7 @@
 
 # TZBTC
 
-**Code revision:** [2be70c0](https://github.com/serokell/tezos-btc/commit/2be70c08bbffad2e73f71285657751778b826a61) *(Tue Dec 10 18:12:58 2019 +0300)*
+**Code revision:** [0bab549](https://github.com/serokell/tezos-btc/commit/0bab549c4971c9ef547505da12da1f3e8f8adc8c) *(Tue Dec 17 07:55:36 2019 +0530)*
 
 This contract is implemented using Lorentz language.
 Basically, this contract is [FA1.2](https://gitlab.com/serokell/morley/tzip/blob/master/A/FA1.2.md)-compatible approvable ledger that maps user addresses to their token balances. The main idea of this token contract is to provide 1-to-1 correspondance with BTC.
