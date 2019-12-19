@@ -11,19 +11,21 @@ import Data.Text.Lazy as LT
 import Lorentz
 
 import Lorentz.Contracts.TZBTC
-import Lorentz.Contracts.Upgradeable.Common (UContractRouter, MigrationScript)
+import Lorentz.Contracts.TZBTC.V0
+import Lorentz.Contracts.Upgradeable.Common
+  (MigrationScript, UContractRouter, coerceUContractRouter)
 
 makeMigrationParams
   :: Natural
-  -> UContractRouter Interface StoreTemplate
-  -> [MigrationScript]
+  -> UContractRouter TZBTCv1
+  -> [MigrationScript StoreTemplateV0 StoreTemplate]
   -> LText
 makeMigrationParams version contractCode scripts = case version of
   1 ->
     LT.intercalate "\n" $
-      printLorentzValue True <$>
+      printLorentzValue @(Parameter TZBTCv0) True <$>
         [ fromFlatParameter $ EpwBeginUpgrade 1
-        , fromFlatParameter $ EpwSetCode contractCode
-        ] ++ (fromFlatParameter . EpwApplyMigration <$> scripts)
+        , fromFlatParameter $ EpwSetCode $ coerceUContractRouter contractCode
+        ] ++ (fromFlatParameter . EpwApplyMigration . checkedCoerce <$> scripts)
           ++ [fromFlatParameter EpwFinishUpgrade]
   _ -> error "unknown version"

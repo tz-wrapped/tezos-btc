@@ -34,16 +34,16 @@ module Client.Types
   ) where
 
 import Data.Aeson
-  (FromJSON(..), ToJSON(..), Value(..), object, withObject, (.=), (.:), (.:?), (.!=))
+  (FromJSON(..), ToJSON(..), Value(..), object, withObject, (.!=), (.:), (.:?), (.=))
 import Data.Aeson.Casing (aesonPrefix, snakeCase)
 import Data.Aeson.TH (deriveFromJSON, deriveToJSON)
 import Data.List (isSuffixOf)
 import Data.Vector (fromList)
 import Fmt (Buildable(..), (+|), (|+))
 import Tezos.Common.Base16ByteString (Base16ByteString(..))
+import Tezos.Common.Json (StringEncode(..), TezosInt64)
 import Tezos.V005.Micheline
   (Expression(..), MichelinePrimAp(..), MichelinePrimitive(..), annotToText)
-import Tezos.Common.Json (StringEncode(..), TezosInt64)
 
 import Michelson.Text (MText)
 import Michelson.Typed (IsoValue)
@@ -116,9 +116,9 @@ instance Buildable MichelsonExpression where
         mconcat . intersperse ", " . map
         buildElem . toList
 
-data AlmostStorage interface store = AlmostStorage
+data AlmostStorage sign = AlmostStorage
   { asBigMapId :: Natural
-  , asFields :: StorageFields interface store
+  , asFields :: StorageFields sign
   } deriving stock (Show, Generic)
     deriving anyclass IsoValue
 

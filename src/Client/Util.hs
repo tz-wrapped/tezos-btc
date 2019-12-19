@@ -41,7 +41,7 @@ import Tezos.Crypto (blake2b)
 import Client.Error (TzbtcClientError(..))
 import Client.Types
 import Lorentz.Contracts.TZBTC.Types (Storage(..))
-import Lorentz.Contracts.TZBTC.V0 (Interface, Parameter(..), StoreTemplateV0, UStoreV0)
+import Lorentz.Contracts.TZBTC.V0 (Parameter(..), TZBTCv0, UStoreV0)
 
 nicePackedValueToExpression
   :: forall param.
@@ -56,7 +56,7 @@ codeToExpression :: Instr inp out -> Expression
 codeToExpression = decode . packCode'
 
 mkOriginationScript
-  :: Contract (Parameter Interface StoreTemplateV0) UStoreV0 -> UStoreV0 -> OriginationScript
+  :: Contract (Parameter TZBTCv0) UStoreV0 -> UStoreV0 -> OriginationScript
 mkOriginationScript contract Storage{..} = OriginationScript
   { osCode = Expression_Seq $ fromList
     [ Expression_Prim $

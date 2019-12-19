@@ -17,7 +17,6 @@ import Options.Applicative.Help.Pretty (Doc, linebreak)
 
 import Lorentz hiding (address, balance, chainId, cons, map)
 import Lorentz.Macro (View(..))
-import Lorentz.Value (ToContractRef(..))
 import Paths_tzbtc (version)
 import Util.Named ((.!))
 import Util.TypeLits
@@ -69,7 +68,8 @@ mainProgram = do
             Just callback' -> do
               [owner, spender, callback] <- mapM addrOrAliasToAddr [owner', spender', callback']
               runTzbtcContract $ fromFlatParameter $ GetAllowance $
-                View (#owner .! owner, #spender .! spender) (toContractRef callback)
+                mkView (#owner .! owner, #spender .! spender)
+                       (toTAddress callback)
             Nothing -> do
               [owner, spender] <- mapM addrOrAliasToAddr [owner', spender']
               allowance <- getAllowance owner spender
@@ -79,7 +79,8 @@ mainProgram = do
             Just callback' -> do
               [owner, callback] <- mapM addrOrAliasToAddr [owner', callback']
               runTzbtcContract $
-                fromFlatParameter $ GetBalance $ View (#owner .! owner) (toContractRef callback)
+                fromFlatParameter $ GetBalance $
+                  mkView (#owner .! owner) (toTAddress callback)
             Nothing -> do
               owner <- addrOrAliasToAddr owner'
               balance <- getBalance owner
@@ -173,7 +174,7 @@ mainProgram = do
             Right c -> printStringLn $ pretty c
             Left err -> printTextLn $ "There was an error reading config:" ++ pretty err
   where
-    runMultisigTzbtcContract :: Maybe FilePath -> Parameter i s -> m ()
+    runMultisigTzbtcContract :: Maybe FilePath -> Parameter SomeTZBTCVersion -> m ()
     runMultisigTzbtcContract mbMultisig param =
       case mbMultisig of
         Just fp -> case toSafeParam param of
@@ -217,14 +218,16 @@ mainProgram = do
       ]
 
     simpleGetter ::
-      forall a name i s.
-      (HasStoreTemplateField a name, Buildable a, NiceParameter a) =>
-      Label name -> Text -> (View () a -> FlatParameter i s) ->
+      forall a name.
+      ( HasStoreTemplateField a name, Buildable a
+      , NiceParameterFull a, NoExplicitDefaultEntryPoint a
+      ) =>
+      Label name -> Text -> (View () a -> FlatParameter SomeTZBTCVersion) ->
       Maybe AddrOrAlias -> m ()
     simpleGetter label descr mkFlatParam = \case
       Just callback' -> do
         callback <- addrOrAliasToAddr callback'
         runTzbtcContract $
-          fromFlatParameter $ mkFlatParam $ View () (toContractRef callback)
+          fromFlatParameter $ mkFlatParam $ View () (callingDefTAddress $ toTAddress @a callback)
       Nothing -> do
         printFieldFromStorage @a label descr

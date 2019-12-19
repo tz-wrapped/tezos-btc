@@ -12,15 +12,20 @@ module Lorentz.Contracts.TZBTC
   , SafeParameter
   , Storage(..)
   , StoreTemplate(..)
+  , TZBTCv0
+  , TZBTCv1
+  , SomeTZBTCVersion
+  , TZBTCVersionC
   , TZBTCParameter
   , TZBTCStorage
-  , UpgradeParameters
+  , OneShotUpgradeParameters
   , OriginationParameters (..)
   , tzbtcContract
   , fromFlatParameter
   , mkEmptyStorageV0
   , migrationScripts
   , toSafeParam
+  , makeOneShotUpgradeParameters
   , tzbtcContractRouter
   , tzbtcDoc
   ) where
@@ -35,6 +40,6 @@ import Lorentz.Contracts.TZBTC.V0
 -- Implementation
 ----------------------------------------------------------------------------
 
-toSafeParam :: Parameter i s -> Maybe (SafeParameter i s)
+toSafeParam :: Parameter s -> Maybe (SafeParameter s)
 toSafeParam (SafeEntrypoints s) = Just s
 toSafeParam _ = Nothing

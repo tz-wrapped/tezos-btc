@@ -4,6 +4,7 @@
  -}
 
 -- Use of Lorentz.TestScenario has been deprecated.
+-- TODO [TBTC-86]: remove
 {-# OPTIONS_GHC -Wno-deprecations #-}
 
 module Main
@@ -24,8 +25,8 @@ import Paths_tzbtc (version)
 import CLI.Parser
 import Client.IO ()
 import Lorentz.Contracts.TZBTC
-  (OriginationParameters(..), Parameter, migrationScripts, mkEmptyStorageV0, tzbtcContract,
-  tzbtcContractRouter, tzbtcDoc)
+  (OriginationParameters(..), Parameter, TZBTCv1, migrationScripts, mkEmptyStorageV0,
+  tzbtcContract, tzbtcContractRouter, tzbtcDoc)
 import Lorentz.Contracts.TZBTC.Test (mkTestScenario)
 import Util.AbstractIO
 import Util.Migration
@@ -45,7 +46,7 @@ main = do
       maybe printTextLn writeFileUtf8 mbFilePath (contractDocToMarkdown tzbtcDoc)
     CmdParseParameter t ->
       either (throwString . pretty) (printStringLn . pretty) $
-      parseLorentzValue @(Parameter _ _) t
+      parseLorentzValue @(Parameter TZBTCv1) t
     CmdTestScenario TestScenarioOptions {..} -> do
       maybe (throwString "Not enough addresses")
         (maybe printTextLn writeFileUtf8 tsoOutput) $

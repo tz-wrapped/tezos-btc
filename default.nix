@@ -30,8 +30,8 @@ let
   morley-repo = {
     name = "morley";
     url = "https://gitlab.com/morley-framework/morley.git";
-    rev = "01fb7473cb36216369e8b92db2de669c72ce85f0";
-    sha256 = "11i87kb7qnz37g3m0lqy88f7y1cac6wqg7amyvmpildyw7jy1yq0";
+    rev = "af2c4c3d73d1974f389c7ea816f0a6372905c297";
+    sha256 = "0bxhmraq5skwzg8k49vnj6dwi8yk7yj8f0l2ls6pwsmxcznzywsn";
   };
   gpl = true; # false: not supported yet
   tezos-btc = { buildPkgs, hostPkgs }:

@@ -25,11 +25,14 @@ module Lorentz.Contracts.TZBTC.Types
   , Storage(..)
   , StorageFields(..)
   , StoreTemplate(..)
+  , TZBTCv1
+  , TZBTCVersionC
   , TransferOwnershipParams
   , TZBTCPartInstr
   , TZBTCParameter
   , TZBTCStorage
-  , UpgradeParameters
+  , OneShotUpgradeParameters
+  , Upgradeable.makeOneShotUpgradeParameters
   , UStoreV1
   ) where
 
@@ -37,9 +40,13 @@ import Fmt (Buildable(..), (+|), (|+))
 
 import Lorentz
 import qualified Lorentz.Contracts.ManagedLedger.Types as ManagedLedger
-import Lorentz.Contracts.Upgradeable.Common (MigrationScript, UContractRouter(..))
+import Lorentz.Contracts.Upgradeable.Common
+  (KnownContractVersion(..), MigrationScript, MigrationScriptFrom, OneShotUpgradeParameters,
+  PermanentImpl, SomeUContractRouter, UContractRouter(..), VerParam, VerUStore, Version,
+  VersionKind)
+import qualified Lorentz.Contracts.Upgradeable.Common as Upgradeable
 import Lorentz.Contracts.Upgradeable.EntryPointWise
-import Lorentz.EntryPoints (ParameterHasEntryPoints(..), EpdRecursive)
+import Lorentz.EntryPoints (EpdRecursive, ParameterHasEntryPoints(..))
 import Util.Instances ()
 
 type BurnParams = ("value" :! Natural)
@@ -50,16 +57,11 @@ type PauseParams = Bool
 type TransferOwnershipParams = ("newOwner" :! Address)
 type AcceptOwnershipParams = ()
 
-type UpgradeParameters interface store =
-  ( "newVersion" :! Natural
-  , "migrationScript" :! MigrationScript
-  , "newCode" :! UContractRouter interface store
-  )
+deriving instance Eq (UContractRouter ver)
 
-deriving instance Eq (UContractRouter interface store)
-deriving instance Show (UContractRouter interface store)
+deriving instance Eq (MigrationScript from to)
 
-deriving instance Eq MigrationScript
+deriving instance Eq (PermanentImpl ver)
 
 ----------------------------------------------------------------------------
 -- Parameter
@@ -67,16 +69,16 @@ deriving instance Eq MigrationScript
 -- | This is a type that is supposed to wrap all the 'safe' entrypoints ie the
 -- ones that have arguments that does not contain things like raw contract
 -- values that are forbidden in operations that would end up in the chain.
-data SafeParameter (interface :: [EntryPointKind]) store
-  = Run (UParam interface)
-  | Upgrade (UpgradeParameters interface store)
+data SafeParameter (ver :: VersionKind)
+  = Run (VerParam ver)
+  | Upgrade (OneShotUpgradeParameters ver)
 
   -- Entrypoint-wise upgrades are currently not protected from version mismatch
   -- in subsequent transactions, so the user ought to be careful with them.
   -- This behavior may change in future if deemed desirable.
-  | EpwBeginUpgrade Natural  -- version
-  | EpwApplyMigration ("migrationscript" :! MigrationScript)
-  | EpwSetCode ("contractcode" :! (UContractRouter interface store))
+  | EpwBeginUpgrade Version
+  | EpwApplyMigration ("migrationscript" :! MigrationScriptFrom (VerUStoreTemplate ver))
+  | EpwSetCode ("contractcode" :! SomeUContractRouter)
   | EpwFinishUpgrade
   -- TZBTC Entrypoints
   | Transfer            !ManagedLedger.TransferParams
@@ -93,7 +95,11 @@ data SafeParameter (interface :: [EntryPointKind]) store
   deriving stock (Eq, Generic, Show)
   deriving anyclass IsoValue
 
-instance (Typeable interface, Typeable store) => TypeHasDoc (SafeParameter interface store) where
+instance ( Typeable ver
+         , Typeable (VerInterface ver), Typeable (VerUStoreTemplate ver)
+         , Typeable (VerPermanent ver)
+         , KnownValue (VerPermanent ver), TypeHasDoc (VerPermanent ver)
+         ) => TypeHasDoc (SafeParameter ver) where
   typeDocName _ = "Parameter.SafeParameter"
   typeDocMdDescription = "Parameter which does not have unsafe arguments, like raw `Contract p` values."
   typeDocMdReference tp =
@@ -103,8 +109,8 @@ instance (Typeable interface, Typeable store) => TypeHasDoc (SafeParameter inter
   typeDocDependencies = genericTypeDocDependencies
 
 -- | The actual parameter of the main TZBTC contract.
-data Parameter (interface :: [EntryPointKind]) store
-  = GetVersion (View () Natural)
+data Parameter (ver :: VersionKind)
+  = GetVersion (View () Version)
   -- TZBTC Entrypoints
   | GetAllowance        !(View ManagedLedger.GetAllowanceParams Natural)
   | GetBalance          !(View GetBalanceParams Natural)
@@ -115,14 +121,14 @@ data Parameter (interface :: [EntryPointKind]) store
   | GetTokenName        !(View () MText)
   | GetTokenCode        !(View () MText)
   | GetRedeemAddress    !(View () Address)
-  | SafeEntrypoints (SafeParameter interface store)
+  | SafeEntrypoints (SafeParameter ver)
   deriving stock (Eq, Generic, Show)
   deriving anyclass IsoValue
 
-instance ParameterHasEntryPoints (Parameter i s) where
-  type ParameterEntryPointsDerivation (Parameter i s) = EpdRecursive
+instance (VerPermanent ver ~ Empty) => ParameterHasEntryPoints (Parameter ver) where
+  type ParameterEntryPointsDerivation (Parameter ver) = EpdRecursive
 
-instance Buildable (Parameter i s) where
+instance Buildable (Parameter ver) where
   build = \case
     GetAllowance (View (arg #owner -> owner, arg #spender -> spender) _) ->
       "Get allowance for " +| owner |+ " from " +| spender |+ ""
@@ -186,17 +192,17 @@ instance Buildable (Parameter i s) where
 ---------------------------------------------------------------------------
 
 -- | The concrete fields of the contract
-data StorageFields interface store = StorageFields
-  { contractRouter  :: UContractRouter interface store
-  , currentVersion :: Natural
+data StorageFields (ver :: VersionKind) = StorageFields
+  { contractRouter :: UContractRouter ver
+  , currentVersion :: Version
   , migrating :: Bool
   } deriving stock (Generic, Show)
     deriving anyclass IsoValue
 
 -- | The concrete storage of the contract
-data Storage interface store = Storage
-  { dataMap :: UStore store
-  , fields :: StorageFields interface store
+data Storage (ver :: VersionKind) = Storage
+  { dataMap :: VerUStore ver
+  , fields :: StorageFields ver
   } deriving stock (Generic, Show)
     deriving anyclass IsoValue
 
@@ -247,6 +253,8 @@ newtype SafeView i o = SafeView { unSafeView :: (i, Address) }
    deriving stock (Generic, Show)
    deriving anyclass IsoValue
 
+instance Wrapped (SafeView i o)
+
 -- | Interface of the V1 contract.
 type Interface =
   [ "callGetAllowance" ?: (SafeView ManagedLedger.GetAllowanceParams Natural)
@@ -271,13 +279,22 @@ type Interface =
   , "callAcceptOwnership" ?: AcceptOwnershipParams
   ]
 
+data TZBTCv1 :: VersionKind
+instance KnownContractVersion TZBTCv1 where
+  type VerInterface TZBTCv1 = Interface
+  type VerUStoreTemplate TZBTCv1 = StoreTemplate
+  contractVersion _ = 1
+
 -- | Type of instruction which implements a part of TZBTC Protocol.
 type TZBTCPartInstr param store =
   '[param, UStore store] :->
   '[[Operation], UStore store]
 
-type TZBTCStorage = Storage Interface StoreTemplate
-type TZBTCParameter = Parameter Interface StoreTemplate
+type TZBTCStorage = Storage TZBTCv1
+type TZBTCParameter = Parameter TZBTCv1
+
+-- | Common for all TZBTC versions.
+type TZBTCVersionC ver = (VerPermanent ver ~ Empty, Typeable ver)
 
 ----------------------------------------------------------------------------
 -- Errors

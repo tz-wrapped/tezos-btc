@@ -4,6 +4,7 @@
  -}
 
 -- Use of Lorentz.TestScenario has been deprecated.
+-- TODO [TBTC-86]: remove
 {-# OPTIONS_GHC -Wno-deprecations #-}
 
 module Lorentz.Contracts.TZBTC.Test
@@ -16,7 +17,7 @@ import Util.Named ((.!))
 
 import Lorentz.Contracts.TZBTC
 
-mkTestScenario :: Address -> [Address] -> Maybe (TestScenario (Parameter i s))
+mkTestScenario :: Address -> [Address] -> Maybe (TestScenario (Parameter SomeTZBTCVersion))
 mkTestScenario owner addresses = do
   case addresses of
     addr0 : addr1 : _ -> Just

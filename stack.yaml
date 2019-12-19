@@ -12,7 +12,7 @@ extra-deps:
     https://gitlab.com/morley-framework/morley.git
     # ^ CI cannot use ssh, so we use http clone here
   commit:
-    01fb7473cb36216369e8b92db2de669c72ce85f0 # master
+    af2c4c3d73d1974f389c7ea816f0a6372905c297 # master
   subdirs:
     - .
     - indigo

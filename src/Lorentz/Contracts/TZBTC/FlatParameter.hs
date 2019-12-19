@@ -18,22 +18,22 @@ import Util.Named
 
 import Lorentz.Contracts.TZBTC.Types
   (AcceptOwnershipParams, ApproveParams, BurnParams, GetAllowanceParams, GetBalanceParams,
-  MintParams, OperatorParams, SetRedeemAddressParams, TransferOwnershipParams, TransferParams,
-  UpgradeParameters)
+  MintParams, OneShotUpgradeParameters, OperatorParams, SetRedeemAddressParams,
+  TransferOwnershipParams, TransferParams)
 import qualified Lorentz.Contracts.TZBTC.Types as TZBTC
 
 -- | This is a type that is meant to hide details of how the actual parameter
 -- is structured, so that consumers of the contract are spared of any changes
 -- that might be required when the contract parameter changes structure.
-data FlatParameter interface store
-  = Run (UParam interface)
-  | Upgrade (UpgradeParameters interface store)
-  | EpwBeginUpgrade Natural  -- version
-  | EpwApplyMigration MigrationScript
-  | EpwSetCode (UContractRouter interface store)
+data FlatParameter (ver :: VersionKind)
+  = Run (VerParam ver)
+  | Upgrade (OneShotUpgradeParameters ver)
+  | EpwBeginUpgrade Version
+  | EpwApplyMigration (MigrationScriptFrom (VerUStoreTemplate ver))
+  | EpwSetCode SomeUContractRouter
   | EpwFinishUpgrade
   -- TZBTC Entrypoints
-  | GetVersion (View () Natural)
+  | GetVersion (View () Version)
   | GetAllowance        !(View GetAllowanceParams Natural)
   | GetBalance          !(View GetBalanceParams Natural)
   | GetTotalSupply      !(View () Natural)
@@ -55,7 +55,7 @@ data FlatParameter interface store
   | TransferOwnership   !TransferOwnershipParams
   | AcceptOwnership     !AcceptOwnershipParams
 
-fromFlatParameter :: FlatParameter i s -> TZBTC.Parameter i s
+fromFlatParameter :: FlatParameter s -> TZBTC.Parameter s
 fromFlatParameter = \case
   Run a -> TZBTC.SafeEntrypoints $ TZBTC.Run a
   Upgrade a -> TZBTC.SafeEntrypoints $ TZBTC.Upgrade a
