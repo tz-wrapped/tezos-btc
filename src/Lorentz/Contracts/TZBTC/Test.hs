@@ -2,6 +2,10 @@
  -
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
+
+-- Use of Lorentz.TestScenario has been deprecated.
+{-# OPTIONS_GHC -Wno-deprecations #-}
+
 module Lorentz.Contracts.TZBTC.Test
   ( mkTestScenario
   ) where

@@ -68,7 +68,7 @@ v1Impl = recFromTuple
       coerce_ @(SafeView a b) @((a, Address))
       unpair
       dip $ do
-        contract
+        contractCallingUnsafe DefEpName
         if IsSome then nop else failCustom_ #unexpectedContractType
       pair
       coerce_ @((a, ContractRef b)) @(View a b)

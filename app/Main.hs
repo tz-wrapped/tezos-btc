@@ -2,6 +2,10 @@
  -
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
+
+-- Use of Lorentz.TestScenario has been deprecated.
+{-# OPTIONS_GHC -Wno-deprecations #-}
+
 module Main
   ( main
   ) where
@@ -66,7 +70,7 @@ main = do
             (migrationScripts originationParams)
   where
     printContract
-      :: ( ParameterEntryPoints parameter
+      :: ( NiceParameterFull parameter
          , NiceStorage storage
          , HasFilesystem m
          , HasCmdLine m)

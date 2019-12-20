@@ -39,7 +39,7 @@ import Lorentz
 import qualified Lorentz.Contracts.ManagedLedger.Types as ManagedLedger
 import Lorentz.Contracts.Upgradeable.Common (MigrationScript, UContractRouter(..))
 import Lorentz.Contracts.Upgradeable.EntryPointWise
-import Lorentz.EntryPoints (ParameterEntryPoints(..), pepRecursive)
+import Lorentz.EntryPoints (ParameterHasEntryPoints(..), EpdRecursive)
 import Util.Instances ()
 
 type BurnParams = ("value" :! Natural)
@@ -119,8 +119,8 @@ data Parameter (interface :: [EntryPointKind]) store
   deriving stock (Eq, Generic, Show)
   deriving anyclass IsoValue
 
-instance ParameterEntryPoints (Parameter i s) where
-  parameterEntryPoints = pepRecursive
+instance ParameterHasEntryPoints (Parameter i s) where
+  type ParameterEntryPointsDerivation (Parameter i s) = EpdRecursive
 
 instance Buildable (Parameter i s) where
   build = \case
