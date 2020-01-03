@@ -2,6 +2,7 @@
  -
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
+
 module Client.IO.TezosRpc
   ( deployTzbtcContract
   , getStorage
@@ -13,6 +14,7 @@ import Servant.Client (ClientEnv, runClientM)
 import Servant.Client.Core as Servant (ClientError(..))
 import Tezos.Common.Json (TezosInt64)
 import Tezos.V005.Micheline (Expression)
+import Time
 
 import Lorentz hiding (address, balance, chainId, cons, map)
 import Lorentz.UStore.Migration (manualConcatMigrationScripts)
@@ -268,4 +270,8 @@ deployTzbtcContract config@ClientConfig{..} op = do
 getStorage :: ClientConfig -> Text -> IO Expression
 getStorage config addr = do
   clientEnv <- IO.getClientEnv config
-  throwClientError $ runClientM (API.getStorage addr) clientEnv
+  let
+    delayFn = do
+      hPutStrLn stderr ("Contract storage unavailable, retrying after 10 seconds..." :: String)
+      threadDelay (Time @Second 10)
+  throwClientErrorAfterRetry (15, delayFn) $ runClientM (API.getStorage addr) clientEnv
