@@ -18,9 +18,28 @@ Use `tzbtc-client --help` to get a list of available commands.
 ### Prerequisites
 
 In order to use `tzbtc-client` you will need to obtain `tezos-client`
-executable. You can use various forms of `tezos-client` distribution from
-[tezos-client-packaging repo](https://github.com/serokell/tezos-client-packaging).
-`tezos-client` is used for key storing, operation signing and ledger interaction.
+executable. `tezos-client` is used for key storing, operation signing and ledger interaction.
+For now, `tezos-client` doesn't support packed value signing via ledger,
+so in order to fully use `tzbtc-client` (perform multisig package signing via ledger)
+you should use patched `tezos-client` binary. These binaries are bundled along
+with `tzbtc-client` in the [releases](https://github.com/serokell/tezos-btc/releases).
+
+Alternatively, you can build patched binaries using nix.
+
+In order to do that you should run one of the following commands:
+```
+nix-build release.nix -A tezos-client-mainnet -o tezos-client-mainnet
+
+nix-build release.nix -A tezos-client-babylonnet -o tezos-client-babylonnet
+```
+Thus `tezos-client-{mainnet, babylonnet}` directory will have desired statically built
+binary which can be used later.
+
+For more information about this issue take a look at [MR in tezos repo](https://gitlab.com/tezos/tezos/merge_requests/1449).
+
+If you are not going to use multisig package signing with ledger device,
+you can obtain non-patched version of `tezos-client` in various form of distribution from
+[tezos-packaging repo](https://github.com/serokell/tezos-packaging).
 
 ### `tzbtc-client` usage [↑](#tzbtc-client-executable)
 
