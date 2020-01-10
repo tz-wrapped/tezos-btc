@@ -42,7 +42,7 @@ main = do
     CmdPrintInitialStorage ownerAddress -> do
       printTextLn $ printLorentzValue True (mkEmptyStorageV0 ownerAddress)
     CmdPrintDoc mbFilePath ->
-      maybe printTextLn writeFileUtf8 mbFilePath tzbtcDoc
+      maybe printTextLn writeFileUtf8 mbFilePath (contractDocToMarkdown tzbtcDoc)
     CmdParseParameter t ->
       either (throwString . pretty) (printStringLn . pretty) $
       parseLorentzValue @(Parameter _ _) t

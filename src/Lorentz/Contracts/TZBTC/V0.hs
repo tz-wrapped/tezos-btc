@@ -24,7 +24,7 @@ import Fmt (Buildable(..), fmt)
 
 import Lorentz
 import Lorentz.Contracts.Upgradeable.Common hiding (Parameter(..), Storage)
-import Michelson.Doc (DComment(..), DDescription(..), contractDocToMarkdown)
+import Michelson.Doc (DComment(..), DDescription(..))
 import Michelson.Text
 import qualified Michelson.Typed as T
 import Util.Markdown
@@ -242,8 +242,8 @@ tzbtcContractRaw = do
         safeEntrypoints
     )
 
-tzbtcDoc :: LText
-tzbtcDoc = contractDocToMarkdown . buildLorentzDoc $ do
+tzbtcDoc :: ContractDoc
+tzbtcDoc = buildLorentzDoc $ do
   -- License info
   doc $ DComment $ T.concat
     [ "- SP"

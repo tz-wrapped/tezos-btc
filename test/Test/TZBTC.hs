@@ -15,6 +15,7 @@ module Test.TZBTC
   , test_addOperator
   , test_removeOperator
   , unit_get_meta
+  , test_documentation
 
   -- * Utilities
   , checkField
@@ -489,3 +490,6 @@ unit_get_meta = integrationalTestExpectation $ do
   lCallDef v1 $ fromFlatParameter $ GetTokenCode (View () consumer)
   validate . Right $
     lExpectViewConsumerStorage consumer [dummyTokenName, dummyTokenCode]
+
+test_documentation :: [TestTree]
+test_documentation = runDocTests testLorentzDoc tzbtcDoc
