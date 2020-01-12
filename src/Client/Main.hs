@@ -22,6 +22,8 @@ import Util.TypeLits
 
 import Client.IO
 import Client.Parser
+import Client.Types
+import Client.Util
 import Lorentz.Contracts.TZBTC
 import Util.AbstractIO
 import Util.MultiSig
@@ -31,7 +33,7 @@ mainProgram
   ( MonadThrow m
   , MonadFail m
   , HasTezosRpc m
-  , HasEditor m
+  , HasFilesystem m
   , HasCmdLine m
   ) => m ()
 mainProgram = do
@@ -39,9 +41,6 @@ mainProgram = do
   case dryRunFlag of
     True -> pass
     False -> case cmd of
-      CmdConfig editFlag partialConfig ->
-        runConfigEdit editFlag partialConfig
-      CmdSetupClient config -> setupClient config
       CmdMint to' value mbMultisig -> do
         to <- addrOrAliasToAddr to'
         runMultisigTzbtcContract mbMultisig $
@@ -145,7 +144,10 @@ mainProgram = do
           Left err -> printTextLn err
           Right packages -> runMultisigContract packages
       CmdDeployContract DeployContractOptions {..} -> do
-        [owner, redeem] <- mapM addrOrAliasToAddr [dcoOwner, dcoRedeem]
+        ownerAlias <- case dcoOwner of
+          Just o -> pure o
+          Nothing  -> ccUserAlias <$> throwLeft readConfig
+        [owner, redeem] <- mapM addrOrAliasToAddr [ownerAlias, dcoRedeem]
         let
           originationParams = OriginationParameters
             { opOwner = owner
@@ -155,6 +157,11 @@ mainProgram = do
             , opTokenCode = dcoTokenCode
             }
         deployTzbtcContract originationParams
+      CmdShowConfig -> do
+        config <- readConfig
+        case config of
+          Right c -> printStringLn $ pretty c
+          Left err -> printTextLn $ "There was an error reading config:" ++ pretty err
   where
     runMultisigTzbtcContract :: Maybe FilePath -> Parameter i s -> m ()
     runMultisigTzbtcContract mbMultisig param =

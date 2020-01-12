@@ -6,16 +6,11 @@
 
 module Test.IO
   ( test_dryRunFlag
-  , test_setupClient
-  , test_setupClientTemplate
-  , test_setupClientTemplateFull
   , test_createMultisigPackage
   , test_multisigSignPackage
   , test_multisigExecutePackage
   ) where
 
-import Data.Aeson (encode)
-import qualified Data.ByteString.Lazy as BSL
 import qualified Data.Map as Map
 import qualified Data.Text as T
 import qualified Data.Typeable as Typ (cast)
@@ -43,24 +38,10 @@ import Util.MultiSig
 -- Some configuration values to configure the
 -- base/default mock behavior.
 data MockInput = MockInput
-  { miCmdLine :: [String]
-  , miConfig :: ClientConfig
-  , miConfigPaths :: (DirPath, FilePath)
-  }
+  { miCmdLine :: [String] }
 
 defaultMockInput = MockInput
-  { miCmdLine = []
-  , miConfig = ClientConfig
-     { ccNodeAddress = "localhost"
-     , ccNodePort = 2990
-     , ccNodeUseHttps = False
-     , ccContractAddress = Just contractAddress
-     , ccMultisigAddress = Nothing
-     , ccUserAlias = "bob"
-     , ccTezosClientExecutable = "tezos-client"
-     }
-  , miConfigPaths = (DirPath configDir, configPath)
-  }
+  { miCmdLine = [] }
 
 -- | The default mock handlers that indvidual tests could
 -- override.
@@ -70,10 +51,6 @@ defaultHandlers mi = Handlers
   , hWriteFileUtf8 = \fp _ -> meetExpectation $ WritesFileUtf8 fp
   , hReadFile  = \_ -> unavailable "readFile"
   , hDoesFileExist  = \_ -> unavailable "doesFileExist"
-  , hCreateDirectoryIfMissing = \_ _ -> unavailable "createDirectoryIfMissing"
-  , hGetConfigPaths = do
-      meetExpectation GetConfigPaths
-      pure $ miConfigPaths mi
   , hParseCmdLine = \p -> do
       case execParserPure defaultPrefs p (miCmdLine mi) of
         Success a -> do
@@ -92,8 +69,12 @@ defaultHandlers mi = Handlers
   , hWaitForOperation = \_ -> unavailable "waitForOperation"
   , hDeployTzbtcContract = \_ -> meetExpectation DeployTzbtcContract
   , hGetAddressAndPKForAlias = \_ -> unavailable "getAddressAndPKForAlias"
-  , hSignWithTezosClient = \_ -> unavailable "signWithTezosClient"
+  , hRememberContract = \c a -> meetExpectation (RememberContract c a)
+  , hSignWithTezosClient = \_ _ -> unavailable "signWithTezosClient"
   , hOpenEditor = \fp _ -> meetExpectation (OpenEditor fp)
+  , hGetTezosClientConfig = unavailable "getTezosClientConfig"
+  , hGetAddressForContract = \_ -> unavailable "getAddressForContract"
+  , hLookupEnv = \_ -> unavailable "lookupEnv"
   }
   where
     unavailable :: String -> TestM a
@@ -136,7 +117,6 @@ checkExpectations = do
 johnAddress = mkKeyAddress johnAddressPK
 johnAddressPK = PublicKeyEd25519 . Ed25519.toPublic $ johnSecretKey
 johnSecretKey = Ed25519.detSecretKey "john"
-johnAlias = "john"
 
 bobAddressPK = PublicKeyEd25519 . Ed25519.toPublic $ bobSecretKey
 bobSecretKey = Ed25519.detSecretKey "bob"
@@ -156,10 +136,6 @@ operatorAddress1Raw :: IsString s => s
 operatorAddress1Raw = "tz1cLwfiFZWA4ZgDdxKiMgxACvGZbTJ2tiQQ"
 operatorAddress1 = unsafeParseAddress operatorAddress1Raw
 
-configPath = "/home/user/.config/tzbtc/config.json"
-
-configDir = "/home/user/.config/tzbtc"
-
 multiSigFilePath = "/home/user/multisig_package"
 
 sign_ :: Ed25519.SecretKey -> Text -> Signature
@@ -177,109 +153,6 @@ test_dryRunFlag = testGroup "Dry run does not execute any action"
         mainProgram
   ]
 
--- Test the setupClient command
--- Setup client with out any arguments should not overwrite the
--- existing config file
-setupClientTestHandlers = (defaultHandlers (defaultMockInput { miCmdLine = ["setupClient"] }))
-  { hPrintStringLn = \x ->
-      let
-          expectedMessage = "Not overwriting the existing config file at, \n\n" <> configPath <> "\n\nPlease remove the file and try again"
-      in if x == expectedMessage
-          then meetExpectation PrintsMessage
-          else throwM $ TestError "Unexpected message"
-  , hGetConfigPaths = do
-      meetExpectation GetConfigPaths
-      pure (DirPath configDir, configPath)
-  , hDoesFileExist = \x -> if x == configPath then do
-      meetExpectation ChecksFileExist
-      pure True
-      else throwM $ TestError "Unexpected file existence check"
-  }
-
-test_setupClient :: TestTree
-test_setupClient = testGroup "`SetupClient` without arguments does not overwrite existing file"
-  [ testCase "Check config file overwrite check" $
-    let
-      test = do
-        addExpectation PrintsMessage Once
-        addExpectation GetConfigPaths Once
-        addExpectation ParseCmdLine Once
-        addExpectation ChecksFileExist Once
-        mainProgram
-        checkExpectations
-    in runMock setupClientTestHandlers test
-  ]
-
--- TestSetup client with out any arguments creates a template file
-setupClientWithoutArgsTestHandlers :: Handlers TestM
-setupClientWithoutArgsTestHandlers = (defaultHandlers (defaultMockInput { miCmdLine = ["setupClient"] }))
-  { hGetConfigPaths = do
-      meetExpectation GetConfigPaths
-      pure (DirPath configDir, configPath)
-  , hCreateDirectoryIfMissing = \b x ->
-      if unDirPath x ==  configDir && b
-        then meetExpectation CreateDirectory
-        else throwM $ TestError "Unexpected directiory creation request"
-  , hDoesFileExist = \x -> if x == configPath
-    then do
-      meetExpectation ChecksFileExist
-      pure False
-    else throwM $ TestError $ "Unexpected file existence check"
-  }
-
-test_setupClientTemplate :: TestTree
-test_setupClientTemplate = testGroup "SetupClient without arguments create file with placeholders"
-  [ testCase "Check template file" $ do
-      expectedConfig <- BSL.readFile "test/resources/default-config.json"
-      let
-        test = do
-          addExpectation ParseCmdLine Once
-          addExpectation CreateDirectory Once
-          addExpectation ChecksFileExist Once
-          addExpectation (WritesFile configPath (Just $ BSL.toStrict expectedConfig)) Once
-          addExpectation GetConfigPaths Multiple
-          addExpectation PrintsMessage Multiple
-          mainProgram
-          checkExpectations
-      runMock setupClientWithoutArgsTestHandlers test
-  ]
-
--- TestSetup client with required arguments creates a filled template file
-setupClientTemplateFullTestHandlers :: Handlers TestM
-setupClientTemplateFullTestHandlers =
-  (defaultHandlers (defaultMockInput { miCmdLine =  args}))
-    { hCreateDirectoryIfMissing = \b x ->
-        if unDirPath x ==  configDir && b then meetExpectation CreateDirectory
-        else throwM $ TestError "Unexpected directiory creation request"
-    , hDoesFileExist = \x -> if x == configPath
-        then do
-          meetExpectation ChecksFileExist
-          pure False
-        else throwM $ TestError $ "Unexpected file existence check"
-    }
-  where
-    args =
-      [ "setupClient" , "--node-url", "localhost", "--node-port", "2990"
-      , "--alias", "bob"
-      ]
-
-test_setupClientTemplateFull :: TestTree
-test_setupClientTemplateFull = testGroup "SetupClient with arguments create file with placeholders"
-  [ testCase "Check file template file" $ do
-    expectedConfig <- BSL.readFile "test/resources/config-with-required.json"
-    let
-      test = do
-        addExpectation ParseCmdLine Once
-        addExpectation PrintsMessage Multiple
-        addExpectation GetConfigPaths Multiple
-        addExpectation ChecksFileExist Once
-        addExpectation CreateDirectory Once
-        addExpectation (WritesFile configPath $ Just $ BSL.toStrict expectedConfig) Once
-        mainProgram
-        checkExpectations
-    runMock setupClientTemplateFullTestHandlers test
-  ]
-
 ---- Test Creation of multisig package. Checks the following.
 ---- The command is parsed correctely
 ---- Checks the package is created with the provided parameter
@@ -289,16 +162,15 @@ test_setupClientTemplateFull = testGroup "SetupClient with arguments create file
 multiSigCreationTestHandlers :: Handlers TestM
 multiSigCreationTestHandlers =
   (defaultHandlers (defaultMockInput { miCmdLine =  args}))
-    { hDoesFileExist = \fp -> if fp == configPath
-        then do
-          meetExpectation ChecksFileExist
-          return True
-        else throwM $ TestError "Unexpected file existence check"
-    , hReadFile = \fp -> if fp == configPath then do
-          meetExpectation ReadsFile
-          pure $ BSL.toStrict $ encode cc
-        else throwM $ TestError "Unexpected file read"
+    { hReadFile = \_ -> throwM $ TestError "Unexpected file read"
     , hRunTransactions = \_ _ -> throwM $ TestError "Unexpected `runTransactions` call"
+    , hGetTezosClientConfig = pure $ Right ("tezos-client", cc)
+    , hGetAddressForContract = \ca ->
+        if ca == "tzbtc"
+          then pure $ Right contractAddress
+          else if ca == "tzbtc-multisig"
+            then pure $ Right multiSigAddress
+            else throwM $ TestError $ "Unexpected contract alias" ++ (toString ca)
     , hGetStorage = \x -> if x == multiSigAddressRaw
       then pure $ nicePackedValueToExpression (MS.mkStorage 14 3 [])
       else throwM $ TestError "Unexpected contract address"
@@ -314,16 +186,13 @@ multiSigCreationTestHandlers =
         , "--operator", operatorAddress1Raw
         , "--multisig", multiSigFilePath
         ]
-      cc :: ClientConfig
-      cc = ClientConfig
-        { ccNodeAddress = "localhost"
-        , ccNodePort = 2990
-        , ccNodeUseHttps = False
-        , ccContractAddress = Just contractAddress
-        , ccMultisigAddress = Just multiSigAddress
-        , ccUserAlias = "bob"
-        , ccTezosClientExecutable = "tezos-client"
+      cc :: TezosClientConfig
+      cc = TezosClientConfig
+        { tcNodeAddr = "localhost"
+        , tcNodePort = 2990
+        , tcTls = False
         }
+
       checkToSign package = case getToSign package of
         Right (addr, (counter, _)) -> pure $
           ( addr == multiSigAddress &&
@@ -345,9 +214,6 @@ test_createMultisigPackage = testGroup "Create multisig package"
     let
       test = do
         addExpectation ParseCmdLine Once
-        addExpectation ReadsFile Once
-        addExpectation ChecksFileExist Once
-        addExpectation GetConfigPaths Multiple
         addExpectation (WritesFile multiSigFilePath Nothing) Once
         mainProgram
         checkExpectations
@@ -360,12 +226,7 @@ test_createMultisigPackage = testGroup "Create multisig package"
 multisigSigningTestHandlers :: Handlers TestM
 multisigSigningTestHandlers =
   (defaultHandlers (defaultMockInput { miCmdLine =  args}))
-    { hDoesFileExist = \fp -> if fp == configPath
-        then do
-          meetExpectation ChecksFileExist
-          return True
-        else throwM $ TestError "Unexpected file existence check"
-    , hConfirmAction = \_ -> do
+    { hConfirmAction = \_ -> do
         meetExpectation GetsUserConfirmation
         pure Confirmed
     , hWriteFile = \fp bs -> do
@@ -373,26 +234,29 @@ multisigSigningTestHandlers =
           meetExpectation (WritesFile fp Nothing)
     , hReadFile = \fp -> do
         meetExpectation ReadsFile
-        if fp == configPath then pure $ BSL.toStrict $ encode cc
-        else if fp == multiSigFilePath then pure $ encodePackage multisigSignPackageTestPackage
+        if fp == multiSigFilePath then pure $ encodePackage multisigSignPackageTestPackage
         else throwM $ TestError "Unexpected file read"
-    , hGetAddressAndPKForAlias = \a -> if a == johnAlias
+    , hGetTezosClientConfig = pure $ Right ("tezos-client", cc)
+    , hGetAddressAndPKForAlias = \a -> if a == "tzbtc-user"
        then pure $ Right (johnAddress, johnAddressPK)
-       else throwM $ TestError "Unexpected alias"
-    , hSignWithTezosClient = \_ ->
+       else throwM $ TestError ("Unexpected alias" ++ toString a)
+    , hSignWithTezosClient = \_ _ ->
        pure $ Right multisigSignPackageTestSignature
+    , hGetAddressForContract = \ca ->
+        if ca == "tzbtc"
+          then pure $ Right contractAddress
+          else if ca == "tzbtc-multisig"
+            then pure $ Right multiSigAddress
+            else throwM $ TestError $ "Unexpected contract alias" ++ (toString ca)
     }
     where
       args = [ "signPackage" , "--package", multiSigFilePath]
-      cc :: ClientConfig
-      cc = ClientConfig
-        { ccNodeAddress = "localhost"
-        , ccNodePort = 2990
-        , ccNodeUseHttps = False
-        , ccContractAddress = Just contractAddress
-        , ccMultisigAddress = Just multiSigAddress
-        , ccUserAlias = "john"
-        , ccTezosClientExecutable = "tezos-client"
+
+      cc :: TezosClientConfig
+      cc = TezosClientConfig
+        { tcNodeAddr = "localhost"
+        , tcNodePort = 2990
+        , tcTls = False
         }
       checkSignature_ bs = case decodePackage bs of
         Right package -> case pkSignatures package of
@@ -419,9 +283,7 @@ test_multisigSignPackage = testGroup "Sign multisig package"
     let
       test = do
         addExpectation ParseCmdLine Once
-        addExpectation ChecksFileExist Once
-        addExpectation GetConfigPaths Multiple
-        addExpectation ReadsFile $ Exact 2
+        addExpectation ReadsFile $ Exact 1
         addExpectation PrintsMessage Multiple
         addExpectation GetsUserConfirmation Once
         addExpectation (WritesFile multiSigFilePath Nothing) Once
@@ -436,12 +298,7 @@ test_multisigSignPackage = testGroup "Sign multisig package"
 multisigExecutionTestHandlers :: Handlers TestM
 multisigExecutionTestHandlers =
   (defaultHandlers (defaultMockInput { miCmdLine =  args}))
-    { hDoesFileExist = \fp -> if
-        fp == configPath then do
-          meetExpectation ChecksFileExist
-          pure True
-        else throwM $ TestError "Unexpected file existence check"
-    , hRunTransactions =  \addr params ->
+    { hRunTransactions =  \addr params ->
         if addr == multiSigAddress then do
           case params of
             [] -> throwM $ TestError "Unexpected empty parameters"
@@ -476,10 +333,14 @@ multisigExecutionTestHandlers =
           "/home/user/multisig_package_john" -> do
             meetExpectation ReadsFile
             encodePackage <$> addSignature_ multisigSignPackageTestPackage (johnAddressPK, multisigExecutePackageTestSignatureJohn)
-          _ -> if fp == configPath then  do
-              meetExpectation ReadsFile
-              pure $ BSL.toStrict $ encode cc
-            else throwM $ TestError "Unexpected file read"
+          _ -> throwM $ TestError "Unexpected file read"
+    , hGetTezosClientConfig = pure $ Right ("tezos-client", cc)
+    , hGetAddressForContract = \ca ->
+        if ca == "tzbtc"
+          then pure $ Right contractAddress
+          else if ca == "tzbtc-multisig"
+            then pure $ Right multiSigAddress
+            else throwM $ TestError $ "Unexpected contract alias" ++ (toString ca)
     }
   where
     args =
@@ -488,15 +349,11 @@ multisigExecutionTestHandlers =
       , "--package", "/home/user/multisig_package_alice"
       , "--package", "/home/user/multisig_package_john"
       ]
-    cc :: ClientConfig
-    cc = ClientConfig
-      { ccNodeAddress = "localhost"
-      , ccNodePort = 2990
-      , ccNodeUseHttps = False
-      , ccContractAddress = Just contractAddress
-      , ccMultisigAddress = Just multiSigAddress
-      , ccUserAlias = "john"
-      , ccTezosClientExecutable = "tezos-client"
+    cc :: TezosClientConfig
+    cc = TezosClientConfig
+      { tcNodeAddr = "localhost"
+      , tcNodePort = 2990
+      , tcTls = False
       }
     addSignature_ package s = case addSignature package s of
       Right x -> pure x
@@ -520,9 +377,7 @@ test_multisigExecutePackage = testGroup "Sign multisig execution"
     let
       test = do
         addExpectation ParseCmdLine Once
-        addExpectation GetConfigPaths Multiple
-        addExpectation ChecksFileExist Once
-        addExpectation ReadsFile $ Exact 4
+        addExpectation ReadsFile $ Exact 3
         addExpectation RunsTransaction Once
         mainProgram
         checkExpectations

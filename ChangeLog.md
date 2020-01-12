@@ -10,6 +10,12 @@ Changes that affect Michelson code are tagged with `[CONTRACT]`.
 
 Unreleased
 ==========
+* [#82](https://github.com/serokell/tezos-btc/pull/82)
+  - Fix configuration conflict with `tezos-client` config by not having a separate config file.
+  - Fix upgrade failure when contract storage is not immediately available after V0 deploy.
+  - Add `tzbtc-client config` command that prints out active configuration.
+  - Use default aliases for contract, multisig contract, user and read them from tezos-client config.
+  - Mention how to get auto completion for `tzbtc-client` in readme.
 
 * [#83](https://github.com/serokell/tezos-btc/pull/83)
   - Resolve multisig package signing via ledger issue with temporary solution that

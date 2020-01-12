@@ -14,7 +14,7 @@ import Servant.Client (ClientEnv, runClientM)
 import Servant.Client.Core as Servant (ClientError(..))
 import Tezos.Common.Json (TezosInt64)
 import Tezos.V005.Micheline (Expression)
-import Time
+import Time (Second, Time(..), threadDelay)
 
 import Lorentz hiding (address, balance, chainId, cons, map)
 import Lorentz.UStore.Migration (manualConcatMigrationScripts)
@@ -32,7 +32,6 @@ import Client.Types
 import Client.Util
 import Lorentz.Contracts.TZBTC
 import Lorentz.Contracts.TZBTC.Preprocess (migrationScripts, tzbtcContract, tzbtcContractRouter)
-import Lorentz.Contracts.TZBTC.Types (StorageFields(..))
 import Lorentz.Contracts.TZBTC.V0 (mkEmptyStorageV0)
 
 -- | Datatype that contains various values required for
@@ -77,7 +76,7 @@ dumbOp = TransactionOperation
   , toCounter = 0
   , toGasLimit = 800000
   , toStorageLimit = 60000
-  , toAmount = 0
+  , toAmount = 1
   , toDestination = genesisAddress2
   , toParameters = ParametersInternal
     { piEntrypoint = "default"
@@ -92,7 +91,7 @@ preProcessOperation :: ClientConfig -> IO OperationConstants
 preProcessOperation config@ClientConfig{..} = do
   ocClientEnv <- IO.getClientEnv config
   ocLastBlockHash <- throwClientError $ getLastBlockHash ocClientEnv
-  (ocSourceAddr, _) <- throwLeft $ getAddressAndPKForAlias ccUserAlias config
+  (ocSourceAddr, _) <- throwLeft $ getAddressAndPKForAlias ccTezosClientExecutable ccUserAlias
   ocBlockConstants <-
     throwClientError $ getCurrentBlockConstants ocClientEnv ocLastBlockHash
   ocCounter <- throwClientError $ getAddressCounter ocClientEnv ocSourceAddr
@@ -103,7 +102,7 @@ preProcessOperation config@ClientConfig{..} = do
 postProcessOperation :: ClientConfig -> Text -> IO ()
 postProcessOperation config opHash = do
   putStrLn $ "Operation hash: " <> opHash
-  waitForOperationInclusion opHash config
+  waitForOperationInclusion (ccTezosClientExecutable config) opHash
 
 toParametersInternals :: (NicePackedValue param) => EntrypointParam param -> ParametersInternal
 toParametersInternals = \case
@@ -157,7 +156,7 @@ runTransactions to params config@ClientConfig{..} = do
                        ) $ zip opsToRun results
     }
   -- Sign operation with sender secret key
-  signRes <- IO.signWithTezosClient (Left $ addOperationPrefix hex) config
+  signRes <- IO.signWithTezosClient ccTezosClientExecutable (Left $ addOperationPrefix hex) ccUserAlias
   case signRes of
     Left err -> putStrLn err
     Right signature' -> do
@@ -224,7 +223,7 @@ originateTzbtcContract owner config@ClientConfig{..} = do
     { foBranch = ocLastBlockHash
     , foContents = [Right updOrigOp]
     }
-  signRes <- IO.signWithTezosClient (Left $ addOperationPrefix hex) config
+  signRes <- IO.signWithTezosClient ccTezosClientExecutable (Left $ addOperationPrefix hex) ccUserAlias
   case signRes of
     Left err -> pure $ Left $ TzbtcOriginationError err
     Right signature' -> do
@@ -251,27 +250,23 @@ deployTzbtcContract config@ClientConfig{..} op = do
   contractAddr <- throwLeft $ originateTzbtcContract (opOwner op) config
   let migration = migrationScripts op
       transactionsToTzbtc params = runTransactions contractAddr params config
-  AlmostStorage{..} <- getTzbtcStorage contractAddr
   putTextLn "Upgrade contract to V1"
-  transactionsToTzbtc $ (DefaultEntrypoint . fromFlatParameter) <$>
-    [ Upgrade ( #newVersion .! (currentVersion asFields + 1)
-              , #migrationScript .! manualConcatMigrationScripts migration
-              , #newCode .! tzbtcContractRouter
-              )
-    ]
+  throwClientErrorAfterRetry (10, delayFn) $ try $
+    -- We retry here because it was found that in some cases, the storage
+    -- is unavailable for a short time since contract origination.
+    transactionsToTzbtc $ (DefaultEntrypoint . fromFlatParameter) <$>
+      [ Upgrade ( #newVersion .! 1
+                , #migrationScript .! manualConcatMigrationScripts migration
+                , #newCode .! tzbtcContractRouter
+                )
+      ]
   pure contractAddr
   where
-    getTzbtcStorage
-      :: Address -> IO (AlmostStorage Interface StoreTemplate)
-    getTzbtcStorage contractAddr = do
-      storageRaw <- getStorage config $ formatAddress contractAddr
-      throwLeft $ pure $ exprToValue @(AlmostStorage Interface StoreTemplate) storageRaw
+    delayFn = do
+      hPutStrLn stderr ("Upgrading failed, retrying after 10 seconds..." :: String)
+      threadDelay (Time @Second 10)
 
 getStorage :: ClientConfig -> Text -> IO Expression
 getStorage config addr = do
   clientEnv <- IO.getClientEnv config
-  let
-    delayFn = do
-      hPutStrLn stderr ("Contract storage unavailable, retrying after 10 seconds..." :: String)
-      threadDelay (Time @Second 10)
-  throwClientErrorAfterRetry (15, delayFn) $ runClientM (API.getStorage addr) clientEnv
+  throwClientError $ runClientM (API.getStorage addr) clientEnv

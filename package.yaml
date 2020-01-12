@@ -25,7 +25,6 @@ library:
   dependencies:
     - aeson
     - aeson-casing
-    - aeson-pretty
     - bytestring
     - containers
     - directory
@@ -52,12 +51,7 @@ library:
     - safe-exceptions
     - vector
     - vinyl
-    - xdg-basedir
     - o-clock
-
-  when:
-    - condition: (!os(windows))
-      dependencies: editor-open
 
 executables:
   tzbtc:
@@ -87,7 +81,6 @@ tests:
       - DerivingStrategies
 
     dependencies:
-    - aeson
     - bytestring
     - containers
     - hex-text

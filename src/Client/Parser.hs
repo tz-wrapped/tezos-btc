@@ -16,10 +16,9 @@ module Client.Parser
 
 import Data.Char (isAlpha, isDigit, toUpper)
 import Fmt (pretty)
-import Named ((!))
 import Options.Applicative
-  (argument, auto, eitherReader, help, long, metavar, option, optional, short, showDefaultWith,
-  str, strOption, switch, value)
+  (argument, auto, eitherReader, help, long, metavar, option, optional
+  ,str, strOption, switch)
 import qualified Options.Applicative as Opt
 import qualified Text.Megaparsec as P (Parsec, customFailure, many, parse, satisfy)
 import Text.Megaparsec.Char (eol, space)
@@ -31,7 +30,6 @@ import Tezos.Address (Address, parseAddress)
 import Tezos.Crypto (PublicKey, Signature, parsePublicKey, parseSignature)
 
 import CLI.Parser
-import Client.Types
 import Lorentz.Contracts.TZBTC.Types
 
 -- | Client argument with optional dry-run flag
@@ -60,17 +58,16 @@ data ClientArgsRaw
   | CmdGetTokenName (Maybe AddrOrAlias)
   | CmdGetTokenCode (Maybe AddrOrAlias)
   | CmdGetRedeemAddress (Maybe AddrOrAlias)
-  | CmdSetupClient ClientConfigPartial
   | CmdGetOpDescription FilePath
   | CmdGetBytesToSign FilePath
   | CmdAddSignature PublicKey Signature FilePath
   | CmdSignPackage FilePath
   | CmdCallMultisig (NonEmpty FilePath)
-  | CmdConfig Bool ClientConfigPartial
   | CmdDeployContract !DeployContractOptions
+  | CmdShowConfig
 
 data DeployContractOptions = DeployContractOptions
-  { dcoOwner :: !AddrOrAlias
+  { dcoOwner :: ! (Maybe AddrOrAlias)
   , dcoRedeem :: !AddrOrAlias
   , dcoTokenName :: !MText
   , dcoTokenCode :: !MText
@@ -91,10 +88,11 @@ clientArgRawParser = Opt.hsubparser $
   <> setRedeemAddressCmd <> transferOwnershipCmd <> acceptOwnershipCmd
   <> getTotalSupplyCmd <>  getTotalMintedCmd <> getTotalBurnedCmd
   <> getOwnerCmd <> getTokenNameCmd <> getTokenCodeCmd <> getRedeemAddressCmd
-  <> setupUserCmd <> getOpDescriptionCmd
+  <> getOpDescriptionCmd
   <> getBytesToSignCmd <> getTotalBurnedCmd
   <> addSignatureCmd <> signPackageCmd <> callMultisigCmd
-  <> configCmd <> deployCmd
+  <> deployCmd
+  <> showConfigCmd
   where
     multisigOption :: Opt.Parser (Maybe FilePath)
     multisigOption =
@@ -103,69 +101,6 @@ clientArgRawParser = Opt.hsubparser $
       , metavar "FILEPATH"
       , help "Create package for multisig transaction and write it to the given file"
       ]
-    configCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
-    configCmd =
-      mkCommandParser "config"
-        (CmdConfig <$> editSwitch <*> clientConfigParserEdit)
-        "Show or edit config. Use the --edit flag with required options to set indvidual fields."
-      where
-        editSwitch =
-          switch (long "edit" <>
-                  help "Edit config using command arguments")
-    useHttpsSwitch :: Opt.Parser Bool
-    useHttpsSwitch = switch
-       (short 'S' <> long "use-https" <> help "use HTTPS to communicate with the node")
-    clientConfigParser :: Opt.Parser ClientConfigPartial
-    clientConfigParser = ClientConfig <$>
-      (partialParser $ urlOption "node-url" "Node url") <*>
-      (partialParser $ intOption "node-port" "Node port") <*>
-      (partialParser $ useHttpsSwitch) <*>
-      (partialParserMaybe $ namedAddressOption Nothing "contract-address"
-      "Contract's address") <*>
-      (partialParserMaybe $ namedAddressOption Nothing "multisig-address" "Multisig contract address") <*>
-      (partialParser $ option str $ mconcat
-       [ long "alias"
-       , metavar "ADDRESS_ALIAS"
-       , help "tezos-client alias for user."
-       ])
-      <*> (partialParser $ tezosClientFilePathOption)
-    clientConfigParserEdit :: Opt.Parser ClientConfigPartial
-    clientConfigParserEdit = ClientConfig <$>
-      (partialParser $ urlOption "node-url" "Node url") <*>
-      (partialParser $ intOption "node-port" "Node port") <*>
-      (partialParser $ useHttpsSwitch) <*>
-      (partialParserFlattenMaybe $
-        optional $ nullableAddressOption
-          ! #name "contract-address"
-          ! #hinfo "TZBTC contract address. Use 'null' to clear current value.") <*>
-      (partialParserFlattenMaybe $
-        optional $ nullableAddressOption
-          ! #name "multisig-address"
-          ! #hinfo "Multisig contract address. Use 'null' to clear current value.") <*>
-      (partialParser $ option str $ mconcat
-       [ long "alias"
-       , metavar "ADDRESS_ALIAS"
-       , help "tezos-client alias for user."
-       ])
-      <*> (partialParser $ tezosClientFilePathOptionWithoutDefault)
-      where
-        -- Handles the case where the value is explicitly provided to be null
-        -- by using the special 'null' value.
-        partialParserFlattenMaybe :: Opt.Parser (Maybe (Maybe a)) -> (Opt.Parser (Partial s (Maybe a)))
-        partialParserFlattenMaybe p = unwrapOuter <$> p
-          where
-            unwrapOuter :: Maybe (Maybe a) -> Partial s (Maybe a)
-            unwrapOuter (Just a) = Available a
-            unwrapOuter Nothing = Unavailable
-
-    setupUserCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
-    setupUserCmd =
-      (mkCommandParser
-         "setupClient"
-         (CmdSetupClient <$> clientConfigParser)
-         ("Create a configuration file using node url, node port, contract address, \
-          \multi-sig contract address(optional), user address, user address alias and \
-          \filepath to the tezos-client executable"))
     mintCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     mintCmd =
       (mkCommandParser
@@ -173,6 +108,12 @@ clientArgRawParser = Opt.hsubparser $
          (CmdMint <$> addrOrAliasOption "to" "Address to mint to" <*>
           natOption "value" "Amount to mint" <*> multisigOption)
          "Mint tokens for an account")
+    showConfigCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
+    showConfigCmd =
+      (mkCommandParser
+         "config"
+         (pure CmdShowConfig)
+         "Show active configuration")
     burnCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     burnCmd =
       (mkCommandParser
@@ -367,7 +308,7 @@ clientArgRawParser = Opt.hsubparser $
       where
         deployContractOptions :: Opt.Parser DeployContractOptions
         deployContractOptions = do
-          dcoOwner <- addrOrAliasOption "owner" "Address of the owner"
+          dcoOwner <- mbAddrOrAliasOption "owner" "Address of the owner"
           dcoRedeem <- addrOrAliasOption "redeem" "Redeem address"
           dcoTokenName <-
             mTextOption (Just [mt|TZBTC|]) "token-name" "Name of this token"
@@ -412,10 +353,6 @@ natOption name hInfo =
 burnParamsParser :: Opt.Parser BurnParams
 burnParamsParser = getParser Nothing "Amount to burn"
 
-urlOption :: String -> String -> Opt.Parser Text
-urlOption name hInfo = option str $
-  mconcat [long name, metavar "URL", help hInfo]
-
 signatureOption :: Opt.Parser Signature
 signatureOption = option (eitherReader parseSignatureDo) $ mconcat
   [ long "signature", metavar "SIGNATURE"]
@@ -433,20 +370,6 @@ parsePublicKeyDo :: String -> Either String PublicKey
 parsePublicKeyDo pk =
   either (Left . mappend "Failed to parse signature: " . pretty) Right $
   parsePublicKey $ toText pk
-
-intOption :: String -> String -> Opt.Parser Int
-intOption name hInfo = option auto $
-  mconcat [long name, metavar "PORT", help hInfo]
-
-tezosClientFilePathOption :: Opt.Parser FilePath
-tezosClientFilePathOption = option str $
-  mconcat [ long "tezos-client", metavar "FILEPATH", help "tezos-client executable"
-          , value "tezos-client", showDefaultWith (<> " from $PATH")
-          ]
-
-tezosClientFilePathOptionWithoutDefault :: Opt.Parser FilePath
-tezosClientFilePathOptionWithoutDefault = option str $
-  mconcat [ long "tezos-client", metavar "FILEPATH", help "tezos-client executable"]
 
 namedFilePathOption :: String -> String -> Opt.Parser FilePath
 namedFilePathOption name hInfo = option str $
