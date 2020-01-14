@@ -11,6 +11,10 @@ Changes that affect Michelson code are tagged with `[CONTRACT]`.
 Unreleased
 ==========
 
+* [#83](https://github.com/serokell/tezos-btc/pull/83)
+  - Resolve multisig package signing via ledger issue with temporary solution that
+  suggests using patched `tezos-client` with `tzbtc-client`.
+
 * [#80](https://github.com/serokell/tezos-btc/pull/80)
   - Add `--token-name` and `--token-code` options to the deploy command.
   - [CONTRACT] Rename `tokenname` and `tokencode` to `tokenName` and `tokenCode` (affects migration to v1, changes storage representation).
