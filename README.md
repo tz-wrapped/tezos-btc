@@ -155,6 +155,19 @@ added using `tzbtc-client addSignature` command.
 Once multisig operation initiator have obtained enough signed packages he can start this
 operation using `tzbtc-client callMultisig` command.
 
+##### Setting up command line auto completion
+
+To setup autocompletion for `tzbtc-client` commands in terminal,
+first ensure that `tzbtc-client` program is available in path.
+Then, run the following command in a terminal.
+
+```
+source <(tzbtc-client --bash-completion-script `which tzbtc-client`)
+```
+
+Note that the setting does not persist, and if you open another terminal, you will have to
+do this in the new terminal to get autocompletion there.
+
 ## `tzbtc` executable
 
 You can use `tzbtc` executable in order to get contract code converted
