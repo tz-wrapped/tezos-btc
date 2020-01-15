@@ -28,21 +28,15 @@ import Lorentz.Contracts.TZBTC.Types
 
 v1Impl :: Rec (EpwCaseClause StoreTemplate) Interface
 v1Impl = recFromTuple
-  ( #callGetAllowance //==> (toSafeView TZBTC.getAllowance)
-  , #callGetBalance //==> (toSafeView TZBTC.getBalance)
-  , #callGetTotalSupply //==> (toSafeView TZBTC.getTotalSupply)
-  , #callGetTotalMinted //==> (toSafeView $
-      TZBTC.getSingleField #totalMinted "the total number of minted tokens")
-  , #callGetTotalBurned //==> (toSafeView $
-      TZBTC.getSingleField #totalBurned "the total number of burned tokens")
-  , #callGetOwner //==> (toSafeView $
-      TZBTC.getSingleField #owner "the current contract owner")
-  , #callGetTokenName //==> (toSafeView $
-      TZBTC.getSingleField #tokenName "the token name")
-  , #callGetTokenCode //==> (toSafeView $
-      TZBTC.getSingleField #tokenCode "the token code")
-  , #callGetRedeemAddress //==> (toSafeView $
-      TZBTC.getSingleField #redeemAddress "the redeem address")
+  ( #callGetAllowance //==> toSafeView TZBTC.getAllowance
+  , #callGetBalance //==> toSafeView TZBTC.getBalance
+  , #callGetTotalSupply //==> toSafeView TZBTC.getTotalSupply
+  , #callGetTotalMinted //==> toSafeView TZBTC.getTotalMinted
+  , #callGetTotalBurned //==> toSafeView TZBTC.getTotalBurned
+  , #callGetOwner //==> toSafeView TZBTC.getOwner
+  , #callGetTokenName //==> toSafeView TZBTC.getTokenName
+  , #callGetTokenCode //==> toSafeView TZBTC.getTokenCode
+  , #callGetRedeemAddress //==> toSafeView TZBTC.getRedeemAddress
   , #callTransfer //==> TZBTC.transfer
   , #callApprove //==> TZBTC.approve
   , #callMint //==> TZBTC.mint

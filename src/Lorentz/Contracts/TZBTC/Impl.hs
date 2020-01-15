@@ -16,7 +16,12 @@ module Lorentz.Contracts.TZBTC.Impl
   , acceptOwnership
   , addOperator
   , burn
-  , getSingleField
+  , getOwner
+  , getTotalBurned
+  , getTotalMinted
+  , getRedeemAddress
+  , getTokenName
+  , getTokenCode
   , mint
   , pause
   , removeOperator
@@ -59,6 +64,30 @@ getSingleField
 getSingleField label entrypointDoc = do
   doc $ DDescription $ "This view returns " <> entrypointDoc
   view_ $ do cdr; stToField label
+
+getTotalMinted
+  :: forall store. StorageC store => Entrypoint (View () Natural) store
+getTotalMinted = getSingleField #totalMinted "the total number of minted tokens"
+
+getTotalBurned
+  :: forall store. StorageC store => Entrypoint (View () Natural) store
+getTotalBurned = getSingleField #totalBurned "the total number of burned tokens"
+
+getOwner
+  :: forall store. StorageC store => Entrypoint (View () Address) store
+getOwner = getSingleField #owner "the current contract owner"
+
+getTokenName
+  :: Entrypoint (View () MText) (UStore StoreTemplate)
+getTokenName = getSingleField #tokenName "the token name"
+
+getTokenCode
+  :: Entrypoint (View () MText) (UStore StoreTemplate)
+getTokenCode = getSingleField #tokenCode "the token code"
+
+getRedeemAddress
+  :: forall store. StorageC store => Entrypoint (View () Address) store
+getRedeemAddress = getSingleField #redeemAddress "the redeem address"
 
 -- | Burn the specified amount of tokens from redeem address. Since it
 -- is not possible to burn from any other address, this entry point does
@@ -138,7 +167,6 @@ mint_ = do
 -- | Mints tokens for an account
 mint :: forall store. StorageC store => Entrypoint MintParams store
 mint = do
-  doc $ DDescription "Mint tokens to the given address."
   dip authorizeOperator
   mint_
 
@@ -146,14 +174,12 @@ mint = do
 -- entrypoint.
 addOperator :: forall store. StorageC store => Entrypoint OperatorParams store
 addOperator = do
-  doc $ DDescription "Add operator with given address."
   addRemoveOperator AddOperator
 
 -- | Add an operator from the set of Operators. Only owner is allowed to call this
 -- entrypoint.
 removeOperator :: StorageC store => Entrypoint OperatorParams store
 removeOperator = do
-  doc $ DDescription "Remove operator with given address."
   addRemoveOperator RemoveOperator
 
 -- | A type to indicate required action to the `addRemoveOperator` function.
@@ -187,7 +213,6 @@ setRedeemAddress
   :: StorageC store
   => Entrypoint SetRedeemAddressParams store
 setRedeemAddress = do
-  doc $ DDescription "Update `redeem` address, from which tokens can be burned."
   dip authorizeOwner
   -- Unwrap operator address
   fromNamed #redeem
@@ -202,7 +227,6 @@ transferOwnership
   :: StorageC store
   => Entrypoint TransferOwnershipParams store
 transferOwnership = do
-  doc $ DDescription "Start the transfer ownership to a new owner."
   dip authorizeOwner
   -- Unwrap new owner address
   fromNamed #newOwner
@@ -216,7 +240,6 @@ transferOwnership = do
 -- the address in `newOwner` field, if it contains one.
 acceptOwnership :: StorageC store => Entrypoint () store
 acceptOwnership = do
-  doc $ DDescription "Accept the ownership of the contract."
   dip authorizeNewOwner
   drop
   -- Get `newOwner` address from storage
@@ -231,8 +254,6 @@ acceptOwnership = do
 -- | Pause end user actions. This is callable only by the operator.
 pause :: StorageC store => Entrypoint () store
 pause = do
-  doc $ DDescription
-    "Pause the contract, after the pause all end users actions are prohibited."
   dip authorizeOperator
   drop
   push True
@@ -243,7 +264,6 @@ pause = do
 -- This is callable only by the owner.
 unpause :: StorageC store => Entrypoint () store
 unpause = do
-  doc $ DDescription "Unpause the contract and resume end users actions."
   drop
   push False
   setPause
