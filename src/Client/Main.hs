@@ -112,6 +112,8 @@ mainProgram = do
         simpleGetter #tokenCode "Token code" GetTokenCode callback
       CmdGetRedeemAddress callback ->
         simpleGetter #redeemAddress "Redeem address" GetRedeemAddress callback
+      CmdGetOperators ->
+        printFieldFromStorage #operators "List of contract operators"
       CmdGetOpDescription packageFilePath -> do
         pkg <- getPackageFromFile packageFilePath
         case pkg of

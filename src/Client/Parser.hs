@@ -58,6 +58,7 @@ data ClientArgsRaw
   | CmdGetTokenName (Maybe AddrOrAlias)
   | CmdGetTokenCode (Maybe AddrOrAlias)
   | CmdGetRedeemAddress (Maybe AddrOrAlias)
+  | CmdGetOperators
   | CmdGetOpDescription FilePath
   | CmdGetBytesToSign FilePath
   | CmdAddSignature PublicKey Signature FilePath
@@ -88,7 +89,7 @@ clientArgRawParser = Opt.hsubparser $
   <> setRedeemAddressCmd <> transferOwnershipCmd <> acceptOwnershipCmd
   <> getTotalSupplyCmd <>  getTotalMintedCmd <> getTotalBurnedCmd
   <> getOwnerCmd <> getTokenNameCmd <> getTokenCodeCmd <> getRedeemAddressCmd
-  <> getOpDescriptionCmd
+  <> getOperatorsCmd <> getOpDescriptionCmd
   <> getBytesToSignCmd <> getTotalBurnedCmd
   <> addSignatureCmd <> signPackageCmd <> callMultisigCmd
   <> deployCmd
@@ -256,6 +257,10 @@ clientArgRawParser = Opt.hsubparser $
       (mkCommandParser "getRedeemAddress"
          (CmdGetRedeemAddress <$> callbackParser)
          "Get the redeem address code")
+
+    getOperatorsCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
+    getOperatorsCmd =
+      (mkCommandParser "getOperators" (pure CmdGetOperators) "Get list of contract operators")
 
     getOpDescriptionCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     getOpDescriptionCmd =
