@@ -11,10 +11,10 @@ for it.
 module Util.AbstractIO
   ( HasCmdLine(..)
   , HasConfig(..)
-  , HasEditor(..)
   , HasFilesystem(..)
   , HasTezosClient(..)
   , HasTezosRpc(..)
+  , HasEnv(..)
   ) where
 
 import Options.Applicative as Opt
@@ -35,16 +35,10 @@ class (Monad m) => HasFilesystem m  where
   writeFile :: FilePath -> ByteString -> m ()
   readFile :: FilePath -> m ByteString
   doesFileExist :: FilePath -> m Bool
-  createDirectoryIfMissing :: Bool -> DirPath -> m ()
-  getConfigPaths :: m (DirPath, FilePath)
 
 -- Config paths, reads and writes
-class (Monad m, HasFilesystem m) => HasConfig m  where
+class (Monad m) => HasConfig m  where
   readConfig :: m (Either TzbtcClientError ClientConfig)
-  readConfigText :: m (Either TzbtcClientError ClientConfigText)
-  writeConfigFull :: ClientConfig -> m ()
-  writeConfigPartial :: ClientConfigPartial -> m ()
-  writeConfigText :: ClientConfigText -> m ()
 
 -- Read arguments from cli, print messages out via cli
 class (Monad m) => HasCmdLine m where
@@ -63,11 +57,14 @@ class (HasTezosClient m, HasConfig m, Monad m, MonadThrow m) => HasTezosRpc m wh
   deployTzbtcContract :: OriginationParameters -> m ()
 
 -- Interaction with tezos client binary
-class (HasConfig m, Monad m) => HasTezosClient m where
+class (HasConfig m, HasEnv m, Monad m) => HasTezosClient m where
   getAddressAndPKForAlias :: Text -> m (Either TzbtcClientError (Address, PublicKey))
-  signWithTezosClient :: Either ByteString Text -> m (Either Text Signature)
+  getAddressForContract :: Text -> m (Either TzbtcClientError Address)
+  signWithTezosClient :: Either ByteString Text -> Text -> m (Either Text Signature)
   waitForOperation :: Text -> m ()
+  getTezosClientConfig :: m (Either Text (FilePath, TezosClientConfig))
+  rememberContractAs :: Address -> Text -> m ()
 
--- Interaction with a text editor
-class (Monad m) => HasEditor m where
-  openEditor :: FilePath -> (ByteString -> m ()) -> m ()
+-- Interaction with environment variables
+class (Monad m) => HasEnv m where
+  lookupEnv :: String -> m (Maybe String)

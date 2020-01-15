@@ -146,18 +146,6 @@ setup () {
   stack exec -- tzbtc-client deployTzbtcContract --owner boba --redeem boba --token-name Kukareq --token-code Cococoq --dry-run
 }
 
-@test "invoking tzbtc-client 'setupClient' command without arguments" {
-  stack exec -- tzbtc-client setupClient
-}
-
-@test "invoking tzbtc-client 'config' command without arguments" {
-  stack exec -- tzbtc-client config
-}
-
-@test "invoking tzbtc-client 'config --edit' command with available arguments" {
-  stack exec -- tzbtc-client config --edit --node-url "localhost" --node-port "9900" --contract-address "KT1HmhmNcZKmm2NsuyahdXAaHQwYfWfdrBxi" --multisig-address "KT1HmhmNcZKmm2NsuyahdXAaHQwYfWfdrBxi" --alias alice --tezos-client /local/bin/tezos-client
-}
-
-@test "invoking tzbtc-client 'setupClient' command with arguments" {
-  stack exec -- tzbtc-client setupClient --node-url "localhost" --node-port "9900" --use-https --contract-address "KT1HmhmNcZKmm2NsuyahdXAaHQwYfWfdrBxi" --multisig-address "KT1HmhmNcZKmm2NsuyahdXAaHQwYfWfdrBxi" --alias alice --tezos-client /local/bin/tezos-client
+@test "show config" {
+  stack exec -- tzbtc-client config --dry-run
 }

@@ -25,22 +25,22 @@ import Michelson.Untyped (InternalByteString(..))
 import Client.Types
 
 type NodeAPI =
-  "chains/main/blocks/head/helpers/forge/operations"
+  "chains" :> "main" :> "blocks" :> "head" :> "helpers" :> "forge" :> "operations"
   :> ReqBody '[JSON] ForgeOperation :> Post '[JSON] InternalByteString :<|>
-  "chains/main/blocks/head/hash"
+  "chains" :> "main" :> "blocks" :> "head" :> "hash"
   :> Get '[JSON] Text :<|>
-  "injection/operation" :> QueryParam "chain" Text :> ReqBody '[JSON] Text
+  "injection" :> "operation" :> QueryParam "chain" Text :> ReqBody '[JSON] Text
   :> Post '[JSON] Text :<|>
-  "chains/main/blocks/head/context/contracts"
+  "chains" :> "main" :> "blocks" :> "head" :> "context" :> "contracts"
   :> Capture "contract" Text :> "counter" :> Get '[JSON] TezosInt64 :<|>
-  "chains/main/blocks/head/helpers/scripts/run_operation"
+  "chains" :> "main" :> "blocks" :> "head" :> "helpers" :> "scripts" :> "run_operation"
   :> ReqBody '[JSON] RunOperation :> Post '[JSON] RunRes :<|>
-  "chains/main/blocks/head/context/contracts"
+  "chains" :> "main" :> "blocks" :> "head" :> "context" :> "contracts"
   :> Capture "contract" Text :> "storage" :> Get '[JSON] Expression :<|>
-  "chains/main/blocks" :> Capture "block_id" Text :> Get '[JSON] BlockConstants :<|>
-  "chains/main/blocks/head/context/big_maps" :> Capture "big_map_id" Natural
+  "chains" :> "main" :> "blocks" :> Capture "block_id" Text :> Get '[JSON] BlockConstants :<|>
+  "chains" :> "main" :> "blocks" :> "head" :> "context" :> "big_maps" :> Capture "big_map_id" Natural
   :> Capture "script_expr" Text :> Get '[JSON] Expression :<|>
-  "chains/main/blocks/head/helpers/preapply/operations"
+  "chains" :> "main" :> "blocks" :> "head" :> "helpers" :> "preapply" :> "operations"
   :> ReqBody '[JSON] [PreApplyOperation] :> Post '[JSON] [RunRes]
 
 

@@ -27,6 +27,8 @@ extra-deps:
   subdirs:
     - tezos-bake-monitor-lib
 
+# Required by tzbtc
+- o-clock-1.1.0@sha256:941ac2bc1732e6622b165831c4badb1a8e846f451620bd028064339f5b284224
 # Required by morley
 - show-type-0.1.1@sha256:24f681a3481b3f9630e619d816054804ba1bd6cc05b5978ddd2cece8499ff2fa
 - aeson-options-0.1.0

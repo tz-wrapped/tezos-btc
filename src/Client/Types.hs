@@ -6,12 +6,8 @@ module Client.Types
   ( AlmostStorage (..)
   , AppliedResult (..)
   , BlockConstants (..)
-  , ClientConfig
-  , ClientConfigP (..)
-  , ClientConfigPartial
-  , ClientConfigText
+  , ClientConfig(..)
   , ConfirmationResult(..)
-  , DirPath(..)
   , EntrypointParam(..)
   , ForgeOperation (..)
   , InternalOperation (..)
@@ -20,7 +16,6 @@ module Client.Types
   , OriginationOperation (..)
   , OriginationScript (..)
   , ParametersInternal (..)
-  , Partial (..)
   , PreApplyOperation (..)
   , RunError (..)
   , RunMetadata (..)
@@ -28,27 +23,18 @@ module Client.Types
   , RunOperationInternal (..)
   , RunOperationResult (..)
   , RunRes (..)
-  , TextConfig (..)
   , TransactionOperation (..)
+  , TezosClientConfig (..)
   , combineResults
-  , partialParser
-  , partialParserMaybe
-  , toConfigFilled
-  , isAvailable
-  , withDefault
   ) where
 
 import Data.Aeson
-  (FromJSON(..), ToJSON(..), Value(..), object, withObject, genericParseJSON,
-  genericToJSON, (.=), (.:), (.:?), (.!=))
+  (FromJSON(..), ToJSON(..), Value(..), object, withObject, (.=), (.:), (.:?), (.!=))
 import Data.Aeson.Casing (aesonPrefix, snakeCase)
 import Data.Aeson.TH (deriveFromJSON, deriveToJSON)
 import Data.List (isSuffixOf)
-import Data.Text as T (isPrefixOf)
 import Data.Vector (fromList)
 import Fmt (Buildable(..), (+|), (|+))
-import GHC.TypeLits
-import Options.Applicative
 import Tezos.Common.Base16ByteString (Base16ByteString(..))
 import Tezos.V005.Micheline
   (Expression(..), MichelinePrimAp(..), MichelinePrimitive(..), annotToText)
@@ -324,125 +310,33 @@ data OriginationOperation = OriginationOperation
   , ooScript :: OriginationScript
   }
 
-data ConfigSt = ConfigFilled | ConfigPartial | ConfigText
+data ClientConfig = ClientConfig
+  { ccNodeAddress :: Text
+  , ccNodePort :: Int
+  , ccNodeUseHttps :: Bool
+  , ccContractAddress :: Maybe Address
+  , ccMultisigAddress :: Maybe Address
+  , ccUserAlias :: Text
+  , ccTezosClientExecutable :: FilePath
+  } deriving (Generic, Show, Eq)
 
-data Partial (label :: Symbol) a = Available a | Unavailable deriving (Eq, Show, Functor)
-
--- | This type is used to represent fields in a config where some of
--- the fields can be placeholders. Let's us to read the partial config
--- from the file and amend it in place.
-data TextConfig a = TextRep Text | ConfigVal a
-
-type family ConfigC (a :: ConfigSt) b (label :: Symbol) where
-  ConfigC 'ConfigFilled a _ = a
-  ConfigC 'ConfigPartial a label = Partial label a
-  ConfigC 'ConfigText a _ = TextConfig a
-
-type ClientConfig = ClientConfigP 'ConfigFilled
-
-type ClientConfigPartial = ClientConfigP 'ConfigPartial
-
-type ClientConfigText = ClientConfigP 'ConfigText
-
-data ClientConfigP f = ClientConfig
-  { ccNodeAddress :: ConfigC f Text "url to the tezos node"
-  , ccNodePort :: ConfigC f Int "rpc port of the tezos node"
-  , ccNodeUseHttps :: ConfigC f Bool "define whether use HTTPS in requests to the node"
-  , ccContractAddress :: ConfigC f (Maybe Address) "contract address"
-  , ccMultisigAddress :: ConfigC f (Maybe Address) "multisig contract address"
-  , ccUserAlias :: ConfigC f Text "user alias"
-  , ccTezosClientExecutable :: ConfigC f FilePath "tezos-client executable path"
-  } deriving (Generic)
+instance Buildable ClientConfig where
+  build ClientConfig {..} =
+    "Node address: " +| ccNodeAddress |+ "\n" +|
+    "Node port: " +| ccNodePort |+ "\n" +|
+    "Use HTTPS: " +| ccNodeUseHttps |+ "\n" +|
+    "Contract address: " +| ccContractAddress |+ "\n" +|
+    "Multisig contract address: " +| ccMultisigAddress |+ "\n" +|
+    "User alias: " +| ccUserAlias |+ "\n" +|
+    "tezos-client path: " +| ccTezosClientExecutable |+ "\n"
 
 data ConfirmationResult = Confirmed | Canceled
 
-newtype DirPath = DirPath { unDirPath :: FilePath } deriving (Show ,Eq)
-
--- For tests
-deriving instance Eq ClientConfig
-deriving instance Show ClientConfig
-
-deriving instance Eq ClientConfigPartial
-deriving instance Show ClientConfigPartial
-
-isAvailable :: Partial s a -> Bool
-isAvailable (Available _) = True
-isAvailable _ = False
-
-partialParser :: Parser a -> Parser (Partial s a)
-partialParser p = toPartial <$> optional p
-  where
-    toPartial :: Maybe a -> Partial s a
-    toPartial (Just a) = Available a
-    toPartial Nothing = Unavailable
-
-partialParserMaybe :: Parser a -> Parser (Partial s (Maybe a))
-partialParserMaybe p = toPartialMaybe <$> optional p
-  where
-    toPartialMaybe :: Maybe a -> Partial s (Maybe a)
-    toPartialMaybe (Just a) = Available (Just a)
-    toPartialMaybe Nothing = Unavailable
-
-withDefault :: a -> Partial s a -> a
-withDefault _ (Available a) = a
-withDefault a _ = a
-
-toConfigFilled :: ClientConfigPartial -> Maybe ClientConfig
-toConfigFilled p = ClientConfig
-  <$> (toMaybe $ ccNodeAddress p)
-  <*> (toMaybe $ ccNodePort p)
-  <*> (toMaybe $ withDefault' False $ ccNodeUseHttps p)
-  <*> (toMaybe $ withDefault' Nothing $ ccContractAddress p)
-  <*> (toMaybe $ withDefault' Nothing $ ccMultisigAddress p)
-  <*> (toMaybeText $ ccUserAlias p)
-  <*> (toMaybe $ ccTezosClientExecutable p)
-  where
-    withDefault' :: a -> Partial s a -> Partial s a
-    withDefault' _ (Available a) = Available a
-    withDefault' a _ = Available a
-
-    toMaybe :: Partial s a -> Maybe a
-    toMaybe (Available a) = Just a
-    toMaybe _ = Nothing
-    toMaybeText :: Partial s Text -> Maybe Text
-    -- Check for place holders
-    toMaybeText (Available a) = if T.isPrefixOf "-- " a then Nothing else Just a
-    toMaybeText _ = Nothing
-
-instance {-# OVERLAPPABLE #-} (ToJSON a, KnownSymbol l) => ToJSON (Partial l a) where
-  toJSON v = case v of
-    Available a -> toJSON a
-    Unavailable ->
-      toJSON $ "-- Required field: "
-        ++ (symbolVal (Proxy @l) ++ ", Replace this placeholder with proper value --")
-
-instance (ToJSON a, KnownSymbol l) => ToJSON (Partial l (Maybe a)) where
-  toJSON v = case v of
-    Available a -> toJSON a
-    Unavailable -> toJSON $ "-- Optional field: " ++ (symbolVal (Proxy @l) ++ ", Replace this placeholder with proper value or `null` if not required --")
-
-instance ToJSON ClientConfigPartial where
-  toJSON = genericToJSON (aesonPrefix snakeCase)
-
-instance ToJSON ClientConfig where
-  toJSON = genericToJSON (aesonPrefix snakeCase)
-
-instance FromJSON ClientConfigText where
-  parseJSON = genericParseJSON (aesonPrefix snakeCase)
-
-instance ToJSON ClientConfigText where
-  toJSON = genericToJSON (aesonPrefix snakeCase)
-
-instance (ToJSON a) => ToJSON (TextConfig a) where
-  toJSON (TextRep a) = toJSON a
-  toJSON (ConfigVal a) = toJSON a
-
-instance (FromJSON a) => FromJSON (TextConfig a) where
-  parseJSON v = (ConfigVal <$> parseJSON v)
-             <|> (TextRep <$> parseJSON v)
-
-instance FromJSON ClientConfig where
-  parseJSON = genericParseJSON (aesonPrefix snakeCase)
+data TezosClientConfig = TezosClientConfig
+  { tcNodeAddr :: Text
+  , tcNodePort :: Int
+  , tcTls :: Bool
+  } deriving (Show)
 
 deriveToJSON (aesonPrefix snakeCase) ''ParametersInternal
 deriveToJSON (aesonPrefix snakeCase) ''TransactionOperation
@@ -450,3 +344,4 @@ deriveToJSON (aesonPrefix snakeCase) ''OriginationScript
 deriveToJSON (aesonPrefix snakeCase) ''OriginationOperation
 deriveToJSON (aesonPrefix snakeCase) ''RunOperation
 deriveFromJSON (aesonPrefix snakeCase) ''BlockConstants
+deriveFromJSON (aesonPrefix snakeCase) ''TezosClientConfig

@@ -10,6 +10,7 @@ module Client.Util
   , mkOriginationScript
   , nicePackedValueToExpression
   , throwClientError
+  , throwClientErrorAfterRetry
   , throwLeft
   , typeToExpression
   , valueToScriptExpr
@@ -100,6 +101,17 @@ throwClientError =
   (>>= \case
       Left e -> throwM $ TzbtcServantError e
       Right x -> return x)
+
+type RetrySpec m = (Int, m ())
+
+throwClientErrorAfterRetry :: MonadThrow m => RetrySpec m -> m (Either ClientError a) -> m a
+throwClientErrorAfterRetry (retryfor, delayFn) action = do
+  r <- action
+  case r of
+    Left e -> if retryfor > 0 then do
+      delayFn
+      throwClientErrorAfterRetry ((retryfor - 1), delayFn) action else throwM $ TzbtcServantError e
+    Right x -> return x
 
 throwLeft :: (MonadThrow m, Exception e) => m (Either e a) -> m a
 throwLeft =
