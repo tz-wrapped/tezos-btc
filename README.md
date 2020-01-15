@@ -44,26 +44,48 @@ you can obtain non-patched version of `tezos-client` in various form of distribu
 ### `tzbtc-client` usage [↑](#tzbtc-client-executable)
 
 #### Setup `tzbtc-client`
-`setupClient` command is required for setting up `tzbtc-client`
-environment. It takes information about node (if node that you are going to use
-uses HTTPS, you will have to provide `--use-https` flag to `setupClient`),
-user information (specifically name alias from the `tezos-client`), contracts addresses
-(TZBTC and multisig contracts)
-and also path to the `tezos-client` executable, which is used for
-transaction signing and ledger interaction. The `setupClient` command
-can be called without any values, which places a template config file in
-the proper path, filled with placeholders. The `config --edit` command
-can be used to edit the config values in the file. When called with no
-arguments, `config --edit` command will open an editor (Not available in
-windows), with the config contents. After saving the content and
-closing the editor, the config file will be updated with the new
-contents.
+
+`tzbtc-client` program inherits configuration from the configuration of
+`tezos-client`. So you should use it to configure the tezos node, port,
+https/tls settings for `tzbtc-client` program as well.
+
+The `tezos-client` program is expected to be in the path. You can
+also use the `TZBTC_TEZOS_CLIENT` environment variable to set the
+`tezos-client` program that `tzbtc-client` should use.
+
+There are also a number of `tezos-client` aliases that `tzbtc-client`
+program expects.
+
+`tzbtc-user` is the alias that will be used to create transactions.
+`tzbtc` is the alias of the TZBTC contract.
+`tzbtc-multisig` is the alias of the multisig contract. This should
+be originated separately and aliased as `tzbtc-multisig`.
+
+If there is an existing address that you want to use for tzbtc operations,
+then you probably have to use the force flag to add a duplicate alias as shown below.
+
+```
+tezos-client add address tzbtc-user tz1RyNvnKnkcD6m9E5VAMxVWVQM5fb9pQo4d --force
+```
+
+But unfortunately, right now there is [a bug](https://gitlab.com/tezos/tezos/issues/653)
+in `tezos-client` that does not allow adding duplicate alias that point to one of the
+existing aliased address. So instead, you will have to rename the existing alias as
+`tzbtc-user` to use it with `tzbtc-client`. Soon, `tzbtc-client` will be amended to
+include a flag [to override this default user alias.](https://issues.serokell.io/issue/TBTC-85)
 
 #### Deploy TZBTC contract using `tzbtc-client`
 
-Run `tzbtc-client deployTzbtcContract --owner tz1PPPYChg5xXHpGzygnNkmzPd1hyVRMxvJf --redeem tz1PPPYChg5xXHpGzygnNkmzPd1hyVRMxvJf`
-(specify desired owner and redeem addresses). After contract deploy it is possible to override existing contract address in the
-client config with the address of the newly originated contract.
+Run `tzbtc-client deployTzbtcContract` command passing the desired owner and redeem address. For example,
+
+
+`tzbtc-client deployTzbtcContract --owner tz1PPPYChg5TZBTCxXHpGzygnNkmzPd1hyVRMxvJf --redeem tz1PPPYChg5xXHpGzygnNkmzPd1hyVRMxvJf`
+
+The `--owner` argument is optional. If left out `tzbtc-user` alias will be used instead.
+
+After the contract deploy, it is possible to save the newly deployed contract with the alias
+`tzbtc`, in the `tezos-client` configuration. You can also manually note the address and
+use the `tezos-client` program to alias it as `tzbtc`, as expected by the `tzbtc-client` program.
 
 #### Interact with TZBTC contract
 
@@ -88,7 +110,13 @@ on the previous steps.
 
 
 So the workflow for interacting with the TZBTC contract on the chain is the following:
-* Use `tzbtc-client setupClient` to set up the environment.
+
+* Setup `tezos-client` and add `tzbtc-user` alias and make sure it is available in PATH
+(or use the environment variable `TZBTC_TEZOS_CLIENT` to set the path)
+* Deploy contract using `deployTzbtcContract` command and alias it as `tzbtc` (either manually or
+  by letting the `tzbtc-client` program create the alias when prompted) or alias an existing
+contract as `tzbtc`.
+* If required, deploy multisig contract, and alias it as `tzbtc-multisig`.
 * Use `tzbtc-client <subcommand>` to submit desired operation.
 
 All `tzbtc-client` commands can be performed with `--dry-run` flag, thus they won't
@@ -119,13 +147,26 @@ You can get operation description from this package using `tzbtc-client getOpDes
 
 There are two ways to sign multisig package:
 * Sign package via `tzbtc-client signPackage --package <package filepath>` command.
-Thus given package will be signed by the user configured during `tzbtc-client setupClient`.
+Thus given package will be signed by the tzbtc user.
 * Manually sign package. In order to extract bytes that needs to be signed you should use
 `tzbtc-client getBytesToSign` command. After these bytes are signed, the signature can be
 added using `tzbtc-client addSignature` command.
 
 Once multisig operation initiator have obtained enough signed packages he can start this
 operation using `tzbtc-client callMultisig` command.
+
+##### Setting up command line auto completion
+
+To setup autocompletion for `tzbtc-client` commands in terminal,
+first ensure that `tzbtc-client` program is available in path.
+Then, run the following command in a terminal.
+
+```
+source <(tzbtc-client --bash-completion-script `which tzbtc-client`)
+```
+
+Note that the setting does not persist, and if you open another terminal, you will have to
+do this in the new terminal to get autocompletion there.
 
 ## `tzbtc` executable
 

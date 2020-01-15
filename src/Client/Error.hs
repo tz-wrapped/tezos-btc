@@ -26,6 +26,8 @@ data TzbtcClientError
   | TzbtcMutlisigConfigUnavailable
   | TzbtcOriginationError Text
   | TzbtcContractConfigUnavailable
+  | TzbtcParseError Text
+  | TzbtcTezosClientError Text
 
 instance Buildable TzbtcClientError where
   build (TzbtcServantError err) = case err of
@@ -46,7 +48,7 @@ instance Buildable TzbtcClientError where
       "Response:\n" +| buildResponse response |+ ""
 
   build TzbtcClientConfigError =
-    "Invalid client configuration. Use 'tzbtc-client setupClient'"
+    "Invalid client configuration. Use 'tzbtc-client config' to check current configuration."
 
   build (TzbtcClientConfigFileNotFound p) =
     "Config file was not found at: " +| (build p) +|
@@ -74,6 +76,12 @@ instance Buildable TzbtcClientError where
 
   build (TzbtcOriginationError msg) =
     "Error during contract origination:\n" +| msg |+ ""
+
+  build (TzbtcParseError msg) =
+    "Error during parsing:\n" +| msg |+ ""
+
+  build (TzbtcTezosClientError msg) =
+    "Error during invocation of tezos-client program:\n" +| msg |+ ""
 
 instance Show TzbtcClientError where
   show = pretty

@@ -36,9 +36,6 @@ import Util.AbstractIO
 -- | Expectations that the tests can setup, and check at the end of the test.
 data Expectation
   = PrintsMessage
-  | GetConfigPaths
-  | ChecksFileExist
-  | CreateDirectory
   | WritesFile FilePath (Maybe ByteString)
   | WritesFileUtf8 FilePath
   | ReadsFile
@@ -48,6 +45,7 @@ data Expectation
   | OpenEditor FilePath
   | PrintByteString ByteString
   | DeployTzbtcContract
+  | RememberContract Address Text
   deriving (Eq, Show, Ord)
 
 -- | Specifiy how may time we expect an event to happen.
@@ -80,9 +78,6 @@ data Handlers m = Handlers
   , hWriteFile :: FilePath -> ByteString -> m ()
   , hReadFile :: FilePath -> m ByteString
   , hDoesFileExist :: FilePath -> m Bool
-  , hCreateDirectoryIfMissing :: Bool -> DirPath -> m ()
-
-  , hGetConfigPaths :: m (DirPath, FilePath)
 
   , hParseCmdLine :: forall a. Opt.ParserInfo a -> m a
   , hPrintTextLn :: forall text. (Print text) => text -> m ()
@@ -95,12 +90,17 @@ data Handlers m = Handlers
   , hGetCounter :: Text -> m TezosInt64
   , hGetFromBigMap :: Natural -> Text -> m (Either TzbtcClientError Expression)
   , hWaitForOperation :: Text -> m ()
+  , hGetTezosClientConfig :: m (Either Text (FilePath, TezosClientConfig))
   , hDeployTzbtcContract :: OriginationParameters -> m ()
 
   , hGetAddressAndPKForAlias :: Text -> m (Either TzbtcClientError (Address, PublicKey))
-  , hSignWithTezosClient :: Either ByteString Text -> m (Either Text Signature)
+  , hSignWithTezosClient :: Either ByteString Text -> Text -> m (Either Text Signature)
+  , hGetAddressForContract :: Text -> m (Either TzbtcClientError Address)
+  , hRememberContract :: Address -> Text -> m ()
 
   , hOpenEditor :: FilePath -> (ByteString -> m ()) -> m ()
+
+  , hLookupEnv :: String -> m (Maybe String)
   }
 
 getHandler :: (Handlers TestM -> fn) -> TestM fn
@@ -119,10 +119,6 @@ instance HasFilesystem TestM where
   doesFileExist fp = do
     fn <- getHandler hDoesFileExist
     fn fp
-  createDirectoryIfMissing fl fp = do
-    fn <- getHandler hCreateDirectoryIfMissing
-    fn fl fp
-  getConfigPaths = join $ getHandler hGetConfigPaths
 
 instance HasCmdLine TestM where
   parseCmdLine a = do
@@ -162,14 +158,21 @@ instance HasTezosClient TestM where
   getAddressAndPKForAlias a = do
     fn <- getHandler hGetAddressAndPKForAlias
     fn a
-  signWithTezosClient a = do
+  signWithTezosClient a alias = do
     fn <- getHandler hSignWithTezosClient
-    fn a
+    fn a alias
   waitForOperation t = do
     fn <- getHandler hWaitForOperation
     fn t
+  getTezosClientConfig = join $ getHandler hGetTezosClientConfig
+  getAddressForContract c = do
+    fn <- getHandler hGetAddressForContract
+    fn c
+  rememberContractAs c a = do
+    fn <- getHandler hRememberContract
+    fn c a
 
-instance HasEditor TestM where
-  openEditor fp cb = do
-    fn <- getHandler hOpenEditor
-    fn fp cb
+instance HasEnv TestM where
+  lookupEnv t = do
+    fn <- getHandler hLookupEnv
+    fn t

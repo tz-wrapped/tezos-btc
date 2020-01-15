@@ -14,15 +14,12 @@ module Client.IO
   , getFieldFromTzbtcUStore
   , getPackageFromFile
   , getTzbtcStorage
-  , runConfigEdit
   , runMultisigContract
   , runTzbtcContract
-  , setupClient
   , signPackageForConfiguredUser
   , writePackageToFile
   ) where
 
-import qualified Data.Aeson as Aeson (ToJSON, FromJSON)
 import qualified Data.ByteString as BS (readFile, writeFile)
 import qualified Data.ByteString.Char8 as BSC (putStrLn)
 import qualified Data.Map as Map
@@ -32,7 +29,8 @@ import Options.Applicative as Opt hiding (value)
 import Servant.Client as Servant (ResponseF(..))
 import Servant.Client (runClientM)
 import Servant.Client.Core as Servant (ClientError(..))
-import qualified System.Directory as Directory (createDirectoryIfMissing, doesFileExist)
+import qualified System.Directory as Directory (doesFileExist)
+import qualified System.Environment as SE
 
 import Lorentz hiding (address, balance, chainId, cons, map)
 import Lorentz.Contracts.ManagedLedger.Types
@@ -44,30 +42,22 @@ import Tezos.Crypto
 import qualified Client.API as API
 import Client.Error
 import qualified Client.IO.CmdLine as IO
-import qualified Client.IO.Config as IO
 import qualified Client.IO.HttpClient as IO
 import qualified Client.IO.TezosClient as IO
 import qualified Client.IO.TezosRpc as IO
-import qualified Client.IO.FileSystem as IO
 import Client.Types
 import Client.Util
 import Lorentz.Contracts.TZBTC
 import qualified Lorentz.Contracts.TZBTC.MultiSig as MSig
 import Util.AbstractIO
-import Util.Editor
 import qualified Util.IO as UIO (writeFileUtf8)
 import Util.MultiSig
-
-instance HasEditor IO where
-  openEditor = editConfigViaEditor
 
 instance HasFilesystem IO where
   writeFile = BS.writeFile
   writeFileUtf8 = UIO.writeFileUtf8
   readFile = BS.readFile
   doesFileExist = Directory.doesFileExist
-  createDirectoryIfMissing f p = Directory.createDirectoryIfMissing f (unDirPath p)
-  getConfigPaths = IO.getConfigPaths
 
 instance HasCmdLine IO  where
   parseCmdLine = execParser
@@ -76,33 +66,55 @@ instance HasCmdLine IO  where
   printByteString = BSC.putStrLn
   confirmAction = IO.confirmAction
 
-instance (Monad m, HasCmdLine m, HasFilesystem m) => HasConfig m where
-  readConfigText = readConfig_
-  readConfig = readConfig_
-  writeConfigFull = writeConfig_
-  writeConfigPartial = writeConfig_
-  writeConfigText = writeConfig_
+instance (Monad m, HasTezosClient m) => HasConfig m where
+  readConfig = do
+    c <- getTezosClientConfig
+    case c of
+      Right (path, tzc) -> Right <$> toTzbtcConfig tzc path
+      Left _ -> pure $ Left TzbtcClientConfigError
 
-readConfig_ :: (Aeson.FromJSON a, HasFilesystem m) => m (Either TzbtcClientError a)
-readConfig_ = do
-  p <- snd <$> getConfigPaths
-  IO.readConfig p
-
-writeConfig_ :: (Aeson.ToJSON a, HasCmdLine m, HasFilesystem m) => a -> m ()
-writeConfig_ config = do
-  p <- snd <$> getConfigPaths
-  IO.writeConfig p config
+toTzbtcConfig :: (HasTezosClient m) => TezosClientConfig -> FilePath -> m ClientConfig
+toTzbtcConfig TezosClientConfig {..} path = do
+  contractAddr <- rightToMaybe <$> getAddressForContract "tzbtc"
+  multisigAddr <- rightToMaybe <$> getAddressForContract "tzbtc-multisig"
+  pure $ ClientConfig
+    { ccNodeAddress = tcNodeAddr
+    , ccNodePort = tcNodePort
+    , ccNodeUseHttps = tcTls
+    , ccUserAlias = "tzbtc-user"
+    , ccTezosClientExecutable = path
+    , ccContractAddress = contractAddr
+    , ccMultisigAddress = multisigAddr
+    }
 
 instance HasTezosClient IO where
+  getAddressForContract a = do
+    tcPath <- lookupTezosClient
+    IO.getAddressForContract tcPath a
   getAddressAndPKForAlias a = do
-    config <- throwLeft $ readConfig
-    IO.getAddressAndPKForAlias a config
-  signWithTezosClient a = do
-    config <- throwLeft $ readConfig
-    IO.signWithTezosClient (first InternalByteString a) config
+    tcPath <- lookupTezosClient
+    IO.getAddressAndPKForAlias tcPath a
+  signWithTezosClient a for = do
+    tcPath <- lookupTezosClient
+    IO.signWithTezosClient tcPath (first InternalByteString a) for
   waitForOperation op = do
-    config@ClientConfig{..}  <- throwLeft $ readConfig
-    IO.waitForOperationInclusion op config
+    tcPath <- lookupTezosClient
+    IO.waitForOperationInclusion tcPath op
+  getTezosClientConfig = do
+    tcPath <- lookupTezosClient
+    ec <- IO.getTezosClientConfig tcPath
+    case ec of
+      Right config -> pure $ Right (tcPath, config)
+      Left err -> pure $ Left err
+  rememberContractAs addr alias = do
+    tcPath <- lookupTezosClient
+    IO.rememberContractAs tcPath addr alias
+
+lookupTezosClient :: (HasEnv m) => m String
+lookupTezosClient = fromMaybe "tezos-client" <$> lookupEnv "TZBTC_TEZOS_CLIENT"
+
+instance HasEnv IO where
+  lookupEnv = SE.lookupEnv
 
 instance HasTezosRpc IO where
   runTransactions addr param = do
@@ -125,109 +137,27 @@ instance HasTezosRpc IO where
   deployTzbtcContract op = do
     config@ClientConfig{..} <- throwLeft readConfig
     contractAddr <- IO.deployTzbtcContract config op
-    putTextLn $ "Contract was successfully deployed. Contract address: " <>
-      formatAddress contractAddr
+    putTextLn $ "Contract was successfully deployed. Contract address: " <> formatAddress contractAddr
     case ccContractAddress of
-      Nothing -> putTextLn "Current contract_address in the config is not set"
-      Just curAddr ->
-        putTextLn $ "Current contract_address in the config is " <> formatAddress curAddr
-    res <- confirmAction "Would you like to replace current contract_address \
-                         \with the newly deployed contract?"
+      Just c -> putTextLn $ "Current contract address for alias 'tzbtc' in the tezos-client config is " <> formatAddress c <> "."
+      Nothing -> putTextLn $ "Right now there is no contract aliased as 'tzbtc' in tezos-client config."
+    res <- confirmAction "Would you like to add/replace alias 'tzbtc' with the newly deployed contract?"
     case res of
       Canceled -> pass
-      Confirmed -> do
-        (curConfig :: ClientConfig) <- throwLeft readConfig
-        writeConfigFull $ curConfig { ccContractAddress = Just contractAddr}
-
-runConfigEdit
-  :: (MonadThrow m, HasEditor m, HasConfig m, HasCmdLine m)
-  => Bool -> ClientConfigPartial -> m ()
-runConfigEdit doEdit configPartial = do
-  (_, path) <- getConfigPaths
-  if doEdit then
-    if hasDelta configPartial then do
-      econfig <- readConfigText
-      case econfig of
-        Left err -> printTextLn (pretty err :: Text)
-        Right config -> writeConfigText $ mergeConfig config configPartial
-    else openEditor path (writeFile path)
-  else printConfig path
-  checkConfig
-  where
-    -- Is there any change to the config at all?
-    hasDelta ccp =
-      isAvailable (ccNodeAddress ccp) || isAvailable (ccNodePort ccp) ||
-      isAvailable (ccContractAddress ccp) || isAvailable (ccMultisigAddress ccp) ||
-      isAvailable (ccUserAlias ccp) || isAvailable (ccTezosClientExecutable ccp)
-
-    mergeConfig :: ClientConfigText -> ClientConfigPartial -> ClientConfigText
-    mergeConfig cc ccp = ClientConfig
-      (withDefaultConfig (ccNodeAddress cc) (ccNodeAddress ccp))
-      (withDefaultConfig (ccNodePort cc) (ccNodePort ccp))
-      (withDefaultConfig (ccNodeUseHttps cc) (ccNodeUseHttps ccp))
-      (withDefaultConfig (ccContractAddress cc) (ccContractAddress ccp))
-      (withDefaultConfig (ccMultisigAddress cc) (ccMultisigAddress ccp))
-      (withDefaultConfig (ccUserAlias cc) (ccUserAlias ccp))
-      (withDefaultConfig (ccTezosClientExecutable cc) (ccTezosClientExecutable ccp))
-
-    withDefaultConfig :: TextConfig a -> Partial s a -> TextConfig a
-    withDefaultConfig _ (Available a) = ConfigVal a
-    withDefaultConfig a Unavailable = a
-
-checkConfig :: (HasCmdLine m, HasConfig m) => m ()
-checkConfig = do
-  econfig <- readConfig
-  case econfig of
-    Left _ -> printStringLn "WARNING! Config file is incomplete."
-    Right _ -> pass
-
-printConfig :: (HasFilesystem m, HasCmdLine m) => FilePath -> m ()
-printConfig path = do
-  fileContents <- readFile path
-  printStringLn "Config file path:"
-  printStringLn "-----------------"
-  printStringLn path
-  printStringLn ""
-  printStringLn "Config file content:"
-  printStringLn "--------------------"
-  printByteString fileContents
-
--- | Write the configuration values to file as JSON in the following way.
---
--- 1. If none of the configuration values were provided, write the file
--- with placeholders for missing values, and notify the user.
---
--- 2. If a configuration file exists alredy, do not overwrite it, no matter
--- what.
-setupClient
-  :: (HasCmdLine m, HasConfig m)
-  => ClientConfigPartial
-  -> m ()
-setupClient configPartial = do
-  (appPath, configFilePath) <- getConfigPaths
-  fileExists <- doesFileExist configFilePath
-  if fileExists  then
-    printStringLn $
-      "Not overwriting the existing config file at, \n\n" <> configFilePath <>
-      "\n\nPlease remove the file and try again"
-  else do
-    createDirectoryIfMissing True appPath
-    case toConfigFilled configPartial of
-      Just config -> do
-        writeConfigFull config
-        printStringLn $ "Config file has been written to " <> configFilePath
-      Nothing -> do
-        writeConfigPartial configPartial
-        printStringLn $ "Since the required configuration values were missing from the command, \
-          \a config file, with placeholders in place of missing values has been \
-          \written to, \n\n" <> configFilePath <> "\n\n\
-          \Use `tzbtc-client setupClient --help` to see the command arguments."
+      Confirmed -> rememberContractAs contractAddr "tzbtc"
 
 addrOrAliasToAddr :: (MonadThrow m, HasTezosClient m) => Text -> m Address
 addrOrAliasToAddr addrOrAlias =
   case parseAddress addrOrAlias of
     Right addr -> pure addr
-    Left _ -> fst <$> (throwLeft $ getAddressAndPKForAlias addrOrAlias)
+    Left _ -> aliasToAddr addrOrAlias
+
+aliasToAddr :: (MonadThrow m, HasTezosClient m) => Text -> m Address
+aliasToAddr alias = do
+  a <- getAddressAndPKForAlias alias
+  case a of
+    Right (addr, _) -> pure addr
+    Left _ -> throwLeft $ getAddressForContract alias
 
 runTzbtcContract :: (MonadThrow m, HasTezosRpc m) => Parameter i s -> m ()
 runTzbtcContract param = do
@@ -252,7 +182,11 @@ getMultisigStorage addr ClientConfig{..} = do
   mSigStorageRaw <- getStorage $ formatAddress addr
   throwLeft $ pure $ exprToValue @MSig.Storage mSigStorageRaw
 
-createMultisigPackage :: (MonadThrow m, HasConfig m, HasTezosRpc m) => FilePath -> SafeParameter i s -> m ()
+createMultisigPackage
+  :: (MonadThrow m, HasFilesystem m, HasTezosRpc m)
+  => FilePath
+  -> SafeParameter i s
+  -> m ()
 createMultisigPackage packagePath parameter = do
   config@ClientConfig{..} <- throwLeft readConfig
   case ccMultisigAddress of
@@ -289,7 +223,7 @@ signPackageForConfiguredUser pkg = do
   case confirmationResult of
     Canceled -> pure $ Left $ "Package signing was canceled"
     Confirmed -> do
-      signRes <- signWithTezosClient (Right $ getBytesToSign pkg)
+      signRes <- signWithTezosClient (Right $ getBytesToSign pkg) ccUserAlias
       case signRes of
         Left err -> pure $ Left $ toString err
         Right signature' -> pure $ addSignature pkg (pk, signature')
