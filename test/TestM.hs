@@ -25,6 +25,7 @@ import Tezos.Common.Json (TezosInt64)
 import Tezos.Crypto
 import Tezos.V005.Micheline (Expression)
 
+import Client.Env
 import Client.Error
 import Client.IO ()
 import Client.Types
@@ -42,10 +43,10 @@ data Expectation
   | ParseCmdLine
   | GetsUserConfirmation
   | RunsTransaction
-  | OpenEditor FilePath
   | PrintByteString ByteString
   | DeployTzbtcContract
   | RememberContract Address Text
+  | LooksupEnv
   deriving (Eq, Show, Ord)
 
 -- | Specifiy how may time we expect an event to happen.
@@ -60,7 +61,7 @@ type ST = Map.Map Expectation ExpectationStatus
 
 data MyHandlers = MyHandlers { unMyHandlers ::  Handlers TestM }
 
-type TestM = StateT ST (ReaderT MyHandlers (Either SomeException))
+type TestM = StateT ST (ReaderT (MyHandlers, AppEnv) (Either SomeException))
 
 data TestError
   = TestError String
@@ -98,13 +99,12 @@ data Handlers m = Handlers
   , hGetAddressForContract :: Text -> m (Either TzbtcClientError Address)
   , hRememberContract :: Address -> Text -> m ()
 
-  , hOpenEditor :: FilePath -> (ByteString -> m ()) -> m ()
-
-  , hLookupEnv :: String -> m (Maybe String)
+  , hLookupEnv :: m AppEnv
+  , hWithLocal :: forall a. (AppEnv -> AppEnv) -> m a -> m a
   }
 
 getHandler :: (Handlers TestM -> fn) -> TestM fn
-getHandler fn = (fn . unMyHandlers) <$> ask
+getHandler fn = (fn . unMyHandlers . fst) <$> ask
 
 instance HasFilesystem TestM where
   writeFileUtf8 fp t = do
@@ -173,6 +173,9 @@ instance HasTezosClient TestM where
     fn c a
 
 instance HasEnv TestM where
-  lookupEnv t = do
-    fn <- getHandler hLookupEnv
-    fn t
+  lookupEnv = do
+    join $ getHandler hLookupEnv
+  withLocal f act = do
+    fn <- getHandler hWithLocal
+    fn f act
+

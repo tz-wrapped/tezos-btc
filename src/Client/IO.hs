@@ -14,8 +14,10 @@ module Client.IO
   , getFieldFromTzbtcUStore
   , getPackageFromFile
   , getTzbtcStorage
+  , mkInitEnv
   , runMultisigContract
   , runTzbtcContract
+  , runAppM
   , signPackageForConfiguredUser
   , writePackageToFile
   ) where
@@ -29,8 +31,8 @@ import Options.Applicative as Opt hiding (value)
 import Servant.Client as Servant (ResponseF(..))
 import Servant.Client (runClientM)
 import Servant.Client.Core as Servant (ClientError(..))
-import qualified System.Directory as Directory (doesFileExist)
 import qualified System.Environment as SE
+import qualified System.Directory as Directory (doesFileExist)
 
 import Lorentz hiding (address, balance, chainId, cons, map)
 import Lorentz.Contracts.ManagedLedger.Types
@@ -41,6 +43,7 @@ import Tezos.Crypto
 
 import qualified Client.API as API
 import Client.Error
+import Client.Env
 import qualified Client.IO.CmdLine as IO
 import qualified Client.IO.HttpClient as IO
 import qualified Client.IO.TezosClient as IO
@@ -53,11 +56,24 @@ import Util.AbstractIO
 import qualified Util.IO as UIO (writeFileUtf8)
 import Util.MultiSig
 
+instance HasFilesystem AppM where
+  writeFile fp bs = liftIO $ BS.writeFile fp bs
+  writeFileUtf8 fp c = liftIO $ UIO.writeFileUtf8 fp c
+  readFile fp = liftIO $ BS.readFile fp
+  doesFileExist fp = liftIO $ Directory.doesFileExist fp
+
 instance HasFilesystem IO where
   writeFile = BS.writeFile
   writeFileUtf8 = UIO.writeFileUtf8
   readFile = BS.readFile
   doesFileExist = Directory.doesFileExist
+
+instance HasCmdLine AppM  where
+  parseCmdLine p = liftIO $ execParser p
+  printTextLn t = liftIO $ putStrLn t
+  printStringLn t = liftIO $ putStrLn t
+  printByteString bs = liftIO $ BSC.putStrLn bs
+  confirmAction msg = liftIO $ IO.confirmAction msg
 
 instance HasCmdLine IO  where
   parseCmdLine = execParser
@@ -66,11 +82,18 @@ instance HasCmdLine IO  where
   printByteString = BSC.putStrLn
   confirmAction = IO.confirmAction
 
-instance (Monad m, HasTezosClient m) => HasConfig m where
+instance (Monad m, HasTezosClient m, HasEnv m) => HasConfig m where
   readConfig = do
     c <- getTezosClientConfig
+    -- Lookup config overrides from environment
+    -- and apply them
+    env <- lookupEnv
     case c of
-      Right (path, tzc) -> Right <$> toTzbtcConfig tzc path
+      Right (path, tzc) -> do
+        config <- toTzbtcConfig tzc path
+        case coTzbtcUser $ aeConfigOverride env of
+          Just a -> pure $ Right $ config { ccUserAlias = a }
+          _ -> pure $ Right config
       Left _ -> pure $ Left TzbtcClientConfigError
 
 toTzbtcConfig :: (HasTezosClient m) => TezosClientConfig -> FilePath -> m ClientConfig
@@ -87,58 +110,65 @@ toTzbtcConfig TezosClientConfig {..} path = do
     , ccMultisigAddress = multisigAddr
     }
 
-instance HasTezosClient IO where
+instance HasTezosClient AppM where
   getAddressForContract a = do
     tcPath <- lookupTezosClient
-    IO.getAddressForContract tcPath a
+    liftIO $ IO.getAddressForContract tcPath a
   getAddressAndPKForAlias a = do
     tcPath <- lookupTezosClient
-    IO.getAddressAndPKForAlias tcPath a
+    liftIO $ IO.getAddressAndPKForAlias tcPath a
   signWithTezosClient a for = do
     tcPath <- lookupTezosClient
-    IO.signWithTezosClient tcPath (first InternalByteString a) for
+    liftIO $ IO.signWithTezosClient tcPath (first InternalByteString a) for
   waitForOperation op = do
     tcPath <- lookupTezosClient
-    IO.waitForOperationInclusion tcPath op
+    liftIO $ IO.waitForOperationInclusion tcPath op
   getTezosClientConfig = do
     tcPath <- lookupTezosClient
-    ec <- IO.getTezosClientConfig tcPath
+    ec <- liftIO $ IO.getTezosClientConfig tcPath
     case ec of
       Right config -> pure $ Right (tcPath, config)
       Left err -> pure $ Left err
   rememberContractAs addr alias = do
     tcPath <- lookupTezosClient
-    IO.rememberContractAs tcPath addr alias
+    liftIO $ IO.rememberContractAs tcPath addr alias
+---
 
-lookupTezosClient :: (HasEnv m) => m String
-lookupTezosClient = fromMaybe "tezos-client" <$> lookupEnv "TZBTC_TEZOS_CLIENT"
+lookupTezosClient :: (MonadThrow m, HasEnv m) => m String
+lookupTezosClient = throwLeft $ aeTezosClientPath <$> lookupEnv
 
-instance HasEnv IO where
-  lookupEnv = SE.lookupEnv
+instance HasEnv AppM where
+  lookupEnv = ask
+  withLocal fn act = local fn act
 
-instance HasTezosRpc IO where
+mkInitEnv :: IO AppEnv
+mkInitEnv = do
+  tzPath <- fromMaybe "tezos-client" <$> SE.lookupEnv "TZBTC_TEZOS_CLIENT"
+  pure $ emptyEnv { aeTezosClientPath = Right tzPath }
+
+instance HasTezosRpc AppM where
   runTransactions addr param = do
     config <- throwLeft readConfig
-    IO.runTransactions addr param config
+    liftIO $ IO.runTransactions addr param config
   getStorage addr = do
     config <- throwLeft readConfig
-    IO.getStorage config addr
+    liftIO $ IO.getStorage config addr
   getCounter addr = do
     config <- throwLeft readConfig
-    clientEnv <- IO.getClientEnv config
-    throwClientError $ runClientM (API.getCounter addr) clientEnv
+    clientEnv <- liftIO $ IO.getClientEnv config
+    liftIO $ throwClientError $ runClientM (API.getCounter addr) clientEnv
   getFromBigMap bid scriptExpr = do
     config@ClientConfig{..}  <- throwLeft $ readConfig
-    clientEnv <- IO.getClientEnv config
-    r <- runClientM (API.getFromBigMap bid scriptExpr) clientEnv
+    clientEnv <- liftIO $ IO.getClientEnv config
+    r <- liftIO $ runClientM (API.getFromBigMap bid scriptExpr) clientEnv
     case r of
       Left err -> pure $ Left $ TzbtcServantError err
       Right rawVal -> pure $ Right rawVal
   deployTzbtcContract op = do
     config@ClientConfig{..} <- throwLeft readConfig
-    contractAddr <- IO.deployTzbtcContract config op
+    contractAddr <- liftIO $ IO.deployTzbtcContract config op
     putTextLn $ "Contract was successfully deployed. Contract address: " <> formatAddress contractAddr
-    case ccContractAddress of
+    liftIO $ case ccContractAddress of
       Just c -> putTextLn $ "Current contract address for alias 'tzbtc' in the tezos-client config is " <> formatAddress c <> "."
       Nothing -> putTextLn $ "Right now there is no contract aliased as 'tzbtc' in tezos-client config."
     res <- confirmAction "Would you like to add/replace alias 'tzbtc' with the newly deployed contract?"

@@ -126,12 +126,12 @@ runTransactions
   => Address -> [EntrypointParam param] -> ClientConfig -> IO ()
 runTransactions to params config@ClientConfig{..} = do
   OperationConstants{..} <- preProcessOperation config
-  let opsToRun = map (\(param, i) -> dumbOp
+  let opsToRun = zipWith (\param i -> dumbOp
         { toDestination = to
         , toSource = ocSourceAddr
         , toCounter = ocCounter + (fromInteger i)
         , toParameters = toParametersInternals param
-        }) $ zip params [1..]
+        }) params [1..]
   let runOp = RunOperation
         { roOperation =
           RunOperationInternal
@@ -147,13 +147,13 @@ runTransactions to params config@ClientConfig{..} = do
   -- Forge operation with given limits and get its hexadecimal representation
   hex <- throwClientError $ getOperationHex ocClientEnv ForgeOperation
     { foBranch = ocLastBlockHash
-    , foContents = map (\(opToRun, AppliedResult{..}) ->
+    , foContents = zipWith (\opToRun AppliedResult{..} ->
                           Left $ opToRun
                           { toGasLimit = arConsumedGas + 200
                           , toStorageLimit = arStorageSize + 20
                           , toFee = calcFees arConsumedGas arPaidStorageDiff
                           }
-                       ) $ zip opsToRun results
+                       ) opsToRun results
     }
   -- Sign operation with sender secret key
   signRes <- IO.signWithTezosClient ccTezosClientExecutable (Left $ addOperationPrefix hex) ccUserAlias

@@ -25,58 +25,18 @@ import Text.Megaparsec.Char (eol, space)
 import Text.Megaparsec.Char.Lexer (symbol)
 import Text.Megaparsec.Error (ParseErrorBundle, ShowErrorComponent(..))
 
-import Michelson.Text (MText, mt)
+import Michelson.Text (mt)
 import Tezos.Address (Address, parseAddress)
 import Tezos.Crypto (PublicKey, Signature, parsePublicKey, parseSignature)
 
 import CLI.Parser
+import Client.Types
 import Lorentz.Contracts.TZBTC.Types
 
--- | Client argument with optional dry-run flag
-data ClientArgs = ClientArgs ClientArgsRaw Bool
-
-type AddrOrAlias = Text
-
-data ClientArgsRaw
-  = CmdMint AddrOrAlias Natural (Maybe FilePath)
-  | CmdBurn BurnParams (Maybe FilePath)
-  | CmdTransfer AddrOrAlias AddrOrAlias Natural
-  | CmdApprove AddrOrAlias Natural
-  | CmdGetAllowance (AddrOrAlias, AddrOrAlias) (Maybe AddrOrAlias)
-  | CmdGetBalance AddrOrAlias (Maybe AddrOrAlias)
-  | CmdAddOperator AddrOrAlias (Maybe FilePath)
-  | CmdRemoveOperator AddrOrAlias (Maybe FilePath)
-  | CmdPause (Maybe FilePath)
-  | CmdUnpause (Maybe FilePath)
-  | CmdSetRedeemAddress AddrOrAlias (Maybe FilePath)
-  | CmdTransferOwnership AddrOrAlias (Maybe FilePath)
-  | CmdAcceptOwnership AcceptOwnershipParams
-  | CmdGetTotalSupply (Maybe AddrOrAlias)
-  | CmdGetTotalMinted (Maybe AddrOrAlias)
-  | CmdGetTotalBurned (Maybe AddrOrAlias)
-  | CmdGetOwner (Maybe AddrOrAlias)
-  | CmdGetTokenName (Maybe AddrOrAlias)
-  | CmdGetTokenCode (Maybe AddrOrAlias)
-  | CmdGetRedeemAddress (Maybe AddrOrAlias)
-  | CmdGetOperators
-  | CmdGetOpDescription FilePath
-  | CmdGetBytesToSign FilePath
-  | CmdAddSignature PublicKey Signature FilePath
-  | CmdSignPackage FilePath
-  | CmdCallMultisig (NonEmpty FilePath)
-  | CmdDeployContract !DeployContractOptions
-  | CmdShowConfig
-
-data DeployContractOptions = DeployContractOptions
-  { dcoOwner :: ! (Maybe AddrOrAlias)
-  , dcoRedeem :: !AddrOrAlias
-  , dcoTokenName :: !MText
-  , dcoTokenCode :: !MText
-  }
-
 clientArgParser :: Opt.Parser ClientArgs
-clientArgParser = ClientArgs <$> clientArgRawParser <*> dryRunSwitch
+clientArgParser = ClientArgs <$> clientArgRawParser <*> userOption <*> dryRunSwitch
   where
+    userOption = mbAddrOrAliasOption "user" "User to send operations as"
     dryRunSwitch =
       switch (long "dry-run" <>
               help "Dry run command to ensure correctness of the arguments")
@@ -308,7 +268,8 @@ clientArgRawParser = Opt.hsubparser $
     deployCmd =
       mkCommandParser
       "deployTzbtcContract"
-      (CmdDeployContract <$> deployContractOptions)
+      (CmdDeployContract
+        <$> deployContractOptions)
       "Deploy TZBTC contract to the chain"
       where
         deployContractOptions :: Opt.Parser DeployContractOptions

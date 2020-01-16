@@ -14,19 +14,40 @@ setup () {
 
 }
 
+@test "invoking tzbtc-client 'approve' command with user" {
+  stack exec -- tzbtc-client approve\
+          --spender "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" --value 100 --dry-run --user john
+
+}
+
 @test "invoking tzbtc-client 'mint' command" {
   stack exec -- tzbtc-client mint\
           --to "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" --value 100 --dry-run
+}
+
+@test "invoking tzbtc-client 'mint' command with user" {
+  stack exec -- tzbtc-client mint\
+          --to "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" --value 100 --dry-run --user john
 }
 
 @test "invoking tzbtc-client 'burn' command" {
   stack exec -- tzbtc-client burn --value 100 --dry-run
 }
 
+@test "invoking tzbtc-client 'burn' command with user" {
+  stack exec -- tzbtc-client burn --value 100 --dry-run --user john
+}
+
 @test "invoking tzbtc-client 'transfer' command" {
   stack exec -- tzbtc-client transfer\
     --to "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"\
     --from "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" --value 100 --dry-run
+}
+
+@test "invoking tzbtc-client 'transfer' command with user" {
+  stack exec -- tzbtc-client transfer\
+    --to "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"\
+    --from "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" --value 100 --dry-run --user john
 }
 
 @test "invoking tzbtc-client 'getAllowance' command" {
