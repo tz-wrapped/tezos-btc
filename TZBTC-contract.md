@@ -6,7 +6,7 @@
 
 # TZBTC
 
-**Code revision:** [0af1cc0](https://github.com/serokell/tezos-btc/commit/0af1cc0f8ff02049951d9248a6884642cdf75726) *(Wed Jan 15 21:21:34 2020 +0530)*
+**Code revision:** [6ed2cdf](https://github.com/serokell/tezos-btc/commit/6ed2cdf566e6c1a5a791aa7e8f39b247e3795996) *(Thu Jan 16 20:22:43 2020 +0530)*
 
 This contract is implemented using Lorentz language.
 Basically, this contract is [FA1.2](https://gitlab.com/serokell/morley/tzip/blob/master/A/FA1.2.md)-compatible approvable ledger that maps user addresses to their token balances. The main idea of this token contract is to provide 1-to-1 correspondance with BTC.
@@ -49,6 +49,8 @@ Pass resulting value as parameter to the contract.
 
 This entry point is used to get allowance for an account.
 
+Returns the approval value between two given addresses.
+
 **Parameter:** [`View`](#types-View) (***owner*** : [`Address`](#types-Address-simplified), ***spender*** : [`Address`](#types-Address-simplified)) [`Natural`](#types-Natural)
 
 <details>
@@ -76,6 +78,8 @@ Pass resulting value as parameter to the contract.
 ### `GetBalance`
 
 This entry point is used to get balance in an account.
+
+Returns the balance of the address in the ledger.
 
 **Parameter:** [`View`](#types-View) (***owner*** : [`Address`](#types-Address-simplified)) [`Natural`](#types-Natural)
 
@@ -105,6 +109,8 @@ Pass resulting value as parameter to the contract.
 
 This entry point is used to get total number of tokens.
 
+Returns total number of tokens.
+
 **Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
 
 <details>
@@ -132,6 +138,8 @@ Pass resulting value as parameter to the contract.
 ### `GetTotalMinted`
 
 This entry point is used to get total number of minted tokens.
+
+This view returns the total number of minted tokens
 
 **Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
 
@@ -161,6 +169,8 @@ Pass resulting value as parameter to the contract.
 
 This entry point is used to get total number of burned tokens.
 
+This view returns the total number of burned tokens
+
 **Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
 
 <details>
@@ -188,6 +198,8 @@ Pass resulting value as parameter to the contract.
 ### `GetOwner`
 
 This entry point is used to get current owner.
+
+This view returns the current contract owner
 
 **Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Address`](#types-Address-simplified)
 
@@ -217,6 +229,8 @@ Pass resulting value as parameter to the contract.
 
 This entry point is used to get token name.
 
+This view returns the token name
+
 **Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Text`](#types-Text)
 
 <details>
@@ -245,6 +259,8 @@ Pass resulting value as parameter to the contract.
 
 This entry point is used to get token code.
 
+This view returns the token code
+
 **Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Text`](#types-Text)
 
 <details>
@@ -272,6 +288,8 @@ Pass resulting value as parameter to the contract.
 ### `GetRedeemAddress`
 
 This entry point is used to get redeem address.
+
+This view returns the redeem address
 
 **Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Address`](#types-Address-simplified)
 
@@ -528,6 +546,16 @@ Pass resulting value as parameter to the contract.
 
 This entry point is used transfer tokens from one account to another.
 
+Transfers tokens between two given accounts.
+
+This entrypoint serves multiple purposes:
+* When called with `"from"` account equal to the transaction sender, we assume that
+the user transfers their own money and this does not require approval.
+* Otherwise, the transaction sender must be previously authorized to transfer at least the requested number of tokens from the `"from"` account using the `approve` entrypoint.
+In this case current number of tokens that sender is allowed to withdraw from the `"from"` address is decreased by the number of transferred tokens.
+
+
+
 **Parameter:** (***from*** : [`Address`](#types-Address-simplified), ***to*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
 
 <details>
@@ -548,7 +576,15 @@ Pass resulting value as parameter to the contract.
 
 
 
+**Pausable:** Cannot be executed when token operations are paused.
+
 **Possible errors:**
+* [`TokenOperationsArePaused`](#errors-TokenOperationsArePaused) — Token functionality (`transfer` and similar entrypoints) is suspended.
+
+* [`NotEnoughAllowance`](#errors-NotEnoughAllowance) — Not enough funds allowance to perform the operation.
+
+* [`NotEnoughBalance`](#errors-NotEnoughBalance) — Not enough funds to perform the operation.
+
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
@@ -558,6 +594,18 @@ Pass resulting value as parameter to the contract.
 ##### `Approve`
 
 This entry point is used approve transfer of tokens from one account to another.
+
+When called with `(address :spender, nat :value)`
+parameters allows `spender` account to withdraw from the sender, multiple times,
+up to the `value` amount.
+Each call of `transfer` entrypoint decreases the allowance amount on the transferred amount of tokens unless `transfer` is called with `from` account equal to sender.
+
+If this entrypoint is called again, it overwrites the current allowance
+with `value`.
+
+Changing allowance value from non-zero value to a non-zero value is
+forbidden to prevent the [corresponding attack vector](https://docs.google.com/document/d/1YLPtQxZu1UAvO9cZ1O2RPXBbT0mooh4DYKjA_jp-RLM).
+
 
 **Parameter:** (***spender*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
 
@@ -579,7 +627,13 @@ Pass resulting value as parameter to the contract.
 
 
 
+**Pausable:** Cannot be executed when token operations are paused.
+
 **Possible errors:**
+* [`TokenOperationsArePaused`](#errors-TokenOperationsArePaused) — Token functionality (`transfer` and similar entrypoints) is suspended.
+
+* [`UnsafeAllowanceChange`](#errors-UnsafeAllowanceChange) — Allowance change from non-zero value to non-zero value is performed.
+
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
@@ -610,7 +664,11 @@ Pass resulting value as parameter to the contract.
 
 
 
+The sender has to be the `operator`.
+
 **Possible errors:**
+* [`SenderIsNotOperator`](#errors-SenderIsNotOperator) — Sender has to be an operator to call this entrypoint
+
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
@@ -620,6 +678,8 @@ Pass resulting value as parameter to the contract.
 ##### `Burn`
 
 This entry point is used burn tokes from the redeem address.
+
+Burn some tokens from the `redeem` address.
 
 **Parameter:** ***value*** : [`Natural`](#types-Natural)
 
@@ -641,7 +701,13 @@ Pass resulting value as parameter to the contract.
 
 
 
+The sender has to be the `operator`.
+
 **Possible errors:**
+* [`SenderIsNotOperator`](#errors-SenderIsNotOperator) — Sender has to be an operator to call this entrypoint
+
+* [`NotEnoughBalance`](#errors-NotEnoughBalance) — Not enough funds to perform the operation.
+
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
@@ -672,7 +738,11 @@ Pass resulting value as parameter to the contract.
 
 
 
+The sender has to be the `owner`.
+
 **Possible errors:**
+* [`SenderIsNotOwner`](#errors-SenderIsNotOwner) — Sender has to be an owner to call this entrypoint
+
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
@@ -703,7 +773,11 @@ Pass resulting value as parameter to the contract.
 
 
 
+The sender has to be the `owner`.
+
 **Possible errors:**
+* [`SenderIsNotOwner`](#errors-SenderIsNotOwner) — Sender has to be an owner to call this entrypoint
+
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
@@ -734,7 +808,11 @@ Pass resulting value as parameter to the contract.
 
 
 
+The sender has to be the `owner`.
+
 **Possible errors:**
+* [`SenderIsNotOwner`](#errors-SenderIsNotOwner) — Sender has to be an owner to call this entrypoint
+
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
@@ -765,7 +843,11 @@ Pass resulting value as parameter to the contract.
 
 
 
+The sender has to be the `operator`.
+
 **Possible errors:**
+* [`SenderIsNotOperator`](#errors-SenderIsNotOperator) — Sender has to be an operator to call this entrypoint
+
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
@@ -796,7 +878,11 @@ Pass resulting value as parameter to the contract.
 
 
 
+The sender has to be the `owner`.
+
 **Possible errors:**
+* [`SenderIsNotOwner`](#errors-SenderIsNotOwner) — Sender has to be an owner to call this entrypoint
+
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
@@ -827,7 +913,11 @@ Pass resulting value as parameter to the contract.
 
 
 
+The sender has to be the `owner`.
+
 **Possible errors:**
+* [`SenderIsNotOwner`](#errors-SenderIsNotOwner) — Sender has to be an owner to call this entrypoint
+
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
@@ -858,7 +948,13 @@ Pass resulting value as parameter to the contract.
 
 
 
+The sender has to be the `new owner`.
+
 **Possible errors:**
+* [`NotInTransferOwnershipMode`](#errors-NotInTransferOwnershipMode) — Cannot accept ownership before transfer process has been initiated by calling transferOwnership entrypoint
+
+* [`SenderIsNotNewOwner`](#errors-SenderIsNotNewOwner) — Cannot accept ownership because the sender address is different from the address passed to the transferOwnership entrypoint previously
+
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
@@ -1071,6 +1167,16 @@ Pass resulting value as parameter to the contract.
 
 This entry point is used transfer tokens from one account to another.
 
+Transfers tokens between two given accounts.
+
+This entrypoint serves multiple purposes:
+* When called with `"from"` account equal to the transaction sender, we assume that
+the user transfers their own money and this does not require approval.
+* Otherwise, the transaction sender must be previously authorized to transfer at least the requested number of tokens from the `"from"` account using the `approve` entrypoint.
+In this case current number of tokens that sender is allowed to withdraw from the `"from"` address is decreased by the number of transferred tokens.
+
+
+
 **Parameter:** (***from*** : [`Address`](#types-Address-simplified), ***to*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
 
 <details>
@@ -1091,7 +1197,15 @@ Pass resulting value as parameter to the contract.
 
 
 
+**Pausable:** Cannot be executed when token operations are paused.
+
 **Possible errors:**
+* [`TokenOperationsArePaused`](#errors-TokenOperationsArePaused) — Token functionality (`transfer` and similar entrypoints) is suspended.
+
+* [`NotEnoughAllowance`](#errors-NotEnoughAllowance) — Not enough funds allowance to perform the operation.
+
+* [`NotEnoughBalance`](#errors-NotEnoughBalance) — Not enough funds to perform the operation.
+
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
@@ -1101,6 +1215,18 @@ Pass resulting value as parameter to the contract.
 ### `Approve`
 
 This entry point is used approve transfer of tokens from one account to another.
+
+When called with `(address :spender, nat :value)`
+parameters allows `spender` account to withdraw from the sender, multiple times,
+up to the `value` amount.
+Each call of `transfer` entrypoint decreases the allowance amount on the transferred amount of tokens unless `transfer` is called with `from` account equal to sender.
+
+If this entrypoint is called again, it overwrites the current allowance
+with `value`.
+
+Changing allowance value from non-zero value to a non-zero value is
+forbidden to prevent the [corresponding attack vector](https://docs.google.com/document/d/1YLPtQxZu1UAvO9cZ1O2RPXBbT0mooh4DYKjA_jp-RLM).
+
 
 **Parameter:** (***spender*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
 
@@ -1122,7 +1248,13 @@ Pass resulting value as parameter to the contract.
 
 
 
+**Pausable:** Cannot be executed when token operations are paused.
+
 **Possible errors:**
+* [`TokenOperationsArePaused`](#errors-TokenOperationsArePaused) — Token functionality (`transfer` and similar entrypoints) is suspended.
+
+* [`UnsafeAllowanceChange`](#errors-UnsafeAllowanceChange) — Allowance change from non-zero value to non-zero value is performed.
+
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
@@ -1153,7 +1285,11 @@ Pass resulting value as parameter to the contract.
 
 
 
+The sender has to be the `operator`.
+
 **Possible errors:**
+* [`SenderIsNotOperator`](#errors-SenderIsNotOperator) — Sender has to be an operator to call this entrypoint
+
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
@@ -1163,6 +1299,8 @@ Pass resulting value as parameter to the contract.
 ### `Burn`
 
 This entry point is used burn tokes from the redeem address.
+
+Burn some tokens from the `redeem` address.
 
 **Parameter:** ***value*** : [`Natural`](#types-Natural)
 
@@ -1184,7 +1322,13 @@ Pass resulting value as parameter to the contract.
 
 
 
+The sender has to be the `operator`.
+
 **Possible errors:**
+* [`SenderIsNotOperator`](#errors-SenderIsNotOperator) — Sender has to be an operator to call this entrypoint
+
+* [`NotEnoughBalance`](#errors-NotEnoughBalance) — Not enough funds to perform the operation.
+
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
@@ -1215,7 +1359,11 @@ Pass resulting value as parameter to the contract.
 
 
 
+The sender has to be the `owner`.
+
 **Possible errors:**
+* [`SenderIsNotOwner`](#errors-SenderIsNotOwner) — Sender has to be an owner to call this entrypoint
+
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
@@ -1246,7 +1394,11 @@ Pass resulting value as parameter to the contract.
 
 
 
+The sender has to be the `owner`.
+
 **Possible errors:**
+* [`SenderIsNotOwner`](#errors-SenderIsNotOwner) — Sender has to be an owner to call this entrypoint
+
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
@@ -1277,7 +1429,11 @@ Pass resulting value as parameter to the contract.
 
 
 
+The sender has to be the `owner`.
+
 **Possible errors:**
+* [`SenderIsNotOwner`](#errors-SenderIsNotOwner) — Sender has to be an owner to call this entrypoint
+
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
@@ -1308,7 +1464,11 @@ Pass resulting value as parameter to the contract.
 
 
 
+The sender has to be the `operator`.
+
 **Possible errors:**
+* [`SenderIsNotOperator`](#errors-SenderIsNotOperator) — Sender has to be an operator to call this entrypoint
+
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
@@ -1339,7 +1499,11 @@ Pass resulting value as parameter to the contract.
 
 
 
+The sender has to be the `owner`.
+
 **Possible errors:**
+* [`SenderIsNotOwner`](#errors-SenderIsNotOwner) — Sender has to be an owner to call this entrypoint
+
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
@@ -1370,7 +1534,11 @@ Pass resulting value as parameter to the contract.
 
 
 
+The sender has to be the `owner`.
+
 **Possible errors:**
+* [`SenderIsNotOwner`](#errors-SenderIsNotOwner) — Sender has to be an owner to call this entrypoint
+
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
@@ -1401,7 +1569,13 @@ Pass resulting value as parameter to the contract.
 
 
 
+The sender has to be the `new owner`.
+
 **Possible errors:**
+* [`NotInTransferOwnershipMode`](#errors-NotInTransferOwnershipMode) — Cannot accept ownership before transfer process has been initiated by calling transferOwnership entrypoint
+
+* [`SenderIsNotNewOwner`](#errors-SenderIsNotNewOwner) — Cannot accept ownership because the sender address is different from the address passed to the transferOwnership entrypoint previously
+
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
@@ -1747,6 +1921,70 @@ We distinquish several error classes:
 
 **Representation:** Textual error message, see [`Text`](#types-Text).
 
+<a name="errors-NotEnoughAllowance"></a>
+
+---
+
+### `NotEnoughAllowance`
+
+**Class:** Action exception
+
+**Fires if:** Not enough funds allowance to perform the operation.
+
+**Representation:** `("NotEnoughAllowance", <error argument>)`.
+
+Provided error argument will be of type (***required*** : [`Natural`](#types-Natural), ***present*** : [`Natural`](#types-Natural)).
+
+<a name="errors-NotEnoughBalance"></a>
+
+---
+
+### `NotEnoughBalance`
+
+**Class:** Action exception
+
+**Fires if:** Not enough funds to perform the operation.
+
+**Representation:** `("NotEnoughBalance", <error argument>)`.
+
+Provided error argument will be of type (***required*** : [`Natural`](#types-Natural), ***present*** : [`Natural`](#types-Natural)).
+
+<a name="errors-NotInTransferOwnershipMode"></a>
+
+---
+
+### `NotInTransferOwnershipMode`
+
+**Class:** Action exception
+
+**Fires if:** Cannot accept ownership before transfer process has been initiated by calling transferOwnership entrypoint
+
+**Representation:** `("NotInTransferOwnershipMode", ())`.
+
+<a name="errors-SenderIsNotNewOwner"></a>
+
+---
+
+### `SenderIsNotNewOwner`
+
+**Class:** Bad argument
+
+**Fires if:** Cannot accept ownership because the sender address is different from the address passed to the transferOwnership entrypoint previously
+
+**Representation:** `("SenderIsNotNewOwner", ())`.
+
+<a name="errors-SenderIsNotOperator"></a>
+
+---
+
+### `SenderIsNotOperator`
+
+**Class:** -
+
+**Fires if:** Sender has to be an operator to call this entrypoint
+
+**Representation:** `("SenderIsNotOperator", ())`.
+
 <a name="errors-SenderIsNotOwner"></a>
 
 ---
@@ -1758,6 +1996,32 @@ We distinquish several error classes:
 **Fires if:** Sender has to be an owner to call this entrypoint
 
 **Representation:** `("SenderIsNotOwner", ())`.
+
+<a name="errors-TokenOperationsArePaused"></a>
+
+---
+
+### `TokenOperationsArePaused`
+
+**Class:** Action exception
+
+**Fires if:** Token functionality (`transfer` and similar entrypoints) is suspended.
+
+**Representation:** `("TokenOperationsArePaused", ())`.
+
+<a name="errors-UnsafeAllowanceChange"></a>
+
+---
+
+### `UnsafeAllowanceChange`
+
+**Class:** Action exception
+
+**Fires if:** Allowance change from non-zero value to non-zero value is performed. This contract does not allow such an update, see the [corresponding attack vector](https://docs.google.com/document/d/1YLPtQxZu1UAvO9cZ1O2RPXBbT0mooh4DYKjA_jp-RLM) for explanation.
+
+**Representation:** `("UnsafeAllowanceChange", <error argument>)`.
+
+Provided error argument will be of type [`Natural`](#types-Natural) and stand for the previous value of approval.
 
 <a name="errors-UpgContractIsMigrating"></a>
 
