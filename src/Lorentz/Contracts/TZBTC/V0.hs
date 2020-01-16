@@ -30,6 +30,7 @@ import qualified Michelson.Typed as T
 import Util.Markdown
 import Util.TypeLits
 
+import qualified Lorentz.Contracts.TZBTC.Impl as Impl
 import Lorentz.Contracts.TZBTC.Types as Types
 
 -- | Template for the wrapped UStore which will hold the owner address
@@ -108,46 +109,57 @@ safeEntrypoints = entryCase @(SafeParameter Interface StoreTemplateV0) (Proxy @U
   , #cTransfer /-> do
       doc $ DDescription
         "This entry point is used transfer tokens from one account to another."
+      cutLorentzNonDoc (Impl.transfer @(UStore StoreTemplate))
       callUEp #callTransfer
   , #cApprove /-> do
       doc $ DDescription
         "This entry point is used approve transfer of tokens from one account to another."
+      cutLorentzNonDoc (Impl.approve @(UStore StoreTemplate))
       callUEp #callApprove
   , #cMint /-> do
       doc $ DDescription
         "This entry point is used mint new tokes for an account."
+      cutLorentzNonDoc (Impl.mint @(UStore StoreTemplate))
       callUEp #callMint
   , #cBurn /-> do
       doc $ DDescription
         "This entry point is used burn tokes from the redeem address."
+      cutLorentzNonDoc (Impl.burn @(UStore StoreTemplate))
       callUEp #callBurn
   , #cAddOperator /-> do
       doc $ DDescription
         "This entry point is used to add a new operator."
+      cutLorentzNonDoc (Impl.addOperator @(UStore StoreTemplate))
       callUEp #callAddOperator
   , #cRemoveOperator /-> do
       doc $ DDescription
         "This entry point is used to remove an operator."
+      cutLorentzNonDoc (Impl.removeOperator @(UStore StoreTemplate))
       callUEp #callRemoveOperator
   , #cSetRedeemAddress /-> do
       doc $ DDescription
         "This entry point is used to set the redeem address."
+      cutLorentzNonDoc (Impl.setRedeemAddress @(UStore StoreTemplate))
       callUEp #callSetRedeemAddress
   , #cPause /-> do
       doc $ DDescription
         "This entry point is used to pause the contract."
+      cutLorentzNonDoc (Impl.pause @(UStore StoreTemplate))
       callUEp #callPause
   , #cUnpause /-> do
       doc $ DDescription
         "This entry point is used to resume the contract during a paused state."
+      cutLorentzNonDoc (Impl.unpause @(UStore StoreTemplate))
       callUEp #callUnpause
   , #cTransferOwnership /-> do
       doc $ DDescription
         "This entry point is used to transfer ownership to a new owner."
+      cutLorentzNonDoc (Impl.transferOwnership @(UStore StoreTemplate))
       callUEp #callTransferOwnership
   , #cAcceptOwnership /-> do
       doc $ DDescription
         "This entry point is used to accept ownership by a new owner."
+      cutLorentzNonDoc (Impl.acceptOwnership @(UStore StoreTemplate))
       callUEp #callAcceptOwnership
   )
   where
@@ -167,38 +179,47 @@ tzbtcContractRaw = do
     , #cGetAllowance /-> do
         doc $ DDescription
           "This entry point is used to get allowance for an account."
+        cutLorentzNonDoc (Impl.getAllowance @(UStore StoreTemplate))
         callUSafeViewEP #callGetAllowance
     , #cGetBalance /-> do
         doc $ DDescription
           "This entry point is used to get balance in an account."
+        cutLorentzNonDoc (Impl.getBalance @(UStore StoreTemplate))
         callUSafeViewEP #callGetBalance
     , #cGetTotalSupply /-> do
         doc $ DDescription
           "This entry point is used to get total number of tokens."
+        cutLorentzNonDoc (Impl.getTotalSupply @(UStore StoreTemplate))
         callUSafeViewEP #callGetTotalSupply
     , #cGetTotalMinted /-> do
         doc $ DDescription
           "This entry point is used to get total number of minted tokens."
+        cutLorentzNonDoc (Impl.getTotalMinted @(UStore StoreTemplate))
         callUSafeViewEP #callGetTotalMinted
     , #cGetTotalBurned /-> do
         doc $ DDescription
           "This entry point is used to get total number of burned tokens."
+        cutLorentzNonDoc (Impl.getTotalBurned @(UStore StoreTemplate))
         callUSafeViewEP #callGetTotalBurned
     , #cGetOwner /-> do
         doc $ DDescription
           "This entry point is used to get current owner."
+        cutLorentzNonDoc (Impl.getOwner @(UStore StoreTemplate))
         callUSafeViewEP #callGetOwner
     , #cGetTokenName /-> do
         doc $ DDescription
           "This entry point is used to get token name."
+        cutLorentzNonDoc Impl.getTokenName
         callUSafeViewEP #callGetTokenName
     , #cGetTokenCode /-> do
         doc $ DDescription
           "This entry point is used to get token code."
+        cutLorentzNonDoc Impl.getTokenCode
         callUSafeViewEP #callGetTokenCode
     , #cGetRedeemAddress /-> do
         doc $ DDescription
           "This entry point is used to get redeem address."
+        cutLorentzNonDoc (Impl.getRedeemAddress @(UStore StoreTemplate))
         callUSafeViewEP #callGetRedeemAddress
     , #cSafeEntrypoints /-> do
         doc $ DDescription
