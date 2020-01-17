@@ -57,6 +57,9 @@ emptyCode = UContractRouter $ cdr # nil # pair
 -- | Entry point of upgradeable contract.
 data UpgradeableEntryPointKind
 
+-- | Safe entry points of contract.
+data SafeEntryPointKind
+
 instance DocItem (DEntryPoint UpgradeableEntryPointKind) where
   type DocItemPosition (DEntryPoint UpgradeableEntryPointKind) = 1002
   docItemSectionName = Just "Top-level entry points of upgradeable contract."
@@ -64,8 +67,14 @@ instance DocItem (DEntryPoint UpgradeableEntryPointKind) where
     "These are entry points of the contract."
   docItemToMarkdown = diEntryPointToMarkdown
 
+instance DocItem (DEntryPoint SafeEntryPointKind) where
+  type DocItemPosition (DEntryPoint SafeEntryPointKind) = 1003
+  docItemSectionName = Nothing
+  docItemSectionDescription = Nothing
+  docItemToMarkdown = diEntryPointToMarkdown
+
 safeEntrypoints :: Entrypoint (SafeParameter Interface StoreTemplateV0) UStoreV0
-safeEntrypoints = entryCase @(SafeParameter Interface StoreTemplateV0) (Proxy @UpgradeableEntryPointKind)
+safeEntrypoints = entryCase @(SafeParameter Interface StoreTemplateV0) (Proxy @SafeEntryPointKind)
   ( #cRun /-> do
       doc $ DDescription
         "This entry point is used to call the packed entrypoints in the contract."
