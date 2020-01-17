@@ -6,7 +6,7 @@
 
 # TZBTC
 
-**Code revision:** [6ed2cdf](https://github.com/serokell/tezos-btc/commit/6ed2cdf566e6c1a5a791aa7e8f39b247e3795996) *(Thu Jan 16 20:22:43 2020 +0530)*
+**Code revision:** [897784b](https://github.com/serokell/tezos-btc/commit/897784b19370e50c2a48a24c088bd1f2afadd57e) *(Fri Jan 17 15:32:14 2020 +0300)*
 
 This contract is implemented using Lorentz language.
 Basically, this contract is [FA1.2](https://gitlab.com/serokell/morley/tzip/blob/master/A/FA1.2.md)-compatible approvable ledger that maps user addresses to their token balances. The main idea of this token contract is to provide 1-to-1 correspondance with BTC.
@@ -336,13 +336,9 @@ Pass resulting value as parameter to the contract.
 
 
 
-#### Top-level entry points of upgradeable contract.
-
-These are entry points of the contract.
-
 ---
 
-##### `Run`
+#### `Run`
 
 This entry point is used to call the packed entrypoints in the contract.
 
@@ -373,7 +369,7 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-##### `Upgrade`
+#### `Upgrade`
 
 This entry point is used to update the contract to a new version.
 
@@ -408,7 +404,7 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-##### `EpwBeginUpgrade`
+#### `EpwBeginUpgrade`
 
 This entry point is used to start an entrypoint wise upgrade of the contract.
 
@@ -443,7 +439,7 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-##### `EpwApplyMigration`
+#### `EpwApplyMigration`
 
 This entry point is used to apply an migration script as part of an upgrade.
 
@@ -476,7 +472,7 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-##### `EpwSetCode`
+#### `EpwSetCode`
 
 This entry point is used to set the dispatching code that calls the packed entrypoints.
 
@@ -509,7 +505,7 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-##### `EpwFinishUpgrade`
+#### `EpwFinishUpgrade`
 
 This entry point is used to mark that an upgrade has been finsihed.
 
@@ -542,7 +538,7 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-##### `Transfer`
+#### `Transfer`
 
 This entry point is used transfer tokens from one account to another.
 
@@ -591,7 +587,7 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-##### `Approve`
+#### `Approve`
 
 This entry point is used approve transfer of tokens from one account to another.
 
@@ -640,7 +636,7 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-##### `Mint`
+#### `Mint`
 
 This entry point is used mint new tokes for an account.
 
@@ -675,7 +671,7 @@ The sender has to be the `operator`.
 
 ---
 
-##### `Burn`
+#### `Burn`
 
 This entry point is used burn tokes from the redeem address.
 
@@ -714,7 +710,7 @@ The sender has to be the `operator`.
 
 ---
 
-##### `AddOperator`
+#### `AddOperator`
 
 This entry point is used to add a new operator.
 
@@ -749,7 +745,7 @@ The sender has to be the `owner`.
 
 ---
 
-##### `RemoveOperator`
+#### `RemoveOperator`
 
 This entry point is used to remove an operator.
 
@@ -784,7 +780,7 @@ The sender has to be the `owner`.
 
 ---
 
-##### `SetRedeemAddress`
+#### `SetRedeemAddress`
 
 This entry point is used to set the redeem address.
 
@@ -819,7 +815,7 @@ The sender has to be the `owner`.
 
 ---
 
-##### `Pause`
+#### `Pause`
 
 This entry point is used to pause the contract.
 
@@ -854,7 +850,7 @@ The sender has to be the `operator`.
 
 ---
 
-##### `Unpause`
+#### `Unpause`
 
 This entry point is used to resume the contract during a paused state.
 
@@ -889,7 +885,7 @@ The sender has to be the `owner`.
 
 ---
 
-##### `TransferOwnership`
+#### `TransferOwnership`
 
 This entry point is used to transfer ownership to a new owner.
 
@@ -924,7 +920,7 @@ The sender has to be the `owner`.
 
 ---
 
-##### `AcceptOwnership`
+#### `AcceptOwnership`
 
 This entry point is used to accept ownership by a new owner.
 
@@ -963,7 +959,7 @@ The sender has to be the `new owner`.
 
 ---
 
-### `Run`
+## `Run`
 
 This entry point is used to call the packed entrypoints in the contract.
 
@@ -994,7 +990,7 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-### `Upgrade`
+## `Upgrade`
 
 This entry point is used to update the contract to a new version.
 
@@ -1029,7 +1025,7 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-### `EpwBeginUpgrade`
+## `EpwBeginUpgrade`
 
 This entry point is used to start an entrypoint wise upgrade of the contract.
 
@@ -1064,7 +1060,7 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-### `EpwApplyMigration`
+## `EpwApplyMigration`
 
 This entry point is used to apply an migration script as part of an upgrade.
 
@@ -1097,7 +1093,7 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-### `EpwSetCode`
+## `EpwSetCode`
 
 This entry point is used to set the dispatching code that calls the packed entrypoints.
 
@@ -1130,7 +1126,7 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-### `EpwFinishUpgrade`
+## `EpwFinishUpgrade`
 
 This entry point is used to mark that an upgrade has been finsihed.
 
@@ -1163,7 +1159,7 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-### `Transfer`
+## `Transfer`
 
 This entry point is used transfer tokens from one account to another.
 
@@ -1212,7 +1208,7 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-### `Approve`
+## `Approve`
 
 This entry point is used approve transfer of tokens from one account to another.
 
@@ -1261,7 +1257,7 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-### `Mint`
+## `Mint`
 
 This entry point is used mint new tokes for an account.
 
@@ -1296,7 +1292,7 @@ The sender has to be the `operator`.
 
 ---
 
-### `Burn`
+## `Burn`
 
 This entry point is used burn tokes from the redeem address.
 
@@ -1335,7 +1331,7 @@ The sender has to be the `operator`.
 
 ---
 
-### `AddOperator`
+## `AddOperator`
 
 This entry point is used to add a new operator.
 
@@ -1370,7 +1366,7 @@ The sender has to be the `owner`.
 
 ---
 
-### `RemoveOperator`
+## `RemoveOperator`
 
 This entry point is used to remove an operator.
 
@@ -1405,7 +1401,7 @@ The sender has to be the `owner`.
 
 ---
 
-### `SetRedeemAddress`
+## `SetRedeemAddress`
 
 This entry point is used to set the redeem address.
 
@@ -1440,7 +1436,7 @@ The sender has to be the `owner`.
 
 ---
 
-### `Pause`
+## `Pause`
 
 This entry point is used to pause the contract.
 
@@ -1475,7 +1471,7 @@ The sender has to be the `operator`.
 
 ---
 
-### `Unpause`
+## `Unpause`
 
 This entry point is used to resume the contract during a paused state.
 
@@ -1510,7 +1506,7 @@ The sender has to be the `owner`.
 
 ---
 
-### `TransferOwnership`
+## `TransferOwnership`
 
 This entry point is used to transfer ownership to a new owner.
 
@@ -1545,7 +1541,7 @@ The sender has to be the `owner`.
 
 ---
 
-### `AcceptOwnership`
+## `AcceptOwnership`
 
 This entry point is used to accept ownership by a new owner.
 
