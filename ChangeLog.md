@@ -17,6 +17,9 @@ Unreleased
   - Use default aliases for contract, multisig contract, user and read them from tezos-client config.
   - Mention how to get auto completion for `tzbtc-client` in readme.
 
+* [#86](https://github.com/serokell/tezos-btc/pull/86)
+  - Add `getOperators` command to `tzbtc-client`.
+
 * [#83](https://github.com/serokell/tezos-btc/pull/83)
   - Resolve multisig package signing via ledger issue with temporary solution that
   suggests using patched `tezos-client` with `tzbtc-client`.

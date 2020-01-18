@@ -116,6 +116,10 @@ setup () {
   stack exec -- tzbtc-client getTotalBurned --dry-run
 }
 
+@test "invoking tzbtc-cliet 'getOperators' command" {
+  stack exec -- tzbtc-client getOperators --dry-run
+}
+
 @test "invoking tzbtc-client 'addOperator' command" {
   stack exec -- tzbtc-client addOperator\
     --operator "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --dry-run
