@@ -209,7 +209,7 @@ data StoreTemplate = StoreTemplate
   , totalBurned   :: UStoreField Natural
   , totalMinted   :: UStoreField Natural
   , newOwner      :: UStoreField (Maybe Address)
-  , operators     :: UStoreField (Set Address)
+  , operators     :: UStoreField Operators
   , redeemAddress :: UStoreField Address
   , tokenName     :: UStoreField MText
   -- ^ Name of the token, can be set to an arbitrary string. It is
@@ -224,6 +224,11 @@ data StoreTemplate = StoreTemplate
   } deriving stock Generic
 
 type UStoreV1 = UStore StoreTemplate
+
+type Operators = Set Address
+
+instance Buildable Operators where
+  build = mconcat . intersperse ", " . Prelude.map build . toList
 
 -- | The data required to initialize the V1 version of the contract storage.
 data OriginationParameters = OriginationParameters
