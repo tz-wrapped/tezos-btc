@@ -116,23 +116,15 @@ safeEntrypoints = entryCase @(SafeParameter Interface StoreTemplateV0) (Proxy @S
       setMigrating False
       nil; pair
   , #cTransfer /-> do
-      doc $ DDescription
-        "This entry point is used transfer tokens from one account to another."
       cutLorentzNonDoc (Impl.transfer @(UStore StoreTemplate))
       callUEp #callTransfer
   , #cApprove /-> do
-      doc $ DDescription
-        "This entry point is used approve transfer of tokens from one account to another."
       cutLorentzNonDoc (Impl.approve @(UStore StoreTemplate))
       callUEp #callApprove
   , #cMint /-> do
-      doc $ DDescription
-        "This entry point is used mint new tokes for an account."
       cutLorentzNonDoc (Impl.mint @(UStore StoreTemplate))
       callUEp #callMint
   , #cBurn /-> do
-      doc $ DDescription
-        "This entry point is used burn tokes from the redeem address."
       cutLorentzNonDoc (Impl.burn @(UStore StoreTemplate))
       callUEp #callBurn
   , #cAddOperator /-> do
@@ -186,48 +178,30 @@ tzbtcContractRaw = do
           "This entry point is used to get contract version."
         view_ (do cdr; toField #fields; toField #currentVersion)
     , #cGetAllowance /-> do
-        doc $ DDescription
-          "This entry point is used to get allowance for an account."
         cutLorentzNonDoc (Impl.getAllowance @(UStore StoreTemplate))
         callUSafeViewEP #callGetAllowance
     , #cGetBalance /-> do
-        doc $ DDescription
-          "This entry point is used to get balance in an account."
         cutLorentzNonDoc (Impl.getBalance @(UStore StoreTemplate))
         callUSafeViewEP #callGetBalance
     , #cGetTotalSupply /-> do
-        doc $ DDescription
-          "This entry point is used to get total number of tokens."
         cutLorentzNonDoc (Impl.getTotalSupply @(UStore StoreTemplate))
         callUSafeViewEP #callGetTotalSupply
     , #cGetTotalMinted /-> do
-        doc $ DDescription
-          "This entry point is used to get total number of minted tokens."
         cutLorentzNonDoc (Impl.getTotalMinted @(UStore StoreTemplate))
         callUSafeViewEP #callGetTotalMinted
     , #cGetTotalBurned /-> do
-        doc $ DDescription
-          "This entry point is used to get total number of burned tokens."
         cutLorentzNonDoc (Impl.getTotalBurned @(UStore StoreTemplate))
         callUSafeViewEP #callGetTotalBurned
     , #cGetOwner /-> do
-        doc $ DDescription
-          "This entry point is used to get current owner."
         cutLorentzNonDoc (Impl.getOwner @(UStore StoreTemplate))
         callUSafeViewEP #callGetOwner
     , #cGetTokenName /-> do
-        doc $ DDescription
-          "This entry point is used to get token name."
         cutLorentzNonDoc Impl.getTokenName
         callUSafeViewEP #callGetTokenName
     , #cGetTokenCode /-> do
-        doc $ DDescription
-          "This entry point is used to get token code."
         cutLorentzNonDoc Impl.getTokenCode
         callUSafeViewEP #callGetTokenCode
     , #cGetRedeemAddress /-> do
-        doc $ DDescription
-          "This entry point is used to get redeem address."
         cutLorentzNonDoc (Impl.getRedeemAddress @(UStore StoreTemplate))
         callUSafeViewEP #callGetRedeemAddress
     , #cSafeEntrypoints /-> do
