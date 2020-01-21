@@ -2,6 +2,10 @@
  -
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
+
+-- Use of Lorentz.TestScenario has been deprecated.
+{-# OPTIONS_GHC -Wno-deprecations #-}
+
 module Main
   ( main
   ) where
@@ -38,7 +42,7 @@ main = do
     CmdPrintInitialStorage ownerAddress -> do
       printTextLn $ printLorentzValue True (mkEmptyStorageV0 ownerAddress)
     CmdPrintDoc mbFilePath ->
-      maybe printTextLn writeFileUtf8 mbFilePath tzbtcDoc
+      maybe printTextLn writeFileUtf8 mbFilePath (contractDocToMarkdown tzbtcDoc)
     CmdParseParameter t ->
       either (throwString . pretty) (printStringLn . pretty) $
       parseLorentzValue @(Parameter _ _) t
@@ -66,7 +70,7 @@ main = do
             (migrationScripts originationParams)
   where
     printContract
-      :: ( ParameterEntryPoints parameter
+      :: ( NiceParameterFull parameter
          , NiceStorage storage
          , HasFilesystem m
          , HasCmdLine m)

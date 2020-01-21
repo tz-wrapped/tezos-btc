@@ -9,6 +9,7 @@ module Lorentz.Contracts.TZBTC.MultiSig
   ( ParamAction(..)
   , ParamPayload
   , Parameter(..)
+  , ParamMain
   , Storage
   , contractToLambda
   , mkStorage
@@ -26,9 +27,12 @@ import qualified Lorentz.Contracts.TZBTC as TZBTC (Parameter)
 
 data Parameter
   = Default ()
-  | ParameterMain ParamMain
+  | Main ParamMain
   deriving stock Generic
   deriving anyclass IsoValue
+
+instance ParameterHasEntryPoints Parameter where
+  type ParameterEntryPointsDerivation Parameter = EpdPlain
 
 type Counter = Natural
 type Threshold = Natural
