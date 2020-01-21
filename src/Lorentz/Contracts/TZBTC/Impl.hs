@@ -167,6 +167,8 @@ mint_ = do
 -- | Mints tokens for an account
 mint :: forall store. StorageC store => Entrypoint MintParams store
 mint = do
+  doc $ DDescription
+    "This entry point is used mint new tokes for an account."
   dip authorizeOperator
   mint_
 

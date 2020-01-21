@@ -21,19 +21,19 @@ where
 
 import Prelude hiding (drop, toStrict, (>>))
 
-import Data.Aeson (encode, eitherDecodeStrict)
+import Data.Aeson (eitherDecodeStrict, encode)
 import Data.Aeson.Casing (aesonPrefix, camelCase)
 import Data.Aeson.TH (deriveJSON)
 import Data.ByteString.Lazy as LBS (toStrict)
 import Data.List (lookup)
 import Fmt (Buildable(..), Builder, blockListF, pretty, (|+))
-import Text.Hex (encodeHex, decodeHex)
+import Text.Hex (decodeHex, encodeHex)
 import qualified Text.Show (show)
 
 import Client.Util (addTezosBytesPrefix)
 import Lorentz
-import Lorentz.Contracts.TZBTC.MultiSig as MSig
 import Lorentz.Contracts.TZBTC as TZBTC
+import Lorentz.Contracts.TZBTC.MultiSig as MSig
 import Lorentz.Contracts.TZBTC.Types as TZBTC
 import Michelson.Interpret.Unpack
 import Tezos.Crypto
@@ -128,11 +128,12 @@ getOpDescription p = case fetchSrcParam p of
 
 -- | Make the `Package` value from input parameters.
 mkPackage
-  :: Address
+  :: ToAddress contract
+  => contract
   -> Natural
   -> Address
   -> TZBTC.SafeParameter i s -> Package
-mkPackage msigAddress counter tzbtc param
+mkPackage (toAddress -> msigAddress) counter tzbtc param
   = let msigLambda = contractToLambda tzbtc param
     -- Create the Lambda for required action
     in Package
@@ -233,7 +234,7 @@ addSignature package sig =
 mkMultiSigParam
   :: [PublicKey]
   -> NonEmpty Package
-  -> Either UnpackageError (ContractRef MSig.Parameter, MSig.Parameter)
+  -> Either UnpackageError (ContractRef MSig.Parameter, MSig.ParamMain)
 mkMultiSigParam pks packages = do
   package <- mergePackages packages
   toSign <- getToSign package
@@ -242,14 +243,14 @@ mkMultiSigParam pks packages = do
     mkParameter
       :: ToSign
       -> [(PublicKey, Signature)]
-      -> (ContractRef MSig.Parameter, MSig.Parameter)
+      -> (ContractRef MSig.Parameter, MSig.ParamMain)
     mkParameter (address_, payload) sigs =
       -- There should be as may signatures in the submitted request
       -- as there are keys in the contract's storage. Not all keys should
       -- be present, but they should be marked as absent using Nothing values [1].
       -- So we pad the list with Nothings to make up for missing signatures.
       -- [1] https://github.com/murbard/smart-contracts/blob/master/multisig/michelson/generic.tz#L63
-      (toContractRef address_, ParameterMain (payload, sortSigs sigs))
+      (toContractRef address_, (payload, sortSigs sigs))
     sortSigs :: [(PublicKey, Signature)] -> [Maybe Signature]
     sortSigs sigs = flip lookup sigs <$> pks
 

@@ -54,9 +54,10 @@ sign_ sk bs = case decodeHex (T.drop 2 bs) of
   Nothing -> error "Error with making signatures"
 
 originateTzbtc
-  :: Address
+  :: ToAddress contract
+  => contract
   -> IntegrationalScenarioM Address
-originateTzbtc msig
+originateTzbtc (toAddress -> msig)
   = do
       caddr <- originateTzbtcV1ContractRaw genesisAddress3 $ OriginationParams
         { opAdmin = msig
@@ -90,7 +91,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           (msaddr, mparam) = fromRight_ "Making multisig parameter failed" $
             MSig.mkMultiSigParam masterPKList ((alicePackage) :| [carlosPackage])
         -- Finally call the multisig contract
-        lCall msaddr mparam
+        lCallEP msaddr (Call @"Main") mparam
         validate . Right $
           lExpectStorageUpdate tzbtc
             (checkField operators
@@ -117,7 +118,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           (_, mparam) = fromRight_ "Making multisig parameter failed" $
             MSig.mkMultiSigParam masterPKList ((alicePackage) :| [])
         -- Finally call the multisig contract
-        lCall msig mparam
+        lCallEP @MSig.Parameter msig (Call @"Main") mparam
         validate . Left $
           lExpectMichelsonFailed (const True) msig
   , testCase "Test call to multisig to add an operator by fails for bad signatures" $ do
@@ -144,7 +145,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           (msaddr, mparam) = fromRight_ "Making multisig parameter failed" $
             MSig.mkMultiSigParam masterPKList ((alicePackage) :| [carlosPackage])
         -- Finally call the multisig contract
-        lCall msaddr mparam
+        lCallEP msaddr (Call @"Main") mparam
         validate . Left $
           lExpectMichelsonFailed (const True) msig
   , testCase "Test replay attack prevention counter" $ do
@@ -171,9 +172,9 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           (msaddr, mparam) = fromRight_ "Making multisig parameter failed" $
             MSig.mkMultiSigParam masterPKList ((alicePackage) :| [carlosPackage])
         -- Finally call the multisig contract
-        lCall msaddr mparam
+        lCallEP msaddr (Call @"Main") mparam
         -- Now call again with the same param, this should fail.
-        lCall msig mparam
+        lCallEP @MSig.Parameter msig (Call @"Main") mparam
         validate . Left $
           lExpectMichelsonFailed (const True) msig
   , testCase "Test signed bundle created for one msig contract does not work on other" $ do
@@ -209,7 +210,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
 
         -- Call the actual contract with the bundle. Should work as
         -- expected.
-        lCall msaddr mparam
+        lCallEP msaddr (Call @"Main") mparam
         validate . Right $
           lExpectStorageUpdate tzbtc
             (checkField operators
@@ -223,7 +224,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
 
         -- Call the clone with the bundle created for the real multisig
         -- contract.
-        lCall mSigClone mparam
+        lCallEP @MSig.Parameter mSigClone (Call @"Main") mparam
         -- It should fail
         validate . Left $
           lExpectMichelsonFailed (const True) mSigClone
@@ -249,20 +250,18 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         mparam = fromRight_ "Making multisig parameter failed" $
           MSig.mkMultiSigParam masterPKList ((carlosPackage) :| [alicePackage])
       case mparam of
-        (_, MSig.ParameterMain (_, sigList)) -> assertEqual
+        (_, (_, sigList)) -> assertEqual
           "The signatures in multi-sig parameter is in the expected order"
           [Just aliceSig, Nothing, Just carlosSig]
           sigList
-        _ -> error "Unexpected multisig param"
       let
         mparam_ = fromRight_ "Making multisig parameter failed" $
           MSig.mkMultiSigParam masterPKList ((alicePackage) :| [carlosPackage])
       case mparam_ of
-        (_, MSig.ParameterMain (_, sigList)) -> assertEqual
+        (_, (_, sigList)) -> assertEqual
           "The signatures in multi-sig parameter is in the expected order"
           [Just aliceSig, Nothing, Just carlosSig]
           sigList
-        _ -> error "Unexpected multisig param"
 
   , testCase "Test user is not allowed to sign a bad package" $ do
       let

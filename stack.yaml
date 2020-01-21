@@ -12,12 +12,14 @@ extra-deps:
     https://gitlab.com/morley-framework/morley.git
     # ^ CI cannot use ssh, so we use http clone here
   commit:
-    d551ff08b86713d1eb7bbd8d28ae66a4ddfe217b # master
+    01fb7473cb36216369e8b92db2de669c72ce85f0 # master
   subdirs:
     - .
+    - indigo
     - morley-ledgers
     - morley-ledgers-test
     - morley-upgradeable
+    - morley-nettest
     - prelude
 
 - git:
@@ -36,6 +38,8 @@ extra-deps:
 - hex-text-0.1.0.0
 - constraints-0.11@sha256:44f80a313d5d4fcfb3c18eb6625dd3db4bb845d5ca8d3b1f62125a4b7241e590
 - pretty-terminal-0.1.0.0@sha256:e9135d86ebb2a8e3aaf5a79088de4628dbd49988388e0fbfc26c5ecb3c399ad9
+- git: https://github.com/int-index/caps.git
+  commit: ab4345eabd58fc6f05d3b46bea2c5acdba3ec6f8
 # Required by tezos-bake-monitor-lib
 - functor-infix-0.0.5@sha256:cea21a321031f556d7a21b51e049493e7cb78baf64dd63f0d1a36de01c4c735b
 - hashing-0.1.0.1@sha256:98861f16791946cdf28e3c7a6ee9ac8b72d546d6e33c569c7087ef18253294e7
