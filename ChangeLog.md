@@ -10,6 +10,10 @@ Changes that affect Michelson code are tagged with `[CONTRACT]`.
 
 Unreleased
 ==========
+
+0.2.0
+=====
+
 * [#82](https://github.com/serokell/tezos-btc/pull/82)
   - Fix configuration conflict with `tezos-client` config by not having a separate config file.
   - Fix upgrade failure when contract storage is not immediately available after V0 deploy.

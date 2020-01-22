@@ -30,8 +30,8 @@ let
   morley-repo = {
     name = "morley";
     url = "https://gitlab.com/morley-framework/morley.git";
-    rev = "d551ff08b86713d1eb7bbd8d28ae66a4ddfe217b";
-    sha256 = "1kz4n55ck9fw1klfnq97wwvsla0vd40hyxcy1nnsfgwi61bl80xc";
+    rev = "01fb7473cb36216369e8b92db2de669c72ce85f0";
+    sha256 = "11i87kb7qnz37g3m0lqy88f7y1cac6wqg7amyvmpildyw7jy1yq0";
   };
   gpl = true; # false: not supported yet
   tezos-btc = { buildPkgs, hostPkgs }:
@@ -75,6 +75,14 @@ let
           name = "morley-upgradeable";
           subdir = name;
         })
+        (morley-repo // rec {
+          name = "morley-nettest";
+          subdir = name;
+        })
+        (morley-repo // rec {
+          name = "indigo";
+          subdir = name;
+        })
         rec {
           name = "tezos-bake-monitor-lib";
           url =
@@ -82,6 +90,14 @@ let
           rev = "19a9ce57a0510bc3ad8a3f639d0a968a65024b86";
           sha256 = "0ypf7z2c9w59rz7hymzdyx87783qdfp3kygs9jl8qnmbfslmi8jr";
           subdir = name;
+        }
+        # morley-nettest depends on caps
+        rec {
+            name = "caps";
+            url =
+              "https://github.com/int-index/caps.git";
+            rev = "ab4345eabd58fc6f05d3b46bea2c5acdba3ec6f8";
+            sha256 = "0r1zqa559gaxavsd8zynlpa2c5hi2qc20n8s4bhcdaw36hasg3kr";
         }
       ];
       crossPkgs = buildPkgs;
