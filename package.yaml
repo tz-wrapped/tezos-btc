@@ -5,6 +5,7 @@
 <<: !include "./hpack/module.yaml"
 
 name:                tzbtc
+# If you update this version, make sure to update it in release.nix
 version:             0.2.0
 
 extra-source-files:
