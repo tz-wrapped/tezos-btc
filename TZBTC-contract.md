@@ -6,7 +6,7 @@
 
 # TZBTC
 
-**Code revision:** [d81b35f](https://github.com/serokell/tezos-btc/commit/d81b35f705fd0ef930e600953877241dba23ae3d) *(Tue Jan 21 16:47:25 2020 +0300)*
+**Code revision:** [be1b79c](https://github.com/serokell/tezos-btc/commit/be1b79c97158602fa88abc02cb5d901c98b9d225) *(Sat Jan 18 12:36:46 2020 +0300)*
 
 This contract is implemented using Lorentz language.
 Basically, this contract is [FA1.2](https://gitlab.com/serokell/morley/tzip/blob/master/A/FA1.2.md)-compatible approvable ledger that maps user addresses to their token balances. The main idea of this token contract is to provide 1-to-1 correspondance with BTC.
@@ -47,6 +47,8 @@ Pass resulting value as parameter to the contract.
 
 ### `GetAllowance`
 
+This entry point is used to get allowance for an account.
+
 Returns the approval value between two given addresses.
 
 **Parameter:** [`View`](#types-View) (***owner*** : [`Address`](#types-Address-simplified), ***spender*** : [`Address`](#types-Address-simplified)) [`Natural`](#types-Natural)
@@ -74,6 +76,8 @@ Pass resulting value as parameter to the contract.
 ---
 
 ### `GetBalance`
+
+This entry point is used to get balance in an account.
 
 Returns the balance of the address in the ledger.
 
@@ -103,6 +107,8 @@ Pass resulting value as parameter to the contract.
 
 ### `GetTotalSupply`
 
+This entry point is used to get total number of tokens.
+
 Returns total number of tokens.
 
 **Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
@@ -130,6 +136,8 @@ Pass resulting value as parameter to the contract.
 ---
 
 ### `GetTotalMinted`
+
+This entry point is used to get total number of minted tokens.
 
 This view returns the total number of minted tokens
 
@@ -159,6 +167,8 @@ Pass resulting value as parameter to the contract.
 
 ### `GetTotalBurned`
 
+This entry point is used to get total number of burned tokens.
+
 This view returns the total number of burned tokens
 
 **Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
@@ -186,6 +196,8 @@ Pass resulting value as parameter to the contract.
 ---
 
 ### `GetOwner`
+
+This entry point is used to get current owner.
 
 This view returns the current contract owner
 
@@ -215,6 +227,8 @@ Pass resulting value as parameter to the contract.
 
 ### `GetTokenName`
 
+This entry point is used to get token name.
+
 This view returns the token name
 
 **Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Text`](#types-Text)
@@ -243,6 +257,8 @@ Pass resulting value as parameter to the contract.
 
 ### `GetTokenCode`
 
+This entry point is used to get token code.
+
 This view returns the token code
 
 **Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Text`](#types-Text)
@@ -270,6 +286,8 @@ Pass resulting value as parameter to the contract.
 ---
 
 ### `GetRedeemAddress`
+
+This entry point is used to get redeem address.
 
 This view returns the redeem address
 
@@ -522,6 +540,8 @@ Pass resulting value as parameter to the contract.
 
 #### `Transfer`
 
+This entry point is used transfer tokens from one account to another.
+
 Transfers tokens between two given accounts.
 
 This entrypoint serves multiple purposes:
@@ -568,6 +588,8 @@ Pass resulting value as parameter to the contract.
 ---
 
 #### `Approve`
+
+This entry point is used approve transfer of tokens from one account to another.
 
 When called with `(address :spender, nat :value)`
 parameters allows `spender` account to withdraw from the sender, multiple times,
@@ -650,6 +672,8 @@ The sender has to be the `operator`.
 ---
 
 #### `Burn`
+
+This entry point is used burn tokes from the redeem address.
 
 Burn some tokens from the `redeem` address.
 
@@ -1137,6 +1161,8 @@ Pass resulting value as parameter to the contract.
 
 ## `Transfer`
 
+This entry point is used transfer tokens from one account to another.
+
 Transfers tokens between two given accounts.
 
 This entrypoint serves multiple purposes:
@@ -1183,6 +1209,8 @@ Pass resulting value as parameter to the contract.
 ---
 
 ## `Approve`
+
+This entry point is used approve transfer of tokens from one account to another.
 
 When called with `(address :spender, nat :value)`
 parameters allows `spender` account to withdraw from the sender, multiple times,
@@ -1265,6 +1293,8 @@ The sender has to be the `operator`.
 ---
 
 ## `Burn`
+
+This entry point is used burn tokes from the redeem address.
 
 Burn some tokens from the `redeem` address.
 
