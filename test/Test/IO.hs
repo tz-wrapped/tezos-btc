@@ -9,10 +9,12 @@ module Test.IO
   , test_createMultisigPackage
   , test_multisigSignPackage
   , test_multisigExecutePackage
+  , test_userOverride
   ) where
 
 import qualified Data.Map as Map
 import qualified Data.Text as T
+import qualified Data.List as DL
 import qualified Data.Typeable as Typ (cast)
 import Options.Applicative (ParserResult(..), defaultPrefs, execParserPure)
 import Test.Tasty (TestTree, testGroup)
@@ -20,6 +22,7 @@ import Test.Tasty.HUnit (Assertion, assertFailure, testCase)
 import Text.Hex (decodeHex)
 import Util.Named
 
+import Client.Env
 import Client.Main (mainProgram)
 import Client.Types
 import Client.Util
@@ -71,10 +74,12 @@ defaultHandlers mi = Handlers
   , hGetAddressAndPKForAlias = \_ -> unavailable "getAddressAndPKForAlias"
   , hRememberContract = \c a -> meetExpectation (RememberContract c a)
   , hSignWithTezosClient = \_ _ -> unavailable "signWithTezosClient"
-  , hOpenEditor = \fp _ -> meetExpectation (OpenEditor fp)
   , hGetTezosClientConfig = unavailable "getTezosClientConfig"
   , hGetAddressForContract = \_ -> unavailable "getAddressForContract"
-  , hLookupEnv = \_ -> unavailable "lookupEnv"
+  , hLookupEnv = do
+      meetExpectation LooksupEnv;
+      snd <$> ask
+  , hWithLocal = \fn action -> local (second fn) action
   }
   where
     unavailable :: String -> TestM a
@@ -82,7 +87,7 @@ defaultHandlers mi = Handlers
 
 -- | Run a test using the given mock handlers in TestM
 runMock :: forall a . Handlers TestM -> TestM a -> Assertion
-runMock h m = case runReaderT (runStateT m Map.empty) (MyHandlers h) of
+runMock h m = case runReaderT (runStateT m Map.empty) (MyHandlers h, emptyEnv) of
   Right _ -> pass
   Left e -> assertFailure $ displayException e
 
@@ -215,6 +220,7 @@ test_createMultisigPackage = testGroup "Create multisig package"
       test = do
         addExpectation ParseCmdLine Once
         addExpectation (WritesFile multiSigFilePath Nothing) Once
+        addExpectation LooksupEnv Multiple
         mainProgram
         checkExpectations
     in runMock multiSigCreationTestHandlers test
@@ -285,11 +291,12 @@ test_multisigSignPackage = testGroup "Sign multisig package"
         addExpectation ParseCmdLine Once
         addExpectation ReadsFile $ Exact 1
         addExpectation PrintsMessage Multiple
+        addExpectation LooksupEnv Multiple
         addExpectation GetsUserConfirmation Once
         addExpectation (WritesFile multiSigFilePath Nothing) Once
         mainProgram
         checkExpectations
-    in runMock multisigSigningTestHandlers  test
+    in runMock multisigSigningTestHandlers test
   ]
 
 ---- Test Execution of multisig package
@@ -378,8 +385,49 @@ test_multisigExecutePackage = testGroup "Sign multisig execution"
       test = do
         addExpectation ParseCmdLine Once
         addExpectation ReadsFile $ Exact 3
+        addExpectation LooksupEnv Multiple
         addExpectation RunsTransaction Once
         mainProgram
         checkExpectations
     in runMock multisigExecutionTestHandlers test
+  ]
+
+userOverrideTestHandlers :: Handlers TestM
+userOverrideTestHandlers =
+  (defaultHandlers (defaultMockInput { miCmdLine =  args}))
+    { hPrintStringLn = \msg -> do
+        if "john-alias" `DL.isInfixOf` msg then (meetExpectation PrintsMessage) else pass
+    , hGetTezosClientConfig = pure $ Right ("tezos-client", cc)
+    , hGetAddressForContract = \ca ->
+        if ca == "tzbtc"
+          then pure $ Right contractAddress
+          else if ca == "tzbtc-multisig"
+            then pure $ Right multiSigAddress
+            else throwM $ TestError $ "Unexpected contract alias" ++ (toString ca)
+    }
+  where
+    args =
+      [ "config"
+      , "--user", "john-alias" ]
+    cc :: TezosClientConfig
+    cc = TezosClientConfig
+      { tcNodeAddr = "localhost"
+      , tcNodePort = 2990
+      , tcTls = False
+      }
+
+-- Test user alias gets overrided in config
+-- if `--user` option is provided.
+--
+test_userOverride :: TestTree
+test_userOverride = testGroup "Default user override"
+  [ testCase "Check if we can override default user using --user option" $
+    let
+      test = do
+        addExpectation ParseCmdLine Once
+        addExpectation LooksupEnv Multiple
+        addExpectation PrintsMessage Multiple
+        mainProgram
+        checkExpectations
+    in runMock userOverrideTestHandlers test
   ]

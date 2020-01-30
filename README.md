@@ -71,8 +71,8 @@ tezos-client add address tzbtc-user tz1RyNvnKnkcD6m9E5VAMxVWVQM5fb9pQo4d --force
 But unfortunately, right now there is [a bug](https://gitlab.com/tezos/tezos/issues/653)
 in `tezos-client` that does not allow adding duplicate alias that point to one of the
 existing aliased address. So instead, you will have to rename the existing alias as
-`tzbtc-user` to use it with `tzbtc-client`. Soon, `tzbtc-client` will be amended to
-include a flag [to override this default user alias.](https://issues.serokell.io/issue/TBTC-85)
+`tzbtc-user` to use it with `tzbtc-client`. Or you can also override the default
+alias `tzbtc-user` using the `--user` argument, in all the commands.
 
 #### Deploy TZBTC contract using `tzbtc-client`
 

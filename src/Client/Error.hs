@@ -10,8 +10,7 @@ import Fmt (Buildable(..), Builder, pretty, (+|), (|+), (+||), (||+))
 import Servant.Client.Core (ClientError(..), Response, ResponseF(..))
 import Servant.Client.Core.Request (RequestF(..))
 import qualified Text.Show (show)
-
-import Tezos.Crypto (CryptoParseError (..))
+import Tezos.Crypto (CryptoParseError(..))
 
 import Client.Types
 

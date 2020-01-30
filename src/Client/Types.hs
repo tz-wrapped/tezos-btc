@@ -3,12 +3,17 @@
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
 module Client.Types
-  ( AlmostStorage (..)
+  ( AddrOrAlias
+  , AlmostStorage (..)
   , AppliedResult (..)
   , BlockConstants (..)
-  , ClientConfig(..)
-  , ConfirmationResult(..)
-  , EntrypointParam(..)
+  , ClientArgs (..)
+  , ClientArgsRaw (..)
+  , ClientConfig (..)
+  , ConfirmationResult (..)
+  , ConfigOverride (..)
+  , DeployContractOptions (..)
+  , EntrypointParam (..)
   , ForgeOperation (..)
   , InternalOperation (..)
   , MichelsonExpression (..)
@@ -40,11 +45,57 @@ import Tezos.V005.Micheline
   (Expression(..), MichelinePrimAp(..), MichelinePrimitive(..), annotToText)
 import Tezos.Common.Json (StringEncode(..), TezosInt64)
 
+import Michelson.Text (MText)
 import Michelson.Typed (IsoValue)
 import Tezos.Address (Address)
-import Tezos.Crypto (Signature, encodeBase58Check, formatSignature)
+import Tezos.Crypto (PublicKey, Signature, encodeBase58Check, formatSignature)
 
-import Lorentz.Contracts.TZBTC.Types (StorageFields)
+import Lorentz.Contracts.TZBTC.Types
+
+-- | Client argument with optional dry-run flag
+data ClientArgs = ClientArgs ClientArgsRaw (Maybe AddrOrAlias)  Bool
+
+type AddrOrAlias = Text
+
+data ClientArgsRaw
+  = CmdMint AddrOrAlias Natural (Maybe FilePath)
+  | CmdBurn BurnParams (Maybe FilePath)
+  | CmdTransfer AddrOrAlias AddrOrAlias Natural
+  | CmdApprove AddrOrAlias Natural
+  | CmdGetAllowance (AddrOrAlias, AddrOrAlias) (Maybe AddrOrAlias)
+  | CmdGetBalance AddrOrAlias (Maybe AddrOrAlias)
+  | CmdAddOperator AddrOrAlias (Maybe FilePath)
+  | CmdRemoveOperator AddrOrAlias (Maybe FilePath)
+  | CmdPause (Maybe FilePath)
+  | CmdUnpause (Maybe FilePath)
+  | CmdSetRedeemAddress AddrOrAlias (Maybe FilePath)
+  | CmdTransferOwnership AddrOrAlias (Maybe FilePath)
+  | CmdAcceptOwnership AcceptOwnershipParams
+  | CmdGetTotalSupply (Maybe AddrOrAlias)
+  | CmdGetTotalMinted (Maybe AddrOrAlias)
+  | CmdGetTotalBurned (Maybe AddrOrAlias)
+  | CmdGetOwner (Maybe AddrOrAlias)
+  | CmdGetTokenName (Maybe AddrOrAlias)
+  | CmdGetTokenCode (Maybe AddrOrAlias)
+  | CmdGetRedeemAddress (Maybe AddrOrAlias)
+  | CmdGetOperators
+  | CmdGetOpDescription FilePath
+  | CmdGetBytesToSign FilePath
+  | CmdAddSignature PublicKey Signature FilePath
+  | CmdSignPackage FilePath
+  | CmdCallMultisig (NonEmpty FilePath)
+  | CmdDeployContract !DeployContractOptions
+  | CmdShowConfig
+
+data DeployContractOptions = DeployContractOptions
+  { dcoOwner :: ! (Maybe AddrOrAlias)
+  , dcoRedeem :: !AddrOrAlias
+  , dcoTokenName :: !MText
+  , dcoTokenCode :: !MText
+  }
+
+data ConfigOverride = ConfigOverride
+  { coTzbtcUser :: Maybe AddrOrAlias }
 
 newtype MichelsonExpression = MichelsonExpression Expression
   deriving newtype FromJSON

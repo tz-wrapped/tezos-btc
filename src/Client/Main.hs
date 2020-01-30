@@ -4,6 +4,8 @@
  -}
 module Client.Main
   ( mainProgram
+  , mkInitEnv
+  , runAppM
   ) where
 
 import Data.Version (showVersion)
@@ -20,6 +22,7 @@ import Paths_tzbtc (version)
 import Util.Named ((.!))
 import Util.TypeLits
 
+import Client.Env
 import Client.IO
 import Client.Parser
 import Client.Types
@@ -37,133 +40,138 @@ mainProgram
   , HasCmdLine m
   ) => m ()
 mainProgram = do
-  ClientArgs cmd dryRunFlag <- parseCmdLine programInfo
-  case dryRunFlag of
-    True -> pass
-    False -> case cmd of
-      CmdMint to' value mbMultisig -> do
-        to <- addrOrAliasToAddr to'
-        runMultisigTzbtcContract mbMultisig $
-          fromFlatParameter $ Mint (#to .! to, #value .! value)
-      CmdBurn burnParams mbMultisig ->
-        runMultisigTzbtcContract mbMultisig $
-          fromFlatParameter $ Burn burnParams
-      CmdTransfer from' to' value -> do
-        [from, to] <- mapM addrOrAliasToAddr [from', to']
-        runTzbtcContract $
-          fromFlatParameter $ Transfer (#from .! from, #to .! to, #value .! value)
-      CmdApprove spender' value -> do
-        spender <- addrOrAliasToAddr spender'
-        runTzbtcContract $
-          fromFlatParameter $ Approve (#spender .! spender, #value .! value)
-      CmdGetAllowance (owner', spender') mbCallback' ->
-        case mbCallback' of
-          Just callback' -> do
-            [owner, spender, callback] <- mapM addrOrAliasToAddr [owner', spender', callback']
-            runTzbtcContract $ fromFlatParameter $ GetAllowance $
-              View (#owner .! owner, #spender .! spender) (toContractRef callback)
-          Nothing -> do
-            [owner, spender] <- mapM addrOrAliasToAddr [owner', spender']
-            allowance <- getAllowance owner spender
-            printStringLn $ "Allowance: " <> show allowance
-      CmdGetBalance owner' mbCallback' -> do
-        case mbCallback' of
-          Just callback' -> do
-            [owner, callback] <- mapM addrOrAliasToAddr [owner', callback']
-            runTzbtcContract $
-              fromFlatParameter $ GetBalance $ View (#owner .! owner) (toContractRef callback)
-          Nothing -> do
-            owner <- addrOrAliasToAddr owner'
-            balance <- getBalance owner
-            printStringLn $ "Balance: " <> show balance
-      CmdAddOperator operator' mbMultisig -> do
-        operator <- addrOrAliasToAddr operator'
-        runMultisigTzbtcContract mbMultisig $
-          fromFlatParameter $ AddOperator (#operator .! operator)
-      CmdRemoveOperator operator' mbMultisig -> do
-        operator <- addrOrAliasToAddr operator'
-        runMultisigTzbtcContract mbMultisig $
-          fromFlatParameter $ RemoveOperator (#operator .! operator)
-      CmdPause mbMultisig -> runMultisigTzbtcContract mbMultisig $
-        fromFlatParameter $ Pause ()
-      CmdUnpause mbMultisig -> runMultisigTzbtcContract mbMultisig $
-        fromFlatParameter $ Unpause ()
-      CmdSetRedeemAddress redeem' mbMultisig -> do
-        redeem <- addrOrAliasToAddr redeem'
-        runMultisigTzbtcContract mbMultisig $
-          fromFlatParameter $ SetRedeemAddress (#redeem .! redeem)
-      CmdTransferOwnership newOwner' mbMultisig -> do
-        newOwner <- addrOrAliasToAddr newOwner'
-        runMultisigTzbtcContract mbMultisig $
-          fromFlatParameter $ TransferOwnership (#newOwner .! newOwner)
-      CmdAcceptOwnership p -> runTzbtcContract $
-        fromFlatParameter $ AcceptOwnership p
-      CmdGetTotalSupply callback -> do
-        simpleGetter #totalSupply "Total supply" GetTotalSupply callback
-      CmdGetTotalMinted callback -> do
-        simpleGetter #totalMinted "Total minted" GetTotalMinted callback
-      CmdGetTotalBurned callback -> do
-        simpleGetter #totalBurned "Total burned" GetTotalBurned callback
-      CmdGetOwner callback ->
-        simpleGetter #owner "Owner" GetOwner callback
-      CmdGetTokenName callback ->
-        simpleGetter #tokenName "Token name" GetTokenName callback
-      CmdGetTokenCode callback ->
-        simpleGetter #tokenCode "Token code" GetTokenCode callback
-      CmdGetRedeemAddress callback ->
-        simpleGetter #redeemAddress "Redeem address" GetRedeemAddress callback
-      CmdGetOperators ->
-        printFieldFromStorage #operators "List of contract operators"
-      CmdGetOpDescription packageFilePath -> do
-        pkg <- getPackageFromFile packageFilePath
-        case pkg of
-          Left err -> printTextLn err
-          Right package -> printStringLn $ pretty package
-      CmdGetBytesToSign packageFilePath -> do
-        pkg <- getPackageFromFile packageFilePath
-        case pkg of
-          Left err -> printTextLn err
-          Right package -> printTextLn $ getBytesToSign package
-      CmdAddSignature pk sign packageFilePath -> do
-        pkg <- getPackageFromFile packageFilePath
-        case pkg of
-          Left err -> printTextLn err
-          Right package -> case addSignature package (pk, sign) of
-            Right signedPackage -> writePackageToFile signedPackage packageFilePath
-            Left err -> printStringLn err
-      CmdSignPackage packageFilePath -> do
-        pkg <- getPackageFromFile packageFilePath
-        case pkg of
-          Left err -> printTextLn err
-          Right package -> do
-            signRes <- signPackageForConfiguredUser package
-            case signRes of
-              Left err -> printStringLn err
+  ClientArgs cmd maybeuser dryRunFlag <- parseCmdLine programInfo
+  -- Change the reader environment to include the user alias
+  -- override.
+  withLocal (\e -> case maybeuser of
+      Just u -> e { aeConfigOverride = (aeConfigOverride e) { coTzbtcUser = Just u } }
+      Nothing -> e) $ do
+    case dryRunFlag of
+      True -> pass
+      False -> case cmd of
+        CmdMint to' value mbMultisig -> do
+          to <- addrOrAliasToAddr to'
+          runMultisigTzbtcContract mbMultisig $
+            fromFlatParameter $ Mint (#to .! to, #value .! value)
+        CmdBurn burnParams mbMultisig ->
+          runMultisigTzbtcContract mbMultisig $
+            fromFlatParameter $ Burn burnParams
+        CmdTransfer from' to' value -> do
+          [from, to] <- mapM addrOrAliasToAddr [from', to']
+          runTzbtcContract $
+            fromFlatParameter $ Transfer (#from .! from, #to .! to, #value .! value)
+        CmdApprove spender' value -> do
+          spender <- addrOrAliasToAddr spender'
+          runTzbtcContract $
+            fromFlatParameter $ Approve (#spender .! spender, #value .! value)
+        CmdGetAllowance (owner', spender') mbCallback' ->
+          case mbCallback' of
+            Just callback' -> do
+              [owner, spender, callback] <- mapM addrOrAliasToAddr [owner', spender', callback']
+              runTzbtcContract $ fromFlatParameter $ GetAllowance $
+                View (#owner .! owner, #spender .! spender) (toContractRef callback)
+            Nothing -> do
+              [owner, spender] <- mapM addrOrAliasToAddr [owner', spender']
+              allowance <- getAllowance owner spender
+              printStringLn $ "Allowance: " <> show allowance
+        CmdGetBalance owner' mbCallback' -> do
+          case mbCallback' of
+            Just callback' -> do
+              [owner, callback] <- mapM addrOrAliasToAddr [owner', callback']
+              runTzbtcContract $
+                fromFlatParameter $ GetBalance $ View (#owner .! owner) (toContractRef callback)
+            Nothing -> do
+              owner <- addrOrAliasToAddr owner'
+              balance <- getBalance owner
+              printStringLn $ "Balance: " <> show balance
+        CmdAddOperator operator' mbMultisig -> do
+          operator <- addrOrAliasToAddr operator'
+          runMultisigTzbtcContract mbMultisig $
+            fromFlatParameter $ AddOperator (#operator .! operator)
+        CmdRemoveOperator operator' mbMultisig -> do
+          operator <- addrOrAliasToAddr operator'
+          runMultisigTzbtcContract mbMultisig $
+            fromFlatParameter $ RemoveOperator (#operator .! operator)
+        CmdPause mbMultisig -> runMultisigTzbtcContract mbMultisig $
+          fromFlatParameter $ Pause ()
+        CmdUnpause mbMultisig -> runMultisigTzbtcContract mbMultisig $
+          fromFlatParameter $ Unpause ()
+        CmdSetRedeemAddress redeem' mbMultisig -> do
+          redeem <- addrOrAliasToAddr redeem'
+          runMultisigTzbtcContract mbMultisig $
+            fromFlatParameter $ SetRedeemAddress (#redeem .! redeem)
+        CmdTransferOwnership newOwner' mbMultisig -> do
+          newOwner <- addrOrAliasToAddr newOwner'
+          runMultisigTzbtcContract mbMultisig $
+            fromFlatParameter $ TransferOwnership (#newOwner .! newOwner)
+        CmdAcceptOwnership p -> runTzbtcContract $
+          fromFlatParameter $ AcceptOwnership p
+        CmdGetTotalSupply callback -> do
+          simpleGetter #totalSupply "Total supply" GetTotalSupply callback
+        CmdGetTotalMinted callback -> do
+          simpleGetter #totalMinted "Total minted" GetTotalMinted callback
+        CmdGetTotalBurned callback -> do
+          simpleGetter #totalBurned "Total burned" GetTotalBurned callback
+        CmdGetOwner callback ->
+          simpleGetter #owner "Owner" GetOwner callback
+        CmdGetTokenName callback ->
+          simpleGetter #tokenName "Token name" GetTokenName callback
+        CmdGetTokenCode callback ->
+          simpleGetter #tokenCode "Token code" GetTokenCode callback
+        CmdGetRedeemAddress callback ->
+          simpleGetter #redeemAddress "Redeem address" GetRedeemAddress callback
+        CmdGetOperators ->
+          printFieldFromStorage #operators "List of contract operators"
+        CmdGetOpDescription packageFilePath -> do
+          pkg <- getPackageFromFile packageFilePath
+          case pkg of
+            Left err -> printTextLn err
+            Right package -> printStringLn $ pretty package
+        CmdGetBytesToSign packageFilePath -> do
+          pkg <- getPackageFromFile packageFilePath
+          case pkg of
+            Left err -> printTextLn err
+            Right package -> printTextLn $ getBytesToSign package
+        CmdAddSignature pk sign packageFilePath -> do
+          pkg <- getPackageFromFile packageFilePath
+          case pkg of
+            Left err -> printTextLn err
+            Right package -> case addSignature package (pk, sign) of
               Right signedPackage -> writePackageToFile signedPackage packageFilePath
-      CmdCallMultisig packagesFilePaths -> do
-        pkgs <- fmap sequence $ mapM getPackageFromFile packagesFilePaths
-        case pkgs of
-          Left err -> printTextLn err
-          Right packages -> runMultisigContract packages
-      CmdDeployContract DeployContractOptions {..} -> do
-        ownerAlias <- case dcoOwner of
-          Just o -> pure o
-          Nothing  -> ccUserAlias <$> throwLeft readConfig
-        [owner, redeem] <- mapM addrOrAliasToAddr [ownerAlias, dcoRedeem]
-        let
-          originationParams = OriginationParameters
-            { opOwner = owner
-            , opRedeemAddress = redeem
-            , opBalances = mempty
-            , opTokenName = dcoTokenName
-            , opTokenCode = dcoTokenCode
-            }
-        deployTzbtcContract originationParams
-      CmdShowConfig -> do
-        config <- readConfig
-        case config of
-          Right c -> printStringLn $ pretty c
-          Left err -> printTextLn $ "There was an error reading config:" ++ pretty err
+              Left err -> printStringLn err
+        CmdSignPackage packageFilePath -> do
+          pkg <- getPackageFromFile packageFilePath
+          case pkg of
+            Left err -> printTextLn err
+            Right package -> do
+              signRes <- signPackageForConfiguredUser package
+              case signRes of
+                Left err -> printStringLn err
+                Right signedPackage -> writePackageToFile signedPackage packageFilePath
+        CmdCallMultisig packagesFilePaths -> do
+          pkgs <- fmap sequence $ mapM getPackageFromFile packagesFilePaths
+          case pkgs of
+            Left err -> printTextLn err
+            Right packages -> runMultisigContract packages
+        CmdDeployContract DeployContractOptions {..} -> do
+          ownerAlias <- case dcoOwner of
+            Just o -> pure o
+            Nothing  -> ccUserAlias <$> throwLeft readConfig
+          [owner, redeem] <- mapM addrOrAliasToAddr [ownerAlias, dcoRedeem]
+          let
+            originationParams = OriginationParameters
+              { opOwner = owner
+              , opRedeemAddress = redeem
+              , opBalances = mempty
+              , opTokenName = dcoTokenName
+              , opTokenCode = dcoTokenCode
+              }
+          deployTzbtcContract originationParams
+        CmdShowConfig -> do
+          config <- readConfig
+          case config of
+            Right c -> printStringLn $ pretty c
+            Left err -> printTextLn $ "There was an error reading config:" ++ pretty err
   where
     runMultisigTzbtcContract :: Maybe FilePath -> Parameter i s -> m ()
     runMultisigTzbtcContract mbMultisig param =

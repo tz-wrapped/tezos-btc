@@ -13,6 +13,8 @@ Unreleased
 
 0.2.0
 =====
+* [#85] (https://github.com/serokell/tezos-btc/pull/87)
+  - Add global option `--user` to override default `tzbtc-user` user alias
 
 * [#82](https://github.com/serokell/tezos-btc/pull/82)
   - Fix configuration conflict with `tezos-client` config by not having a separate config file.

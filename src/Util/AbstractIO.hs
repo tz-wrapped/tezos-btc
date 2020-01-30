@@ -26,6 +26,7 @@ import Tezos.V005.Micheline (Expression)
 
 import Client.Error
 import Client.Types
+import Client.Env
 import Lorentz.Constraints
 import Lorentz.Contracts.TZBTC (OriginationParameters)
 
@@ -67,4 +68,5 @@ class (HasConfig m, HasEnv m, Monad m) => HasTezosClient m where
 
 -- Interaction with environment variables
 class (Monad m) => HasEnv m where
-  lookupEnv :: String -> m (Maybe String)
+  lookupEnv :: m AppEnv
+  withLocal :: (AppEnv -> AppEnv) -> m a -> m a
