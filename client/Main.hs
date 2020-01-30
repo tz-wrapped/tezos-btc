@@ -9,4 +9,6 @@ module Main
 import Client.Main
 
 main :: IO ()
-main = mainProgram
+main = do
+  env <- mkInitEnv
+  runAppM env mainProgram
