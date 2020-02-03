@@ -63,7 +63,9 @@ class (HasConfig m, HasEnv m, Monad m) => HasTezosClient m where
   getAddressForContract :: Text -> m (Either TzbtcClientError Address)
   signWithTezosClient :: Either ByteString Text -> Text -> m (Either Text Signature)
   waitForOperation :: Text -> m ()
-  getTezosClientConfig :: m (Either Text (FilePath, TezosClientConfig))
+  getTezosClientConfig ::
+    m (Either Text
+          (FilePath, TezosClientConfig)) -- File path is path to tezos-client executable
   rememberContractAs :: Address -> Text -> m ()
 
 -- Interaction with environment variables

@@ -396,7 +396,11 @@ userOverrideTestHandlers :: Handlers TestM
 userOverrideTestHandlers =
   (defaultHandlers (defaultMockInput { miCmdLine =  args}))
     { hPrintStringLn = \msg -> do
-        if "john-alias" `DL.isInfixOf` msg then (meetExpectation PrintsMessage) else pass
+        if "john-alias" `DL.isInfixOf` msg && -- Does overridden user appear in printed config?
+            -- Does tezos-client config values appear in printed config?
+            (toString nodeAddr) `DL.isInfixOf` msg &&
+            (show nodePort) `DL.isInfixOf` msg
+          then (meetExpectation PrintsMessage) else pass
     , hGetTezosClientConfig = pure $ Right ("tezos-client", cc)
     , hGetAddressForContract = \ca ->
         if ca == "tzbtc"
@@ -406,19 +410,22 @@ userOverrideTestHandlers =
             else throwM $ TestError $ "Unexpected contract alias" ++ (toString ca)
     }
   where
+    nodePort = 2990
+    nodeAddr = "dummy.node.address"
     args =
       [ "config"
       , "--user", "john-alias" ]
     cc :: TezosClientConfig
     cc = TezosClientConfig
-      { tcNodeAddr = "localhost"
-      , tcNodePort = 2990
+      { tcNodeAddr = nodeAddr
+      , tcNodePort = nodePort
       , tcTls = False
       }
 
 -- Test user alias gets overrided in config
 -- if `--user` option is provided.
---
+-- Also, tests if the config from tezos-client
+-- was included in the printed output.
 test_userOverride :: TestTree
 test_userOverride = testGroup "Default user override"
   [ testCase "Check if we can override default user using --user option" $
