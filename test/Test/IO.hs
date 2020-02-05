@@ -72,6 +72,7 @@ defaultHandlers mi = Handlers
   , hGetFromBigMap = \_ _ -> unavailable "getFromBigMap"
   , hWaitForOperation = \_ -> unavailable "waitForOperation"
   , hDeployTzbtcContract = \_ -> meetExpectation DeployTzbtcContract
+  , hDeployMultisigContract = \_ _ -> meetExpectation DeployMultisigContract
   , hGetAddressAndPKForAlias = \_ -> unavailable "getAddressAndPKForAlias"
   , hRememberContract = \c a -> meetExpectation (RememberContract c a)
   , hSignWithTezosClient = \_ _ -> unavailable "signWithTezosClient"

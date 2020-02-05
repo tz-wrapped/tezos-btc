@@ -24,6 +24,8 @@ import Tezos.Common.Json (TezosInt64)
 import Tezos.Crypto
 import Tezos.V005.Micheline (Expression)
 
+import qualified Lorentz.Contracts.Multisig.Generic as MSig
+
 import Client.Error
 import Client.Types
 import Client.Env
@@ -56,6 +58,7 @@ class (HasTezosClient m, HasConfig m, Monad m, MonadThrow m) => HasTezosRpc m wh
   getCounter :: Text -> m TezosInt64
   getFromBigMap :: Natural -> Text -> m (Either TzbtcClientError Expression)
   deployTzbtcContract :: OriginationParameters -> m ()
+  deployMultisigContract :: MSig.Storage -> Bool -> m ()
 
 -- Interaction with tezos client binary
 class (HasConfig m, HasEnv m, Monad m) => HasTezosClient m where

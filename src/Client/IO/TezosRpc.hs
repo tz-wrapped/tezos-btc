@@ -6,6 +6,7 @@
 module Client.IO.TezosRpc
   ( deployTzbtcContract
   , getStorage
+  , originateContract
   , runTransactions
   ) where
 
@@ -74,7 +75,7 @@ dumbOp = TransactionOperation
   , toCounter = 0
   , toGasLimit = 800000
   , toStorageLimit = 60000
-  , toAmount = 1
+  , toAmount = 0
   , toDestination = genesisAddress2
   , toParameters = ParametersInternal
     { piEntrypoint = "default"

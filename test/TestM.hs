@@ -25,6 +25,8 @@ import Tezos.Common.Json (TezosInt64)
 import Tezos.Crypto
 import Tezos.V005.Micheline (Expression)
 
+import qualified Lorentz.Contracts.Multisig.Generic as MSig
+
 import Client.Env
 import Client.Error
 import Client.IO ()
@@ -45,6 +47,7 @@ data Expectation
   | RunsTransaction
   | PrintByteString ByteString
   | DeployTzbtcContract
+  | DeployMultisigContract
   | RememberContract Address Text
   | LooksupEnv
   deriving (Eq, Show, Ord)
@@ -93,6 +96,7 @@ data Handlers m = Handlers
   , hWaitForOperation :: Text -> m ()
   , hGetTezosClientConfig :: m (Either Text (FilePath, TezosClientConfig))
   , hDeployTzbtcContract :: OriginationParameters -> m ()
+  , hDeployMultisigContract :: MSig.Storage -> Bool -> m ()
 
   , hGetAddressAndPKForAlias :: Text -> m (Either TzbtcClientError (Address, PublicKey))
   , hSignWithTezosClient :: Either ByteString Text -> Text -> m (Either Text Signature)
@@ -153,6 +157,9 @@ instance HasTezosRpc TestM where
   deployTzbtcContract op = do
     fn <- getHandler hDeployTzbtcContract
     fn op
+  deployMultisigContract storage useCustomErrors = do
+    fn <- getHandler hDeployMultisigContract
+    fn storage useCustomErrors
 
 instance HasTezosClient TestM where
   getAddressAndPKForAlias a = do
