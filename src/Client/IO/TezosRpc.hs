@@ -122,13 +122,14 @@ addOperationPrefix (InternalByteString bs) =
 -- so we are accepting list of param's here.
 runTransactions
   :: (NicePackedValue param)
-  => Address -> [EntrypointParam param] -> ClientConfig -> IO ()
+  => Address -> [(EntrypointParam param, TezosInt64)] -> ClientConfig -> IO ()
 runTransactions to params config@ClientConfig{..} = do
   OperationConstants{..} <- preProcessOperation config
-  let opsToRun = zipWith (\param i -> dumbOp
+  let opsToRun = zipWith (\(param, transferAmount) i -> dumbOp
         { toDestination = to
         , toSource = ocSourceAddr
         , toCounter = ocCounter + (fromInteger i)
+        , toAmount = transferAmount
         , toParameters = toParametersInternals param
         }) params [1..]
   let runOp = RunOperation
@@ -254,7 +255,7 @@ deployTzbtcContract config@ClientConfig{..} op = do
   throwClientErrorAfterRetry (10, delayFn) $ try $
     -- We retry here because it was found that in some cases, the storage
     -- is unavailable for a short time since contract origination.
-    transactionsToTzbtc $ (DefaultEntrypoint . fromFlatParameter) <$>
+    transactionsToTzbtc $ (\param -> (DefaultEntrypoint . fromFlatParameter $ param, 0)) <$>
       [ Upgrade @TZBTCv0 $ upgradeParameters op
       ]
   pure contractAddr

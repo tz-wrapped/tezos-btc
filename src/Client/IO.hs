@@ -220,7 +220,7 @@ runTzbtcContract param = do
   case ccContractAddress of
     Nothing -> throwM TzbtcContractConfigUnavailable
     Just contractAddr ->
-      runTransactions contractAddr [DefaultEntrypoint param]
+      runTransactions contractAddr [(DefaultEntrypoint param, 0)]
 
 runMultisigContract :: (MonadThrow m, HasTezosRpc m) => NonEmpty Package -> m ()
 runMultisigContract packages = do
@@ -229,7 +229,7 @@ runMultisigContract packages = do
   multisigAddr <- throwLeft $ pure (fst <$> getToSign package)
   (_, (_, (MSig.Keys keys'))) <- getMultisigStorage multisigAddr config
   (_, multisigParam) <- throwLeft $ pure $ mkMultiSigParam keys' packages
-  runTransactions multisigAddr [Entrypoint "main" multisigParam]
+  runTransactions multisigAddr [(Entrypoint "main" multisigParam, 0)]
 
 getMultisigStorage
   :: (MonadThrow m, HasTezosRpc m) => Address -> ClientConfig -> m MSig.Storage
