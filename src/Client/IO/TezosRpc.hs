@@ -16,7 +16,7 @@ import Tezos.Common.Json (TezosInt64)
 import Tezos.V005.Micheline (Expression)
 import Time (Second, Time(..), threadDelay)
 
-import Lorentz hiding (address, balance, chainId, cons, map)
+import Lorentz hiding (address, balance, contract, chainId, cons, map)
 import Michelson.Runtime.GState (genesisAddress1, genesisAddress2)
 import Michelson.Untyped (InternalByteString(..))
 import Tezos.Address
@@ -185,9 +185,10 @@ getAppliedResults env op = do
                       RunOperationFailed errors -> throwM (TzbtcRunFailed errors)
                ) opContents
 
-originateTzbtcContract
-  :: Address -> ClientConfig -> IO (Either TzbtcClientError Address)
-originateTzbtcContract owner config@ClientConfig{..} = do
+originateContract
+  :: (NiceParameterFull cp, NiceStorage st)
+  => Contract cp st -> st -> ClientConfig -> IO (Either TzbtcClientError Address)
+originateContract contract initialStorage config@ClientConfig{..} = do
   OperationConstants{..} <- preProcessOperation config
   let origOp = OriginationOperation
         { ooKind = "origination"
@@ -198,7 +199,7 @@ originateTzbtcContract owner config@ClientConfig{..} = do
         , ooStorageLimit = 60000
         , ooBalance = 0
         , ooScript =
-          mkOriginationScript tzbtcContract (mkEmptyStorageV0 owner)
+          mkOriginationScript contract initialStorage
         }
   let runOp = RunOperation
         { roOperation =
@@ -245,7 +246,8 @@ originateTzbtcContract owner config@ClientConfig{..} = do
 deployTzbtcContract :: ClientConfig -> OriginationParameters -> IO Address
 deployTzbtcContract config@ClientConfig{..} op = do
   putTextLn "Originate contract"
-  contractAddr <- throwLeft $ originateTzbtcContract (opOwner op) config
+  contractAddr <- throwLeft $
+    originateContract tzbtcContract (mkEmptyStorageV0 $ opOwner op) config
   let transactionsToTzbtc params = runTransactions contractAddr params config
   putTextLn "Upgrade contract to V1"
   throwClientErrorAfterRetry (10, delayFn) $ try $

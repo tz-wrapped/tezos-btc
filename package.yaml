@@ -27,6 +27,7 @@ library:
     - aeson
     - aeson-casing
     - bytestring
+    - constraints
     - containers
     - directory
     - hex-text
