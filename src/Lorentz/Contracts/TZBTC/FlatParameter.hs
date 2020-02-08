@@ -57,24 +57,24 @@ data FlatParameter (ver :: VersionKind)
 
 fromFlatParameter :: FlatParameter s -> TZBTC.Parameter s
 fromFlatParameter = \case
-  Run a -> TZBTC.SafeEntrypoints $ TZBTC.Run a
-  Upgrade a -> TZBTC.SafeEntrypoints $ TZBTC.Upgrade a
-  EpwBeginUpgrade a -> TZBTC.SafeEntrypoints $ TZBTC.EpwBeginUpgrade a
-  EpwApplyMigration a -> TZBTC.SafeEntrypoints $ TZBTC.EpwApplyMigration (#migrationscript .! a)
-  EpwSetCode a -> TZBTC.SafeEntrypoints $ TZBTC.EpwSetCode (#contractcode .! a)
-  EpwFinishUpgrade -> TZBTC.SafeEntrypoints $ TZBTC.EpwFinishUpgrade
+  Run a -> wrapInSafe $ TZBTC.Run a
+  Upgrade a -> wrapInSafe $ TZBTC.Upgrade a
+  EpwBeginUpgrade a -> wrapInSafe $ TZBTC.EpwBeginUpgrade a
+  EpwApplyMigration a -> wrapInSafe $ TZBTC.EpwApplyMigration (#migrationscript .! a)
+  EpwSetCode a -> wrapInSafe $ TZBTC.EpwSetCode (#contractcode .! a)
+  EpwFinishUpgrade -> wrapInSafe $ TZBTC.EpwFinishUpgrade
   -- TZBTC Entrypoints
-  Transfer a -> TZBTC.SafeEntrypoints $ TZBTC.Transfer a
-  Approve a -> TZBTC.SafeEntrypoints $ TZBTC.Approve a
-  Mint a -> TZBTC.SafeEntrypoints $ TZBTC.Mint a
-  Burn a -> TZBTC.SafeEntrypoints $ TZBTC.Burn a
-  AddOperator a -> TZBTC.SafeEntrypoints $ TZBTC.AddOperator a
-  RemoveOperator a -> TZBTC.SafeEntrypoints $ TZBTC.RemoveOperator a
-  SetRedeemAddress a -> TZBTC.SafeEntrypoints $ TZBTC.SetRedeemAddress a
-  Pause () -> TZBTC.SafeEntrypoints $ TZBTC.Pause ()
-  Unpause () -> TZBTC.SafeEntrypoints $ TZBTC.Unpause ()
-  TransferOwnership a -> TZBTC.SafeEntrypoints $ TZBTC.TransferOwnership a
-  AcceptOwnership a -> TZBTC.SafeEntrypoints $ TZBTC.AcceptOwnership a
+  Transfer a -> wrapInSafe $ TZBTC.Transfer a
+  Approve a -> wrapInSafe $ TZBTC.Approve a
+  Mint a -> wrapInSafe $ TZBTC.Mint a
+  Burn a -> wrapInSafe $ TZBTC.Burn a
+  AddOperator a -> wrapInSafe $ TZBTC.AddOperator a
+  RemoveOperator a -> wrapInSafe $ TZBTC.RemoveOperator a
+  SetRedeemAddress a -> wrapInSafe $ TZBTC.SetRedeemAddress a
+  Pause () -> wrapInSafe $ TZBTC.Pause ()
+  Unpause () -> wrapInSafe $ TZBTC.Unpause ()
+  TransferOwnership a -> wrapInSafe $ TZBTC.TransferOwnership a
+  AcceptOwnership a -> wrapInSafe $ TZBTC.AcceptOwnership a
   -- Views
   GetVersion a -> TZBTC.GetVersion a
   GetAllowance a -> TZBTC.GetAllowance a
@@ -86,3 +86,6 @@ fromFlatParameter = \case
   GetTokenName a -> TZBTC.GetTokenName a
   GetTokenCode a -> TZBTC.GetTokenCode a
   GetRedeemAddress a -> TZBTC.GetRedeemAddress a
+  where
+    wrapInSafe :: TZBTC.SafeParameter s -> TZBTC.Parameter s
+    wrapInSafe s = TZBTC.SafeEntrypoints s

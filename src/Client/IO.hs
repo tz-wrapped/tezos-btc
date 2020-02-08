@@ -36,7 +36,7 @@ import qualified System.Environment as SE
 
 import Lorentz hiding (address, balance, chainId, cons, map)
 import Lorentz.Contracts.ManagedLedger.Types
-import qualified Lorentz.Contracts.Multisig.Generic as MSig
+import Lorentz.Contracts.Multisig
 import Lorentz.UStore.Common
 import Michelson.Untyped (InternalByteString(..))
 import Tezos.Address
@@ -176,14 +176,13 @@ instance HasTezosRpc AppM where
       Canceled -> pass
       Confirmed -> rememberContractAs contractAddr "tzbtc"
   deployMultisigContract msigStorage useCustomErrors = do
-    let (_, (MSig.Threshold thresholdValue, MSig.Keys keysList)) = msigStorage
+    let (_, (Threshold thresholdValue, Keys keysList)) = msigStorage
     when (thresholdValue == 0) $ throwM TzbtcMultisigZeroThreshold
     when (thresholdValue > fromIntegral (length keysList)) $
       throwM TzbtcMultisigThresholdLargerThanKeys
-    let msigToOriginate =
-          if useCustomErrors
-          then MSig.genericMultisigContract @'MSig.CustomErrors
-          else MSig.genericMultisigContract @'MSig.BaseErrors
+    let msigToOriginate = if useCustomErrors
+          then tzbtcMultisigContract @'CustomErrors
+          else tzbtcMultisigContract @'BaseErrors
     config@ClientConfig{..} <- throwLeft readConfig
     msigAddr <- throwLeft $ liftIO $
       IO.originateContract msigToOriginate msigStorage config
@@ -226,32 +225,32 @@ runTzbtcContract param = do
     Just contractAddr ->
       runTransactions contractAddr [(DefaultEntrypoint param, 0)]
 
-runMultisigContract :: (MonadThrow m, HasTezosRpc m) => NonEmpty Package -> m ()
+runMultisigContract :: forall m.(MonadThrow m, HasTezosRpc m) => NonEmpty Package -> m ()
 runMultisigContract packages = do
   config <- throwLeft $ readConfig
   package <- throwLeft $ pure $ mergePackages packages
   multisigAddr <- throwLeft $ pure (fst <$> getToSign package)
-  (_, (_, (MSig.Keys keys'))) <- getMultisigStorage multisigAddr config
+  (_, (_, (Keys keys'))) <- getMultisigStorage multisigAddr config
   (_, multisigParam) <- throwLeft $ pure $ mkMultiSigParam keys' packages
-  runTransactions multisigAddr [(Entrypoint "main" multisigParam, 0)]
+  runTransactions multisigAddr [(Entrypoint "mainParameter" multisigParam, 0)]
 
 getMultisigStorage
-  :: (MonadThrow m, HasTezosRpc m) => Address -> ClientConfig -> m MSig.Storage
+  :: (MonadThrow m, HasTezosRpc m) => Address -> ClientConfig -> m MSigStorage
 getMultisigStorage addr ClientConfig{..} = do
   mSigStorageRaw <- getStorage $ formatAddress addr
-  throwLeft $ pure $ exprToValue @MSig.Storage mSigStorageRaw
+  throwLeft $ pure $ exprToValue @MSigStorage mSigStorageRaw
 
 createMultisigPackage
-  :: (MonadThrow m, HasFilesystem m, HasTezosRpc m, TZBTCVersionC v)
+  :: (MonadThrow m, HasFilesystem m, HasTezosRpc m)
   => FilePath
-  -> SafeParameter v
+  -> SafeParameter SomeTZBTCVersion
   -> m ()
 createMultisigPackage packagePath parameter = do
   config@ClientConfig{..} <- throwLeft readConfig
   case ccMultisigAddress of
     Nothing -> throwM TzbtcMutlisigConfigUnavailable
     Just msAddr ->  do
-      ((MSig.Counter counter), _) <- getMultisigStorage msAddr config
+      ((Counter counter), _) <- getMultisigStorage msAddr config
       case ccContractAddress of
         Nothing -> throwM TzbtcContractConfigUnavailable
         Just (toTAddress -> contractAddr) ->

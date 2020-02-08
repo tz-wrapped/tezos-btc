@@ -6,6 +6,9 @@
 
 module Util.MultiSig
   ( Package(..)
+  , MSigParameter
+  , MSigParamMain
+  , MSigPayload
   , addSignature
   , decodePackage
   , encodePackage
@@ -33,8 +36,8 @@ import qualified Text.Show (show)
 import Client.Util (addTezosBytesPrefix)
 import Lorentz
 import Lorentz.Contracts.TZBTC as TZBTC
-import Lorentz.Contracts.TZBTC.MultiSig as MSig
 import Lorentz.Contracts.TZBTC.Types as TZBTC
+import Lorentz.Contracts.Multisig
 import Michelson.Interpret.Unpack
 import Tezos.Crypto
 
@@ -56,7 +59,7 @@ import Tezos.Crypto
 -- `ParamPayload` from its parameter, pair it with the contracts address
 -- (self), then serialize and check the signatures provided on that serialized
 -- data.
-type ToSign = (Address, ParamPayload)
+type ToSign = (Address, MSigPayload)
 
 -- | The type that will represent the actual data that will be provide to
 -- signers. We are using this, instead of just providing the byte sequence,
@@ -95,14 +98,12 @@ instance Buildable Package where
 -- is meaningless (and probably dangerous) if it does not match with the
 -- packed bytesequence that is being signed on.
 fetchSrcParam
-  :: forall v.
-     (TZBTCVersionC v)
-  => Package
-  -> Either UnpackageError (TZBTC.Parameter v)
+  :: Package
+  -> Either UnpackageError (TZBTC.Parameter SomeTZBTCVersion)
 fetchSrcParam package =
   case decodeHex $ pkSrcParam package of
     Just hexDecoded ->
-      case fromVal @((TZBTC.SafeParameter v), Natural, TAddress _)
+      case fromVal @((TZBTC.SafeParameter SomeTZBTCVersion), Natural, TAddress _)
           <$> unpackValue' hexDecoded of
         Right (safeParameter, counter, caddress) ->
           case getToSign package of
@@ -119,28 +120,28 @@ fetchSrcParam package =
 checkIntegrity
   :: Package
   -> Bool
-checkIntegrity = isRight . fetchSrcParam @SomeTZBTCVersion
+checkIntegrity = isRight . fetchSrcParam
 
 -- | Get Operation description from serialized value
 getOpDescription
   :: Package -> Builder
-getOpDescription p = case fetchSrcParam @SomeTZBTCVersion p of
+getOpDescription p = case fetchSrcParam p of
   Right param -> build param
   Left err -> build err
 
 -- | Make the `Package` value from input parameters.
 mkPackage
-  :: (TZBTCVersionC v, ToTAddress MSig.Parameter msigAddr)
+  :: forall msigAddr. (ToTAddress MSigParameter msigAddr)
   => msigAddr
   -> Natural
-  -> TAddress (TZBTC.Parameter v)
-  -> TZBTC.SafeParameter v -> Package
+  -> TAddress (TZBTC.Parameter SomeTZBTCVersion)
+  -> TZBTC.SafeParameter SomeTZBTCVersion -> Package
 mkPackage msigAddress counter tzbtc param
-  = let msigLambda = contractToLambda (toAddress tzbtc) param
-        msigTAddr = toTAddress @MSig.Parameter msigAddress
+  = let msigLambda = Operation (param, tzbtc)
+        msigTAddr = (toTAddress @MSigParameter) msigAddress
     -- Create the Lambda for required action
     in Package
-      { pkToSign = encodeToSign $ (toAddress msigTAddr, (counter, ParamLambda msigLambda))
+      { pkToSign = encodeToSign $ (toAddress msigTAddr, (Counter counter, msigLambda))
       -- ^ Wrap the the lambda with multisig address and replay attack counter,
       -- forming a structure that the multi-sig contract will ultimately
       -- verify the included signatures against
@@ -237,7 +238,7 @@ addSignature package sig =
 mkMultiSigParam
   :: [PublicKey]
   -> NonEmpty Package
-  -> Either UnpackageError (TAddress MSig.Parameter, ParamMain)
+  -> Either UnpackageError ((TAddress MSigParameter), MSigParamMain)
 mkMultiSigParam pks packages = do
   package <- mergePackages packages
   toSign <- getToSign package
@@ -246,13 +247,12 @@ mkMultiSigParam pks packages = do
     mkParameter
       :: ToSign
       -> [(PublicKey, Signature)]
-      -> (TAddress MSig.Parameter, ParamMain)
+      -> (TAddress MSigParameter, MSigParamMain)
     mkParameter (address_, payload) sigs =
       -- There should be as may signatures in the submitted request
       -- as there are keys in the contract's storage. Not all keys should
       -- be present, but they should be marked as absent using Nothing values [1].
       -- So we pad the list with Nothings to make up for missing signatures.
-      -- [1] https://github.com/murbard/smart-contracts/blob/master/multisig/michelson/generic.tz#L63
       (toTAddress address_, (payload, sortSigs sigs))
     sortSigs :: [(PublicKey, Signature)] -> [Maybe Signature]
     sortSigs sigs = flip lookup sigs <$> pks

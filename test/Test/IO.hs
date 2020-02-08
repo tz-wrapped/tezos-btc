@@ -28,8 +28,8 @@ import Client.Types
 import Client.Util
 import Lorentz (toTAddress)
 import qualified Lorentz.Contracts.TZBTC as TZBTC
-import qualified Lorentz.Contracts.TZBTC.MultiSig as MS
 import qualified Lorentz.Contracts.TZBTC.Types as TZBTCTypes
+import Lorentz.Contracts.Multisig
 import Michelson.Typed.Haskell.Value (fromVal, toVal)
 import TestM
 import Tezos.Address
@@ -179,7 +179,7 @@ multiSigCreationTestHandlers =
             then pure $ Right multiSigAddress
             else throwM $ TestError $ "Unexpected contract alias" ++ (toString ca)
     , hGetStorage = \x -> if x == multiSigAddressRaw
-      then pure $ nicePackedValueToExpression (MS.mkStorage 14 3 [])
+      then pure $ nicePackedValueToExpression (mkStorage 14 3 [])
       else throwM $ TestError "Unexpected contract address"
     , hWriteFile = \fp bs -> do
         packageOk <- checkPackage bs
@@ -201,12 +201,12 @@ multiSigCreationTestHandlers =
         }
 
       checkToSign package = case getToSign package of
-        Right (addr, (counter, _)) -> pure $
+        Right (addr, (Counter counter, _)) -> pure $
           ( addr == multiSigAddress &&
             counter == 14 )
         _ -> throwM $ TestError "Getting address and counter from package failed"
       checkPackage bs = case decodePackage bs of
-        Right package -> case fetchSrcParam @TZBTC.SomeTZBTCVersion package of
+        Right package -> case fetchSrcParam package of
           Right param -> do
             toSignOk <- checkToSign package
             pure $ toSignOk &&
@@ -311,10 +311,10 @@ multisigExecutionTestHandlers =
         if addr == multiSigAddress then do
           case params of
             [] -> throwM $ TestError "Unexpected empty parameters"
-            [(Entrypoint "main" param, 0)] -> do
+            [(Entrypoint "mainParameter" param, 0)] -> do
               case Typ.cast (toVal param) of
                 Just param' -> case (fromVal param') of
-                  (_ :: MS.ParamPayload, sigs) ->
+                  (_ :: MSigPayload, sigs) ->
                     if sigs ==
                       -- The order should be same as the one that we
                       -- return from getStorage mock
@@ -331,7 +331,7 @@ multisigExecutionTestHandlers =
             _ -> throwM $ TestError "Unexpected multiple parameters"
         else throwM $ TestError "Unexpected multisig address"
     , hGetStorage = \x -> if x == multiSigAddressRaw
-        then pure $ nicePackedValueToExpression (MS.mkStorage 14 3 [aliceAddressPK, bobAddressPK, johnAddressPK])
+        then pure $ nicePackedValueToExpression (mkStorage 14 3 [aliceAddressPK, bobAddressPK, johnAddressPK])
         else throwM $ TestError "Unexpected contract address"
     , hReadFile = \fp -> do
         case fp of
