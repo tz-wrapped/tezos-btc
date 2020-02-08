@@ -154,7 +154,7 @@ mainProgram = do
           pkgs <- fmap sequence $ mapM getPackageFromFile packagesFilePaths
           case pkgs of
             Left err -> printTextLn err
-            Right packages -> runMultisigContract packages
+            Right packages -> runMultisigContract @TZBTCv1 packages
         CmdDeployContract DeployContractOptions {..} -> do
           ownerAlias <- case dcoOwner of
             Just o -> pure o

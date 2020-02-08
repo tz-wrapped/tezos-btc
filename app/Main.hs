@@ -25,8 +25,10 @@ import Paths_tzbtc (version)
 import CLI.Parser
 import Client.IO ()
 import Lorentz.Contracts.TZBTC
-  (OriginationParameters(..), Parameter, TZBTCv1, migrationScripts, mkEmptyStorageV0,
+  (OriginationParameters(..), Parameter, SafeParameter, TZBTCParameter, TZBTCv1, migrationScripts, mkEmptyStorageV0,
   tzbtcContract, tzbtcContractRouter, tzbtcDoc)
+import qualified Lorentz.Contracts.Multisig.Specialized as SpMSig
+import Lorentz.Contracts.Multisig.Generic (ErrorsKind(..))
 import Lorentz.Contracts.TZBTC.Test (mkTestScenario)
 import Util.AbstractIO
 import Util.Migration
@@ -40,6 +42,8 @@ main = do
   case cmd of
     CmdPrintContract singleLine mbFilePath ->
       printContract singleLine mbFilePath tzbtcContract
+    CmdPrintMultisigContract singleLine mbFilePath ->
+      printContract singleLine mbFilePath (SpMSig.specializedMultisigContract @(SafeParameter TZBTCv1)  @TZBTCParameter @'CustomErrors (SpMSig.Constructor @"SafeEntrypoints"))
     CmdPrintInitialStorage ownerAddress -> do
       printTextLn $ printLorentzValue True (mkEmptyStorageV0 ownerAddress)
     CmdPrintDoc mbFilePath ->

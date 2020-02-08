@@ -6,6 +6,7 @@
 
 module Util.MultiSig
   ( Package(..)
+  , Signable
   , addSignature
   , decodePackage
   , encodePackage
@@ -35,6 +36,8 @@ import Lorentz
 import Lorentz.Contracts.TZBTC as TZBTC
 import Lorentz.Contracts.TZBTC.MultiSig as MSig
 import Lorentz.Contracts.TZBTC.Types as TZBTC
+import Lorentz.Contracts.Upgradeable.Common (VersionKind, VerPermanent)
+import qualified Lorentz.Contracts.Multisig.Specialized as SpMSig
 import Michelson.Interpret.Unpack
 import Tezos.Crypto
 
@@ -56,7 +59,7 @@ import Tezos.Crypto
 -- `ParamPayload` from its parameter, pair it with the contracts address
 -- (self), then serialize and check the signatures provided on that serialized
 -- data.
-type ToSign = (Address, ParamPayload)
+type ToSign (v :: VersionKind) = (Address, ParamPayload v)
 
 -- | The type that will represent the actual data that will be provide to
 -- signers. We are using this, instead of just providing the byte sequence,
@@ -95,8 +98,7 @@ instance Buildable Package where
 -- is meaningless (and probably dangerous) if it does not match with the
 -- packed bytesequence that is being signed on.
 fetchSrcParam
-  :: forall v.
-     (TZBTCVersionC v)
+  :: forall (v :: VersionKind). (TZBTCVersionC v)
   => Package
   -> Either UnpackageError (TZBTC.Parameter v)
 fetchSrcParam package =
@@ -105,7 +107,7 @@ fetchSrcParam package =
       case fromVal @((TZBTC.SafeParameter v), Natural, TAddress _)
           <$> unpackValue' hexDecoded of
         Right (safeParameter, counter, caddress) ->
-          case getToSign package of
+          case getToSign @v package of
             Right (msigAddr, _) ->
               let newPackage = mkPackage
                     msigAddr counter caddress safeParameter
@@ -130,17 +132,17 @@ getOpDescription p = case fetchSrcParam @SomeTZBTCVersion p of
 
 -- | Make the `Package` value from input parameters.
 mkPackage
-  :: (TZBTCVersionC v, ToTAddress MSig.Parameter msigAddr)
+  :: forall (v :: VersionKind) msigAddr. (TZBTCVersionC v, ToTAddress (SpMSig.Parameter (TZBTC.SafeParameter v) (TZBTC.Parameter v)) msigAddr)
   => msigAddr
   -> Natural
   -> TAddress (TZBTC.Parameter v)
   -> TZBTC.SafeParameter v -> Package
 mkPackage msigAddress counter tzbtc param
-  = let msigLambda = contractToLambda (toAddress tzbtc) param
-        msigTAddr = toTAddress @MSig.Parameter msigAddress
+  = let msigLambda = ParamAction (param, tzbtc)
+        msigTAddr = toTAddress @(SpMSig.Parameter (TZBTC.SafeParameter v) (TZBTC.Parameter v)) msigAddress
     -- Create the Lambda for required action
     in Package
-      { pkToSign = encodeToSign $ (toAddress msigTAddr, (counter, ParamLambda msigLambda))
+      { pkToSign = encodeToSign $ (toAddress msigTAddr, (counter, msigLambda))
       -- ^ Wrap the the lambda with multisig address and replay attack counter,
       -- forming a structure that the multi-sig contract will ultimately
       -- verify the included signatures against
@@ -170,14 +172,16 @@ mergePackages (p :| ps) = maybeToRight PackageMergeFailure $
 getBytesToSign :: Package -> Text
 getBytesToSign Package{..} = addTezosBytesPrefix pkToSign
 
+type Signable v = (VerPermanent v ~ Empty, Typeable v)
+
 -- | Extract the signable component from package. This is a structure
 -- with the packed lambda that represent the action, the multi-sig contract
 -- address, and the replay attack prevention counter.
-getToSign :: Package -> Either UnpackageError ToSign
+getToSign :: forall (v :: VersionKind). (Signable v) => Package -> Either UnpackageError (ToSign v)
 getToSign Package{..} =
   case decodeHex pkToSign of
     Just hexDecoded ->
-      case fromVal @ToSign <$> unpackValue' hexDecoded of
+      case fromVal @(ToSign v) <$> unpackValue' hexDecoded of
         Right toSign -> Right toSign
         Left err -> Left $ UnpackFailure err
     Nothing -> Left HexDecodingFailure
@@ -235,18 +239,21 @@ addSignature package sig =
 -- The list of public keys should be in the same order that the contract has
 -- them in it's storage.
 mkMultiSigParam
-  :: [PublicKey]
+  :: forall v. (Signable v)
+  => [PublicKey]
   -> NonEmpty Package
-  -> Either UnpackageError (TAddress MSig.Parameter, ParamMain)
+  -> Either UnpackageError (TAddress (SpMSig.Parameter (TZBTC.SafeParameter v) (TZBTC.Parameter v)), SpMSig.MainParams (TZBTC.SafeParameter v) (TZBTC.Parameter v))
 mkMultiSigParam pks packages = do
   package <- mergePackages packages
   toSign <- getToSign package
-  return $ mkParameter toSign (pkSignatures package)
+  return $ let
+    (addr, p) = mkParameter toSign (pkSignatures package)
+    in (addr, mkSpParamMain p)
   where
     mkParameter
-      :: ToSign
+      :: ToSign v
       -> [(PublicKey, Signature)]
-      -> (TAddress MSig.Parameter, ParamMain)
+      -> (TAddress (SpMSig.Parameter (TZBTC.SafeParameter v) (TZBTC.Parameter v)), ParamMain v)
     mkParameter (address_, payload) sigs =
       -- There should be as may signatures in the submitted request
       -- as there are keys in the contract's storage. Not all keys should
@@ -257,7 +264,7 @@ mkMultiSigParam pks packages = do
     sortSigs :: [(PublicKey, Signature)] -> [Maybe Signature]
     sortSigs sigs = flip lookup sigs <$> pks
 
-encodeToSign :: ToSign -> Text
+encodeToSign :: (Signable v) => ToSign v -> Text
 encodeToSign ts = (encodeHex $ lPackValue ts)
 
 deriveJSON (aesonPrefix camelCase) ''Package

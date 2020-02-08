@@ -34,6 +34,7 @@ import Util.Named
 data CmdLnArgs
   = CmdPrintInitialStorage Address
   | CmdPrintContract Bool (Maybe FilePath)
+  | CmdPrintMultisigContract Bool (Maybe FilePath)
   | CmdPrintDoc (Maybe FilePath)
   | CmdParseParameter Text
   | CmdTestScenario TestScenarioOptions
@@ -64,6 +65,12 @@ argParser = hsubparser $
       (mkCommandParser
         "printContract"
         (CmdPrintContract <$> singleLineSwitch <*> outputOption)
+        "Print token contract")
+    printMultisigCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
+    printMultisigCmd =
+      (mkCommandParser
+        "printMultisigContract"
+        (CmdPrintMultisigContract <$> singleLineSwitch <*> outputOption)
         "Print token contract")
     printInitialStorageCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     printInitialStorageCmd =

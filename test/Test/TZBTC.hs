@@ -92,7 +92,7 @@ dummyOriginationParameters owner redeem balances = OriginationParameters
   }
 
 originateTzbtcV1ContractRaw
-  :: Address -> OriginationParams -> IntegrationalScenarioM (TAddress (Parameter TZBTCv1))
+  :: Address -> OriginationParams -> IntegrationalScenarioM (TAddress (Parameter SomeTZBTCVersion))
 originateTzbtcV1ContractRaw redeem op = do
   c <- lOriginate tzbtcContract "TZBTC Contract"
     (mkEmptyStorageV0 ownerAddress) (toMutez 1000)
@@ -111,7 +111,7 @@ originateTzbtcV1ContractRaw redeem op = do
   pure $ coerce c
 
 originateTzbtcV1Contract
-  :: IntegrationalScenarioM (TAddress (Parameter TZBTCv1))
+  :: IntegrationalScenarioM (TAddress (Parameter SomeTZBTCVersion))
 originateTzbtcV1Contract = originateTzbtcV1ContractRaw redeemAddress_ $ OriginationParams
   { opAdmin = ownerAddress
   , opBalances = M.fromList [(redeemAddress_, initialSupply)]

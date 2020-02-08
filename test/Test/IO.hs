@@ -200,7 +200,7 @@ multiSigCreationTestHandlers =
         , tcTls = False
         }
 
-      checkToSign package = case getToSign package of
+      checkToSign package = case getToSign @TZBTC.TZBTCv0 package of
         Right (addr, (counter, _)) -> pure $
           ( addr == multiSigAddress &&
             counter == 14 )
@@ -314,7 +314,7 @@ multisigExecutionTestHandlers =
             [(Entrypoint "main" param, 0)] -> do
               case Typ.cast (toVal param) of
                 Just param' -> case (fromVal param') of
-                  (_ :: MS.ParamPayload, sigs) ->
+                  (_ :: MS.ParamPayload TZBTC.TZBTCv0, sigs) ->
                     if sigs ==
                       -- The order should be same as the one that we
                       -- return from getStorage mock
