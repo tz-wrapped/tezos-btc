@@ -12,7 +12,7 @@ extra-deps:
     https://gitlab.com/morley-framework/morley.git
     # ^ CI cannot use ssh, so we use http clone here
   commit:
-    32d67968790346874f7708298f8c426b0121f0d0 # sras/#67-add-specialized-multisig
+    ee198d54e7c2de3bdd02584300463b196ae6863e # sras/#67-add-specialized-multisig
   subdirs:
     - .
     - indigo

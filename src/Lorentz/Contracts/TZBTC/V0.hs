@@ -31,6 +31,7 @@ import Michelson.Doc (DComment(..), DDescription(..))
 import Michelson.Text
 import qualified Michelson.Typed as T
 import Util.Markdown
+import Util.Named
 import Util.TypeLits
 
 import qualified Lorentz.Contracts.TZBTC.Impl as Impl

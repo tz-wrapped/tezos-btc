@@ -43,7 +43,7 @@ main = do
     CmdPrintContract singleLine mbFilePath ->
       printContract singleLine mbFilePath tzbtcContract
     CmdPrintMultisigContract singleLine mbFilePath ->
-      printContract singleLine mbFilePath (SpMSig.specializedMultisigContract @(SafeParameter TZBTCv1)  @TZBTCParameter @'CustomErrors (SpMSig.Constructor @"SafeEntrypoints"))
+      printContract singleLine mbFilePath (SpMSig.specializedMultisigContract @(SafeParameter TZBTCv1) @TZBTCParameter @_ @'CustomErrors (Call @"SafeEntrypoints"))
     CmdPrintInitialStorage ownerAddress -> do
       printTextLn $ printLorentzValue True (mkEmptyStorageV0 ownerAddress)
     CmdPrintDoc mbFilePath ->

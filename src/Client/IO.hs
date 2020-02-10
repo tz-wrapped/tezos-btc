@@ -38,7 +38,6 @@ import Lorentz hiding (address, balance, chainId, cons, map)
 import Lorentz.Contracts.ManagedLedger.Types
 import qualified Lorentz.Contracts.Multisig.Generic as MSig
 import qualified Lorentz.Contracts.Multisig.Specialized as SpMSig
-import Lorentz.Contracts.TZBTC.MultiSig (mkSpParamMain)
 import Lorentz.UStore.Common
 import Michelson.Untyped (InternalByteString(..))
 import Tezos.Address
@@ -180,8 +179,8 @@ instance HasTezosRpc AppM where
   deployMultisigContract msigStorage useCustomErrors = do
     let msigToOriginate =
           if useCustomErrors
-          then SpMSig.specializedMultisigContract @(SafeParameter SomeTZBTCVersion) @(Parameter SomeTZBTCVersion) @'MSig.CustomErrors (SpMSig.Constructor @"SafeEntrypoints")
-          else SpMSig.specializedMultisigContract @(SafeParameter SomeTZBTCVersion) @(Parameter SomeTZBTCVersion) @'MSig.BaseErrors (SpMSig.Constructor @"SafeEntrypoints")
+          then SpMSig.specializedMultisigContract @(SafeParameter SomeTZBTCVersion) @(Parameter SomeTZBTCVersion) @_ @'MSig.CustomErrors (Call @"SafeEntrypoints")
+          else SpMSig.specializedMultisigContract @(SafeParameter SomeTZBTCVersion) @(Parameter SomeTZBTCVersion) @_ @'MSig.BaseErrors (Call @"SafeEntrypoints")
     config@ClientConfig{..} <- throwLeft readConfig
     msigAddr <- throwLeft $ liftIO $
       IO.originateContract msigToOriginate (toSpecializedMSigStorage msigStorage) config
@@ -203,7 +202,7 @@ instance HasTezosRpc AppM where
       toSpecializedMSigStorage :: MSig.Storage -> SpMSig.Storage
       toSpecializedMSigStorage
         (MSig.Counter counter, (MSig.Threshold threshold, MSig.Keys keys_))
-          = (counter, (threshold, keys_))
+          = (SpMSig.Counter counter, (SpMSig.Threshold threshold, keys_))
 
 addrOrAliasToAddr :: (MonadThrow m, HasTezosClient m) => Text -> m Address
 addrOrAliasToAddr addrOrAlias =

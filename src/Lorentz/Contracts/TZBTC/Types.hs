@@ -46,7 +46,7 @@ import Lorentz.Contracts.Upgradeable.Common
   VersionKind)
 import qualified Lorentz.Contracts.Upgradeable.Common as Upgradeable
 import Lorentz.Contracts.Upgradeable.EntryPointWise
-import Lorentz.EntryPoints (EpdRecursive, ParameterHasEntryPoints(..))
+import Lorentz.EntryPoints (EpdRecursive, EpdPlain, EpdDelegate, EpdNone, ParameterHasEntryPoints(..))
 import Util.Instances ()
 
 type BurnParams = ("value" :! Natural)
@@ -121,12 +121,15 @@ data Parameter (ver :: VersionKind)
   | GetTokenName        !(View () MText)
   | GetTokenCode        !(View () MText)
   | GetRedeemAddress    !(View () Address)
-  | SafeEntrypoints (SafeParameter ver)
+  | SafeEntrypoints !(SafeParameter ver)
   deriving stock (Eq, Generic, Show)
   deriving anyclass IsoValue
 
 instance (VerPermanent ver ~ Empty) => ParameterHasEntryPoints (Parameter ver) where
-  type ParameterEntryPointsDerivation (Parameter ver) = EpdRecursive
+  type ParameterEntryPointsDerivation (Parameter ver) = EpdDelegate
+
+instance (VerPermanent ver ~ Empty) => ParameterHasEntryPoints (SafeParameter ver) where
+  type ParameterEntryPointsDerivation (SafeParameter ver) = EpdRecursive
 
 instance Buildable (Parameter ver) where
   build = \case

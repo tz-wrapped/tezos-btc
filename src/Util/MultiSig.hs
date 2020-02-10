@@ -7,6 +7,9 @@
 module Util.MultiSig
   ( Package(..)
   , Signable
+  , MSigParameter
+  , ParamMain
+  , Payload
   , addSignature
   , decodePackage
   , encodePackage
@@ -34,12 +37,16 @@ import qualified Text.Show (show)
 import Client.Util (addTezosBytesPrefix)
 import Lorentz
 import Lorentz.Contracts.TZBTC as TZBTC
-import Lorentz.Contracts.TZBTC.MultiSig as MSig
+--import Lorentz.Contracts.TZBTC.MultiSig as MSig
 import Lorentz.Contracts.TZBTC.Types as TZBTC
 import Lorentz.Contracts.Upgradeable.Common (VersionKind, VerPermanent)
 import qualified Lorentz.Contracts.Multisig.Specialized as SpMSig
 import Michelson.Interpret.Unpack
 import Tezos.Crypto
+
+type MSigParameter v = SpMSig.Parameter (SafeParameter v) (TZBTC.Parameter v)
+type ParamMain v = SpMSig.MainParams (SafeParameter v) (TZBTC.Parameter v)
+type Payload v = SpMSig.Payload (SafeParameter v) (TZBTC.Parameter v)
 
 -- The work flow consist of first calling the `mkPackage` function with the
 -- required parameters to get a `Package` object which will hold the byte string
@@ -59,7 +66,7 @@ import Tezos.Crypto
 -- `ParamPayload` from its parameter, pair it with the contracts address
 -- (self), then serialize and check the signatures provided on that serialized
 -- data.
-type ToSign (v :: VersionKind) = (Address, ParamPayload v)
+type ToSign (v :: VersionKind) = (Address, Payload v)
 
 -- | The type that will represent the actual data that will be provide to
 -- signers. We are using this, instead of just providing the byte sequence,
@@ -132,17 +139,17 @@ getOpDescription p = case fetchSrcParam @SomeTZBTCVersion p of
 
 -- | Make the `Package` value from input parameters.
 mkPackage
-  :: forall (v :: VersionKind) msigAddr. (TZBTCVersionC v, ToTAddress (SpMSig.Parameter (TZBTC.SafeParameter v) (TZBTC.Parameter v)) msigAddr)
+  :: forall (v :: VersionKind) msigAddr. (TZBTCVersionC v, ToTAddress (MSigParameter v) msigAddr)
   => msigAddr
   -> Natural
   -> TAddress (TZBTC.Parameter v)
   -> TZBTC.SafeParameter v -> Package
 mkPackage msigAddress counter tzbtc param
-  = let msigLambda = ParamAction (param, tzbtc)
-        msigTAddr = toTAddress @(SpMSig.Parameter (TZBTC.SafeParameter v) (TZBTC.Parameter v)) msigAddress
+  = let msigLambda = SpMSig.Operation (param, tzbtc)
+        msigTAddr = (toTAddress @(MSigParameter v)) msigAddress
     -- Create the Lambda for required action
     in Package
-      { pkToSign = encodeToSign $ (toAddress msigTAddr, (counter, msigLambda))
+      { pkToSign = encodeToSign $ (toAddress msigTAddr, (SpMSig.Counter counter, msigLambda))
       -- ^ Wrap the the lambda with multisig address and replay attack counter,
       -- forming a structure that the multi-sig contract will ultimately
       -- verify the included signatures against
@@ -242,18 +249,16 @@ mkMultiSigParam
   :: forall v. (Signable v)
   => [PublicKey]
   -> NonEmpty Package
-  -> Either UnpackageError (TAddress (SpMSig.Parameter (TZBTC.SafeParameter v) (TZBTC.Parameter v)), SpMSig.MainParams (TZBTC.SafeParameter v) (TZBTC.Parameter v))
+  -> Either UnpackageError ((TAddress (MSigParameter v)), ParamMain v)
 mkMultiSigParam pks packages = do
   package <- mergePackages packages
   toSign <- getToSign package
-  return $ let
-    (addr, p) = mkParameter toSign (pkSignatures package)
-    in (addr, mkSpParamMain p)
+  return $ mkParameter toSign (pkSignatures package)
   where
     mkParameter
       :: ToSign v
       -> [(PublicKey, Signature)]
-      -> (TAddress (SpMSig.Parameter (TZBTC.SafeParameter v) (TZBTC.Parameter v)), ParamMain v)
+      -> (TAddress (MSigParameter v), ParamMain v)
     mkParameter (address_, payload) sigs =
       -- There should be as may signatures in the submitted request
       -- as there are keys in the contract's storage. Not all keys should

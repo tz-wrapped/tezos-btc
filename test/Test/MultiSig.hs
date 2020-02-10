@@ -13,7 +13,6 @@ import Test.Tasty.HUnit (assertBool, assertEqual, testCase)
 import Lorentz hiding (SomeContract)
 import Lorentz.Contracts.ManagedLedger.Test (OriginationParams(..))
 import Lorentz.Contracts.TZBTC as TZBTC
-import Lorentz.Contracts.TZBTC.MultiSig as MSig
 import qualified Lorentz.Contracts.Multisig.Specialized as SpMSig
 import Lorentz.Contracts.Multisig.Generic (ErrorsKind(..))
 import qualified Lorentz.Contracts.TZBTC.Types as TZBTCTypes (SafeParameter(..))
@@ -40,27 +39,25 @@ withMultiSigContract_
   => Natural
   -> Natural
   -> [PublicKey]
-  -> SpMSig.ConstructorRef mcname
+  -> EntryPointRef mcname
   -> (TAddress (SpMSig.Parameter p mainparam) -> IntegrationalScenario)
   -> Expectation
-withMultiSigContract_ counter thresh pkList cref callback =
+withMultiSigContract_ counter thresh pkList epref callback =
   integrationalTestExpectation $ do
-    msig <- lOriginate (SpMSig.specializedMultisigContract @p @mainparam @'CustomErrors cref) "Multisig Contract"
-      (MSig.mkStorage counter thresh pkList) (toMutez 0)
+    msig <- lOriginate (SpMSig.specializedMultisigContract @p @mainparam @_ @'CustomErrors epref) "Multisig Contract"
+      (SpMSig.mkStorage counter thresh pkList) (toMutez 0)
     callback (toTAddress msig)
-
-type MSigParam = SpMSig.Parameter (TZBTC.SafeParameter SomeTZBTCVersion) (TZBTC.Parameter SomeTZBTCVersion)
 
 withMultiSigContract
   :: Natural
   -> Natural
   -> [PublicKey]
-  -> (TAddress MSigParam -> IntegrationalScenario)
+  -> (TAddress (MSigParameter SomeTZBTCVersion) -> IntegrationalScenario)
   -> Expectation
 withMultiSigContract counter threshold masterPKList =
   withMultiSigContract_
     @(TZBTC.SafeParameter SomeTZBTCVersion) @(TZBTC.Parameter SomeTZBTCVersion)
-    counter threshold masterPKList (SpMSig.Constructor @"SafeEntrypoints")
+    counter threshold masterPKList (Call @"SafeEntrypoints")
 
 sign_ :: Ed25519.SecretKey -> Text -> Signature
 sign_ sk bs = case decodeHex (T.drop 2 bs) of
@@ -68,7 +65,7 @@ sign_ sk bs = case decodeHex (T.drop 2 bs) of
   Nothing -> error "Error with making signatures"
 
 originateTzbtc
-  :: TAddress (SpMSig.Parameter (TZBTC.SafeParameter SomeTZBTCVersion) (TZBTC.Parameter SomeTZBTCVersion))
+  :: TAddress (MSigParameter SomeTZBTCVersion)
   -> IntegrationalScenarioM (TAddress (TZBTC.Parameter SomeTZBTCVersion))
 originateTzbtc msig =
   originateTzbtcV1ContractRaw genesisAddress3 $ OriginationParams
@@ -88,11 +85,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         -- Make the multi-sig call that adds an operator
         let
           tzbtcParam = TZBTCTypes.AddOperator (#operator .! operatorAddress)
-          package = MSig.mkPackage
-            (msig :: TAddress MSigParam)
-            0
-            (tzbtc :: TAddress (TZBTC.Parameter SomeTZBTCVersion))
-            (tzbtcParam :: TZBTC.SafeParameter SomeTZBTCVersion)
+          package = MSig.mkPackage msig 0 tzbtc tzbtcParam
           bytesToSign = getBytesToSign package
           encodedPackage = MSig.encodePackage package
           -- Signing the bytes
@@ -201,8 +194,8 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         -- Make another multisig, after adding some nop seq to the front, so that
         -- the Integrational test will allow to originate it without complaining about
         -- the already originated one.
-        mClone <- lOriginate (SpMSig.specializedMultisigContract @(TZBTC.SafeParameter SomeTZBTCVersion) @(TZBTC.Parameter SomeTZBTCVersion) @'CustomErrors (SpMSig.Constructor @"SafeEntrypoints")) "Multisig Contract Clone"
-          (MSig.mkStorage 0 2 masterPKList) (toMutez 1) -- Use a different initial balance
+        mClone <- lOriginate (SpMSig.specializedMultisigContract @(TZBTC.SafeParameter SomeTZBTCVersion) @(TZBTC.Parameter SomeTZBTCVersion) @_ @'CustomErrors (Call @"SafeEntrypoints")) "Multisig Contract Clone"
+          (SpMSig.mkStorage 0 2 masterPKList) (toMutez 1) -- Use a different initial balance
            -- so 'contract already originated' error is not triggered.
         tzbtc <- originateTzbtc msig
         -- Make the multi-sig call that adds an operator
@@ -242,13 +235,13 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
 
   , testCase "Test mkMultiSigParam function arranges the signatures in the order of public keys" $ do
       let
-        msig  = TAddress @MSigParam $
+        msig  = TAddress @(MSigParameter SomeTZBTCVersion) $
                 unsafeParseAddress "KT19rTTBPeG1JAvrECgoQ8LJj1mJrN7gsdaH"
         tzbtc = TAddress @(TZBTC.Parameter SomeTZBTCVersion) $
                 unsafeParseAddress "KT1XXJWcjrwfcPL4n3vjmwCBsvkazDt8scYY"
 
         tzbtcParam = TZBTCTypes.AddOperator (#operator .! operatorAddress)
-        package = MSig.mkPackage @SomeTZBTCVersion @(TAddress MSigParam) msig 0 tzbtc tzbtcParam
+        package = MSig.mkPackage @SomeTZBTCVersion @(TAddress (MSigParameter SomeTZBTCVersion)) msig 0 tzbtc tzbtcParam
         bytesToSign = getBytesToSign package
         encodedPackage = MSig.encodePackage package
         -- Signing the bytes
@@ -278,15 +271,15 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
 
   , testCase "Test user is not allowed to sign a bad package" $ do
       let
-        msig  = TAddress @MSigParam $
+        msig  = TAddress @(MSigParameter SomeTZBTCVersion) $
                 unsafeParseAddress "KT19rTTBPeG1JAvrECgoQ8LJj1mJrN7gsdaH"
         tzbtc = TAddress @(TZBTC.Parameter SomeTZBTCVersion) $
                 unsafeParseAddress "KT1XXJWcjrwfcPL4n3vjmwCBsvkazDt8scYY"
 
         tzbtcParam = TZBTCTypes.AddOperator (#operator .! operatorAddress)
         tzbtcParamBadParam = TZBTCTypes.RemoveOperator (#operator .! operatorAddress)
-        package = MSig.mkPackage @SomeTZBTCVersion @(TAddress MSigParam) msig 0 tzbtc tzbtcParam
-        package2 = MSig.mkPackage @SomeTZBTCVersion @(TAddress MSigParam) msig 0 tzbtc tzbtcParamBadParam
+        package = MSig.mkPackage @SomeTZBTCVersion @(TAddress (MSigParameter SomeTZBTCVersion)) msig 0 tzbtc tzbtcParam
+        package2 = MSig.mkPackage @SomeTZBTCVersion @(TAddress (MSigParameter SomeTZBTCVersion)) msig 0 tzbtc tzbtcParamBadParam
 
         -- replace operation with bad operation
         badPackage = package { pkToSign = pkToSign package2 } :: Package
