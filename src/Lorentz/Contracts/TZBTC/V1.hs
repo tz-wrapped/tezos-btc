@@ -8,6 +8,7 @@
 module Lorentz.Contracts.TZBTC.V1
   ( Interface
   , StoreTemplate(..)
+  , TZBTCv1
   , migrationScriptsRaw
   , tzbtcContractRouterRaw
   )
@@ -25,6 +26,7 @@ import Util.TypeTuple.Class
 
 import qualified Lorentz.Contracts.TZBTC.Impl as TZBTC
 import Lorentz.Contracts.TZBTC.Types
+import Lorentz.Contracts.TZBTC.V0 (StoreTemplateV0)
 
 v1Impl :: Rec (EpwCaseClause StoreTemplate) Interface
 v1Impl = recFromTuple
@@ -65,13 +67,13 @@ v1Impl = recFromTuple
       => Entrypoint (View a b) (UStore StoreTemplate)
       -> Entrypoint (SafeView a b) (UStore StoreTemplate)
     toSafeView ep = do
-      coerce_ @(SafeView a b) @((a, Address))
+      coerceUnwrap
       unpair
       dip $ do
         contractCallingUnsafe DefEpName
         if IsSome then nop else failCustom_ #unexpectedContractType
       pair
-      coerce_ @((a, ContractRef b)) @(View a b)
+      wrapView
       ep
 
     -- Helper operator which is essentially the same as `/==>` but
@@ -80,14 +82,14 @@ v1Impl = recFromTuple
     label //==> part = label /==> callPart (part # unpair)
 
 -- | Contract router before preprocessing.
-tzbtcContractRouterRaw :: UContractRouter Interface StoreTemplate
+tzbtcContractRouterRaw :: UContractRouter TZBTCv1
 tzbtcContractRouterRaw = epwServe epwContract
 
 -- | Migrations to version 1 before preprocessing.
-migrationScriptsRaw :: OriginationParameters -> [MigrationScript]
+migrationScriptsRaw :: OriginationParameters -> [MigrationScript StoreTemplateV0 StoreTemplate]
 migrationScriptsRaw op = migrateStorage op : epwCodeMigrations epwContract
 
-epwContract :: EpwContract Interface StoreTemplate
+epwContract :: EpwContract TZBTCv1
 epwContract = mkEpwContract v1Impl epwFallbackFail
 
 originationParamsToStoreTemplate :: OriginationParameters -> StoreTemplate
@@ -111,9 +113,14 @@ originationParamsToStoreTemplate OriginationParameters {..} = let
   where
     toLedgerValue i = (#balance .! i, #approvals .! mempty)
 
-migrateStorage :: OriginationParameters -> MigrationScript
+migrateStorage :: OriginationParameters -> MigrationScript StoreTemplateV0 StoreTemplate
 migrateStorage op =
   templateToMigration $ originationParamsToStoreTemplate op
   where
-    templateToMigration :: StoreTemplate -> MigrationScript
-    templateToMigration template = migrationToScript $ fillUStore template
+    templateToMigration :: StoreTemplate -> MigrationScript StoreTemplateV0 StoreTemplate
+    templateToMigration template =
+      -- TODO [TM-357]: 'fillUStore' cannot be applied to 'StoreTemplateV0' because that
+      -- storage may be not empty. In fact, currently we overwrite all fields
+      -- present there so everything is ok, but reaching type-safety still seems nice.
+      forcedCoerce $
+      migrationToScript $ fillUStore template

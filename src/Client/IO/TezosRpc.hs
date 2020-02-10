@@ -17,11 +17,9 @@ import Tezos.V005.Micheline (Expression)
 import Time (Second, Time(..), threadDelay)
 
 import Lorentz hiding (address, balance, chainId, cons, map)
-import Lorentz.UStore.Migration (manualConcatMigrationScripts)
 import Michelson.Runtime.GState (genesisAddress1, genesisAddress2)
 import Michelson.Untyped (InternalByteString(..))
 import Tezos.Address
-import Util.Named ((.!))
 
 import qualified Client.API as API
 import Client.Crypto
@@ -31,8 +29,8 @@ import Client.IO.TezosClient as IO
 import Client.Types
 import Client.Util
 import Lorentz.Contracts.TZBTC
-import Lorentz.Contracts.TZBTC.Preprocess (migrationScripts, tzbtcContract, tzbtcContractRouter)
-import Lorentz.Contracts.TZBTC.V0 (mkEmptyStorageV0)
+import Lorentz.Contracts.TZBTC.Preprocess (tzbtcContract, upgradeParameters)
+import Lorentz.Contracts.TZBTC.V0 (TZBTCv0, mkEmptyStorageV0)
 
 -- | Datatype that contains various values required for
 -- chain operations.
@@ -80,7 +78,7 @@ dumbOp = TransactionOperation
   , toDestination = genesisAddress2
   , toParameters = ParametersInternal
     { piEntrypoint = "default"
-    , piValue = nicePackedValueToExpression $ fromFlatParameter $ Pause ()
+    , piValue = nicePackedValueToExpression $ fromFlatParameter $ Pause @SomeTZBTCVersion ()
     }
   -- Forge operation with given limits and get its hexadecimal representation
   }
@@ -248,17 +246,13 @@ deployTzbtcContract :: ClientConfig -> OriginationParameters -> IO Address
 deployTzbtcContract config@ClientConfig{..} op = do
   putTextLn "Originate contract"
   contractAddr <- throwLeft $ originateTzbtcContract (opOwner op) config
-  let migration = migrationScripts op
-      transactionsToTzbtc params = runTransactions contractAddr params config
+  let transactionsToTzbtc params = runTransactions contractAddr params config
   putTextLn "Upgrade contract to V1"
   throwClientErrorAfterRetry (10, delayFn) $ try $
     -- We retry here because it was found that in some cases, the storage
     -- is unavailable for a short time since contract origination.
     transactionsToTzbtc $ (DefaultEntrypoint . fromFlatParameter) <$>
-      [ Upgrade ( #newVersion .! 1
-                , #migrationScript .! manualConcatMigrationScripts migration
-                , #newCode .! tzbtcContractRouter
-                )
+      [ Upgrade @TZBTCv0 $ upgradeParameters op
       ]
   pure contractAddr
   where

@@ -11,6 +11,9 @@ Changes that affect Michelson code are tagged with `[CONTRACT]`.
 Unreleased
 ==========
 
+* [#81](https://github.com/serokell/tezos-btc/pull/81)
+  - Changed internal versioning slightly, now contract version can be changed arbitrarily on owner's behalf.
+
 0.2.0
 =====
 * [#85] (https://github.com/serokell/tezos-btc/pull/87)

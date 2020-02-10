@@ -26,6 +26,7 @@ import Client.Env
 import Client.Main (mainProgram)
 import Client.Types
 import Client.Util
+import Lorentz (toTAddress)
 import qualified Lorentz.Contracts.TZBTC as TZBTC
 import qualified Lorentz.Contracts.TZBTC.MultiSig as MS
 import qualified Lorentz.Contracts.TZBTC.Types as TZBTCTypes
@@ -204,7 +205,7 @@ multiSigCreationTestHandlers =
             counter == 14 )
         _ -> throwM $ TestError "Getting address and counter from package failed"
       checkPackage bs = case decodePackage bs of
-        Right package -> case fetchSrcParam package of
+        Right package -> case fetchSrcParam @TZBTC.SomeTZBTCVersion package of
           Right param -> do
             toSignOk <- checkToSign package
             pure $ toSignOk &&
@@ -276,7 +277,7 @@ multisigSignPackageTestPackage :: Package
 multisigSignPackageTestPackage = mkPackage
   multiSigAddress
   14
-  contractAddress
+  (toTAddress @(TZBTC.Parameter TZBTC.SomeTZBTCVersion) contractAddress)
   (TZBTCTypes.AddOperator (#operator .! operatorAddress1))
 
 multisigSignPackageTestSignature :: Signature
