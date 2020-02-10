@@ -15,10 +15,10 @@ import Util.Named
 
 import Lorentz hiding (SomeContract)
 import Lorentz.Contracts.TZBTC as TZBTC
+import Lorentz.Contracts.TZBTC.Preprocess (upgradeParameters)
 import qualified Lorentz.Contracts.TZBTC.Types as TZBTCTypes
-import Lorentz.Contracts.TZBTC.V0 (StoreTemplateV0)
-import Lorentz.Contracts.Upgradeable.Common
-  (UContractRouter, coerceUContractRouter, mkUContractRouter)
+import Lorentz.Contracts.TZBTC.V0 (StoreTemplateV0, TZBTCv0)
+import Lorentz.Contracts.Upgradeable.Common (UContractRouter, mkUContractRouter)
 import Lorentz.Test.Integrational
 import Lorentz.UStore.Migration
 
@@ -27,7 +27,7 @@ import Test.TZBTC (dummyOriginationParameters)
 {-# ANN module ("HLint: ignore Reduce duplication" :: Text) #-}
 
 originateContract
-  :: IntegrationalScenarioM (ContractRef (Parameter Interface StoreTemplateV0))
+  :: IntegrationalScenarioM (TAddress (Parameter TZBTCv0))
 originateContract = lOriginate tzbtcContract "TZBTC Contract" (mkEmptyStorageV0 ownerAddress) (toMutez 1000)
 
 -- Test that all owneristrative endpoints can only be called as master
@@ -42,7 +42,7 @@ test_ownerCheck = testGroup "TZBTC contract migration endpoints test"
   , testCase "Test call to `ApplyMigration` endpoints are only available to master" $
       integrationalTestExpectation $ do
         v0 <- originateContract
-        withSender bob $ lCallDef v0 $ fromFlatParameter $ EpwApplyMigration migrationScript
+        withSender bob $ lCallDef v0 $ fromFlatParameter $ EpwApplyMigration (checkedCoerce migrationScript)
         validate . Left $ lExpectCustomError_ #senderIsNotOwner
 
   , testCase "Test call to `SetCode` endpoints are only available to master" $
@@ -65,7 +65,7 @@ test_notMigratingStatus = testGroup "TZBTC contract migration status not active 
       integrationalTestExpectation $ do
         -- Originate a V0 contract
         v0 <- originateContract
-        withSender ownerAddress $ lCallDef v0 $ fromFlatParameter $ EpwApplyMigration migrationScript
+        withSender ownerAddress $ lCallDef v0 $ fromFlatParameter $ EpwApplyMigration (checkedCoerce migrationScript)
         validate . Left $ lExpectCustomError_ #upgContractIsNotMigrating
 
   ,  testCase "Test call to `EpwSetCode` that require a non-migrating state fails in migrating state" $
@@ -108,7 +108,7 @@ test_migratingStatus = testGroup "TZBTC contract migration status active check"
 -- Test that migration bumps version
 test_migratingVersion :: TestTree
 test_migratingVersion = testGroup "TZBTC contract migration version check"
-  [  testCase "Test EpwFinishUpgrade bumps version" $
+  [ testCase "Test EpwFinishUpgrade bumps version" $
       integrationalTestExpectation $ do
         v0 <- originateContract
         withSender ownerAddress $ lCallDef v0 $ fromFlatParameter $ EpwBeginUpgrade 1
@@ -120,27 +120,17 @@ test_migratingVersion = testGroup "TZBTC contract migration version check"
               else Left $ CustomValidationError "Version was not updated"
         validate . Right $
           lExpectStorageUpdate v0 checkVersion
-  , testCase "Test upgrades to unknown versions are denied " $
-      integrationalTestExpectation $ do
-        v0 <- originateContract
-        withSender ownerAddress $ lCallDef v0 $ fromFlatParameter $ EpwBeginUpgrade 2
-        validate . Left $ lExpectCustomError #upgVersionMismatch (#expected .! 1, #actual 2)
   ]
 
-upgradeParams :: UpgradeParameters Interface StoreTemplateV0
-upgradeParams =
-  ( #newVersion .! 1
-  , #migrationScript .!
-    manualConcatMigrationScripts (migrationScripts originationParameters)
-  , #newCode (coerceUContractRouter tzbtcContractRouter)
-  )
+upgradeParams :: OneShotUpgradeParameters TZBTCv0
+upgradeParams = upgradeParameters originationParameters
 
 -- Some constants
-migrationScript :: MigrationScript
+migrationScript :: MigrationScript StoreTemplateV0 StoreTemplate
 migrationScript =
   manualConcatMigrationScripts $ migrationScripts originationParameters
 
-emptyCode :: UContractRouter i s
+emptyCode :: UContractRouter ver
 emptyCode = mkUContractRouter (Lorentz.drop # nil # pair)
 
 ownerAddress :: Address

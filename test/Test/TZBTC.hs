@@ -23,6 +23,7 @@ module Test.TZBTC
   , originateTzbtcV1ContractRaw
   ) where
 
+import Data.Coerce (coerce)
 import qualified Data.Map as M
 import qualified Data.Set as Set
 import Test.Tasty (TestTree, testGroup)
@@ -34,17 +35,18 @@ import qualified Lorentz.Contracts.Spec.ApprovableLedgerInterface as AL
 import Lorentz.Contracts.ManagedLedger.Test
   (ApprovableLedger(..), OriginationParams(..), approvableLedgerSpec, originateManagedLedger)
 import qualified Lorentz.Contracts.ManagedLedger.Test as ML
-import Lorentz.Contracts.Upgradeable.Common (coerceUContractRouter)
+import Lorentz.Contracts.Upgradeable.Common (EpwUpgradeParameters (..), emptyPermanentImpl)
 import Lorentz.Test
 import Lorentz.UStore.Migration
 import Util.Named
 
 import Lorentz.Contracts.TZBTC
+import Lorentz.Contracts.TZBTC.V0 (TZBTCv0)
 
 {-# ANN module ("HLint: ignore Reduce duplication" :: Text) #-}
 
 -- | Convert sane parameter to parameter of this contract.
-fromProxyParam :: AL.Parameter -> Parameter i s
+fromProxyParam :: AL.Parameter -> Parameter v
 fromProxyParam =
   \case
     AL.Transfer tp -> fromFlatParameter $ Transfer tp
@@ -90,24 +92,26 @@ dummyOriginationParameters owner redeem balances = OriginationParameters
   }
 
 originateTzbtcV1ContractRaw
-  :: Address -> OriginationParams -> IntegrationalScenarioM (ContractRef (Parameter Interface StoreTemplate))
+  :: Address -> OriginationParams -> IntegrationalScenarioM (TAddress (Parameter TZBTCv1))
 originateTzbtcV1ContractRaw redeem op = do
   c <- lOriginate tzbtcContract "TZBTC Contract"
     (mkEmptyStorageV0 ownerAddress) (toMutez 1000)
   let
     opTZBTC =
       dummyOriginationParameters (ML.opAdmin op) redeem (ML.opBalances op)
-    upgradeParams =
-      ( #newVersion .! 1
-      , #migrationScript .!
+    upgradeParams = makeOneShotUpgradeParameters @TZBTCv0 EpwUpgradeParameters
+      { upMigrationScripts =
+        Identity $
         manualConcatMigrationScripts (migrationScripts opTZBTC)
-      , #newCode (coerceUContractRouter tzbtcContractRouter)
-      )
+      , upNewCode = tzbtcContractRouter
+      , upNewPermCode = emptyPermanentImpl
+      , upOverrideNewVersion = Nothing
+      }
   withSender ownerAddress $ lCallDef c (fromFlatParameter $ Upgrade upgradeParams)
-  pure $ coerceContractRef c
+  pure $ coerce c
 
 originateTzbtcV1Contract
-  :: IntegrationalScenarioM (ContractRef (Parameter Interface StoreTemplate))
+  :: IntegrationalScenarioM (TAddress (Parameter TZBTCv1))
 originateTzbtcV1Contract = originateTzbtcV1ContractRaw redeemAddress_ $ OriginationParams
   { opAdmin = ownerAddress
   , opBalances = M.fromList [(redeemAddress_, initialSupply)]
@@ -302,14 +306,14 @@ test_burn = testGroup "TZBTC contract `burn` test"
         withSender ownerAddress $ do
           lCallDef c (fromFlatParameter $ AddOperator (#operator .! newOperatorAddress))
 
-        lCallDef c $ fromFlatParameter $ GetBalance (View (#owner .! redeemAddress_) consumer)
+        lCallDef c $ fromFlatParameter $ GetBalance (mkView (#owner .! redeemAddress_) consumer)
 
         withSender newOperatorAddress $ lCallDef c (fromFlatParameter $ Burn (#value .! 130))
 
-        lCallDef c $ fromFlatParameter $ GetBalance (View (#owner .! redeemAddress_) consumer)
-        lCallDef c $ fromFlatParameter $ GetTotalBurned (View () consumer)
-        lCallDef c $ fromFlatParameter $ GetTotalSupply (View () consumer)
-        lCallDef c $ fromFlatParameter $ GetTotalMinted (View () consumer)
+        lCallDef c $ fromFlatParameter $ GetBalance (mkView (#owner .! redeemAddress_) consumer)
+        lCallDef c $ fromFlatParameter $ GetTotalBurned (mkView () consumer)
+        lCallDef c $ fromFlatParameter $ GetTotalSupply (mkView () consumer)
+        lCallDef c $ fromFlatParameter $ GetTotalMinted (mkView () consumer)
         validate . Right $
           lExpectViewConsumerStorage consumer
             [ initialSupply
@@ -350,10 +354,10 @@ test_mint = testGroup "TZBTC contract `mint` test"
 
         withSender newOperatorAddress $ lCallDef c (fromFlatParameter $ Mint (#to .! alice, #value .! 130))
 
-        lCallDef c $ fromFlatParameter $ GetBalance (View (#owner .! alice) consumer)
-        lCallDef c $ fromFlatParameter $ GetTotalBurned (View () consumer)
-        lCallDef c $ fromFlatParameter $ GetTotalSupply (View () consumer)
-        lCallDef c $ fromFlatParameter $ GetTotalMinted (View () consumer)
+        lCallDef c $ fromFlatParameter $ GetBalance (mkView (#owner .! alice) consumer)
+        lCallDef c $ fromFlatParameter $ GetTotalBurned (mkView () consumer)
+        lCallDef c $ fromFlatParameter $ GetTotalSupply (mkView () consumer)
+        lCallDef c $ fromFlatParameter $ GetTotalMinted (mkView () consumer)
         validate . Right $
           lExpectViewConsumerStorage consumer
             [ 130
@@ -465,9 +469,9 @@ test_bookkeeping = testGroup "TZBTC contract bookkeeping views test"
 
           consumer <- lOriginateEmpty contractConsumer "consumer"
 
-          lCallDef v1 $ fromFlatParameter $ GetTotalSupply (View () consumer)
-          lCallDef v1 $ fromFlatParameter $ GetTotalMinted (View () consumer)
-          lCallDef v1 $ fromFlatParameter $ GetTotalBurned (View () consumer)
+          lCallDef v1 $ fromFlatParameter $ GetTotalSupply (mkView () consumer)
+          lCallDef v1 $ fromFlatParameter $ GetTotalMinted (mkView () consumer)
+          lCallDef v1 $ fromFlatParameter $ GetTotalBurned (mkView () consumer)
           -- Check expectations
           validate . Right $
             lExpectViewConsumerStorage consumer [610, 630, 20]
@@ -477,7 +481,7 @@ test_bookkeeping = testGroup "TZBTC contract bookkeeping views test"
           withSender ownerAddress $ do
             lCallDef v1 (fromFlatParameter $ SetRedeemAddress (#redeem .! newOperatorAddress))
           consumerAddr <- lOriginateEmpty contractConsumer "consumer"
-          lCallDef v1 $ fromFlatParameter $ GetRedeemAddress (View () consumerAddr)
+          lCallDef v1 $ fromFlatParameter $ GetRedeemAddress (mkView () consumerAddr)
           validate . Right $
             lExpectViewConsumerStorage consumerAddr [newOperatorAddress]
   ]
@@ -486,8 +490,8 @@ unit_get_meta :: Assertion
 unit_get_meta = integrationalTestExpectation $ do
   v1 <- originateTzbtcV1Contract
   consumer <- lOriginateEmpty contractConsumer "consumer"
-  lCallDef v1 $ fromFlatParameter $ GetTokenName (View () consumer)
-  lCallDef v1 $ fromFlatParameter $ GetTokenCode (View () consumer)
+  lCallDef v1 $ fromFlatParameter $ GetTokenName (mkView () consumer)
+  lCallDef v1 $ fromFlatParameter $ GetTokenCode (mkView () consumer)
   validate . Right $
     lExpectViewConsumerStorage consumer [dummyTokenName, dummyTokenCode]
 

@@ -62,7 +62,7 @@ getSingleField
     (StoreHasField store label val, NiceParameter val)
   => Label label -> Markdown -> Entrypoint (View () val) store
 getSingleField label entrypointDoc = do
-  doc $ DDescription $ "This view returns " <> entrypointDoc
+  doc $ DDescription $ "This view returns " <> entrypointDoc <> "."
   view_ $ do cdr; stToField label
 
 getTotalMinted

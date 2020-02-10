@@ -31,8 +31,8 @@ import Options.Applicative as Opt hiding (value)
 import Servant.Client as Servant (ResponseF(..))
 import Servant.Client (runClientM)
 import Servant.Client.Core as Servant (ClientError(..))
-import qualified System.Environment as SE
 import qualified System.Directory as Directory (doesFileExist)
+import qualified System.Environment as SE
 
 import Lorentz hiding (address, balance, chainId, cons, map)
 import Lorentz.Contracts.ManagedLedger.Types
@@ -42,8 +42,8 @@ import Tezos.Address
 import Tezos.Crypto
 
 import qualified Client.API as API
-import Client.Error
 import Client.Env
+import Client.Error
 import qualified Client.IO.CmdLine as IO
 import qualified Client.IO.HttpClient as IO
 import qualified Client.IO.TezosClient as IO
@@ -189,7 +189,10 @@ aliasToAddr alias = do
     Right (addr, _) -> pure addr
     Left _ -> throwLeft $ getAddressForContract alias
 
-runTzbtcContract :: (MonadThrow m, HasTezosRpc m) => Parameter i s -> m ()
+runTzbtcContract
+  :: forall m.
+     (MonadThrow m, HasTezosRpc m)
+  => Parameter SomeTZBTCVersion -> m ()
 runTzbtcContract param = do
   ClientConfig{..} <- throwLeft readConfig
   case ccContractAddress of
@@ -213,9 +216,9 @@ getMultisigStorage addr ClientConfig{..} = do
   throwLeft $ pure $ exprToValue @MSig.Storage mSigStorageRaw
 
 createMultisigPackage
-  :: (MonadThrow m, HasFilesystem m, HasTezosRpc m)
+  :: (MonadThrow m, HasFilesystem m, HasTezosRpc m, TZBTCVersionC v)
   => FilePath
-  -> SafeParameter i s
+  -> SafeParameter v
   -> m ()
 createMultisigPackage packagePath parameter = do
   config@ClientConfig{..} <- throwLeft readConfig
@@ -225,7 +228,7 @@ createMultisigPackage packagePath parameter = do
       (counter, _) <- getMultisigStorage msAddr config
       case ccContractAddress of
         Nothing -> throwM TzbtcContractConfigUnavailable
-        Just contractAddr ->
+        Just (toTAddress -> contractAddr) ->
           let package = mkPackage msAddr counter contractAddr parameter in
           writePackageToFile package packagePath
 
@@ -331,7 +334,7 @@ getFromTzbtcUStore key = do
           fmap Just . throwLeft . pure $ lUnpackValue rawVal
 
 getTzbtcStorage
-  :: (HasTezosRpc m) => Address -> m (AlmostStorage Interface StoreTemplate)
+  :: forall sign m. (HasTezosRpc m) => Address -> m (AlmostStorage sign)
 getTzbtcStorage contractAddr = do
   storageRaw <- getStorage $ formatAddress contractAddr
-  throwLeft $ pure $ exprToValue @(AlmostStorage Interface StoreTemplate) storageRaw
+  throwLeft $ pure $ exprToValue @(AlmostStorage sign) storageRaw

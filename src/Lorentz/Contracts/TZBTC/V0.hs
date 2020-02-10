@@ -2,7 +2,7 @@
  -
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
-{-# LANGUAGE RebindableSyntax #-}
+{-# LANGUAGE DerivingVia, RebindableSyntax #-}
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 
 module Lorentz.Contracts.TZBTC.V0
@@ -11,6 +11,8 @@ module Lorentz.Contracts.TZBTC.V0
   , Storage(..)
   , StoreTemplateV0
   , UStoreV0
+  , TZBTCv0
+  , SomeTZBTCVersion
   , mkEmptyStorageV0
   , tzbtcContractRaw
   , tzbtcDoc
@@ -24,6 +26,7 @@ import Fmt (Buildable(..), fmt)
 
 import Lorentz
 import Lorentz.Contracts.Upgradeable.Common hiding (Parameter(..), Storage)
+import Lorentz.UStore.Migration (SomeUTemplate)
 import Michelson.Doc (DComment(..), DDescription(..))
 import Michelson.Text
 import qualified Michelson.Typed as T
@@ -39,6 +42,8 @@ data StoreTemplateV0 = StoreTemplateV0
   { owner :: UStoreField Address
   } deriving stock Generic
 
+type UStoreV0 = Storage TZBTCv0
+
 mkEmptyStorageV0 :: Address -> UStoreV0
 mkEmptyStorageV0 owner = Storage
   { dataMap = mkUStore (StoreTemplateV0 $ UStoreField owner)
@@ -49,10 +54,22 @@ mkEmptyStorageV0 owner = Storage
     }
   }
 
-type UStoreV0 = Storage Interface StoreTemplateV0
-
-emptyCode :: UContractRouter interface store
+emptyCode :: UContractRouter ver
 emptyCode = UContractRouter $ cdr # nil # pair
+
+data TZBTCv0 :: VersionKind
+instance KnownContractVersion TZBTCv0 where
+  type VerInterface TZBTCv0 = Interface
+  type VerUStoreTemplate TZBTCv0 = StoreTemplateV0
+  contractVersion _ = 0
+
+-- Use this when don't need particular version but still want to point out
+-- that version is TZBTC-specific and thus have empty permanent part.
+data SomeTZBTCVersion :: VersionKind
+instance KnownContractVersion SomeTZBTCVersion where
+  type VerInterface SomeTZBTCVersion = SomeInterface
+  type VerUStoreTemplate SomeTZBTCVersion = SomeUTemplate
+  contractVersion _ = 999
 
 -- | Entry point of upgradeable contract.
 data UpgradeableEntryPointKind
@@ -73,8 +90,8 @@ instance DocItem (DEntryPoint SafeEntryPointKind) where
   docItemSectionDescription = Nothing
   docItemToMarkdown = diEntryPointToMarkdown
 
-safeEntrypoints :: Entrypoint (SafeParameter Interface StoreTemplateV0) UStoreV0
-safeEntrypoints = entryCase @(SafeParameter Interface StoreTemplateV0) (Proxy @SafeEntryPointKind)
+safeEntrypoints :: Entrypoint (SafeParameter TZBTCv0) UStoreV0
+safeEntrypoints = entryCase @(SafeParameter TZBTCv0) (Proxy @UpgradeableEntryPointKind)
   ( #cRun /-> do
       doc $ DDescription
         "This entry point is used to call the packed entrypoints in the contract."
@@ -83,7 +100,7 @@ safeEntrypoints = entryCase @(SafeParameter Interface StoreTemplateV0) (Proxy @S
       doc $ DDescription
         "This entry point is used to update the contract to a new version."
       dip (ensureMaster # ensureNotMigrating)
-      dup; dip (toField #newVersion # checkVersion # bumpVersion)
+      dup; dip (toField #newVersion # updateVersion)
       getField #migrationScript; swap; dip (applyMigration)
       toField #newCode;
       endWithMigration
@@ -91,7 +108,7 @@ safeEntrypoints = entryCase @(SafeParameter Interface StoreTemplateV0) (Proxy @S
       doc $ DDescription
         "This entry point is used to start an entrypoint wise upgrade of the contract."
       dip (ensureMaster # ensureNotMigrating)
-      checkVersion
+      updateVersion
       setMigrating True
       nil; pair
   , #cEpwApplyMigration /-> do
@@ -112,7 +129,6 @@ safeEntrypoints = entryCase @(SafeParameter Interface StoreTemplateV0) (Proxy @S
         "This entry point is used to mark that an upgrade has been finsihed."
       ensureMaster
       ensureMigrating
-      bumpVersion
       setMigrating False
       nil; pair
   , #cTransfer /-> do
@@ -169,10 +185,10 @@ safeEntrypoints = entryCase @(SafeParameter Interface StoreTemplateV0) (Proxy @S
 -- | Version 0 of TZBTC contract as written in Lorentz.
 -- It generally should not be used because we preprocess it before
 -- actually using. See 'Lorentz.Contracts.TZBTC.Preprocess'.
-tzbtcContractRaw :: Contract (Parameter Interface StoreTemplateV0) UStoreV0
+tzbtcContractRaw :: Contract (Parameter TZBTCv0) UStoreV0
 tzbtcContractRaw = do
   unpair
-  entryCase @(Parameter Interface StoreTemplateV0) (Proxy @UpgradeableEntryPointKind)
+  entryCase @(Parameter TZBTCv0) (Proxy @UpgradeableEntryPointKind)
     ( #cGetVersion /-> do
         doc $ DDescription
           "This entry point is used to get contract version."
@@ -249,14 +265,14 @@ pbsContainedInSafeEntrypoints = ParamBuildingStep
   { pbsEnglish = "Wrap into " <> mdTicked "SafeEntrypoints" <> " constructor."
   , pbsHaskell = \p -> "Run (" <> p <> ")"
   , pbsMichelson = \p ->
-      let param = Types.Pause ()
+      let param = Types.Pause @(EmptyContractVersion Empty) ()
       in build $
          T.replace (fmt . build . T.untypeValue $ toVal param)
                    ("(" <> fmt p <> ")")
                    (fmt . build . T.untypeValue . toVal $ SafeEntrypoints param)
   }
 
-executeRun :: Entrypoint (UParam a) (Storage interface store)
+executeRun :: Entrypoint (VerParam ver) (Storage ver)
 executeRun = do
   dip $ do
     ensureNotMigrating
@@ -264,8 +280,7 @@ executeRun = do
     dip $ do
       getField #fields
       toField #contractRouter
-      coerce_
-  unwrapUParam
+      coerceUnwrap
   pair
   exec
   unpair
@@ -273,102 +288,81 @@ executeRun = do
   pair
 
 callUEp
-  :: forall ep interface store.
-     ( NicePackedValue (LookupEntryPoint ep interface)
+  :: forall ep ver interface.
+     ( interface ~ VerInterface ver
+     , NicePackedValue (LookupEntryPoint ep interface)
      , KnownSymbol ep)
   => Label ep
-  -> Entrypoint (LookupEntryPoint ep interface) (Storage interface store)
+  -> Entrypoint (LookupEntryPoint ep interface) (Storage ver)
 callUEp epName = do
   pack
   push (labelToMText epName)
   pair
-  stackType @'[(MText, ByteString), Storage interface store]
-  coerce_
-  stackType @'[UParam interface, Storage interface store]
+  stackType @'[(MText, ByteString), Storage _]
+  coerceWrap
+  stackType @'[UParam interface, Storage _]
   executeRun
 
 callUSafeViewEP
-  :: forall ep vi vo interface store.
-     ( LookupEntryPoint ep interface ~ (SafeView vi vo)
+  :: forall ep vi vo ver interface.
+     ( interface ~ VerInterface ver
+     , LookupEntryPoint ep interface ~ (SafeView vi vo)
      , NicePackedValue vi
      , KnownSymbol ep)
   => Label ep
-  -> Entrypoint (View vi vo) (Storage interface store)
+  -> Entrypoint (View vi vo) (Storage ver)
 callUSafeViewEP epName = do
-  coerce_ @(View vi vo) @(vi, ContractRef vo)
+  unwrapView
   unpair
   dip address
   pair
-  coerce_ @((vi, Address)) @(SafeView vi vo)
+  coerceWrap
   callUEp epName
 
-ensureMaster :: (HasUField "owner" Address store) => '[Storage interface store] :-> '[Storage interface store]
+ensureMaster
+  :: (HasUField "owner" Address (VerUStoreTemplate ver))
+  => '[Storage ver] :-> '[Storage ver]
 ensureMaster = do
   getField #dataMap;
   ustoreToField #owner
   sender; eq
   if_ (nop) (failCustom_ #senderIsNotOwner)
 
-ensureNotMigrating :: '[Storage interface store] :-> '[Storage interface store]
+ensureNotMigrating :: '[Storage ver] :-> '[Storage ver]
 ensureNotMigrating = do
   getField #fields; toField #migrating
   if_ (failCustom_ #upgContractIsMigrating) (nop)
 
-checkVersion
-  :: forall interface store. '[Natural, Storage interface store] :-> '[Storage interface store]
-checkVersion = do
-  duupX @2; toField #fields; toField #currentVersion
-  push @Natural 1
-  add
-  stackType @('[Natural, Natural, Storage interface store])
-  pair
-  assertVersionsEqual
-  where
-    assertVersionsEqual = do
-      dup
-      unpair
-      if IsEq
-      then drop
-      else do
-        unpair
-        toNamed #expected
-        dip $ toNamed #actual
-        pair
-        failCustom #upgVersionMismatch
-
-bumpVersion :: '[Storage interface store] :-> '[Storage interface store]
-bumpVersion = do
-  getField #fields
-  getField #currentVersion
-  push @Natural 1
-  add
-  setField #currentVersion
-  setField #fields
+updateVersion :: '[Version, Storage ver] :-> '[Storage ver]
+updateVersion = do
+  dip $ getField #fields
+  setField #currentVersion; setField #fields
 
 applyMigration
-  :: '[MigrationScript, Storage interface store] :-> '[Storage interface store]
+  :: '[MigrationScriptFrom store, Storage ver] :-> '[Storage ver]
 applyMigration = do
-  coerce_
+  coerceUnwrap
   dip $ getField #dataMap
+  checkedCoerce_
   swap
   exec
   setField #dataMap
 
-migrateCode :: '[UContractRouter interface store, Storage interface store] :-> '[Storage interface store]
+migrateCode :: '[SomeUContractRouter, Storage ver] :-> '[Storage ver]
 migrateCode = do
   dip (getField #fields)
-  gcoerce_
+  checkedCoerce_
   setField #contractRouter
   setField #fields
 
-setMigrating :: Bool -> '[Storage interface store] :-> '[Storage interface store]
+setMigrating :: Bool -> '[Storage ver] :-> '[Storage ver]
 setMigrating newState = do
   getField #fields
   push newState
   setField #migrating
   setField #fields
 
-ensureMigrating :: '[Storage interface store] :-> '[Storage interface store]
+ensureMigrating :: '[Storage ver] :-> '[Storage ver]
 ensureMigrating = do
   getField #fields; toField #migrating
   if_ (nop) (failCustom_ #upgContractIsNotMigrating)

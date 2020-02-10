@@ -39,14 +39,14 @@ withMultiSigContract
   :: Natural
   -> Natural
   -> [PublicKey]
-  -> (Address -> IntegrationalScenario)
+  -> (TAddress MSig.Parameter -> IntegrationalScenario)
   -> Expectation
 withMultiSigContract counter thresh pkList callback = do
   m <- prepareContract (Just "contracts/MultiSigGeneric.tz")
   integrationalTestExpectation $ do
     msig <- originate m "Multisig Contract"
       (untypeValue $ toVal (MSig.mkStorage counter thresh pkList)) (toMutez 0)
-    callback msig
+    callback (toTAddress msig)
 
 sign_ :: Ed25519.SecretKey -> Text -> Signature
 sign_ sk bs = case decodeHex (T.drop 2 bs) of
@@ -54,16 +54,13 @@ sign_ sk bs = case decodeHex (T.drop 2 bs) of
   Nothing -> error "Error with making signatures"
 
 originateTzbtc
-  :: ToAddress contract
-  => contract
-  -> IntegrationalScenarioM Address
-originateTzbtc (toAddress -> msig)
-  = do
-      caddr <- originateTzbtcV1ContractRaw genesisAddress3 $ OriginationParams
-        { opAdmin = msig
-        , opBalances = mempty
-        }
-      pure $ crAddress caddr
+  :: TAddress MSig.Parameter
+  -> IntegrationalScenarioM (TAddress (TZBTC.Parameter TZBTCv1))
+originateTzbtc msig =
+  originateTzbtcV1ContractRaw genesisAddress3 $ OriginationParams
+    { opAdmin = toAddress msig
+    , opBalances = mempty
+    }
 
 test_multisig :: TestTree
 test_multisig = testGroup "TZBTC contract multi-sig functionality test"
@@ -118,7 +115,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           (_, mparam) = fromRight_ "Making multisig parameter failed" $
             MSig.mkMultiSigParam masterPKList ((alicePackage) :| [])
         -- Finally call the multisig contract
-        lCallEP @MSig.Parameter msig (Call @"Main") mparam
+        lCallEP msig (Call @"Main") mparam
         validate . Left $
           lExpectMichelsonFailed (const True) msig
   , testCase "Test call to multisig to add an operator by fails for bad signatures" $ do
@@ -174,7 +171,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         -- Finally call the multisig contract
         lCallEP msaddr (Call @"Main") mparam
         -- Now call again with the same param, this should fail.
-        lCallEP @MSig.Parameter msig (Call @"Main") mparam
+        lCallEP msig (Call @"Main") mparam
         validate . Left $
           lExpectMichelsonFailed (const True) msig
   , testCase "Test signed bundle created for one msig contract does not work on other" $ do
@@ -219,20 +216,23 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         -- Now make a clone of the multisig contract that only differs in
         -- some noop instruction at the top
 
-        mSigClone <- originate mClone "Multisig Contract"
+        mSigClone <- TAddress @MSig.Parameter <$>
+          originate mClone "Multisig Contract"
           (untypeValue $ toVal (MSig.mkStorage 0 2 masterPKList)) (toMutez 0)
 
         -- Call the clone with the bundle created for the real multisig
         -- contract.
-        lCallEP @MSig.Parameter mSigClone (Call @"Main") mparam
+        lCallEP mSigClone (Call @"Main") mparam
         -- It should fail
         validate . Left $
           lExpectMichelsonFailed (const True) mSigClone
 
   , testCase "Test mkMultiSigParam function arranges the signatures in the order of public keys" $ do
       let
-        msig = unsafeParseAddress "KT19rTTBPeG1JAvrECgoQ8LJj1mJrN7gsdaH"
-        tzbtc = unsafeParseAddress "KT1XXJWcjrwfcPL4n3vjmwCBsvkazDt8scYY"
+        msig  = TAddress @MSig.Parameter $
+                unsafeParseAddress "KT19rTTBPeG1JAvrECgoQ8LJj1mJrN7gsdaH"
+        tzbtc = TAddress @(TZBTC.Parameter SomeTZBTCVersion) $
+                unsafeParseAddress "KT1XXJWcjrwfcPL4n3vjmwCBsvkazDt8scYY"
 
         tzbtcParam = TZBTCTypes.AddOperator (#operator .! operatorAddress)
         package = MSig.mkPackage msig 0 tzbtc tzbtcParam
@@ -265,8 +265,10 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
 
   , testCase "Test user is not allowed to sign a bad package" $ do
       let
-        msig = unsafeParseAddress "KT19rTTBPeG1JAvrECgoQ8LJj1mJrN7gsdaH"
-        tzbtc = unsafeParseAddress "KT1XXJWcjrwfcPL4n3vjmwCBsvkazDt8scYY"
+        msig  = TAddress @MSig.Parameter $
+                unsafeParseAddress "KT19rTTBPeG1JAvrECgoQ8LJj1mJrN7gsdaH"
+        tzbtc = TAddress @(TZBTC.Parameter SomeTZBTCVersion) $
+                unsafeParseAddress "KT1XXJWcjrwfcPL4n3vjmwCBsvkazDt8scYY"
 
         tzbtcParam = TZBTCTypes.AddOperator (#operator .! operatorAddress)
         tzbtcParamBadParam = TZBTCTypes.RemoveOperator (#operator .! operatorAddress)
