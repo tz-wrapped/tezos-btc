@@ -6,7 +6,7 @@
 
 # TZBTC
 
-**Code revision:** [e36e792](https://github.com/serokell/tezos-btc/commit/e36e7923dcc7f931771d788627d913b6f1db5339) *(Mon Feb 3 13:53:40 2020 +0530)*
+**Code revision:** [2e2734e](https://github.com/serokell/tezos-btc/commit/2e2734eab2bd26797c5b07241cc8c5582ebfe351) *(Mon Feb 10 16:14:01 2020 +0300)*
 
 This contract is implemented using Lorentz language.
 Basically, this contract is [FA1.2](https://gitlab.com/serokell/morley/tzip/blob/master/A/FA1.2.md)-compatible approvable ledger that maps user addresses to their token balances. The main idea of this token contract is to provide 1-to-1 correspondance with BTC.
@@ -24,7 +24,7 @@ These are entry points of the contract.
 
 This entry point is used to get contract version.
 
-**Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
+**Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Version`](#types-Version)
 
 <details>
   <summary><b>How to call this entry point</b></summary>
@@ -131,7 +131,7 @@ Pass resulting value as parameter to the contract.
 
 ### `GetTotalMinted`
 
-This view returns the total number of minted tokens
+This view returns the total number of minted tokens.
 
 **Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
 
@@ -159,7 +159,7 @@ Pass resulting value as parameter to the contract.
 
 ### `GetTotalBurned`
 
-This view returns the total number of burned tokens
+This view returns the total number of burned tokens.
 
 **Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
 
@@ -187,7 +187,7 @@ Pass resulting value as parameter to the contract.
 
 ### `GetOwner`
 
-This view returns the current contract owner
+This view returns the current contract owner.
 
 **Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Address`](#types-Address-simplified)
 
@@ -215,7 +215,7 @@ Pass resulting value as parameter to the contract.
 
 ### `GetTokenName`
 
-This view returns the token name
+This view returns the token name.
 
 **Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Text`](#types-Text)
 
@@ -243,7 +243,7 @@ Pass resulting value as parameter to the contract.
 
 ### `GetTokenCode`
 
-This view returns the token code
+This view returns the token code.
 
 **Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Text`](#types-Text)
 
@@ -271,7 +271,7 @@ Pass resulting value as parameter to the contract.
 
 ### `GetRedeemAddress`
 
-This view returns the redeem address
+This view returns the redeem address.
 
 **Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Address`](#types-Address-simplified)
 
@@ -318,9 +318,13 @@ Pass resulting value as parameter to the contract.
 
 
 
+#### Top-level entry points of upgradeable contract.
+
+These are entry points of the contract.
+
 ---
 
-#### `Run`
+##### `Run`
 
 This entry point is used to call the packed entrypoints in the contract.
 
@@ -351,11 +355,11 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-#### `Upgrade`
+##### `Upgrade`
 
 This entry point is used to update the contract to a new version.
 
-**Parameter:** (***newVersion*** : [`Natural`](#types-Natural), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript), ***newCode*** : [`UContractRouter`](#types-UContractRouter))
+**Parameter:** (***newVersion*** : [`Version`](#types-Version), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript), ***newCode*** : [`UContractRouter`](#types-UContractRouter), ***newPermCode*** : [`PermanentImpl`](#types-PermanentImpl))
 
 <details>
   <summary><b>How to call this entry point</b></summary>
@@ -380,17 +384,15 @@ Pass resulting value as parameter to the contract.
 
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
-* [`UpgVersionMismatch`](#errors-UpgVersionMismatch) — The expected version does not match the version of the supplied code.
-
 
 
 ---
 
-#### `EpwBeginUpgrade`
+##### `EpwBeginUpgrade`
 
 This entry point is used to start an entrypoint wise upgrade of the contract.
 
-**Parameter:** [`Natural`](#types-Natural)
+**Parameter:** [`Version`](#types-Version)
 
 <details>
   <summary><b>How to call this entry point</b></summary>
@@ -415,13 +417,11 @@ Pass resulting value as parameter to the contract.
 
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
-* [`UpgVersionMismatch`](#errors-UpgVersionMismatch) — The expected version does not match the version of the supplied code.
-
 
 
 ---
 
-#### `EpwApplyMigration`
+##### `EpwApplyMigration`
 
 This entry point is used to apply an migration script as part of an upgrade.
 
@@ -454,7 +454,7 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-#### `EpwSetCode`
+##### `EpwSetCode`
 
 This entry point is used to set the dispatching code that calls the packed entrypoints.
 
@@ -487,7 +487,7 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-#### `EpwFinishUpgrade`
+##### `EpwFinishUpgrade`
 
 This entry point is used to mark that an upgrade has been finsihed.
 
@@ -520,7 +520,7 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-#### `Transfer`
+##### `Transfer`
 
 Transfers tokens between two given accounts.
 
@@ -567,7 +567,7 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-#### `Approve`
+##### `Approve`
 
 When called with `(address :spender, nat :value)`
 parameters allows `spender` account to withdraw from the sender, multiple times,
@@ -614,7 +614,7 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-#### `Mint`
+##### `Mint`
 
 This entry point is used mint new tokes for an account.
 
@@ -649,7 +649,7 @@ The sender has to be the `operator`.
 
 ---
 
-#### `Burn`
+##### `Burn`
 
 Burn some tokens from the `redeem` address.
 
@@ -686,7 +686,7 @@ The sender has to be the `operator`.
 
 ---
 
-#### `AddOperator`
+##### `AddOperator`
 
 This entry point is used to add a new operator.
 
@@ -721,7 +721,7 @@ The sender has to be the `owner`.
 
 ---
 
-#### `RemoveOperator`
+##### `RemoveOperator`
 
 This entry point is used to remove an operator.
 
@@ -756,7 +756,7 @@ The sender has to be the `owner`.
 
 ---
 
-#### `SetRedeemAddress`
+##### `SetRedeemAddress`
 
 This entry point is used to set the redeem address.
 
@@ -791,7 +791,7 @@ The sender has to be the `owner`.
 
 ---
 
-#### `Pause`
+##### `Pause`
 
 This entry point is used to pause the contract.
 
@@ -826,7 +826,7 @@ The sender has to be the `operator`.
 
 ---
 
-#### `Unpause`
+##### `Unpause`
 
 This entry point is used to resume the contract during a paused state.
 
@@ -861,7 +861,7 @@ The sender has to be the `owner`.
 
 ---
 
-#### `TransferOwnership`
+##### `TransferOwnership`
 
 This entry point is used to transfer ownership to a new owner.
 
@@ -896,7 +896,7 @@ The sender has to be the `owner`.
 
 ---
 
-#### `AcceptOwnership`
+##### `AcceptOwnership`
 
 This entry point is used to accept ownership by a new owner.
 
@@ -935,7 +935,7 @@ The sender has to be the `new owner`.
 
 ---
 
-## `Run`
+### `Run`
 
 This entry point is used to call the packed entrypoints in the contract.
 
@@ -966,11 +966,11 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-## `Upgrade`
+### `Upgrade`
 
 This entry point is used to update the contract to a new version.
 
-**Parameter:** (***newVersion*** : [`Natural`](#types-Natural), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript), ***newCode*** : [`UContractRouter`](#types-UContractRouter))
+**Parameter:** (***newVersion*** : [`Version`](#types-Version), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript), ***newCode*** : [`UContractRouter`](#types-UContractRouter), ***newPermCode*** : [`PermanentImpl`](#types-PermanentImpl))
 
 <details>
   <summary><b>How to call this entry point</b></summary>
@@ -995,17 +995,15 @@ Pass resulting value as parameter to the contract.
 
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
-* [`UpgVersionMismatch`](#errors-UpgVersionMismatch) — The expected version does not match the version of the supplied code.
-
 
 
 ---
 
-## `EpwBeginUpgrade`
+### `EpwBeginUpgrade`
 
 This entry point is used to start an entrypoint wise upgrade of the contract.
 
-**Parameter:** [`Natural`](#types-Natural)
+**Parameter:** [`Version`](#types-Version)
 
 <details>
   <summary><b>How to call this entry point</b></summary>
@@ -1030,13 +1028,11 @@ Pass resulting value as parameter to the contract.
 
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
-* [`UpgVersionMismatch`](#errors-UpgVersionMismatch) — The expected version does not match the version of the supplied code.
-
 
 
 ---
 
-## `EpwApplyMigration`
+### `EpwApplyMigration`
 
 This entry point is used to apply an migration script as part of an upgrade.
 
@@ -1069,7 +1065,7 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-## `EpwSetCode`
+### `EpwSetCode`
 
 This entry point is used to set the dispatching code that calls the packed entrypoints.
 
@@ -1102,7 +1098,7 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-## `EpwFinishUpgrade`
+### `EpwFinishUpgrade`
 
 This entry point is used to mark that an upgrade has been finsihed.
 
@@ -1135,7 +1131,7 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-## `Transfer`
+### `Transfer`
 
 Transfers tokens between two given accounts.
 
@@ -1182,7 +1178,7 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-## `Approve`
+### `Approve`
 
 When called with `(address :spender, nat :value)`
 parameters allows `spender` account to withdraw from the sender, multiple times,
@@ -1229,7 +1225,7 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-## `Mint`
+### `Mint`
 
 This entry point is used mint new tokes for an account.
 
@@ -1264,7 +1260,7 @@ The sender has to be the `operator`.
 
 ---
 
-## `Burn`
+### `Burn`
 
 Burn some tokens from the `redeem` address.
 
@@ -1301,7 +1297,7 @@ The sender has to be the `operator`.
 
 ---
 
-## `AddOperator`
+### `AddOperator`
 
 This entry point is used to add a new operator.
 
@@ -1336,7 +1332,7 @@ The sender has to be the `owner`.
 
 ---
 
-## `RemoveOperator`
+### `RemoveOperator`
 
 This entry point is used to remove an operator.
 
@@ -1371,7 +1367,7 @@ The sender has to be the `owner`.
 
 ---
 
-## `SetRedeemAddress`
+### `SetRedeemAddress`
 
 This entry point is used to set the redeem address.
 
@@ -1406,7 +1402,7 @@ The sender has to be the `owner`.
 
 ---
 
-## `Pause`
+### `Pause`
 
 This entry point is used to pause the contract.
 
@@ -1441,7 +1437,7 @@ The sender has to be the `operator`.
 
 ---
 
-## `Unpause`
+### `Unpause`
 
 This entry point is used to resume the contract during a paused state.
 
@@ -1476,7 +1472,7 @@ The sender has to be the `owner`.
 
 ---
 
-## `TransferOwnership`
+### `TransferOwnership`
 
 This entry point is used to transfer ownership to a new owner.
 
@@ -1511,7 +1507,7 @@ The sender has to be the `owner`.
 
 ---
 
-## `AcceptOwnership`
+### `AcceptOwnership`
 
 This entry point is used to accept ownership by a new owner.
 
@@ -1592,6 +1588,18 @@ Tuple of size 3.
 
 
 
+<a name="types-lparenacomma-bcomma-ccomma-drparen"></a>
+
+---
+
+### `(a, b, c, d)`
+
+Tuple of size 4.
+
+**Final Michelson representation (example):** `((),(),(),())` = `pair (pair unit unit) (pair unit unit)`
+
+
+
 <a name="types-Address-simplified"></a>
 
 ---
@@ -1628,20 +1636,6 @@ Bytes primitive.
 
 
 
-<a name="types-Code-lparenextended-lambdarparen"></a>
-
----
-
-### `Code (extended lambda)`
-
-`Code i o` stands for a sequence of instructions which accepts stack of type `i` and returns stack of type `o`.
-
-When both `i` and `o` are of length 1, this primitive corresponds to the Michelson lambda. In more complex cases code is surrounded with `pair`and `unpair` instructions until fits into mentioned restriction.
-
-**Final Michelson representation (example):** `Code [Integer, Natural, MText, ()] [ByteString]` = `lambda (pair (pair (pair int nat) string) unit) bytes`
-
-
-
 <a name="types-Contract"></a>
 
 ---
@@ -1651,6 +1645,22 @@ When both `i` and `o` are of length 1, this primitive corresponds to the Michels
 Contract primitive with given type of parameter.
 
 **Final Michelson representation (example):** `ContractRef Integer` = `contract int`
+
+
+
+<a name="types-Empty"></a>
+
+---
+
+### `Empty`
+
+Type which should never be constructed.
+
+If appears as part of entrypoint argument, this means that the entrypoint should never be called.
+
+**Structure:** [`()`](#types-lparenrparen)
+
+**Final Michelson representation:** `unit`
 
 
 
@@ -1686,7 +1696,7 @@ List primitive.
 
 A code which updates storage in order to make it compliant with the new version of the contract.
 
-**Structure:** ***migrationScript*** :[`Code`](#types-Code-lparenextended-lambdarparen) **[**[`UStore`](#types-Upgradeable-storage)**]** **[**[`UStore`](#types-Upgradeable-storage)**]**
+**Structure:** ***unMigrationScript*** :[`Code`](#types-Code-lparenextended-lambdarparen) **[**[`UStore`](#types-Upgradeable-storage)**]** **[**[`UStore`](#types-Upgradeable-storage)**]**
 
 **Final Michelson representation:** `lambda (big_map bytes bytes) (big_map bytes bytes)`
 
@@ -1740,8 +1750,8 @@ Parameter which does not have unsafe arguments, like raw `Contract p` values.
 
 **Structure:** *one of* 
 + **Run** [`UParam`](#types-Upgradable-parameter)
-+ **Upgrade** (***newVersion*** : [`Natural`](#types-Natural), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript), ***newCode*** : [`UContractRouter`](#types-UContractRouter))
-+ **EpwBeginUpgrade** [`Natural`](#types-Natural)
++ **Upgrade** (***newVersion*** : [`Version`](#types-Version), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript), ***newCode*** : [`UContractRouter`](#types-UContractRouter), ***newPermCode*** : [`PermanentImpl`](#types-PermanentImpl))
++ **EpwBeginUpgrade** [`Version`](#types-Version)
 + **EpwApplyMigration** (***migrationscript*** : [`MigrationScript`](#types-MigrationScript))
 + **EpwSetCode** (***contractcode*** : [`UContractRouter`](#types-UContractRouter))
 + **EpwFinishUpgrade** ()
@@ -1758,7 +1768,21 @@ Parameter which does not have unsafe arguments, like raw `Contract p` values.
 + **AcceptOwnership** [`()`](#types-lparenrparen)
 
 
-**Final Michelson representation:** `or (or (or (or (pair string bytes) (pair nat (pair (lambda (big_map bytes bytes) (big_map bytes bytes)) (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))))) (or nat (lambda (big_map bytes bytes) (big_map bytes bytes)))) (or (or (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))) unit) (or (pair address (pair address nat)) (pair address nat)))) (or (or (or (pair address nat) nat) (or address address)) (or (or address unit) (or unit (or address unit))))`
+**Final Michelson representation:** `or (or (or (or (pair string bytes) (pair (pair nat (lambda (big_map bytes bytes) (big_map bytes bytes))) (pair (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))) (lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))))) (or nat (lambda (big_map bytes bytes) (big_map bytes bytes)))) (or (or (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))) unit) (or (pair address (pair address nat)) (pair address nat)))) (or (or (or (pair address nat) nat) (or address address)) (or (or address unit) (or unit (or address unit))))`
+
+
+
+<a name="types-PermanentImpl"></a>
+
+---
+
+### `PermanentImpl`
+
+Implementation of permanent entrypoints.
+
+**Structure:** ***unPermanentImpl*** :[`Code`](#types-Code-lparenextended-lambdarparen) **[**[`Empty`](#types-Empty)**,** [`UStore`](#types-Upgradeable-storage)**]** **[**([`List`](#types-List) [`Operation`](#types-Operation), [`UStore`](#types-Upgradeable-storage))**]**
+
+**Final Michelson representation:** `lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))`
 
 
 
@@ -1783,7 +1807,7 @@ Not every text literal is valid string, see list of constraints in the [Official
 
 Parameter dispatching logic, main purpose of this code is to pass control to an entrypoint carrying the main logic of the contract.
 
-**Structure:** ***unContractCode*** :[`Code`](#types-Code-lparenextended-lambdarparen) **[**([`UParam`](#types-Upgradable-parameter), [`UStore`](#types-Upgradeable-storage))**]** **[**([`List`](#types-List) [`Operation`](#types-Operation), [`UStore`](#types-Upgradeable-storage))**]**
+**Structure:** ***unUContractRouter*** :[`Code`](#types-Code-lparenextended-lambdarparen) **[**([`UParam`](#types-Upgradable-parameter), [`UStore`](#types-Upgradeable-storage))**]** **[**([`List`](#types-List) [`Operation`](#types-Operation), [`UStore`](#types-Upgradeable-storage))**]**
 
 **Final Michelson representation:** `lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))`
 
@@ -1814,6 +1838,20 @@ Storage with not hardcoded structure, which allows upgrading the contract in pla
 **Structure:** ***unUStore*** :[`BigMap`](#types-BigMap) [`ByteString`](#types-ByteString) [`ByteString`](#types-ByteString)
 
 **Final Michelson representation:** `big_map bytes bytes`
+
+
+
+<a name="types-Version"></a>
+
+---
+
+### `Version`
+
+Contract version.
+
+**Structure:** ***version*** :[`Natural`](#types-Natural)
+
+**Final Michelson representation:** `nat`
 
 
 
@@ -2012,18 +2050,4 @@ Provided error argument will be of type [`Natural`](#types-Natural) and stand fo
 **Fires if:** An migration related operation was requested when contract is not in a state of migration
 
 **Representation:** `("UpgContractIsNotMigrating", ())`.
-
-<a name="errors-UpgVersionMismatch"></a>
-
----
-
-### `UpgVersionMismatch`
-
-**Class:** Action exception
-
-**Fires if:** The expected version does not match the version of the supplied code.
-
-**Representation:** `("UpgVersionMismatch", <error argument>)`.
-
-Provided error argument will be of type (***expected*** : [`Natural`](#types-Natural), ***actual*** : [`Natural`](#types-Natural)).
 
