@@ -12,7 +12,7 @@ extra-deps:
     https://gitlab.com/morley-framework/morley.git
     # ^ CI cannot use ssh, so we use http clone here
   commit:
-    af2c4c3d73d1974f389c7ea816f0a6372905c297 # master
+    960b8c79e4d2e241d4600f8d2c6e82ff2cb9c8fe # master
   subdirs:
     - .
     - indigo
@@ -22,6 +22,7 @@ extra-deps:
     - morley-multisig
     - morley-nettest
     - prelude
+    - tasty-hunit-compat
 
 - git:
     https://gitlab.com/obsidian.systems/tezos-bake-monitor-lib.git

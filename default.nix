@@ -30,8 +30,8 @@ let
   morley-repo = {
     name = "morley";
     url = "https://gitlab.com/morley-framework/morley.git";
-    rev = "af2c4c3d73d1974f389c7ea816f0a6372905c297";
-    sha256 = "0bxhmraq5skwzg8k49vnj6dwi8yk7yj8f0l2ls6pwsmxcznzywsn";
+    rev = "960b8c79e4d2e241d4600f8d2c6e82ff2cb9c8fe";
+    sha256 = "0q42bsd8f4chmrsziw037kxsclwwj5cym708jkw2pmy5l98hnphh";
   };
   gpl = true; # false: not supported yet
   tezos-btc = { buildPkgs, hostPkgs }:
@@ -87,6 +87,11 @@ let
           name = "indigo";
           subdir = name;
         })
+        (morley-repo // rec {
+          name = "tasty-hunit-compat";
+          subdir = name;
+        })
+
         rec {
           name = "tezos-bake-monitor-lib";
           url =

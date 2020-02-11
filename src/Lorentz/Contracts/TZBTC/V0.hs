@@ -100,15 +100,17 @@ safeEntrypoints = entryCase @(SafeParameter TZBTCv0) (Proxy @UpgradeableEntryPoi
       doc $ DDescription
         "This entry point is used to update the contract to a new version."
       dip (ensureMaster # ensureNotMigrating)
-      dup; dip (toField #newVersion # updateVersion)
-      getField #migrationScript; swap; dip (applyMigration)
-      toField #newCode;
-      endWithMigration
+      dup; dip (toField #currentVersion >> toNamed #current >> checkVersion)
+      dup; dip (toField #newVersion >> toNamed #new >> updateVersion)
+      getField #migrationScript; swap; dip applyMigration
+      toField #newCode; whenSome migrateCode
+      nil; pair
   , #cEpwBeginUpgrade /-> do
       doc $ DDescription
         "This entry point is used to start an entrypoint wise upgrade of the contract."
       dip (ensureMaster # ensureNotMigrating)
-      updateVersion
+      dup; dip (toFieldNamed #current >> checkVersion)
+      toFieldNamed #new >> updateVersion
       setMigrating True
       nil; pair
   , #cEpwApplyMigration /-> do
@@ -333,10 +335,20 @@ ensureNotMigrating = do
   getField #fields; toField #migrating
   if_ (failCustom_ #upgContractIsMigrating) (nop)
 
-updateVersion :: '[Version, Storage ver] :-> '[Storage ver]
+checkVersion :: forall ver. '["current" :! Version, Storage ver] :-> '[Storage ver]
+checkVersion = do
+  fromNamed #current; toNamed #expectedCurrent
+  dip (getField #fields >> toField #currentVersion >> toNamed #actualCurrent)
+  if keepIfArgs (#expectedCurrent ==. #actualCurrent)
+  then nop
+  else do pair; failCustom #upgVersionMismatch
+
+updateVersion :: forall ver. '["new" :! Version, Storage ver] :-> '[Storage ver]
 updateVersion = do
+  fromNamed #new
   dip $ getField #fields
   setField #currentVersion; setField #fields
+
 
 applyMigration
   :: '[MigrationScriptFrom store, Storage ver] :-> '[Storage ver]

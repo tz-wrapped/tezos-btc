@@ -76,7 +76,7 @@ data SafeParameter (ver :: VersionKind)
   -- Entrypoint-wise upgrades are currently not protected from version mismatch
   -- in subsequent transactions, so the user ought to be careful with them.
   -- This behavior may change in future if deemed desirable.
-  | EpwBeginUpgrade Version
+  | EpwBeginUpgrade ("current" :! Version, "new" :! Version)
   | EpwApplyMigration ("migrationscript" :! MigrationScriptFrom (VerUStoreTemplate ver))
   | EpwSetCode ("contractcode" :! SomeUContractRouter)
   | EpwFinishUpgrade
