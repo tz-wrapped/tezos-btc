@@ -26,6 +26,7 @@ import Fmt (Buildable(..), fmt)
 
 import Lorentz
 import Lorentz.Contracts.Upgradeable.Common hiding (Parameter(..), Storage)
+import Lorentz.Contracts.Upgradeable.Common.Doc as U
 import Lorentz.UStore.Migration (SomeUTemplate)
 import Michelson.Doc (DComment(..), DDescription(..))
 import Michelson.Text
@@ -93,12 +94,10 @@ instance DocItem (DEntryPoint SafeEntryPointKind) where
 safeEntrypoints :: Entrypoint (SafeParameter TZBTCv0) UStoreV0
 safeEntrypoints = entryCase @(SafeParameter TZBTCv0) (Proxy @UpgradeableEntryPointKind)
   ( #cRun /-> do
-      doc $ DDescription
-        "This entry point is used to call the packed entrypoints in the contract."
+      doc $ DDescription runDoc
       executeRun
   , #cUpgrade /-> do
-      doc $ DDescription
-        "This entry point is used to update the contract to a new version."
+      doc $ DDescription upgradeDoc
       dip (ensureMaster # ensureNotMigrating)
       dup; dip (toField #currentVersion >> toNamed #current >> checkVersion)
       dup; dip (toField #newVersion >> toNamed #new >> updateVersion)
@@ -106,29 +105,25 @@ safeEntrypoints = entryCase @(SafeParameter TZBTCv0) (Proxy @UpgradeableEntryPoi
       toField #newCode; whenSome migrateCode
       nil; pair
   , #cEpwBeginUpgrade /-> do
-      doc $ DDescription
-        "This entry point is used to start an entrypoint wise upgrade of the contract."
+      doc $ DDescription epwBeginUpgradeDoc
       dip (ensureMaster # ensureNotMigrating)
       dup; dip (toFieldNamed #current >> checkVersion)
       toFieldNamed #new >> updateVersion
       setMigrating True
       nil; pair
   , #cEpwApplyMigration /-> do
-      doc $ DDescription
-        "This entry point is used to apply an migration script as part of an upgrade."
+      doc $ DDescription epwApplyMigrationDoc
       fromNamed #migrationscript
       dip (ensureMaster # ensureMigrating)
       applyMigration
       nil; pair
   , #cEpwSetCode /-> do
-      doc $ DDescription
-        "This entry point is used to set the dispatching code that calls the packed entrypoints."
+      doc $ DDescription epwSetCodeDoc
       fromNamed #contractcode
       dip (ensureMaster # ensureMigrating)
       endWithMigration
   , #cEpwFinishUpgrade /-> do
-      doc $ DDescription
-        "This entry point is used to mark that an upgrade has been finsihed."
+      doc $ DDescription epwFinishUpgradeDoc
       ensureMaster
       ensureMigrating
       setMigrating False
@@ -189,6 +184,7 @@ safeEntrypoints = entryCase @(SafeParameter TZBTCv0) (Proxy @UpgradeableEntryPoi
 -- actually using. See 'Lorentz.Contracts.TZBTC.Preprocess'.
 tzbtcContractRaw :: Contract (Parameter TZBTCv0) UStoreV0
 tzbtcContractRaw = do
+  doc $ T.DStorageType $ DType $ Proxy @UStoreV0
   unpair
   entryCase @(Parameter TZBTCv0) (Proxy @UpgradeableEntryPointKind)
     ( #cGetVersion /-> do
@@ -258,6 +254,7 @@ tzbtcDoc = buildLorentzDoc $ do
       \There is only one owner of the contract.\n\
       \* `operator` -- entity which is capable in pausing the contract \
       \minting and burning tokens. There may be several operators added by the owner."
+    doc $ DUpgradeability U.contractDoc
     tzbtcContractRaw
     fakeCoerce
     clarifyParamBuildingSteps pbsContainedInSafeEntrypoints safeEntrypoints
