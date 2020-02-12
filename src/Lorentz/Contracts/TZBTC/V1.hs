@@ -8,6 +8,7 @@
 module Lorentz.Contracts.TZBTC.V1
   ( Interface
   , StoreTemplate(..)
+  , StoreTemplateV1
   , TZBTCv1
   , migrationScriptsRaw
   , tzbtcContractRouterRaw
@@ -21,6 +22,7 @@ import qualified Data.Map as M
 import Lorentz
 import Lorentz.Contracts.Upgradeable.Common.Base
 import Lorentz.Contracts.Upgradeable.EntryPointWise
+import Lorentz.UStore.Haskell
 import Util.Named
 import Util.TypeTuple.Class
 
@@ -28,7 +30,7 @@ import qualified Lorentz.Contracts.TZBTC.Impl as TZBTC
 import Lorentz.Contracts.TZBTC.Types
 import Lorentz.Contracts.TZBTC.V0 (StoreTemplateV0)
 
-v1Impl :: Rec (EpwCaseClause StoreTemplate) Interface
+v1Impl :: Rec (EpwCaseClause StoreTemplateV1) Interface
 v1Impl = recFromTuple
   ( #callGetAllowance //==> toSafeView TZBTC.getAllowance
   , #callGetBalance //==> toSafeView TZBTC.getBalance
@@ -56,16 +58,16 @@ v1Impl = recFromTuple
     -- function takes care of that.
     callPart ::
       forall arg.
-      TZBTCPartInstr arg StoreTemplate ->
-      Lambda (arg, UStore StoreTemplate) ([Operation], UStore StoreTemplate)
+      TZBTCPartInstr arg StoreTemplateV1 ->
+      Lambda (arg, UStore StoreTemplateV1) ([Operation], UStore StoreTemplateV1)
     callPart part = unpair # part # pair
 
     -- We convert an entry point from storage, that has an input of
     -- `SafeView` to an entry point that can accept a `View`.
     toSafeView
       :: forall a b. (NiceParameter b)
-      => Entrypoint (View a b) (UStore StoreTemplate)
-      -> Entrypoint (SafeView a b) (UStore StoreTemplate)
+      => Entrypoint (View a b) (UStore StoreTemplateV1)
+      -> Entrypoint (SafeView a b) (UStore StoreTemplateV1)
     toSafeView ep = do
       coerceUnwrap
       unpair
@@ -86,7 +88,7 @@ tzbtcContractRouterRaw :: UContractRouter TZBTCv1
 tzbtcContractRouterRaw = epwServe epwContract
 
 -- | Migrations to version 1 before preprocessing.
-migrationScriptsRaw :: OriginationParameters -> [MigrationScript StoreTemplateV0 StoreTemplate]
+migrationScriptsRaw :: OriginationParameters -> [MigrationScript StoreTemplateV0 StoreTemplateV1]
 migrationScriptsRaw op = migrateStorage op : epwCodeMigrations epwContract
 
 epwContract :: EpwContract TZBTCv1
@@ -96,8 +98,7 @@ originationParamsToStoreTemplate :: OriginationParameters -> StoreTemplate
 originationParamsToStoreTemplate OriginationParameters {..} = let
   total = Prelude.sum $ M.elems opBalances
   in StoreTemplate
-    { owner = UStoreField opOwner
-    , paused = UStoreField False
+    { paused = UStoreField False
     , totalSupply = UStoreField total
     , totalMinted = UStoreField total
     , totalBurned = UStoreField 0
@@ -113,14 +114,10 @@ originationParamsToStoreTemplate OriginationParameters {..} = let
   where
     toLedgerValue i = (#balance .! i, #approvals .! mempty)
 
-migrateStorage :: OriginationParameters -> MigrationScript StoreTemplateV0 StoreTemplate
+migrateStorage :: OriginationParameters -> MigrationScript StoreTemplateV0 StoreTemplateV1
 migrateStorage op =
   templateToMigration $ originationParamsToStoreTemplate op
   where
-    templateToMigration :: StoreTemplate -> MigrationScript StoreTemplateV0 StoreTemplate
+    templateToMigration :: StoreTemplate -> MigrationScript StoreTemplateV0 StoreTemplateV1
     templateToMigration template =
-      -- TODO [TM-357]: 'fillUStore' cannot be applied to 'StoreTemplateV0' because that
-      -- storage may be not empty. In fact, currently we overwrite all fields
-      -- present there so everything is ok, but reaching type-safety still seems nice.
-      forcedCoerce $
-      migrationToScript $ fillUStore template
+      migrationToScript $ mkUStoreMigration $ migrateFillUStore template

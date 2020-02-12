@@ -302,12 +302,12 @@ getAllowance owner spender = do
       pure $ maybe 0 id $ Map.lookup spender approvals
 
 type HasStoreTemplateField t name =
-  ( HasUField name t StoreTemplate
+  ( HasUField name t StoreTemplateV1
   , NiceUnpackedValue t
   )
 
 type HasStoreTemplateSubmap key value name =
-  ( HasUStore name key value StoreTemplate
+  ( HasUStore name key value StoreTemplateV1
   , NicePackedValue key, NiceUnpackedValue value
   )
 

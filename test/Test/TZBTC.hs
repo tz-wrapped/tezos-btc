@@ -67,7 +67,7 @@ fromProxyParam =
 
 -- Helpers to check storage state.
 checkStorage
-  :: (StoreTemplate -> Either ValidationError ())
+  :: (StoreTemplateV1 -> Either ValidationError ())
   -> TZBTCStorage -> Either ValidationError ()
 checkStorage fn st =
   case ustoreDecomposeFull $ dataMap st of
@@ -75,7 +75,7 @@ checkStorage fn st =
     Left err -> error err
 
 checkField
-  :: (StoreTemplate -> UStoreField a)
+  :: (StoreTemplateV1 -> UStoreField a)
   -> (a -> Bool)
   -> Text
   -> (TZBTCStorage -> Either ValidationError ())
@@ -213,7 +213,7 @@ test_addOperator = testGroup "TZBTC contract `addOperator` test"
           lCallDef c (fromFlatParameter $ AddOperator (#operator .! newOperatorAddress))
         validate . Right $
           lExpectStorageUpdate c
-            (checkField operators
+            (checkField (operators . stCustom)
               (Set.member newOperatorAddress) "New operator not found")
   ]
 
@@ -236,13 +236,13 @@ test_removeOperator = testGroup "TZBTC contract `addOperator` test"
           lCallDef c (fromFlatParameter $ AddOperator (#operator .! newOperatorAddress))
         validate . Right $
           lExpectStorageUpdate c
-            (checkField operators
+            (checkField (operators . stCustom)
               (Set.member newOperatorAddress) "New operator not found")
         withSender ownerAddress $ do
           lCallDef c (fromFlatParameter $ RemoveOperator (#operator .! newOperatorAddress))
         validate . Right $
           lExpectStorageUpdate c
-            (checkField operators
+            (checkField (operators . stCustom)
               (Prelude.not . Set.member newOperatorAddress) "Unexpectedly found operator")
   ]
 
@@ -264,7 +264,8 @@ test_transferOwnership = testGroup "TZBTC contract `transferOwnership` test"
           lCallDef c (fromFlatParameter $ TransferOwnership (#newOwner .! replaceAddress))
         validate . Right $
           lExpectStorageUpdate c
-            (checkField newOwner (== Just replaceAddress)  "Expected `newOwner` not found")
+            (checkField (newOwner . stCustom) (== Just replaceAddress)
+              "Expected `newOwner` not found")
   ]
 
 test_acceptOwnership :: TestTree
@@ -328,7 +329,7 @@ test_setRedeemAddress = testGroup "TZBTC contract `setRedeemAddress` test"
         validate . Right $
           lExpectStorageUpdate c
             (checkField
-              redeemAddress (== replaceAddress) "Unexpected redeem address")
+              (redeemAddress . stCustom) (== replaceAddress) "Unexpected redeem address")
   ]
 
 test_burn :: TestTree
@@ -458,7 +459,7 @@ test_pause = testGroup "TZBTC contract `pause` test"
 
         validate . Right $
           lExpectStorageUpdate c
-            (checkField paused id "Unexpected Paused status")
+            (checkField (paused . stCustom) id "Unexpected Paused status")
   ]
 
 test_unpause :: TestTree
@@ -496,14 +497,14 @@ test_unpause = testGroup "TZBTC contract `unpause` test"
 
         validate . Right $
           lExpectStorageUpdate c
-            (checkField paused id "Unexpected Paused status")
+            (checkField (paused . stCustom) id "Unexpected Paused status")
 
         -- Call unpause
         withSender ownerAddress $ lCallDef c (fromFlatParameter $ Unpause ())
 
         validate . Right $
           lExpectStorageUpdate c
-            (checkField paused Prelude.not "Unexpected Paused status")
+            (checkField (paused . stCustom) Prelude.not "Unexpected Paused status")
   ]
 
 test_bookkeeping :: TestTree

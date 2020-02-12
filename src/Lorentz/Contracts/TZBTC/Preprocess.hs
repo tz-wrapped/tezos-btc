@@ -20,7 +20,7 @@ import Michelson.Optimizer (OptimizerConf(..))
 import Lorentz.Contracts.TZBTC.Types (OneShotUpgradeParameters, OriginationParameters)
 import Lorentz.Contracts.TZBTC.V0
 import Lorentz.Contracts.TZBTC.V1
-  (StoreTemplate, TZBTCv1, migrationScriptsRaw, tzbtcContractRouterRaw)
+  (StoreTemplateV1, TZBTCv1, migrationScriptsRaw, tzbtcContractRouterRaw)
 import Lorentz.Contracts.Upgradeable.Common.Base
 import Lorentz.Contracts.Upgradeable.Common.Interface
   (EpwUpgradeParameters(..), makeOneShotUpgradeParameters)
@@ -36,7 +36,7 @@ tzbtcContractRouter =
   UContractRouter . preprocess . unUContractRouter $ tzbtcContractRouterRaw
 
 -- | Preprocessed migrations for V1.
-migrationScripts :: OriginationParameters -> [MigrationScript StoreTemplateV0 StoreTemplate]
+migrationScripts :: OriginationParameters -> [MigrationScript StoreTemplateV0 StoreTemplateV1]
 migrationScripts op =
   manualMapMigrationScript preprocess <$> migrationScriptsRaw op
 

@@ -19,7 +19,7 @@ import Util.Named
 makeMigrationParams
   :: Natural
   -> UContractRouter TZBTCv1
-  -> [MigrationScript StoreTemplateV0 StoreTemplate]
+  -> [MigrationScript StoreTemplateV0 StoreTemplateV1]
   -> LText
 makeMigrationParams version contractCode scripts = case version of
   1 ->

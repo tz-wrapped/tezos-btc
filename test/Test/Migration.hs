@@ -126,7 +126,7 @@ upgradeParams :: OneShotUpgradeParameters TZBTCv0
 upgradeParams = upgradeParameters originationParameters
 
 -- Some constants
-migrationScript :: MigrationScript StoreTemplateV0 StoreTemplate
+migrationScript :: MigrationScript StoreTemplateV0 StoreTemplateV1
 migrationScript =
   manualConcatMigrationScripts $ migrationScripts originationParameters
 

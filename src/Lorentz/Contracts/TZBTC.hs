@@ -12,6 +12,8 @@ module Lorentz.Contracts.TZBTC
   , SafeParameter
   , Storage(..)
   , StoreTemplate(..)
+  , StoreTemplateWithCommons(..)
+  , StoreTemplateV1
   , TZBTCv0
   , TZBTCv1
   , SomeTZBTCVersion
