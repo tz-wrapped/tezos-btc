@@ -72,6 +72,10 @@ let
           subdir = name;
         })
         (morley-repo // rec {
+          name = "morley-multisig";
+          subdir = name;
+        })
+        (morley-repo // rec {
           name = "morley-upgradeable";
           subdir = name;
         })
