@@ -36,6 +36,7 @@ import qualified System.Environment as SE
 
 import Lorentz hiding (address, balance, chainId, cons, map)
 import Lorentz.Contracts.ManagedLedger.Types
+import qualified Lorentz.Contracts.Multisig.Generic as MSig
 import Lorentz.UStore.Common
 import Michelson.Untyped (InternalByteString(..))
 import Tezos.Address
@@ -51,7 +52,6 @@ import qualified Client.IO.TezosRpc as IO
 import Client.Types
 import Client.Util
 import Lorentz.Contracts.TZBTC
-import qualified Lorentz.Contracts.TZBTC.MultiSig as MSig
 import Util.AbstractIO
 import qualified Util.IO as UIO (writeFileUtf8)
 import Util.MultiSig
@@ -170,11 +170,37 @@ instance HasTezosRpc AppM where
     putTextLn $ "Contract was successfully deployed. Contract address: " <> formatAddress contractAddr
     liftIO $ case ccContractAddress of
       Just c -> putTextLn $ "Current contract address for alias 'tzbtc' in the tezos-client config is " <> formatAddress c <> "."
-      Nothing -> putTextLn $ "Right now there is no contract aliased as 'tzbtc' in tezos-client config."
+      Nothing -> putTextLn "Right now there is no contract aliased as 'tzbtc' in tezos-client config."
     res <- confirmAction "Would you like to add/replace alias 'tzbtc' with the newly deployed contract?"
     case res of
       Canceled -> pass
       Confirmed -> rememberContractAs contractAddr "tzbtc"
+  deployMultisigContract msigStorage useCustomErrors = do
+    let (_, (MSig.Threshold thresholdValue, MSig.Keys keysList)) = msigStorage
+    when (thresholdValue == 0) $ throwM TzbtcMultisigZeroThreshold
+    when (thresholdValue > fromIntegral (length keysList)) $
+      throwM TzbtcMultisigThresholdLargerThanKeys
+    let msigToOriginate =
+          if useCustomErrors
+          then MSig.genericMultisigContract @'MSig.CustomErrors
+          else MSig.genericMultisigContract @'MSig.BaseErrors
+    config@ClientConfig{..} <- throwLeft readConfig
+    msigAddr <- throwLeft $ liftIO $
+      IO.originateContract msigToOriginate msigStorage config
+    putTextLn $ "Multisig contract was successfully deployed. Contract address: " <>
+      formatAddress msigAddr
+    liftIO $ case ccMultisigAddress of
+      Just c -> putTextLn $
+        "Current multisig address for alias 'tzbtc-multisig' in tezos-client is " <>
+        formatAddress c <> "."
+      Nothing -> putTextLn
+        "Right now there is no contract aliased as 'tzbtc-multisig' in \
+        \tezos-client config."
+    res <- confirmAction
+      "Would you like to add/replace alias 'tzbtc-multisig' with the newly deployed contract?"
+    case res of
+      Canceled -> pass
+      Confirmed -> rememberContractAs msigAddr "tzbtc-multisig"
 
 addrOrAliasToAddr :: (MonadThrow m, HasTezosClient m) => Text -> m Address
 addrOrAliasToAddr addrOrAlias =
@@ -198,16 +224,16 @@ runTzbtcContract param = do
   case ccContractAddress of
     Nothing -> throwM TzbtcContractConfigUnavailable
     Just contractAddr ->
-      runTransactions contractAddr [DefaultEntrypoint param]
+      runTransactions contractAddr [(DefaultEntrypoint param, 0)]
 
 runMultisigContract :: (MonadThrow m, HasTezosRpc m) => NonEmpty Package -> m ()
 runMultisigContract packages = do
   config <- throwLeft $ readConfig
   package <- throwLeft $ pure $ mergePackages packages
   multisigAddr <- throwLeft $ pure (fst <$> getToSign package)
-  (_, (_, keys')) <- getMultisigStorage multisigAddr config
+  (_, (_, (MSig.Keys keys'))) <- getMultisigStorage multisigAddr config
   (_, multisigParam) <- throwLeft $ pure $ mkMultiSigParam keys' packages
-  runTransactions multisigAddr [Entrypoint "main" multisigParam]
+  runTransactions multisigAddr [(Entrypoint "main" multisigParam, 0)]
 
 getMultisigStorage
   :: (MonadThrow m, HasTezosRpc m) => Address -> ClientConfig -> m MSig.Storage
@@ -225,7 +251,7 @@ createMultisigPackage packagePath parameter = do
   case ccMultisigAddress of
     Nothing -> throwM TzbtcMutlisigConfigUnavailable
     Just msAddr ->  do
-      (counter, _) <- getMultisigStorage msAddr config
+      ((MSig.Counter counter), _) <- getMultisigStorage msAddr config
       case ccContractAddress of
         Nothing -> throwM TzbtcContractConfigUnavailable
         Just (toTAddress -> contractAddr) ->

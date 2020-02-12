@@ -6,6 +6,7 @@
 module Client.IO.TezosRpc
   ( deployTzbtcContract
   , getStorage
+  , originateContract
   , runTransactions
   ) where
 
@@ -16,7 +17,7 @@ import Tezos.Common.Json (TezosInt64)
 import Tezos.V005.Micheline (Expression)
 import Time (Second, Time(..), threadDelay)
 
-import Lorentz hiding (address, balance, chainId, cons, map)
+import Lorentz hiding (address, balance, contract, chainId, cons, map)
 import Michelson.Runtime.GState (genesisAddress1, genesisAddress2)
 import Michelson.Untyped (InternalByteString(..))
 import Tezos.Address
@@ -74,7 +75,7 @@ dumbOp = TransactionOperation
   , toCounter = 0
   , toGasLimit = 800000
   , toStorageLimit = 60000
-  , toAmount = 1
+  , toAmount = 0
   , toDestination = genesisAddress2
   , toParameters = ParametersInternal
     { piEntrypoint = "default"
@@ -121,13 +122,14 @@ addOperationPrefix (InternalByteString bs) =
 -- so we are accepting list of param's here.
 runTransactions
   :: (NicePackedValue param)
-  => Address -> [EntrypointParam param] -> ClientConfig -> IO ()
+  => Address -> [(EntrypointParam param, TezosInt64)] -> ClientConfig -> IO ()
 runTransactions to params config@ClientConfig{..} = do
   OperationConstants{..} <- preProcessOperation config
-  let opsToRun = zipWith (\param i -> dumbOp
+  let opsToRun = zipWith (\(param, transferAmount) i -> dumbOp
         { toDestination = to
         , toSource = ocSourceAddr
         , toCounter = ocCounter + (fromInteger i)
+        , toAmount = transferAmount
         , toParameters = toParametersInternals param
         }) params [1..]
   let runOp = RunOperation
@@ -185,9 +187,10 @@ getAppliedResults env op = do
                       RunOperationFailed errors -> throwM (TzbtcRunFailed errors)
                ) opContents
 
-originateTzbtcContract
-  :: Address -> ClientConfig -> IO (Either TzbtcClientError Address)
-originateTzbtcContract owner config@ClientConfig{..} = do
+originateContract
+  :: (NiceParameterFull cp, NiceStorage st)
+  => Contract cp st -> st -> ClientConfig -> IO (Either TzbtcClientError Address)
+originateContract contract initialStorage config@ClientConfig{..} = do
   OperationConstants{..} <- preProcessOperation config
   let origOp = OriginationOperation
         { ooKind = "origination"
@@ -198,7 +201,7 @@ originateTzbtcContract owner config@ClientConfig{..} = do
         , ooStorageLimit = 60000
         , ooBalance = 0
         , ooScript =
-          mkOriginationScript tzbtcContract (mkEmptyStorageV0 owner)
+          mkOriginationScript contract initialStorage
         }
   let runOp = RunOperation
         { roOperation =
@@ -245,13 +248,14 @@ originateTzbtcContract owner config@ClientConfig{..} = do
 deployTzbtcContract :: ClientConfig -> OriginationParameters -> IO Address
 deployTzbtcContract config@ClientConfig{..} op = do
   putTextLn "Originate contract"
-  contractAddr <- throwLeft $ originateTzbtcContract (opOwner op) config
+  contractAddr <- throwLeft $
+    originateContract tzbtcContract (mkEmptyStorageV0 $ opOwner op) config
   let transactionsToTzbtc params = runTransactions contractAddr params config
   putTextLn "Upgrade contract to V1"
   throwClientErrorAfterRetry (10, delayFn) $ try $
     -- We retry here because it was found that in some cases, the storage
     -- is unavailable for a short time since contract origination.
-    transactionsToTzbtc $ (DefaultEntrypoint . fromFlatParameter) <$>
+    transactionsToTzbtc $ (\param -> (DefaultEntrypoint . fromFlatParameter $ param, 0)) <$>
       [ Upgrade @TZBTCv0 $ upgradeParameters op
       ]
   pure contractAddr

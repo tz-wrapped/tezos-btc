@@ -25,6 +25,7 @@ import Text.Megaparsec.Char (eol, space)
 import Text.Megaparsec.Char.Lexer (symbol)
 import Text.Megaparsec.Error (ParseErrorBundle, ShowErrorComponent(..))
 
+import qualified Lorentz.Contracts.Multisig.Generic as MSig
 import Michelson.Text (mt)
 import Tezos.Address (Address, parseAddress)
 import Tezos.Crypto (PublicKey, Signature, parsePublicKey, parseSignature)
@@ -53,6 +54,7 @@ clientArgRawParser = Opt.hsubparser $
   <> getBytesToSignCmd <> getTotalBurnedCmd
   <> addSignatureCmd <> signPackageCmd <> callMultisigCmd
   <> deployCmd
+  <> deployMultisigCmd
   <> showConfigCmd
   where
     multisigOption :: Opt.Parser (Maybe FilePath)
@@ -282,6 +284,23 @@ clientArgRawParser = Opt.hsubparser $
             mTextOption (Just [mt|TZBTC|]) "token-code" "Token code"
           pure DeployContractOptions {..}
 
+    deployMultisigCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
+    deployMultisigCmd =
+      mkCommandParser
+      "deployMultisigContract"
+      (CmdDeployMultisigContract <$>
+       (MSig.Threshold <$> natOption "threshold" "Generic multisig threshold") <*>
+       (MSig.Keys <$> many publicKeyOption) <*>
+       customErrorsFlag
+      )
+      "Deploy generic multisig contract to the chain"
+      where
+        customErrorsFlag = switch
+          (long "use-custom-errors" <>
+           help "By default generic multisig contract fails with 'unit' in all error cases.\n\
+                \This flag will deploy the custom version of generic multisig\n\
+                \contract with human-readable string errors.")
+
     callbackParser :: Opt.Parser (Maybe AddrOrAlias)
     callbackParser = mbAddrOrAliasOption "callback" "Callback address"
 
@@ -330,7 +349,7 @@ parseSignatureDo sig =
 
 publicKeyOption :: Opt.Parser PublicKey
 publicKeyOption = option (eitherReader parsePublicKeyDo) $ mconcat
-  [ long "public-key", metavar "PUBLIC KEY"]
+  [ long "public-key", metavar "PUBLIC KEY", help "Address public key"]
 
 parsePublicKeyDo :: String -> Either String PublicKey
 parsePublicKeyDo pk =

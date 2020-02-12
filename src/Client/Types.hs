@@ -47,6 +47,7 @@ import Tezos.V005.Micheline
 
 import Michelson.Text (MText)
 import Michelson.Typed (IsoValue)
+import qualified Lorentz.Contracts.Multisig.Generic as MSig
 import Tezos.Address (Address)
 import Tezos.Crypto (PublicKey, Signature, encodeBase58Check, formatSignature)
 
@@ -85,10 +86,11 @@ data ClientArgsRaw
   | CmdSignPackage FilePath
   | CmdCallMultisig (NonEmpty FilePath)
   | CmdDeployContract !DeployContractOptions
+  | CmdDeployMultisigContract MSig.Threshold MSig.Keys Bool
   | CmdShowConfig
 
 data DeployContractOptions = DeployContractOptions
-  { dcoOwner :: ! (Maybe AddrOrAlias)
+  { dcoOwner :: !(Maybe AddrOrAlias)
   , dcoRedeem :: !AddrOrAlias
   , dcoTokenName :: !MText
   , dcoTokenCode :: !MText

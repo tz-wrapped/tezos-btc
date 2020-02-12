@@ -19,6 +19,7 @@ extra-deps:
     - morley-ledgers
     - morley-ledgers-test
     - morley-upgradeable
+    - morley-multisig
     - morley-nettest
     - prelude
 
