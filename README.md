@@ -87,6 +87,27 @@ After the contract deploy, it is possible to save the newly deployed contract wi
 `tzbtc`, in the `tezos-client` configuration. You can also manually note the address and
 use the `tezos-client` program to alias it as `tzbtc`, as expected by the `tzbtc-client` program.
 
+#### Deploy generic multisig contract using `tzbtc-client`
+
+It is possible to deploy generic multisig contract using `tzbtc-client`.
+
+Run `tzbtc-client deployMultisigContract` command passing the desired threshold (minimal amount of signatures
+to perform multisig action), the list of signers public keys and optional flag to use custom human-readable errors
+in the generic multisig contract.
+
+For example:
+```sh
+tzbtc-client deployMultisigContract --threshold 2 \
+  --public-key edpkvD74whcSw91LUtJex5V16115w4BTwgu3dXHdtNDbbbBRiYEQqP \
+  --public-key edpkvXeP2mxHEyF8GSakTy6Fg2G9EsN23eUbjBWtfgTez3b2ZQj3nL \
+  --public-key edpkvJq6xRTcQyBpGVLPEcNqRijB2WKZ2M1TYvWhiKjQQPUzYgq9ec \
+  --use-custom-errors
+```
+
+After the contract deploy, it is possible to save the newly deployed multisig contract with the alias
+`tzbtc-multisig`, in the `tezos-client` configuration. You can also manually note the address and
+use the `tezos-client` program to alias it as `tzbtc-multisig`, as expected by the `tzbtc-client` program.
+
 #### Interact with TZBTC contract
 
 Other commands will perform injection of desired transaction to the

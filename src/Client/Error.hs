@@ -27,6 +27,8 @@ data TzbtcClientError
   | TzbtcContractConfigUnavailable
   | TzbtcParseError Text
   | TzbtcTezosClientError Text
+  | TzbtcMultisigZeroThreshold
+  | TzbtcMultisigThresholdLargerThanKeys
 
 instance Buildable TzbtcClientError where
   build (TzbtcServantError err) = case err of
@@ -81,6 +83,13 @@ instance Buildable TzbtcClientError where
 
   build (TzbtcTezosClientError msg) =
     "Error during invocation of tezos-client program:\n" +| msg |+ ""
+
+  build TzbtcMultisigZeroThreshold =
+    "Trying to originate multisig contract with zero threshold"
+
+  build TzbtcMultisigThresholdLargerThanKeys =
+    "Trying to originate multisig contract with threshold larger \
+    \than signers public keys list size"
 
 instance Show TzbtcClientError where
   show = pretty

@@ -72,6 +72,7 @@ defaultHandlers mi = Handlers
   , hGetFromBigMap = \_ _ -> unavailable "getFromBigMap"
   , hWaitForOperation = \_ -> unavailable "waitForOperation"
   , hDeployTzbtcContract = \_ -> meetExpectation DeployTzbtcContract
+  , hDeployMultisigContract = \_ _ -> meetExpectation DeployMultisigContract
   , hGetAddressAndPKForAlias = \_ -> unavailable "getAddressAndPKForAlias"
   , hRememberContract = \c a -> meetExpectation (RememberContract c a)
   , hSignWithTezosClient = \_ _ -> unavailable "signWithTezosClient"
@@ -310,7 +311,7 @@ multisigExecutionTestHandlers =
         if addr == multiSigAddress then do
           case params of
             [] -> throwM $ TestError "Unexpected empty parameters"
-            [Entrypoint "main" param] -> do
+            [(Entrypoint "main" param, 0)] -> do
               case Typ.cast (toVal param) of
                 Just param' -> case (fromVal param') of
                   (_ :: MS.ParamPayload, sigs) ->
@@ -323,8 +324,10 @@ multisigExecutionTestHandlers =
                       ] then meetExpectation RunsTransaction
                     else throwM $ TestError "Unexpected signature list"
                 Nothing -> throwM $ TestError "Decoding parameter failed"
-            [Entrypoint x _] -> throwM $ TestError $ "Unexpected entrypoint: " <> toString x
-            [DefaultEntrypoint _] -> throwM $ TestError "Unexpected default entrypoint"
+            [(Entrypoint x _, 0)] ->
+              throwM $ TestError $ "Unexpected entrypoint: " <> toString x
+            [(DefaultEntrypoint _, 0)] ->
+              throwM $ TestError "Unexpected default entrypoint"
             _ -> throwM $ TestError "Unexpected multiple parameters"
         else throwM $ TestError "Unexpected multisig address"
     , hGetStorage = \x -> if x == multiSigAddressRaw

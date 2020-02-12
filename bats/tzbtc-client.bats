@@ -171,6 +171,14 @@ setup () {
   stack exec -- tzbtc-client deployTzbtcContract --owner boba --redeem boba --token-name Kukareq --token-code Cococoq --dry-run
 }
 
+@test "deploy multisig" {
+  stack exec -- tzbtc-client deployMultisigContract --threshold 2 \
+    --public-key edpkvD74whcSw91LUtJex5V16115w4BTwgu3dXHdtNDbbbBRiYEQqP \
+    --public-key edpkvXeP2mxHEyF8GSakTy6Fg2G9EsN23eUbjBWtfgTez3b2ZQj3nL \
+    --public-key edpkvJq6xRTcQyBpGVLPEcNqRijB2WKZ2M1TYvWhiKjQQPUzYgq9ec \
+    --use-custom-errors --dry-run
+}
+
 @test "show config" {
   stack exec -- tzbtc-client config --dry-run
 }

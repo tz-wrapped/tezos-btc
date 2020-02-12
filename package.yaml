@@ -27,6 +27,7 @@ library:
     - aeson
     - aeson-casing
     - bytestring
+    - constraints
     - containers
     - directory
     - hex-text
@@ -36,6 +37,7 @@ library:
     - fmt
     - morley
     - morley-ledgers
+    - morley-multisig
     - morley-prelude
     - morley-upgradeable
     - named
@@ -90,6 +92,7 @@ tests:
     - morley
     - morley-ledgers
     - morley-ledgers-test
+    - morley-multisig
     - morley-upgradeable
     - mtl
     - optparse-applicative
