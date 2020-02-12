@@ -176,6 +176,10 @@ instance HasTezosRpc AppM where
       Canceled -> pass
       Confirmed -> rememberContractAs contractAddr "tzbtc"
   deployMultisigContract msigStorage useCustomErrors = do
+    let (_, (MSig.Threshold thresholdValue, MSig.Keys keysList)) = msigStorage
+    when (thresholdValue == 0) $ throwM TzbtcMultisigZeroThreshold
+    when (thresholdValue > fromIntegral (length keysList)) $
+      throwM TzbtcMultisigThresholdLargerThanKeys
     let msigToOriginate =
           if useCustomErrors
           then MSig.genericMultisigContract @'MSig.CustomErrors
