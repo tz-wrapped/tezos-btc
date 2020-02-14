@@ -76,7 +76,7 @@ data SafeParameter (ver :: VersionKind)
   -- Entrypoint-wise upgrades are currently not protected from version mismatch
   -- in subsequent transactions, so the user ought to be careful with them.
   -- This behavior may change in future if deemed desirable.
-  | EpwBeginUpgrade Version
+  | EpwBeginUpgrade ("current" :! Version, "new" :! Version)
   | EpwApplyMigration ("migrationscript" :! MigrationScriptFrom (VerUStoreTemplate ver))
   | EpwSetCode ("contractcode" :! SomeUContractRouter)
   | EpwFinishUpgrade
@@ -205,6 +205,33 @@ data Storage (ver :: VersionKind) = Storage
   , fields :: StorageFields ver
   } deriving stock (Generic, Show)
     deriving anyclass IsoValue
+
+type NiceDocVersion ver =
+  (Typeable ver, Typeable (VerUStoreTemplate ver), Typeable (VerInterface ver))
+
+instance NiceDocVersion ver => TypeHasDoc (StorageFields ver) where
+  typeDocName _ = "StorageFields"
+  typeDocMdDescription =
+    "StorageFields of upgradeable contract.\n\
+    \This type keeps general information about upgradeable \
+    \contract and the logic responsible for calling entrypoints \
+    \implementations kept in UStore."
+  typeDocMdReference tp =
+    customTypeDocMdReference ("StorageFields", DType tp) []
+  typeDocHaskellRep = homomorphicTypeDocHaskellRep
+  typeDocMichelsonRep = homomorphicTypeDocMichelsonRep
+
+instance NiceDocVersion ver => TypeHasDoc (Storage ver) where
+  typeDocName _ = "Storage"
+  typeDocMdDescription =
+    "Type which defines storage of the upgradeable contract.\n\
+    \It contains UStore with data related to actual contract logic \
+    \and fields which relate to upgradeability logic."
+  typeDocMdReference tp =
+    customTypeDocMdReference ("Storage", DType tp) []
+  typeDocHaskellRep = homomorphicTypeDocHaskellRep
+  typeDocMichelsonRep = homomorphicTypeDocMichelsonRep
+
 
 -- | Template for the wrapped UStore which will hold the upgradeable code
 -- and fields
