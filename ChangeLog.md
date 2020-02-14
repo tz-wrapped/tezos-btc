@@ -8,8 +8,10 @@
 
 Changes that affect Michelson code are tagged with `[CONTRACT]`.
 
-Unreleased
-==========
+0.3.0
+=====
+* [#98](https://github.com/serokell/tezos-btc/pull/98)
+  - Further update automated documentation.
 * [#96](https://github.com/serokell/tezos-btc/pull/96)
   - Use specialized multisig contract instead of generic multisig contract.
 * [#94](https://github.com/serokell/tezos-btc/pull/94)
@@ -23,7 +25,7 @@ Unreleased
 
 0.2.0
 =====
-* [#85] (https://github.com/serokell/tezos-btc/pull/87)
+* [#85](https://github.com/serokell/tezos-btc/pull/87)
   - Add global option `--user` to override default `tzbtc-user` user alias
 
 * [#82](https://github.com/serokell/tezos-btc/pull/82)
