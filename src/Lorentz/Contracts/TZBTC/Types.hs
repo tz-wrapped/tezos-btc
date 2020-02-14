@@ -46,7 +46,7 @@ import Lorentz.Contracts.Upgradeable.Common
   VersionKind)
 import qualified Lorentz.Contracts.Upgradeable.Common as Upgradeable
 import Lorentz.Contracts.Upgradeable.EntryPointWise
-import Lorentz.EntryPoints (EpdRecursive, EpdDelegate, ParameterHasEntryPoints(..))
+import Lorentz.EntryPoints (EpdDelegate, EpdRecursive, ParameterHasEntryPoints(..))
 import Util.Instances ()
 
 type BurnParams = ("value" :! Natural)
@@ -93,7 +93,9 @@ data SafeParameter (ver :: VersionKind)
   | TransferOwnership   !TransferOwnershipParams
   | AcceptOwnership     !AcceptOwnershipParams
   deriving stock (Eq, Generic, Show)
-  deriving anyclass IsoValue
+  deriving anyclass (IsoValue)
+
+instance HasTypeAnn (VerPermanent ver) => HasTypeAnn (SafeParameter ver)
 
 instance ( Typeable ver
          , Typeable (VerInterface ver), Typeable (VerUStoreTemplate ver)
@@ -123,7 +125,9 @@ data Parameter (ver :: VersionKind)
   | GetRedeemAddress    !(View () Address)
   | SafeEntrypoints !(SafeParameter ver)
   deriving stock (Eq, Generic, Show)
-  deriving anyclass IsoValue
+  deriving anyclass (IsoValue)
+
+instance HasTypeAnn (VerPermanent ver) => HasTypeAnn (Parameter ver)
 
 -- We need the following two instances for the `SafeEntrypoint` entrypoint
 -- to show up with an entrypoint annotation. This is required for the multisig

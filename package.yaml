@@ -37,6 +37,7 @@ library:
     - fmt
     - morley
     - morley-ledgers
+    - morley-lorentz
     - morley-multisig
     - morley-prelude
     - morley-upgradeable
@@ -62,9 +63,10 @@ executables:
 
     dependencies:
       - fmt
-      - morley-prelude
       - morley
+      - morley-lorentz
       - morley-multisig
+      - morley-prelude
       - optparse-applicative
       - safe-exceptions
       - tzbtc
@@ -94,6 +96,7 @@ tests:
     - morley
     - morley-ledgers
     - morley-ledgers-test
+    - morley-lorentz
     - morley-multisig
     - morley-upgradeable
     - mtl
