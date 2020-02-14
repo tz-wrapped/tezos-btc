@@ -89,6 +89,7 @@ tests:
     - containers
     - hex-text
     - hspec
+    - HUnit
     - morley-prelude
     - morley
     - morley-ledgers
@@ -99,7 +100,7 @@ tests:
     - optparse-applicative
     - tasty
     - tasty-hspec
-    - tasty-hunit
+    - tasty-hunit-compat
     - tezos-bake-monitor-lib
     - text
     - tzbtc

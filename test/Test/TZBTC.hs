@@ -26,9 +26,10 @@ module Test.TZBTC
 import Data.Coerce (coerce)
 import qualified Data.Map as M
 import qualified Data.Set as Set
+import Test.HUnit (Assertion)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.Hspec (testSpec)
-import Test.Tasty.HUnit (Assertion, testCase)
+import Test.Tasty.HUnit (testCase)
 
 import Lorentz
 import qualified Lorentz.Contracts.Spec.ApprovableLedgerInterface as AL
