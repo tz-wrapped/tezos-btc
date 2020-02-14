@@ -250,7 +250,7 @@ createMultisigPackage packagePath parameter = do
   case ccMultisigAddress of
     Nothing -> throwM TzbtcMutlisigConfigUnavailable
     Just msAddr ->  do
-      ((Counter counter), _) <- getMultisigStorage msAddr config
+      (counter, _) <- getMultisigStorage msAddr config
       case ccContractAddress of
         Nothing -> throwM TzbtcContractConfigUnavailable
         Just (toTAddress -> contractAddr) ->
