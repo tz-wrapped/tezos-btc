@@ -25,13 +25,13 @@ import Tezos.Common.Json (TezosInt64)
 import Tezos.Crypto
 import Tezos.V005.Micheline (Expression)
 
-import qualified Lorentz.Contracts.Multisig.Generic as MSig
 
 import Client.Env
 import Client.Error
 import Client.IO ()
 import Client.Types
 import Lorentz.Constraints
+import Lorentz.Contracts.Multisig
 import Lorentz.Contracts.TZBTC (OriginationParameters)
 
 import Util.AbstractIO
@@ -98,7 +98,7 @@ data Handlers m = Handlers
   , hWaitForOperation :: Text -> m ()
   , hGetTezosClientConfig :: m (Either Text (FilePath, TezosClientConfig))
   , hDeployTzbtcContract :: OriginationParameters -> m ()
-  , hDeployMultisigContract :: MSig.Storage -> Bool -> m ()
+  , hDeployMultisigContract :: MSigStorage -> Bool -> m ()
 
   , hGetAddressAndPKForAlias :: Text -> m (Either TzbtcClientError (Address, PublicKey))
   , hSignWithTezosClient :: Either ByteString Text -> Text -> m (Either Text Signature)

@@ -25,7 +25,7 @@ import Text.Megaparsec.Char (eol, space)
 import Text.Megaparsec.Char.Lexer (symbol)
 import Text.Megaparsec.Error (ParseErrorBundle, ShowErrorComponent(..))
 
-import qualified Lorentz.Contracts.Multisig.Generic as MSig
+import Lorentz.Contracts.Multisig
 import Michelson.Text (mt)
 import Tezos.Address (Address, parseAddress)
 import Tezos.Crypto (PublicKey, Signature, parsePublicKey, parseSignature)
@@ -289,16 +289,16 @@ clientArgRawParser = Opt.hsubparser $
       mkCommandParser
       "deployMultisigContract"
       (CmdDeployMultisigContract <$>
-       (MSig.Threshold <$> natOption "threshold" "Generic multisig threshold") <*>
-       (MSig.Keys <$> many publicKeyOption) <*>
+       (Threshold <$> natOption "threshold" "Specialized multisig threshold") <*>
+       (Keys <$> many publicKeyOption) <*>
        customErrorsFlag
       )
-      "Deploy generic multisig contract to the chain"
+      "Deploy specialized multisig contract to the chain"
       where
         customErrorsFlag = switch
           (long "use-custom-errors" <>
-           help "By default generic multisig contract fails with 'unit' in all error cases.\n\
-                \This flag will deploy the custom version of generic multisig\n\
+           help "By default specialized multisig contract fails with 'unit' in all error cases.\n\
+                \This flag will deploy the custom version of specialized multisig\n\
                 \contract with human-readable string errors.")
 
     callbackParser :: Opt.Parser (Maybe AddrOrAlias)

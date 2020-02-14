@@ -10,7 +10,8 @@ Changes that affect Michelson code are tagged with `[CONTRACT]`.
 
 Unreleased
 ==========
-
+* [#96](https://github.com/serokell/tezos-btc/pull/96)
+  - Use specialized multisig contract instead of generic multisig contract.
 * [#94](https://github.com/serokell/tezos-btc/pull/94)
   - Add upgradeability description to automatically generated documentation.
   - [CONTRACT] Slightly update upgrade mechanism, now user have to provide not only
