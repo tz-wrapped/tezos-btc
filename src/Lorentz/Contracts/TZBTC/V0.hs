@@ -92,7 +92,7 @@ instance DocItem (DEntryPoint SafeEntryPointKind) where
   docItemToMarkdown = diEntryPointToMarkdown
 
 safeEntrypoints :: Entrypoint (SafeParameter TZBTCv0) UStoreV0
-safeEntrypoints = entryCase @(SafeParameter TZBTCv0) (Proxy @UpgradeableEntryPointKind)
+safeEntrypoints = entryCase @(SafeParameter TZBTCv0) (Proxy @SafeEntryPointKind)
   ( #cRun /-> do
       doc $ DDescription runDoc
       executeRun
