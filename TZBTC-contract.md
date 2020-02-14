@@ -6,13 +6,20 @@
 
 # TZBTC
 
-**Code revision:** [b9e8db9](https://github.com/serokell/tezos-btc/commit/b9e8db9465ade6535fff5198a48c89ff392f37e0) *(Wed Feb 12 19:02:09 2020 +0300)*
+**Code revision:** [7a98739](https://github.com/serokell/tezos-btc/commit/7a9873967e78a9cfda6aa719ae8ada7d3761c4ea) *(Fri Feb 14 20:43:16 2020 +0300)*
 
 This contract is implemented using Lorentz language.
 Basically, this contract is [FA1.2](https://gitlab.com/serokell/morley/tzip/blob/master/A/FA1.2.md)-compatible approvable ledger that maps user addresses to their token balances. The main idea of this token contract is to provide 1-to-1 correspondance with BTC.
 There are two special entities for this contract:
 * `owner` -- owner of the TZBTC contract, capable in unpausing contract, adding/removing operators, transfering ownership and upgrading contract. There is only one owner of the contract.
 * `operator` -- entity which is capable in pausing the contract minting and burning tokens. There may be several operators added by the owner.
+
+## Contract upgradeability
+
+This contract uses upgradeability approach described [here](https://gitlab.com/morley-framework/morley/-/blob/cafbac182c0f77cdda3c78aabc453b4ed01f41cc/docs/upgradeableContracts.md#section-2-administrator-forced-upgrades).
+This mechanism provides adminstrator-forced address-preserving upgradeability
+approach. For more information check out the doc referenced earlier.
+
 
 ## Top-level entry points of upgradeable contract.
 
@@ -326,7 +333,7 @@ These are entry points of the contract.
 
 ##### `Run`
 
-This entry point is used to call the packed entrypoints in the contract.
+This entrypoint extracts contract code kept in storage under the corresponding name and executes it on an argument supplied via `UParam`.
 
 **Parameter:** [`UParam`](#types-Upgradable-parameter)
 
@@ -358,8 +365,14 @@ Pass resulting value as parameter to the contract.
 ##### `Upgrade`
 
 This entry point is used to update the contract to a new version.
+Consider using this entrypoint when your upgrade to the new version isn't very large,
+otherwise, transaction with this entrypoint call won't fit instruction size limit.
+If this is your case, consider using entrypoint-wise upgrade. This entrypoint
+basically exchange `code` field in the storage and upgrade `dataMap` using
+provided migration lambda.
 
-**Parameter:** (***newVersion*** : [`Version`](#types-Version), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript), ***newCode*** : [`UContractRouter`](#types-UContractRouter), ***newPermCode*** : [`PermanentImpl`](#types-PermanentImpl))
+
+**Parameter:** (***currentVersion*** : [`Version`](#types-Version), ***newVersion*** : [`Version`](#types-Version), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript), ***newCode*** : [`Maybe`](#types-Maybe) [`UContractRouter`](#types-UContractRouter), ***newPermCode*** : [`Maybe`](#types-Maybe) [`PermanentImpl`](#types-PermanentImpl))
 
 <details>
   <summary><b>How to call this entry point</b></summary>
@@ -384,6 +397,8 @@ Pass resulting value as parameter to the contract.
 
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
+* [`UpgVersionMismatch`](#errors-UpgVersionMismatch) — Current contract version differs from the one passed in the upgrade.
+
 
 
 ---
@@ -392,7 +407,7 @@ Pass resulting value as parameter to the contract.
 
 This entry point is used to start an entrypoint wise upgrade of the contract.
 
-**Parameter:** [`Version`](#types-Version)
+**Parameter:** (***current*** : [`Version`](#types-Version), ***new*** : [`Version`](#types-Version))
 
 <details>
   <summary><b>How to call this entry point</b></summary>
@@ -417,13 +432,15 @@ Pass resulting value as parameter to the contract.
 
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
+* [`UpgVersionMismatch`](#errors-UpgVersionMismatch) — Current contract version differs from the one passed in the upgrade.
+
 
 
 ---
 
 ##### `EpwApplyMigration`
 
-This entry point is used to apply an migration script as part of an upgrade.
+This entry point is used to apply a storage migration script as part of an upgrade.
 
 **Parameter:** ***migrationscript*** : [`MigrationScript`](#types-MigrationScript)
 
@@ -937,7 +954,7 @@ The sender has to be the `new owner`.
 
 ### `Run`
 
-This entry point is used to call the packed entrypoints in the contract.
+This entrypoint extracts contract code kept in storage under the corresponding name and executes it on an argument supplied via `UParam`.
 
 **Parameter:** [`UParam`](#types-Upgradable-parameter)
 
@@ -969,8 +986,14 @@ Pass resulting value as parameter to the contract.
 ### `Upgrade`
 
 This entry point is used to update the contract to a new version.
+Consider using this entrypoint when your upgrade to the new version isn't very large,
+otherwise, transaction with this entrypoint call won't fit instruction size limit.
+If this is your case, consider using entrypoint-wise upgrade. This entrypoint
+basically exchange `code` field in the storage and upgrade `dataMap` using
+provided migration lambda.
 
-**Parameter:** (***newVersion*** : [`Version`](#types-Version), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript), ***newCode*** : [`UContractRouter`](#types-UContractRouter), ***newPermCode*** : [`PermanentImpl`](#types-PermanentImpl))
+
+**Parameter:** (***currentVersion*** : [`Version`](#types-Version), ***newVersion*** : [`Version`](#types-Version), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript), ***newCode*** : [`Maybe`](#types-Maybe) [`UContractRouter`](#types-UContractRouter), ***newPermCode*** : [`Maybe`](#types-Maybe) [`PermanentImpl`](#types-PermanentImpl))
 
 <details>
   <summary><b>How to call this entry point</b></summary>
@@ -995,6 +1018,8 @@ Pass resulting value as parameter to the contract.
 
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
+* [`UpgVersionMismatch`](#errors-UpgVersionMismatch) — Current contract version differs from the one passed in the upgrade.
+
 
 
 ---
@@ -1003,7 +1028,7 @@ Pass resulting value as parameter to the contract.
 
 This entry point is used to start an entrypoint wise upgrade of the contract.
 
-**Parameter:** [`Version`](#types-Version)
+**Parameter:** (***current*** : [`Version`](#types-Version), ***new*** : [`Version`](#types-Version))
 
 <details>
   <summary><b>How to call this entry point</b></summary>
@@ -1028,13 +1053,15 @@ Pass resulting value as parameter to the contract.
 
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
+* [`UpgVersionMismatch`](#errors-UpgVersionMismatch) — Current contract version differs from the one passed in the upgrade.
+
 
 
 ---
 
 ### `EpwApplyMigration`
 
-This entry point is used to apply an migration script as part of an upgrade.
+This entry point is used to apply a storage migration script as part of an upgrade.
 
 **Parameter:** ***migrationscript*** : [`MigrationScript`](#types-MigrationScript)
 
@@ -1542,6 +1569,21 @@ The sender has to be the `new owner`.
 
 
 
+## Storage
+
+---
+
+### `Storage`
+
+Type which defines storage of the upgradeable contract.
+It contains UStore with data related to actual contract logic and fields which relate to upgradeability logic.
+
+**Structure:** (***dataMap*** :[`UStore`](#types-Upgradeable-storage), ***fields*** :[`StorageFields`](#types-StorageFields))
+
+**Final Michelson representation:** `pair (big_map bytes bytes) (pair (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))) (pair nat bool))`
+
+
+
 
 
 
@@ -1588,15 +1630,15 @@ Tuple of size 3.
 
 
 
-<a name="types-lparenacomma-bcomma-ccomma-drparen"></a>
+<a name="types-lparenacomma-bcomma-ccomma-dcomma-erparen"></a>
 
 ---
 
-### `(a, b, c, d)`
+### `(a, b, c, d, e)`
 
-Tuple of size 4.
+Tuple of size 5.
 
-**Final Michelson representation (example):** `((),(),(),())` = `pair (pair unit unit) (pair unit unit)`
+**Final Michelson representation (example):** `((),(),(),(),())` = `pair (pair unit unit) (pair unit (pair unit unit))`
 
 
 
@@ -1621,6 +1663,18 @@ This is similar to Michelson Address, but does not retain entrypoint name if it 
 BigMap primitive.
 
 **Final Michelson representation (example):** `BigMap Integer Natural` = `big_map int nat`
+
+
+
+<a name="types-Bool"></a>
+
+---
+
+### `Bool`
+
+Bool primitive.
+
+**Final Michelson representation:** `bool`
 
 
 
@@ -1688,6 +1742,18 @@ List primitive.
 
 
 
+<a name="types-Maybe"></a>
+
+---
+
+### `Maybe`
+
+Option primitive.
+
+**Final Michelson representation (example):** `Maybe Integer` = `option int`
+
+
+
 <a name="types-MigrationScript"></a>
 
 ---
@@ -1750,8 +1816,8 @@ Parameter which does not have unsafe arguments, like raw `Contract p` values.
 
 **Structure:** *one of* 
 + **Run** [`UParam`](#types-Upgradable-parameter)
-+ **Upgrade** (***newVersion*** : [`Version`](#types-Version), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript), ***newCode*** : [`UContractRouter`](#types-UContractRouter), ***newPermCode*** : [`PermanentImpl`](#types-PermanentImpl))
-+ **EpwBeginUpgrade** [`Version`](#types-Version)
++ **Upgrade** (***currentVersion*** : [`Version`](#types-Version), ***newVersion*** : [`Version`](#types-Version), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript), ***newCode*** : [`Maybe`](#types-Maybe) [`UContractRouter`](#types-UContractRouter), ***newPermCode*** : [`Maybe`](#types-Maybe) [`PermanentImpl`](#types-PermanentImpl))
++ **EpwBeginUpgrade** (***current*** : [`Version`](#types-Version), ***new*** : [`Version`](#types-Version))
 + **EpwApplyMigration** (***migrationscript*** : [`MigrationScript`](#types-MigrationScript))
 + **EpwSetCode** (***contractcode*** : [`UContractRouter`](#types-UContractRouter))
 + **EpwFinishUpgrade** ()
@@ -1768,7 +1834,7 @@ Parameter which does not have unsafe arguments, like raw `Contract p` values.
 + **AcceptOwnership** [`()`](#types-lparenrparen)
 
 
-**Final Michelson representation:** `or (or (or (or (pair string bytes) (pair (pair nat (lambda (big_map bytes bytes) (big_map bytes bytes))) (pair (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))) (lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))))) (or nat (lambda (big_map bytes bytes) (big_map bytes bytes)))) (or (or (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))) unit) (or (pair address (pair address nat)) (pair address nat)))) (or (or (or (pair address nat) nat) (or address address)) (or (or address unit) (or unit (or address unit))))`
+**Final Michelson representation:** `or (or (or (or (pair string bytes) (pair (pair nat nat) (pair (lambda (big_map bytes bytes) (big_map bytes bytes)) (pair (option (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))) (option (lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))))))) (or (pair nat nat) (lambda (big_map bytes bytes) (big_map bytes bytes)))) (or (or (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))) unit) (or (pair address (pair address nat)) (pair address nat)))) (or (or (or (pair address nat) nat) (or address address)) (or (or address unit) (or unit (or address unit))))`
 
 
 
@@ -1783,6 +1849,21 @@ Implementation of permanent entrypoints.
 **Structure:** ***unPermanentImpl*** :[`Code`](#types-Code-lparenextended-lambdarparen) **[**[`Empty`](#types-Empty)**,** [`UStore`](#types-Upgradeable-storage)**]** **[**([`List`](#types-List) [`Operation`](#types-Operation), [`UStore`](#types-Upgradeable-storage))**]**
 
 **Final Michelson representation:** `lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))`
+
+
+
+<a name="types-StorageFields"></a>
+
+---
+
+### `StorageFields`
+
+StorageFields of upgradeable contract.
+This type keeps general information about upgradeable contract and the logic responsible for calling entrypoints implementations kept in UStore.
+
+**Structure:** (***contractRouter*** :[`UContractRouter`](#types-UContractRouter), ***currentVersion*** :[`Version`](#types-Version), ***migrating*** :[`Bool`](#types-Bool))
+
+**Final Michelson representation:** `pair (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))) (pair nat bool)`
 
 
 
@@ -1819,7 +1900,7 @@ Parameter dispatching logic, main purpose of this code is to pass control to an 
 
 ### `Upgradable parameter`
 
-<UParam description>
+This type encapsulates parameter for one of entry points. It keeps entry point name and corresponding argument serialized.
 
 **Structure:** ([`Text`](#types-Text), [`ByteString`](#types-ByteString))
 
@@ -1833,7 +1914,7 @@ Parameter dispatching logic, main purpose of this code is to pass control to an 
 
 ### `Upgradeable storage`
 
-Storage with not hardcoded structure, which allows upgrading the contract in place.
+Storage with not hardcoded structure, which allows upgrading the contract in place. UStore is capable of storing simple fields and multiple submaps. For simple fields key is serialized field name. For submap element big_map key is serialized `(submapName, keyValue)`.
 
 **Structure:** ***unUStore*** :[`BigMap`](#types-BigMap) [`ByteString`](#types-ByteString) [`ByteString`](#types-ByteString)
 
@@ -2050,4 +2131,18 @@ Provided error argument will be of type [`Natural`](#types-Natural) and stand fo
 **Fires if:** An migration related operation was requested when contract is not in a state of migration
 
 **Representation:** `("UpgContractIsNotMigrating", ())`.
+
+<a name="errors-UpgVersionMismatch"></a>
+
+---
+
+### `UpgVersionMismatch`
+
+**Class:** Action exception
+
+**Fires if:** Current contract version differs from the one passed in the upgrade.
+
+**Representation:** `("UpgVersionMismatch", <error argument>)`.
+
+Provided error argument will be of type (***expectedCurrent*** : [`Version`](#types-Version), ***actualCurrent*** : [`Version`](#types-Version)).
 
