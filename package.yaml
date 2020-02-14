@@ -64,6 +64,7 @@ executables:
       - fmt
       - morley-prelude
       - morley
+      - morley-multisig
       - optparse-applicative
       - safe-exceptions
       - tzbtc

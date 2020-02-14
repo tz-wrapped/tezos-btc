@@ -25,8 +25,9 @@ import Paths_tzbtc (version)
 import CLI.Parser
 import Client.IO ()
 import Lorentz.Contracts.TZBTC
-  (OriginationParameters(..), Parameter, TZBTCv1, migrationScripts, mkEmptyStorageV0,
-  tzbtcContract, tzbtcContractRouter, tzbtcDoc)
+  ( OriginationParameters(..), Parameter, TZBTCv1,migrationScripts, mkEmptyStorageV0
+  , tzbtcContract, tzbtcContractRouter, tzbtcDoc)
+import Lorentz.Contracts.Multisig
 import Lorentz.Contracts.TZBTC.Test (mkTestScenario)
 import Util.AbstractIO
 import Util.Migration
@@ -40,6 +41,10 @@ main = do
   case cmd of
     CmdPrintContract singleLine mbFilePath ->
       printContract singleLine mbFilePath tzbtcContract
+    CmdPrintMultisigContract singleLine customErrorsFlag mbFilePath ->
+      if customErrorsFlag
+        then printContract singleLine mbFilePath (multisigContract @'CustomErrors)
+        else printContract singleLine mbFilePath (multisigContract @'BaseErrors)
     CmdPrintInitialStorage ownerAddress -> do
       printTextLn $ printLorentzValue True (mkEmptyStorageV0 ownerAddress)
     CmdPrintDoc mbFilePath ->
@@ -70,6 +75,11 @@ main = do
           makeMigrationParams version_ tzbtcContractRouter $
             (migrationScripts originationParams)
   where
+    multisigContract
+      :: forall (e :: ErrorsKind).
+        (Typeable e, ErrorHandler e)
+      => Contract MSigParameter MSigStorage
+    multisigContract = tzbtcMultisigContract @e
     printContract
       :: ( NiceParameterFull parameter
          , NiceStorage storage

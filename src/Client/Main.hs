@@ -16,7 +16,7 @@ import Options.Applicative
 import Options.Applicative.Help.Pretty (Doc, linebreak)
 
 import Lorentz hiding (address, balance, chainId, cons, map)
-import qualified Lorentz.Contracts.Multisig.Generic as MSig
+import Lorentz.Contracts.Multisig
 import Lorentz.Macro (View(..))
 import Paths_tzbtc (version)
 import Util.Named ((.!))
@@ -170,7 +170,7 @@ mainProgram = do
               }
           deployTzbtcContract originationParams
         CmdDeployMultisigContract threshold keys' useCustomErrors -> do
-          deployMultisigContract ((MSig.Counter 0), (threshold, keys')) useCustomErrors
+          deployMultisigContract ((Counter 0), (threshold, keys')) useCustomErrors
         CmdShowConfig -> do
           config <- readConfig
           case config of

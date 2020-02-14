@@ -34,6 +34,7 @@ import Util.Named
 data CmdLnArgs
   = CmdPrintInitialStorage Address
   | CmdPrintContract Bool (Maybe FilePath)
+  | CmdPrintMultisigContract Bool Bool (Maybe FilePath)
   | CmdPrintDoc (Maybe FilePath)
   | CmdParseParameter Text
   | CmdTestScenario TestScenarioOptions
@@ -53,7 +54,7 @@ data TestScenarioOptions = TestScenarioOptions
 
 argParser :: Opt.Parser CmdLnArgs
 argParser = hsubparser $
-  printCmd
+  printCmd <> printMultisigCmd
   <> printInitialStorageCmd <> printDoc
   <> parseParameterCmd <> testScenarioCmd <> migrateCmd
   where
@@ -65,6 +66,18 @@ argParser = hsubparser $
         "printContract"
         (CmdPrintContract <$> singleLineSwitch <*> outputOption)
         "Print token contract")
+    printMultisigCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
+    printMultisigCmd =
+      (mkCommandParser
+        "printMultisigContract"
+        (CmdPrintMultisigContract <$> singleLineSwitch <*> customErrorsFlag <*> outputOption)
+        "Print token contract")
+      where
+        customErrorsFlag = switch
+          (long "use-custom-errors" <>
+           help "By default the multisig contract fails with 'unit' in all error cases.\n\
+                \This flag will deploy the custom version of multisig\n\
+                \contract with human-readable string errors.")
     printInitialStorageCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     printInitialStorageCmd =
       (mkCommandParser

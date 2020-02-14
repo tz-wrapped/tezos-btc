@@ -47,10 +47,10 @@ import Tezos.V005.Micheline
 
 import Michelson.Text (MText)
 import Michelson.Typed (IsoValue)
-import qualified Lorentz.Contracts.Multisig.Generic as MSig
 import Tezos.Address (Address)
 import Tezos.Crypto (PublicKey, Signature, encodeBase58Check, formatSignature)
 
+import Lorentz.Contracts.Multisig
 import Lorentz.Contracts.TZBTC.Types
 
 -- | Client argument with optional dry-run flag
@@ -86,7 +86,7 @@ data ClientArgsRaw
   | CmdSignPackage FilePath
   | CmdCallMultisig (NonEmpty FilePath)
   | CmdDeployContract !DeployContractOptions
-  | CmdDeployMultisigContract MSig.Threshold MSig.Keys Bool
+  | CmdDeployMultisigContract Threshold Keys Bool
   | CmdShowConfig
 
 data DeployContractOptions = DeployContractOptions

@@ -8,6 +8,11 @@
   stack exec -- tzbtc printContract
 }
 
+@test "invoking tzbtc 'printMultisigContract' command" {
+  stack exec -- tzbtc printMultisigContract
+  stack exec -- tzbtc printMultisigContract --use-custom-errors
+}
+
 @test "invoking tzbtc 'migrate' command" {
   stack exec -- tzbtc migrate --version 1 --ownerAddress "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --redeemAddress "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --tokenCode aa
 }
