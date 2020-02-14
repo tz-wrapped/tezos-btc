@@ -6,7 +6,7 @@
 
 # TZBTC
 
-**Code revision:** [7a98739](https://github.com/serokell/tezos-btc/commit/7a9873967e78a9cfda6aa719ae8ada7d3761c4ea) *(Fri Feb 14 20:43:16 2020 +0300)*
+**Code revision:** [ff7349b](https://github.com/serokell/tezos-btc/commit/ff7349b66028b7b899e9bc8e20d0f3e208ccca4d) *(Sat Feb 15 01:17:03 2020 +0530)*
 
 This contract is implemented using Lorentz language.
 Basically, this contract is [FA1.2](https://gitlab.com/serokell/morley/tzip/blob/master/A/FA1.2.md)-compatible approvable ledger that maps user addresses to their token balances. The main idea of this token contract is to provide 1-to-1 correspondance with BTC.
@@ -1687,6 +1687,20 @@ Bool primitive.
 Bytes primitive.
 
 **Final Michelson representation:** `bytes`
+
+
+
+<a name="types-Code-lparenextended-lambdarparen"></a>
+
+---
+
+### `Code (extended lambda)`
+
+`Code i o` stands for a sequence of instructions which accepts stack of type `i` and returns stack of type `o`.
+
+When both `i` and `o` are of length 1, this primitive corresponds to the Michelson lambda. In more complex cases code is surrounded with `pair`and `unpair` instructions until fits into mentioned restriction.
+
+**Final Michelson representation (example):** `Code [Integer, Natural, MText, ()] [ByteString]` = `lambda (pair (pair (pair int nat) string) unit) bytes`
 
 
 
