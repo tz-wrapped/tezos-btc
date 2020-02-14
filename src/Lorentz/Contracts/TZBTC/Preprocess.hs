@@ -22,7 +22,7 @@ import Lorentz.Contracts.TZBTC.V0
 import Lorentz.Contracts.TZBTC.V1
   (StoreTemplate, TZBTCv1, migrationScriptsRaw, tzbtcContractRouterRaw)
 import Lorentz.Contracts.Upgradeable.Common.Base
-import Lorentz.Contracts.Upgradeable.Common.Contract
+import Lorentz.Contracts.Upgradeable.Common.Interface
   (EpwUpgradeParameters(..), makeOneShotUpgradeParameters)
 import Lorentz.UStore.Migration
 
@@ -48,9 +48,7 @@ upgradeParameters op =
         Identity . manualConcatMigrationScripts $
         migrationScripts op
     , upNewCode = tzbtcContractRouter
-      -- [morley:#85] will make this field unnecessary
     , upNewPermCode = emptyPermanentImpl
-    , upOverrideNewVersion = Nothing
     }
 
 preprocess :: inp :-> out -> inp :-> out

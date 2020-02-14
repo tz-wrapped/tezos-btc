@@ -28,7 +28,7 @@ import qualified Lorentz.Contracts.TZBTC.Types as TZBTC
 data FlatParameter (ver :: VersionKind)
   = Run (VerParam ver)
   | Upgrade (OneShotUpgradeParameters ver)
-  | EpwBeginUpgrade Version
+  | EpwBeginUpgrade ("current" :! Version, "new" :! Version)
   | EpwApplyMigration (MigrationScriptFrom (VerUStoreTemplate ver))
   | EpwSetCode SomeUContractRouter
   | EpwFinishUpgrade

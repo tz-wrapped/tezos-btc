@@ -11,6 +11,10 @@ Changes that affect Michelson code are tagged with `[CONTRACT]`.
 Unreleased
 ==========
 
+* [#94](https://github.com/serokell/tezos-btc/pull/94)
+  - Add upgradeability description to automatically generated documentation.
+  - [CONTRACT] Slightly update upgrade mechanism, now user have to provide not only
+  new but also current version during the upgrade.
 * [#93](https://github.com/serokell/tezos-btc/pull/93)
   - Add command for deploying generic multisig contract to `tzbtc-client`.
 * [#81](https://github.com/serokell/tezos-btc/pull/81)

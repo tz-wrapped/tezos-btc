@@ -105,7 +105,6 @@ originateTzbtcV1ContractRaw redeem op = do
         manualConcatMigrationScripts (migrationScripts opTZBTC)
       , upNewCode = tzbtcContractRouter
       , upNewPermCode = emptyPermanentImpl
-      , upOverrideNewVersion = Nothing
       }
   withSender ownerAddress $ lCallDef c (fromFlatParameter $ Upgrade upgradeParams)
   pure $ coerce c

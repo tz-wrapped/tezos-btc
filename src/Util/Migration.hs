@@ -14,6 +14,7 @@ import Lorentz.Contracts.TZBTC
 import Lorentz.Contracts.TZBTC.V0
 import Lorentz.Contracts.Upgradeable.Common
   (MigrationScript, UContractRouter, coerceUContractRouter)
+import Util.Named
 
 makeMigrationParams
   :: Natural
@@ -24,7 +25,7 @@ makeMigrationParams version contractCode scripts = case version of
   1 ->
     LT.intercalate "\n" $
       printLorentzValue @(Parameter TZBTCv0) True <$>
-        [ fromFlatParameter $ EpwBeginUpgrade 1
+        [ fromFlatParameter $ EpwBeginUpgrade (#current .! 0, #new .! 1)
         , fromFlatParameter $ EpwSetCode $ coerceUContractRouter contractCode
         ] ++ (fromFlatParameter . EpwApplyMigration . checkedCoerce <$> scripts)
           ++ [fromFlatParameter EpwFinishUpgrade]
