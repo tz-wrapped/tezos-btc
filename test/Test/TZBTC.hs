@@ -102,11 +102,12 @@ dummyOriginationParameters owner redeem balances = OriginationParameters
 originateTzbtcV1ContractRaw
   :: Address -> OriginationParams -> IntegrationalScenarioM (TAddress (Parameter SomeTZBTCVersion))
 originateTzbtcV1ContractRaw redeem op = do
+  let owner = ML.opAdmin op
   c <- lOriginate tzbtcContract "TZBTC Contract"
-    (mkEmptyStorageV0 ownerAddress) (toMutez 1000)
+    (mkEmptyStorageV0 owner) (toMutez 1000)
   let
     opTZBTC =
-      dummyOriginationParameters (ML.opAdmin op) redeem (ML.opBalances op)
+      dummyOriginationParameters owner redeem (ML.opBalances op)
     upgradeParams = makeOneShotUpgradeParameters @TZBTCv0 EpwUpgradeParameters
       { upMigrationScripts =
         Identity $
@@ -114,7 +115,7 @@ originateTzbtcV1ContractRaw redeem op = do
       , upNewCode = tzbtcContractRouter
       , upNewPermCode = emptyPermanentImpl
       }
-  withSender ownerAddress $ lCallDef c (fromFlatParameter $ Upgrade upgradeParams)
+  withSender owner $ lCallDef c (fromFlatParameter $ Upgrade upgradeParams)
   pure $ coerce c
 
 originateTzbtcV1Contract
