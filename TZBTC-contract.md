@@ -6,7 +6,7 @@
 
 # TZBTC
 
-**Code revision:** [cb7dd11](https://github.com/serokell/tezos-btc/commit/cb7dd11078e42bb27e1f6791c539f98e6371f105) *(Sun Feb 16 23:10:10 2020 +0300)*
+**Code revision:** [3a785c4](https://github.com/serokell/tezos-btc/commit/3a785c42c65759ef4fac2f943282b7468c988045) *(Sun Feb 16 23:54:01 2020 +0300)*
 
 This contract is implemented using Lorentz language.
 Basically, this contract is [FA1.2](https://gitlab.com/serokell/morley/tzip/blob/master/A/FA1.2.md)-compatible approvable ledger that maps user addresses to their token balances. The main idea of this token contract is to provide 1-to-1 correspondance with BTC.
@@ -292,13 +292,9 @@ This entry point is used to call the safe entrypoints of the contract. Entrypoin
 
 
 
-#### Top-level entry points of upgradeable contract.
-
-These are entry points of the contract.
-
 ---
 
-##### `run`
+#### `run`
 
 This entrypoint extracts contract code kept in storage under the corresponding name and executes it on an argument supplied via `UParam`.
 
@@ -323,7 +319,7 @@ This entrypoint extracts contract code kept in storage under the corresponding n
 
 ---
 
-##### `upgrade`
+#### `upgrade`
 
 This entry point is used to update the contract to a new version.
 Consider using this entrypoint when your upgrade to the new version isn't very large,
@@ -358,7 +354,7 @@ provided migration lambda.
 
 ---
 
-##### `epwBeginUpgrade`
+#### `epwBeginUpgrade`
 
 This entry point is used to start an entrypoint wise upgrade of the contract.
 
@@ -387,7 +383,7 @@ This entry point is used to start an entrypoint wise upgrade of the contract.
 
 ---
 
-##### `epwApplyMigration`
+#### `epwApplyMigration`
 
 This entry point is used to apply a storage migration script as part of an upgrade.
 
@@ -414,7 +410,7 @@ This entry point is used to apply a storage migration script as part of an upgra
 
 ---
 
-##### `epwSetCode`
+#### `epwSetCode`
 
 This entry point is used to set the dispatching code that calls the packed entrypoints.
 
@@ -441,7 +437,7 @@ This entry point is used to set the dispatching code that calls the packed entry
 
 ---
 
-##### `epwFinishUpgrade`
+#### `epwFinishUpgrade`
 
 This entry point is used to mark that an upgrade has been finsihed.
 
@@ -466,7 +462,7 @@ This entry point is used to mark that an upgrade has been finsihed.
 
 ---
 
-##### `transfer`
+#### `transfer`
 
 Transfers tokens between two given accounts.
 
@@ -507,7 +503,7 @@ In this case current number of tokens that sender is allowed to withdraw from th
 
 ---
 
-##### `approve`
+#### `approve`
 
 When called with `(address :spender, nat :value)`
 parameters allows `spender` account to withdraw from the sender, multiple times,
@@ -548,7 +544,7 @@ forbidden to prevent the [corresponding attack vector](https://docs.google.com/d
 
 ---
 
-##### `mint`
+#### `mint`
 
 This entry point is used mint new tokes for an account.
 
@@ -577,7 +573,7 @@ The sender has to be the `operator`.
 
 ---
 
-##### `burn`
+#### `burn`
 
 Burn some tokens from the `redeem` address.
 
@@ -608,7 +604,7 @@ The sender has to be the `operator`.
 
 ---
 
-##### `addOperator`
+#### `addOperator`
 
 This entry point is used to add a new operator.
 
@@ -637,7 +633,7 @@ The sender has to be the `owner`.
 
 ---
 
-##### `removeOperator`
+#### `removeOperator`
 
 This entry point is used to remove an operator.
 
@@ -666,7 +662,7 @@ The sender has to be the `owner`.
 
 ---
 
-##### `setRedeemAddress`
+#### `setRedeemAddress`
 
 This entry point is used to set the redeem address.
 
@@ -695,7 +691,7 @@ The sender has to be the `owner`.
 
 ---
 
-##### `pause`
+#### `pause`
 
 This entry point is used to pause the contract.
 
@@ -724,7 +720,7 @@ The sender has to be the `operator`.
 
 ---
 
-##### `unpause`
+#### `unpause`
 
 This entry point is used to resume the contract during a paused state.
 
@@ -753,7 +749,7 @@ The sender has to be the `owner`.
 
 ---
 
-##### `transferOwnership`
+#### `transferOwnership`
 
 This entry point is used to transfer ownership to a new owner.
 
@@ -782,7 +778,7 @@ The sender has to be the `owner`.
 
 ---
 
-##### `acceptOwnership`
+#### `acceptOwnership`
 
 This entry point is used to accept ownership by a new owner.
 
@@ -810,521 +806,6 @@ The sender has to be the `new owner`.
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
-
-
-
----
-
-### `run`
-
-This entrypoint extracts contract code kept in storage under the corresponding name and executes it on an argument supplied via `UParam`.
-
-**Argument:** 
-  + **In Haskell:** [`UParam`](#types-Upgradable-parameter)
-  + **In Michelson:** `(pair string bytes)`
-
-<details>
-  <summary><b>How to call this entrypoint</b></summary>
-
-0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
-</details>
-<p>
-
-
-
-**Possible errors:**
-* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
-
-
-
----
-
-### `upgrade`
-
-This entry point is used to update the contract to a new version.
-Consider using this entrypoint when your upgrade to the new version isn't very large,
-otherwise, transaction with this entrypoint call won't fit instruction size limit.
-If this is your case, consider using entrypoint-wise upgrade. This entrypoint
-basically exchange `code` field in the storage and upgrade `dataMap` using
-provided migration lambda.
-
-
-**Argument:** 
-  + **In Haskell:** (***currentVersion*** : [`Version`](#types-Version), ***newVersion*** : [`Version`](#types-Version), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript), ***newCode*** : [`Maybe`](#types-Maybe) [`UContractRouter`](#types-UContractRouter), ***newPermCode*** : [`Maybe`](#types-Maybe) [`PermanentImpl`](#types-PermanentImpl))
-  + **In Michelson:** `(pair (pair (nat :currentVersion) (nat :newVersion)) (pair (lambda :migrationScript (big_map bytes bytes) (big_map bytes bytes)) (pair (option :newCode (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))) (option :newPermCode (lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))))))`
-
-<details>
-  <summary><b>How to call this entrypoint</b></summary>
-
-0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
-</details>
-<p>
-
-
-
-**Possible errors:**
-* [`SenderIsNotOwner`](#errors-SenderIsNotOwner) — Sender has to be an owner to call this entrypoint
-
-* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
-
-* [`UpgVersionMismatch`](#errors-UpgVersionMismatch) — Current contract version differs from the one passed in the upgrade.
-
-
-
----
-
-### `epwBeginUpgrade`
-
-This entry point is used to start an entrypoint wise upgrade of the contract.
-
-**Argument:** 
-  + **In Haskell:** (***current*** : [`Version`](#types-Version), ***new*** : [`Version`](#types-Version))
-  + **In Michelson:** `(pair (nat :current) (nat :new))`
-
-<details>
-  <summary><b>How to call this entrypoint</b></summary>
-
-0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
-</details>
-<p>
-
-
-
-**Possible errors:**
-* [`SenderIsNotOwner`](#errors-SenderIsNotOwner) — Sender has to be an owner to call this entrypoint
-
-* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
-
-* [`UpgVersionMismatch`](#errors-UpgVersionMismatch) — Current contract version differs from the one passed in the upgrade.
-
-
-
----
-
-### `epwApplyMigration`
-
-This entry point is used to apply a storage migration script as part of an upgrade.
-
-**Argument:** 
-  + **In Haskell:** ***migrationscript*** : [`MigrationScript`](#types-MigrationScript)
-  + **In Michelson:** `(lambda :migrationscript (big_map bytes bytes) (big_map bytes bytes))`
-
-<details>
-  <summary><b>How to call this entrypoint</b></summary>
-
-0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
-</details>
-<p>
-
-
-
-**Possible errors:**
-* [`SenderIsNotOwner`](#errors-SenderIsNotOwner) — Sender has to be an owner to call this entrypoint
-
-* [`UpgContractIsNotMigrating`](#errors-UpgContractIsNotMigrating) — An migration related operation was requested when contract is not in a state of migration
-
-
-
----
-
-### `epwSetCode`
-
-This entry point is used to set the dispatching code that calls the packed entrypoints.
-
-**Argument:** 
-  + **In Haskell:** ***contractcode*** : [`UContractRouter`](#types-UContractRouter)
-  + **In Michelson:** `(lambda :contractcode (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))`
-
-<details>
-  <summary><b>How to call this entrypoint</b></summary>
-
-0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
-</details>
-<p>
-
-
-
-**Possible errors:**
-* [`SenderIsNotOwner`](#errors-SenderIsNotOwner) — Sender has to be an owner to call this entrypoint
-
-* [`UpgContractIsNotMigrating`](#errors-UpgContractIsNotMigrating) — An migration related operation was requested when contract is not in a state of migration
-
-
-
----
-
-### `epwFinishUpgrade`
-
-This entry point is used to mark that an upgrade has been finsihed.
-
-**Argument:** none (pass unit)
-
-<details>
-  <summary><b>How to call this entrypoint</b></summary>
-
-0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
-</details>
-<p>
-
-
-
-**Possible errors:**
-* [`SenderIsNotOwner`](#errors-SenderIsNotOwner) — Sender has to be an owner to call this entrypoint
-
-* [`UpgContractIsNotMigrating`](#errors-UpgContractIsNotMigrating) — An migration related operation was requested when contract is not in a state of migration
-
-
-
----
-
-### `transfer`
-
-Transfers tokens between two given accounts.
-
-This entrypoint serves multiple purposes:
-* When called with `"from"` account equal to the transaction sender, we assume that
-the user transfers their own money and this does not require approval.
-* Otherwise, the transaction sender must be previously authorized to transfer at least the requested number of tokens from the `"from"` account using the `approve` entrypoint.
-In this case current number of tokens that sender is allowed to withdraw from the `"from"` address is decreased by the number of transferred tokens.
-
-
-
-**Argument:** 
-  + **In Haskell:** (***from*** : [`Address`](#types-Address-simplified), ***to*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
-  + **In Michelson:** `(pair (address :from) (pair (address :to) (nat :value)))`
-
-<details>
-  <summary><b>How to call this entrypoint</b></summary>
-
-0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
-</details>
-<p>
-
-
-
-**Pausable:** Cannot be executed when token operations are paused.
-
-**Possible errors:**
-* [`TokenOperationsArePaused`](#errors-TokenOperationsArePaused) — Token functionality (`transfer` and similar entrypoints) is suspended.
-
-* [`NotEnoughAllowance`](#errors-NotEnoughAllowance) — Not enough funds allowance to perform the operation.
-
-* [`NotEnoughBalance`](#errors-NotEnoughBalance) — Not enough funds to perform the operation.
-
-* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
-
-
-
----
-
-### `approve`
-
-When called with `(address :spender, nat :value)`
-parameters allows `spender` account to withdraw from the sender, multiple times,
-up to the `value` amount.
-Each call of `transfer` entrypoint decreases the allowance amount on the transferred amount of tokens unless `transfer` is called with `from` account equal to sender.
-
-If this entrypoint is called again, it overwrites the current allowance
-with `value`.
-
-Changing allowance value from non-zero value to a non-zero value is
-forbidden to prevent the [corresponding attack vector](https://docs.google.com/document/d/1YLPtQxZu1UAvO9cZ1O2RPXBbT0mooh4DYKjA_jp-RLM).
-
-
-**Argument:** 
-  + **In Haskell:** (***spender*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
-  + **In Michelson:** `(pair (address :spender) (nat :value))`
-
-<details>
-  <summary><b>How to call this entrypoint</b></summary>
-
-0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
-</details>
-<p>
-
-
-
-**Pausable:** Cannot be executed when token operations are paused.
-
-**Possible errors:**
-* [`TokenOperationsArePaused`](#errors-TokenOperationsArePaused) — Token functionality (`transfer` and similar entrypoints) is suspended.
-
-* [`UnsafeAllowanceChange`](#errors-UnsafeAllowanceChange) — Allowance change from non-zero value to non-zero value is performed.
-
-* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
-
-
-
----
-
-### `mint`
-
-This entry point is used mint new tokes for an account.
-
-**Argument:** 
-  + **In Haskell:** (***to*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
-  + **In Michelson:** `(pair (address :to) (nat :value))`
-
-<details>
-  <summary><b>How to call this entrypoint</b></summary>
-
-0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
-</details>
-<p>
-
-
-
-The sender has to be the `operator`.
-
-**Possible errors:**
-* [`SenderIsNotOperator`](#errors-SenderIsNotOperator) — Sender has to be an operator to call this entrypoint
-
-* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
-
-
-
----
-
-### `burn`
-
-Burn some tokens from the `redeem` address.
-
-**Argument:** 
-  + **In Haskell:** ***value*** : [`Natural`](#types-Natural)
-  + **In Michelson:** `(nat :value)`
-
-<details>
-  <summary><b>How to call this entrypoint</b></summary>
-
-0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
-</details>
-<p>
-
-
-
-The sender has to be the `operator`.
-
-**Possible errors:**
-* [`SenderIsNotOperator`](#errors-SenderIsNotOperator) — Sender has to be an operator to call this entrypoint
-
-* [`NotEnoughBalance`](#errors-NotEnoughBalance) — Not enough funds to perform the operation.
-
-* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
-
-
-
----
-
-### `addOperator`
-
-This entry point is used to add a new operator.
-
-**Argument:** 
-  + **In Haskell:** ***operator*** : [`Address`](#types-Address-simplified)
-  + **In Michelson:** `(address :operator)`
-
-<details>
-  <summary><b>How to call this entrypoint</b></summary>
-
-0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
-</details>
-<p>
-
-
-
-The sender has to be the `owner`.
-
-**Possible errors:**
-* [`SenderIsNotOwner`](#errors-SenderIsNotOwner) — Sender has to be an owner to call this entrypoint
-
-* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
-
-
-
----
-
-### `removeOperator`
-
-This entry point is used to remove an operator.
-
-**Argument:** 
-  + **In Haskell:** ***operator*** : [`Address`](#types-Address-simplified)
-  + **In Michelson:** `(address :operator)`
-
-<details>
-  <summary><b>How to call this entrypoint</b></summary>
-
-0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
-</details>
-<p>
-
-
-
-The sender has to be the `owner`.
-
-**Possible errors:**
-* [`SenderIsNotOwner`](#errors-SenderIsNotOwner) — Sender has to be an owner to call this entrypoint
-
-* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
-
-
-
----
-
-### `setRedeemAddress`
-
-This entry point is used to set the redeem address.
-
-**Argument:** 
-  + **In Haskell:** ***redeem*** : [`Address`](#types-Address-simplified)
-  + **In Michelson:** `(address :redeem)`
-
-<details>
-  <summary><b>How to call this entrypoint</b></summary>
-
-0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
-</details>
-<p>
-
-
-
-The sender has to be the `owner`.
-
-**Possible errors:**
-* [`SenderIsNotOwner`](#errors-SenderIsNotOwner) — Sender has to be an owner to call this entrypoint
-
-* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
-
-
-
----
-
-### `pause`
-
-This entry point is used to pause the contract.
-
-**Argument:** 
-  + **In Haskell:** [`()`](#types-lparenrparen)
-  + **In Michelson:** `unit`
-
-<details>
-  <summary><b>How to call this entrypoint</b></summary>
-
-0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
-</details>
-<p>
-
-
-
-The sender has to be the `operator`.
-
-**Possible errors:**
-* [`SenderIsNotOperator`](#errors-SenderIsNotOperator) — Sender has to be an operator to call this entrypoint
-
-* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
-
-
-
----
-
-### `unpause`
-
-This entry point is used to resume the contract during a paused state.
-
-**Argument:** 
-  + **In Haskell:** [`()`](#types-lparenrparen)
-  + **In Michelson:** `unit`
-
-<details>
-  <summary><b>How to call this entrypoint</b></summary>
-
-0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
-</details>
-<p>
-
-
-
-The sender has to be the `owner`.
-
-**Possible errors:**
-* [`SenderIsNotOwner`](#errors-SenderIsNotOwner) — Sender has to be an owner to call this entrypoint
-
-* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
-
-
-
----
-
-### `transferOwnership`
-
-This entry point is used to transfer ownership to a new owner.
-
-**Argument:** 
-  + **In Haskell:** ***newOwner*** : [`Address`](#types-Address-simplified)
-  + **In Michelson:** `(address :newOwner)`
-
-<details>
-  <summary><b>How to call this entrypoint</b></summary>
-
-0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
-</details>
-<p>
-
-
-
-The sender has to be the `owner`.
-
-**Possible errors:**
-* [`SenderIsNotOwner`](#errors-SenderIsNotOwner) — Sender has to be an owner to call this entrypoint
-
-* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
-
-
-
----
-
-### `acceptOwnership`
-
-This entry point is used to accept ownership by a new owner.
-
-**Argument:** 
-  + **In Haskell:** [`()`](#types-lparenrparen)
-  + **In Michelson:** `unit`
-
-<details>
-  <summary><b>How to call this entrypoint</b></summary>
-
-0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
-</details>
-<p>
-
-
-
-The sender has to be the `new owner`.
-
-**Possible errors:**
-* [`NotInTransferOwnershipMode`](#errors-NotInTransferOwnershipMode) — Cannot accept ownership before transfer process has been initiated by calling transferOwnership entrypoint
-
-* [`SenderIsNotNewOwner`](#errors-SenderIsNotNewOwner) — Cannot accept ownership because the sender address is different from the address passed to the transferOwnership entrypoint previously
-
-* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
 
