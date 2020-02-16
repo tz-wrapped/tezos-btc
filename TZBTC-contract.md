@@ -6,7 +6,7 @@
 
 # TZBTC
 
-**Code revision:** [ff7349b](https://github.com/serokell/tezos-btc/commit/ff7349b66028b7b899e9bc8e20d0f3e208ccca4d) *(Sat Feb 15 01:17:03 2020 +0530)*
+**Code revision:** [cb7dd11](https://github.com/serokell/tezos-btc/commit/cb7dd11078e42bb27e1f6791c539f98e6371f105) *(Sun Feb 16 23:10:10 2020 +0300)*
 
 This contract is implemented using Lorentz language.
 Basically, this contract is [FA1.2](https://gitlab.com/serokell/morley/tzip/blob/master/A/FA1.2.md)-compatible approvable ledger that maps user addresses to their token balances. The main idea of this token contract is to provide 1-to-1 correspondance with BTC.
@@ -16,7 +16,7 @@ There are two special entities for this contract:
 
 ## Contract upgradeability
 
-This contract uses upgradeability approach described [here](https://gitlab.com/morley-framework/morley/-/blob/cafbac182c0f77cdda3c78aabc453b4ed01f41cc/docs/upgradeableContracts.md#section-2-administrator-forced-upgrades).
+This contract uses upgradeability approach described [here](https://gitlab.com/morley-framework/morley/-/blob/a30dddb633ee880761c3cbf1d4a69ee040ffad25/docs/upgradeableContracts.md#section-2-administrator-forced-upgrades).
 This mechanism provides adminstrator-forced address-preserving upgradeability
 approach. For more information check out the doc referenced earlier.
 
@@ -27,22 +27,19 @@ These are entry points of the contract.
 
 ---
 
-### `GetVersion`
+### `getVersion`
 
 This entry point is used to get contract version.
 
-**Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Version`](#types-Version)
+**Argument:** 
+  + **In Haskell:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Version`](#types-Version)
+  + **In Michelson:** `(pair unit (contract nat))`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `GetVersion` constructor.
-    + **In Haskell:** `GetVersion (·)`
-    + **In Michelson:** `Left (Left (Left (·)))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -52,22 +49,19 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-### `GetAllowance`
+### `getAllowance`
 
 Returns the approval value between two given addresses.
 
-**Parameter:** [`View`](#types-View) (***owner*** : [`Address`](#types-Address-simplified), ***spender*** : [`Address`](#types-Address-simplified)) [`Natural`](#types-Natural)
+**Argument:** 
+  + **In Haskell:** [`View`](#types-View) (***owner*** : [`Address`](#types-Address-simplified), ***spender*** : [`Address`](#types-Address-simplified)) [`Natural`](#types-Natural)
+  + **In Michelson:** `(pair (pair (address :owner) (address :spender)) (contract nat))`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `GetAllowance` constructor.
-    + **In Haskell:** `GetAllowance (·)`
-    + **In Michelson:** `Left (Left (Right (·)))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -80,22 +74,19 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-### `GetBalance`
+### `getBalance`
 
 Returns the balance of the address in the ledger.
 
-**Parameter:** [`View`](#types-View) (***owner*** : [`Address`](#types-Address-simplified)) [`Natural`](#types-Natural)
+**Argument:** 
+  + **In Haskell:** [`View`](#types-View) (***owner*** : [`Address`](#types-Address-simplified)) [`Natural`](#types-Natural)
+  + **In Michelson:** `(pair (address :owner) (contract nat))`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `GetBalance` constructor.
-    + **In Haskell:** `GetBalance (·)`
-    + **In Michelson:** `Left (Right (Left (·)))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -108,22 +99,19 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-### `GetTotalSupply`
+### `getTotalSupply`
 
 Returns total number of tokens.
 
-**Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
+**Argument:** 
+  + **In Haskell:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
+  + **In Michelson:** `(pair unit (contract nat))`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `GetTotalSupply` constructor.
-    + **In Haskell:** `GetTotalSupply (·)`
-    + **In Michelson:** `Left (Right (Right (Left (·))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -136,22 +124,19 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-### `GetTotalMinted`
+### `getTotalMinted`
 
 This view returns the total number of minted tokens.
 
-**Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
+**Argument:** 
+  + **In Haskell:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
+  + **In Michelson:** `(pair unit (contract nat))`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `GetTotalMinted` constructor.
-    + **In Haskell:** `GetTotalMinted (·)`
-    + **In Michelson:** `Left (Right (Right (Right (·))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -164,22 +149,19 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-### `GetTotalBurned`
+### `getTotalBurned`
 
 This view returns the total number of burned tokens.
 
-**Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
+**Argument:** 
+  + **In Haskell:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
+  + **In Michelson:** `(pair unit (contract nat))`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `GetTotalBurned` constructor.
-    + **In Haskell:** `GetTotalBurned (·)`
-    + **In Michelson:** `Right (Left (Left (·)))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -192,22 +174,19 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-### `GetOwner`
+### `getOwner`
 
 This view returns the current contract owner.
 
-**Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Address`](#types-Address-simplified)
+**Argument:** 
+  + **In Haskell:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Address`](#types-Address-simplified)
+  + **In Michelson:** `(pair unit (contract address))`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `GetOwner` constructor.
-    + **In Haskell:** `GetOwner (·)`
-    + **In Michelson:** `Right (Left (Right (Left (·))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -220,22 +199,19 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-### `GetTokenName`
+### `getTokenName`
 
 This view returns the token name.
 
-**Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Text`](#types-Text)
+**Argument:** 
+  + **In Haskell:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Text`](#types-Text)
+  + **In Michelson:** `(pair unit (contract string))`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `GetTokenName` constructor.
-    + **In Haskell:** `GetTokenName (·)`
-    + **In Michelson:** `Right (Left (Right (Right (·))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -248,22 +224,19 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-### `GetTokenCode`
+### `getTokenCode`
 
 This view returns the token code.
 
-**Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Text`](#types-Text)
+**Argument:** 
+  + **In Haskell:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Text`](#types-Text)
+  + **In Michelson:** `(pair unit (contract string))`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `GetTokenCode` constructor.
-    + **In Haskell:** `GetTokenCode (·)`
-    + **In Michelson:** `Right (Right (Left (·)))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -276,22 +249,19 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-### `GetRedeemAddress`
+### `getRedeemAddress`
 
 This view returns the redeem address.
 
-**Parameter:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Address`](#types-Address-simplified)
+**Argument:** 
+  + **In Haskell:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Address`](#types-Address-simplified)
+  + **In Michelson:** `(pair unit (contract address))`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `GetRedeemAddress` constructor.
-    + **In Haskell:** `GetRedeemAddress (·)`
-    + **In Michelson:** `Right (Right (Right (Left (·))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -304,22 +274,19 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-### `SafeEntrypoints`
+### `safeEntrypoints`
 
 This entry point is used to call the safe entrypoints of the contract. Entrypoints are 'safe' because they don't have unsafe arguments, such as arguments with type `contract p` so that they can be safely used in operations that add them to the chain (since in babylon values with type `contract p` are prohibited in storage and code constants), in contrast to various Get* entrypoints, which have `contract p` and have to be handled additionally (basically, we have to pass simple `address` instead of `contract p` and call `CONTRACT`, which can fail).
 
-**Parameter:** [`Parameter.SafeParameter`](#types-Parameter.SafeParameter)
+**Argument:** 
+  + **In Haskell:** [`Parameter.SafeParameter`](#types-Parameter.SafeParameter)
+  + **In Michelson:** `(or (or (or (or (pair string bytes) (pair (pair (nat :currentVersion) (nat :newVersion)) (pair (lambda :migrationScript (big_map bytes bytes) (big_map bytes bytes)) (pair (option :newCode (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))) (option :newPermCode (lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))))))) (or (pair (nat :current) (nat :new)) (lambda :migrationscript (big_map bytes bytes) (big_map bytes bytes)))) (or (or (lambda :contractcode (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))) unit) (or (pair (address :from) (pair (address :to) (nat :value))) (pair (address :spender) (nat :value))))) (or (or (or (pair (address :to) (nat :value)) (nat :value)) (or (address :operator) (address :operator))) (or (or (address :redeem) unit) (or unit (or (address :newOwner) unit)))))`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (Right (·))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -331,25 +298,19 @@ These are entry points of the contract.
 
 ---
 
-##### `Run`
+##### `run`
 
 This entrypoint extracts contract code kept in storage under the corresponding name and executes it on an argument supplied via `UParam`.
 
-**Parameter:** [`UParam`](#types-Upgradable-parameter)
+**Argument:** 
+  + **In Haskell:** [`UParam`](#types-Upgradable-parameter)
+  + **In Michelson:** `(pair string bytes)`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `Run` constructor.
-    + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Left (Left (Left (Left (·))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (Right (·))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -362,7 +323,7 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-##### `Upgrade`
+##### `upgrade`
 
 This entry point is used to update the contract to a new version.
 Consider using this entrypoint when your upgrade to the new version isn't very large,
@@ -372,21 +333,15 @@ basically exchange `code` field in the storage and upgrade `dataMap` using
 provided migration lambda.
 
 
-**Parameter:** (***currentVersion*** : [`Version`](#types-Version), ***newVersion*** : [`Version`](#types-Version), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript), ***newCode*** : [`Maybe`](#types-Maybe) [`UContractRouter`](#types-UContractRouter), ***newPermCode*** : [`Maybe`](#types-Maybe) [`PermanentImpl`](#types-PermanentImpl))
+**Argument:** 
+  + **In Haskell:** (***currentVersion*** : [`Version`](#types-Version), ***newVersion*** : [`Version`](#types-Version), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript), ***newCode*** : [`Maybe`](#types-Maybe) [`UContractRouter`](#types-UContractRouter), ***newPermCode*** : [`Maybe`](#types-Maybe) [`PermanentImpl`](#types-PermanentImpl))
+  + **In Michelson:** `(pair (pair (nat :currentVersion) (nat :newVersion)) (pair (lambda :migrationScript (big_map bytes bytes) (big_map bytes bytes)) (pair (option :newCode (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))) (option :newPermCode (lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))))))`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `Upgrade` constructor.
-    + **In Haskell:** `Upgrade (·)`
-    + **In Michelson:** `Left (Left (Left (Right (·))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (Right (·))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -403,25 +358,19 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-##### `EpwBeginUpgrade`
+##### `epwBeginUpgrade`
 
 This entry point is used to start an entrypoint wise upgrade of the contract.
 
-**Parameter:** (***current*** : [`Version`](#types-Version), ***new*** : [`Version`](#types-Version))
+**Argument:** 
+  + **In Haskell:** (***current*** : [`Version`](#types-Version), ***new*** : [`Version`](#types-Version))
+  + **In Michelson:** `(pair (nat :current) (nat :new))`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `EpwBeginUpgrade` constructor.
-    + **In Haskell:** `EpwBeginUpgrade (·)`
-    + **In Michelson:** `Left (Left (Right (Left (·))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (Right (·))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -438,25 +387,19 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-##### `EpwApplyMigration`
+##### `epwApplyMigration`
 
 This entry point is used to apply a storage migration script as part of an upgrade.
 
-**Parameter:** ***migrationscript*** : [`MigrationScript`](#types-MigrationScript)
+**Argument:** 
+  + **In Haskell:** ***migrationscript*** : [`MigrationScript`](#types-MigrationScript)
+  + **In Michelson:** `(lambda :migrationscript (big_map bytes bytes) (big_map bytes bytes))`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `EpwApplyMigration` constructor.
-    + **In Haskell:** `EpwApplyMigration (·)`
-    + **In Michelson:** `Left (Left (Right (Right (·))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (Right (·))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -471,25 +414,19 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-##### `EpwSetCode`
+##### `epwSetCode`
 
 This entry point is used to set the dispatching code that calls the packed entrypoints.
 
-**Parameter:** ***contractcode*** : [`UContractRouter`](#types-UContractRouter)
+**Argument:** 
+  + **In Haskell:** ***contractcode*** : [`UContractRouter`](#types-UContractRouter)
+  + **In Michelson:** `(lambda :contractcode (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `EpwSetCode` constructor.
-    + **In Haskell:** `EpwSetCode (·)`
-    + **In Michelson:** `Left (Right (Left (Left (·))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (Right (·))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -504,25 +441,17 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-##### `EpwFinishUpgrade`
+##### `epwFinishUpgrade`
 
 This entry point is used to mark that an upgrade has been finsihed.
 
-**Parameter:** none (pass unit)
+**Argument:** none (pass unit)
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `EpwFinishUpgrade` constructor.
-    + **In Haskell:** `EpwFinishUpgrade (·)`
-    + **In Michelson:** `Left (Right (Left (Right (·))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (Right (·))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -537,7 +466,7 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-##### `Transfer`
+##### `transfer`
 
 Transfers tokens between two given accounts.
 
@@ -549,21 +478,15 @@ In this case current number of tokens that sender is allowed to withdraw from th
 
 
 
-**Parameter:** (***from*** : [`Address`](#types-Address-simplified), ***to*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
+**Argument:** 
+  + **In Haskell:** (***from*** : [`Address`](#types-Address-simplified), ***to*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
+  + **In Michelson:** `(pair (address :from) (pair (address :to) (nat :value)))`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `Transfer` constructor.
-    + **In Haskell:** `Transfer (·)`
-    + **In Michelson:** `Left (Right (Right (Left (·))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (Right (·))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -584,7 +507,7 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-##### `Approve`
+##### `approve`
 
 When called with `(address :spender, nat :value)`
 parameters allows `spender` account to withdraw from the sender, multiple times,
@@ -598,21 +521,15 @@ Changing allowance value from non-zero value to a non-zero value is
 forbidden to prevent the [corresponding attack vector](https://docs.google.com/document/d/1YLPtQxZu1UAvO9cZ1O2RPXBbT0mooh4DYKjA_jp-RLM).
 
 
-**Parameter:** (***spender*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
+**Argument:** 
+  + **In Haskell:** (***spender*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
+  + **In Michelson:** `(pair (address :spender) (nat :value))`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `Approve` constructor.
-    + **In Haskell:** `Approve (·)`
-    + **In Michelson:** `Left (Right (Right (Right (·))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (Right (·))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -631,25 +548,19 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-##### `Mint`
+##### `mint`
 
 This entry point is used mint new tokes for an account.
 
-**Parameter:** (***to*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
+**Argument:** 
+  + **In Haskell:** (***to*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
+  + **In Michelson:** `(pair (address :to) (nat :value))`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `Mint` constructor.
-    + **In Haskell:** `Mint (·)`
-    + **In Michelson:** `Right (Left (Left (Left (·))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (Right (·))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -666,25 +577,19 @@ The sender has to be the `operator`.
 
 ---
 
-##### `Burn`
+##### `burn`
 
 Burn some tokens from the `redeem` address.
 
-**Parameter:** ***value*** : [`Natural`](#types-Natural)
+**Argument:** 
+  + **In Haskell:** ***value*** : [`Natural`](#types-Natural)
+  + **In Michelson:** `(nat :value)`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `Burn` constructor.
-    + **In Haskell:** `Burn (·)`
-    + **In Michelson:** `Right (Left (Left (Right (·))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (Right (·))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -703,25 +608,19 @@ The sender has to be the `operator`.
 
 ---
 
-##### `AddOperator`
+##### `addOperator`
 
 This entry point is used to add a new operator.
 
-**Parameter:** ***operator*** : [`Address`](#types-Address-simplified)
+**Argument:** 
+  + **In Haskell:** ***operator*** : [`Address`](#types-Address-simplified)
+  + **In Michelson:** `(address :operator)`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `AddOperator` constructor.
-    + **In Haskell:** `AddOperator (·)`
-    + **In Michelson:** `Right (Left (Right (Left (·))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (Right (·))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -738,25 +637,19 @@ The sender has to be the `owner`.
 
 ---
 
-##### `RemoveOperator`
+##### `removeOperator`
 
 This entry point is used to remove an operator.
 
-**Parameter:** ***operator*** : [`Address`](#types-Address-simplified)
+**Argument:** 
+  + **In Haskell:** ***operator*** : [`Address`](#types-Address-simplified)
+  + **In Michelson:** `(address :operator)`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `RemoveOperator` constructor.
-    + **In Haskell:** `RemoveOperator (·)`
-    + **In Michelson:** `Right (Left (Right (Right (·))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (Right (·))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -773,25 +666,19 @@ The sender has to be the `owner`.
 
 ---
 
-##### `SetRedeemAddress`
+##### `setRedeemAddress`
 
 This entry point is used to set the redeem address.
 
-**Parameter:** ***redeem*** : [`Address`](#types-Address-simplified)
+**Argument:** 
+  + **In Haskell:** ***redeem*** : [`Address`](#types-Address-simplified)
+  + **In Michelson:** `(address :redeem)`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `SetRedeemAddress` constructor.
-    + **In Haskell:** `SetRedeemAddress (·)`
-    + **In Michelson:** `Right (Right (Left (Left (·))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (Right (·))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -808,25 +695,19 @@ The sender has to be the `owner`.
 
 ---
 
-##### `Pause`
+##### `pause`
 
 This entry point is used to pause the contract.
 
-**Parameter:** [`()`](#types-lparenrparen)
+**Argument:** 
+  + **In Haskell:** [`()`](#types-lparenrparen)
+  + **In Michelson:** `unit`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `Pause` constructor.
-    + **In Haskell:** `Pause (·)`
-    + **In Michelson:** `Right (Right (Left (Right (·))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (Right (·))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -843,25 +724,19 @@ The sender has to be the `operator`.
 
 ---
 
-##### `Unpause`
+##### `unpause`
 
 This entry point is used to resume the contract during a paused state.
 
-**Parameter:** [`()`](#types-lparenrparen)
+**Argument:** 
+  + **In Haskell:** [`()`](#types-lparenrparen)
+  + **In Michelson:** `unit`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `Unpause` constructor.
-    + **In Haskell:** `Unpause (·)`
-    + **In Michelson:** `Right (Right (Right (Left (·))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (Right (·))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -878,25 +753,19 @@ The sender has to be the `owner`.
 
 ---
 
-##### `TransferOwnership`
+##### `transferOwnership`
 
 This entry point is used to transfer ownership to a new owner.
 
-**Parameter:** ***newOwner*** : [`Address`](#types-Address-simplified)
+**Argument:** 
+  + **In Haskell:** ***newOwner*** : [`Address`](#types-Address-simplified)
+  + **In Michelson:** `(address :newOwner)`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `TransferOwnership` constructor.
-    + **In Haskell:** `TransferOwnership (·)`
-    + **In Michelson:** `Right (Right (Right (Right (Left (·)))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (Right (·))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -913,25 +782,19 @@ The sender has to be the `owner`.
 
 ---
 
-##### `AcceptOwnership`
+##### `acceptOwnership`
 
 This entry point is used to accept ownership by a new owner.
 
-**Parameter:** [`()`](#types-lparenrparen)
+**Argument:** 
+  + **In Haskell:** [`()`](#types-lparenrparen)
+  + **In Michelson:** `unit`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `AcceptOwnership` constructor.
-    + **In Haskell:** `AcceptOwnership (·)`
-    + **In Michelson:** `Right (Right (Right (Right (Right (·)))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `SafeEntrypoints (·)`
-    + **In Michelson:** `Right (Right (Right (Right (·))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -952,25 +815,19 @@ The sender has to be the `new owner`.
 
 ---
 
-### `Run`
+### `run`
 
 This entrypoint extracts contract code kept in storage under the corresponding name and executes it on an argument supplied via `UParam`.
 
-**Parameter:** [`UParam`](#types-Upgradable-parameter)
+**Argument:** 
+  + **In Haskell:** [`UParam`](#types-Upgradable-parameter)
+  + **In Michelson:** `(pair string bytes)`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `Run` constructor.
-    + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Left (Left (Left (Left (·))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -983,7 +840,7 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-### `Upgrade`
+### `upgrade`
 
 This entry point is used to update the contract to a new version.
 Consider using this entrypoint when your upgrade to the new version isn't very large,
@@ -993,21 +850,15 @@ basically exchange `code` field in the storage and upgrade `dataMap` using
 provided migration lambda.
 
 
-**Parameter:** (***currentVersion*** : [`Version`](#types-Version), ***newVersion*** : [`Version`](#types-Version), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript), ***newCode*** : [`Maybe`](#types-Maybe) [`UContractRouter`](#types-UContractRouter), ***newPermCode*** : [`Maybe`](#types-Maybe) [`PermanentImpl`](#types-PermanentImpl))
+**Argument:** 
+  + **In Haskell:** (***currentVersion*** : [`Version`](#types-Version), ***newVersion*** : [`Version`](#types-Version), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript), ***newCode*** : [`Maybe`](#types-Maybe) [`UContractRouter`](#types-UContractRouter), ***newPermCode*** : [`Maybe`](#types-Maybe) [`PermanentImpl`](#types-PermanentImpl))
+  + **In Michelson:** `(pair (pair (nat :currentVersion) (nat :newVersion)) (pair (lambda :migrationScript (big_map bytes bytes) (big_map bytes bytes)) (pair (option :newCode (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))) (option :newPermCode (lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))))))`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `Upgrade` constructor.
-    + **In Haskell:** `Upgrade (·)`
-    + **In Michelson:** `Left (Left (Left (Right (·))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -1024,25 +875,19 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-### `EpwBeginUpgrade`
+### `epwBeginUpgrade`
 
 This entry point is used to start an entrypoint wise upgrade of the contract.
 
-**Parameter:** (***current*** : [`Version`](#types-Version), ***new*** : [`Version`](#types-Version))
+**Argument:** 
+  + **In Haskell:** (***current*** : [`Version`](#types-Version), ***new*** : [`Version`](#types-Version))
+  + **In Michelson:** `(pair (nat :current) (nat :new))`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `EpwBeginUpgrade` constructor.
-    + **In Haskell:** `EpwBeginUpgrade (·)`
-    + **In Michelson:** `Left (Left (Right (Left (·))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -1059,25 +904,19 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-### `EpwApplyMigration`
+### `epwApplyMigration`
 
 This entry point is used to apply a storage migration script as part of an upgrade.
 
-**Parameter:** ***migrationscript*** : [`MigrationScript`](#types-MigrationScript)
+**Argument:** 
+  + **In Haskell:** ***migrationscript*** : [`MigrationScript`](#types-MigrationScript)
+  + **In Michelson:** `(lambda :migrationscript (big_map bytes bytes) (big_map bytes bytes))`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `EpwApplyMigration` constructor.
-    + **In Haskell:** `EpwApplyMigration (·)`
-    + **In Michelson:** `Left (Left (Right (Right (·))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -1092,25 +931,19 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-### `EpwSetCode`
+### `epwSetCode`
 
 This entry point is used to set the dispatching code that calls the packed entrypoints.
 
-**Parameter:** ***contractcode*** : [`UContractRouter`](#types-UContractRouter)
+**Argument:** 
+  + **In Haskell:** ***contractcode*** : [`UContractRouter`](#types-UContractRouter)
+  + **In Michelson:** `(lambda :contractcode (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `EpwSetCode` constructor.
-    + **In Haskell:** `EpwSetCode (·)`
-    + **In Michelson:** `Left (Right (Left (Left (·))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -1125,25 +958,17 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-### `EpwFinishUpgrade`
+### `epwFinishUpgrade`
 
 This entry point is used to mark that an upgrade has been finsihed.
 
-**Parameter:** none (pass unit)
+**Argument:** none (pass unit)
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `EpwFinishUpgrade` constructor.
-    + **In Haskell:** `EpwFinishUpgrade (·)`
-    + **In Michelson:** `Left (Right (Left (Right (·))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -1158,7 +983,7 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-### `Transfer`
+### `transfer`
 
 Transfers tokens between two given accounts.
 
@@ -1170,21 +995,15 @@ In this case current number of tokens that sender is allowed to withdraw from th
 
 
 
-**Parameter:** (***from*** : [`Address`](#types-Address-simplified), ***to*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
+**Argument:** 
+  + **In Haskell:** (***from*** : [`Address`](#types-Address-simplified), ***to*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
+  + **In Michelson:** `(pair (address :from) (pair (address :to) (nat :value)))`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `Transfer` constructor.
-    + **In Haskell:** `Transfer (·)`
-    + **In Michelson:** `Left (Right (Right (Left (·))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -1205,7 +1024,7 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-### `Approve`
+### `approve`
 
 When called with `(address :spender, nat :value)`
 parameters allows `spender` account to withdraw from the sender, multiple times,
@@ -1219,21 +1038,15 @@ Changing allowance value from non-zero value to a non-zero value is
 forbidden to prevent the [corresponding attack vector](https://docs.google.com/document/d/1YLPtQxZu1UAvO9cZ1O2RPXBbT0mooh4DYKjA_jp-RLM).
 
 
-**Parameter:** (***spender*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
+**Argument:** 
+  + **In Haskell:** (***spender*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
+  + **In Michelson:** `(pair (address :spender) (nat :value))`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `Approve` constructor.
-    + **In Haskell:** `Approve (·)`
-    + **In Michelson:** `Left (Right (Right (Right (·))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -1252,25 +1065,19 @@ Pass resulting value as parameter to the contract.
 
 ---
 
-### `Mint`
+### `mint`
 
 This entry point is used mint new tokes for an account.
 
-**Parameter:** (***to*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
+**Argument:** 
+  + **In Haskell:** (***to*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
+  + **In Michelson:** `(pair (address :to) (nat :value))`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `Mint` constructor.
-    + **In Haskell:** `Mint (·)`
-    + **In Michelson:** `Right (Left (Left (Left (·))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -1287,25 +1094,19 @@ The sender has to be the `operator`.
 
 ---
 
-### `Burn`
+### `burn`
 
 Burn some tokens from the `redeem` address.
 
-**Parameter:** ***value*** : [`Natural`](#types-Natural)
+**Argument:** 
+  + **In Haskell:** ***value*** : [`Natural`](#types-Natural)
+  + **In Michelson:** `(nat :value)`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `Burn` constructor.
-    + **In Haskell:** `Burn (·)`
-    + **In Michelson:** `Right (Left (Left (Right (·))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -1324,25 +1125,19 @@ The sender has to be the `operator`.
 
 ---
 
-### `AddOperator`
+### `addOperator`
 
 This entry point is used to add a new operator.
 
-**Parameter:** ***operator*** : [`Address`](#types-Address-simplified)
+**Argument:** 
+  + **In Haskell:** ***operator*** : [`Address`](#types-Address-simplified)
+  + **In Michelson:** `(address :operator)`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `AddOperator` constructor.
-    + **In Haskell:** `AddOperator (·)`
-    + **In Michelson:** `Right (Left (Right (Left (·))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -1359,25 +1154,19 @@ The sender has to be the `owner`.
 
 ---
 
-### `RemoveOperator`
+### `removeOperator`
 
 This entry point is used to remove an operator.
 
-**Parameter:** ***operator*** : [`Address`](#types-Address-simplified)
+**Argument:** 
+  + **In Haskell:** ***operator*** : [`Address`](#types-Address-simplified)
+  + **In Michelson:** `(address :operator)`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `RemoveOperator` constructor.
-    + **In Haskell:** `RemoveOperator (·)`
-    + **In Michelson:** `Right (Left (Right (Right (·))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -1394,25 +1183,19 @@ The sender has to be the `owner`.
 
 ---
 
-### `SetRedeemAddress`
+### `setRedeemAddress`
 
 This entry point is used to set the redeem address.
 
-**Parameter:** ***redeem*** : [`Address`](#types-Address-simplified)
+**Argument:** 
+  + **In Haskell:** ***redeem*** : [`Address`](#types-Address-simplified)
+  + **In Michelson:** `(address :redeem)`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `SetRedeemAddress` constructor.
-    + **In Haskell:** `SetRedeemAddress (·)`
-    + **In Michelson:** `Right (Right (Left (Left (·))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -1429,25 +1212,19 @@ The sender has to be the `owner`.
 
 ---
 
-### `Pause`
+### `pause`
 
 This entry point is used to pause the contract.
 
-**Parameter:** [`()`](#types-lparenrparen)
+**Argument:** 
+  + **In Haskell:** [`()`](#types-lparenrparen)
+  + **In Michelson:** `unit`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `Pause` constructor.
-    + **In Haskell:** `Pause (·)`
-    + **In Michelson:** `Right (Right (Left (Right (·))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -1464,25 +1241,19 @@ The sender has to be the `operator`.
 
 ---
 
-### `Unpause`
+### `unpause`
 
 This entry point is used to resume the contract during a paused state.
 
-**Parameter:** [`()`](#types-lparenrparen)
+**Argument:** 
+  + **In Haskell:** [`()`](#types-lparenrparen)
+  + **In Michelson:** `unit`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `Unpause` constructor.
-    + **In Haskell:** `Unpause (·)`
-    + **In Michelson:** `Right (Right (Right (Left (·))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -1499,25 +1270,19 @@ The sender has to be the `owner`.
 
 ---
 
-### `TransferOwnership`
+### `transferOwnership`
 
 This entry point is used to transfer ownership to a new owner.
 
-**Parameter:** ***newOwner*** : [`Address`](#types-Address-simplified)
+**Argument:** 
+  + **In Haskell:** ***newOwner*** : [`Address`](#types-Address-simplified)
+  + **In Michelson:** `(address :newOwner)`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `TransferOwnership` constructor.
-    + **In Haskell:** `TransferOwnership (·)`
-    + **In Michelson:** `Right (Right (Right (Right (Left (·)))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -1534,25 +1299,19 @@ The sender has to be the `owner`.
 
 ---
 
-### `AcceptOwnership`
+### `acceptOwnership`
 
 This entry point is used to accept ownership by a new owner.
 
-**Parameter:** [`()`](#types-lparenrparen)
+**Argument:** 
+  + **In Haskell:** [`()`](#types-lparenrparen)
+  + **In Michelson:** `unit`
 
 <details>
-  <summary><b>How to call this entry point</b></summary>
+  <summary><b>How to call this entrypoint</b></summary>
 
-0. Construct parameter for the entry point.
-1. Wrap into `AcceptOwnership` constructor.
-    + **In Haskell:** `AcceptOwnership (·)`
-    + **In Michelson:** `Right (Right (Right (Right (Right (·)))))`
-1. Wrap into `SafeEntrypoints` constructor.
-    + **In Haskell:** `Run (·)`
-    + **In Michelson:** `Right (Right (Right (Right ((·)))))`
-
-Pass resulting value as parameter to the contract.
-
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
 </details>
 <p>
 
@@ -1888,7 +1647,7 @@ This type keeps general information about upgradeable contract and the logic res
 ### `Text`
 
 Michelson string.
-Not every text literal is valid string, see list of constraints in the [Official Michelson documentation](http://tezos.gitlab.io/zeronet/whitedoc/michelson.html#constants).
+Not every text literal is valid string, see list of constraints in the [Official Michelson documentation](https://tezos.gitlab.io/whitedoc/michelson.html#constants).
 
 **Final Michelson representation:** `string`
 
@@ -1957,7 +1716,7 @@ Contract version.
 ### `View`
 
 `View a r` accepts an argument of type `a` and callback contract which accepts `r` and returns result via calling that contract.
-Read more in [A1 conventions document](https://gitlab.com/tzip/tzip/blob/master/A/A1.md#view-entry-points).
+Read more in [A1 conventions document](https://gitlab.com/tzip/tzip/-/blob/c42e3f0f5e73669e84e615d69bee73281572eb0a/proposals/tzip-4/tzip-4.md#view-entrypoints).
 
 **Structure (example):** `View () Integer` = ([`()`](#types-lparenrparen), [`ContractRef`](#types-Contract) [`Integer`](#types-Integer))
 
