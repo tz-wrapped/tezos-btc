@@ -3,7 +3,8 @@
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
 module Test.TZBTC
-  ( test_acceptOwnership
+  ( test_interface
+  , test_acceptOwnership
   , test_burn
   , test_mint
   , test_approvableLedger
@@ -26,17 +27,19 @@ module Test.TZBTC
 import Data.Coerce (coerce)
 import qualified Data.Map as M
 import qualified Data.Set as Set
+import Test.HUnit (Assertion)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.Hspec (testSpec)
-import Test.Tasty.HUnit (Assertion, testCase)
+import Test.Tasty.HUnit (testCase)
 
 import Lorentz
-import qualified Lorentz.Contracts.Spec.ApprovableLedgerInterface as AL
 import Lorentz.Contracts.ManagedLedger.Test
   (ApprovableLedger(..), OriginationParams(..), approvableLedgerSpec, originateManagedLedger)
 import qualified Lorentz.Contracts.ManagedLedger.Test as ML
-import Lorentz.Contracts.Upgradeable.Common (EpwUpgradeParameters (..), emptyPermanentImpl)
+import qualified Lorentz.Contracts.Spec.ApprovableLedgerInterface as AL
+import Lorentz.Contracts.Upgradeable.Common (EpwUpgradeParameters(..), emptyPermanentImpl)
 import Lorentz.Test
+import Lorentz.Test.Unit (expectContractEntrypoints)
 import Lorentz.UStore.Migration
 import Util.Named
 
@@ -140,6 +143,13 @@ initialSupply :: Natural
 initialSupply = 500
 
 -- Tests
+
+test_interface :: TestTree
+test_interface = testGroup "TZBTC consistency test"
+  [ testCase
+      "Has an approvable ledger interface that satisfies FA1.2 specification" $ do
+        expectContractEntrypoints @AL.Parameter tzbtcContract
+  ]
 
 test_addOperator :: TestTree
 test_addOperator = testGroup "TZBTC contract `addOperator` test"

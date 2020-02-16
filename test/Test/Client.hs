@@ -9,8 +9,9 @@ module Test.Client
   ) where
 
 import Data.ByteString (cons)
+import Test.HUnit (Assertion, (@?), (@?=))
 import Test.Tasty (TestTree, testGroup)
-import Test.Tasty.HUnit (Assertion, testCase, (@?), (@?=))
+import Test.Tasty.HUnit (testCase)
 import Tezos.Common.Binary (encode)
 
 import Lorentz.Test.Integrational (genesisAddress1)
