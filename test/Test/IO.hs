@@ -12,13 +12,14 @@ module Test.IO
   , test_userOverride
   ) where
 
+import qualified Data.List as DL
 import qualified Data.Map as Map
 import qualified Data.Text as T
-import qualified Data.List as DL
 import qualified Data.Typeable as Typ (cast)
 import Options.Applicative (ParserResult(..), defaultPrefs, execParserPure)
+import Test.HUnit (Assertion, assertFailure)
 import Test.Tasty (TestTree, testGroup)
-import Test.Tasty.HUnit (Assertion, assertFailure, testCase)
+import Test.Tasty.HUnit (testCase)
 import Text.Hex (decodeHex)
 import Util.Named
 
@@ -27,9 +28,9 @@ import Client.Main (mainProgram)
 import Client.Types
 import Client.Util
 import Lorentz (toTAddress)
+import Lorentz.Contracts.Multisig
 import qualified Lorentz.Contracts.TZBTC as TZBTC
 import qualified Lorentz.Contracts.TZBTC.Types as TZBTCTypes
-import Lorentz.Contracts.Multisig
 import Michelson.Typed.Haskell.Value (fromVal, toVal)
 import TestM
 import Tezos.Address

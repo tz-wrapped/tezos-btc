@@ -7,8 +7,9 @@ module Test.MultiSig (test_multisig) where
 import qualified Data.Set as Set
 import qualified Data.Text as T (drop)
 import Test.Hspec (Expectation)
+import Test.HUnit (assertBool, assertEqual)
 import Test.Tasty (TestTree, testGroup)
-import Test.Tasty.HUnit (assertBool, assertEqual, testCase)
+import Test.Tasty.HUnit (testCase)
 
 import Lorentz hiding (SomeContract)
 import Lorentz.Contracts.ManagedLedger.Test (OriginationParams(..))
