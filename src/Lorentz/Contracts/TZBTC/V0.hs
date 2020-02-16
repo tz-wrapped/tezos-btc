@@ -22,7 +22,6 @@ import Prelude hiding (drop, swap, (>>))
 
 import qualified Data.Text as T
 import Data.Vinyl.Derived (Label)
-import Fmt (Buildable(..), fmt)
 
 import Lorentz
 import Lorentz.Contracts.Upgradeable.Common hiding (Parameter(..), Storage)
@@ -31,7 +30,6 @@ import Lorentz.UStore.Migration (SomeUTemplate)
 import Michelson.Doc (DComment(..), DDescription(..))
 import Michelson.Text
 import qualified Michelson.Typed as T
-import Util.Markdown
 import Util.TypeLits
 
 import qualified Lorentz.Contracts.TZBTC.Impl as Impl
@@ -92,7 +90,7 @@ instance DocItem (DEntryPoint SafeEntryPointKind) where
   docItemToMarkdown = diEntryPointToMarkdown
 
 safeEntrypoints :: Entrypoint (SafeParameter TZBTCv0) UStoreV0
-safeEntrypoints = entryCase @(SafeParameter TZBTCv0) (Proxy @UpgradeableEntryPointKind)
+safeEntrypoints = entryCase @(SafeParameter TZBTCv0) (Proxy @SafeEntryPointKind)
   ( #cRun /-> do
       doc $ DDescription runDoc
       executeRun
@@ -256,20 +254,6 @@ tzbtcDoc = buildLorentzDoc $ do
       \minting and burning tokens. There may be several operators added by the owner."
     doc $ DUpgradeability U.contractDoc
     tzbtcContractRaw
-    fakeCoerce
-    clarifyParamBuildingSteps pbsContainedInSafeEntrypoints safeEntrypoints
-
-pbsContainedInSafeEntrypoints :: ParamBuildingStep
-pbsContainedInSafeEntrypoints = ParamBuildingStep
-  { pbsEnglish = "Wrap into " <> mdTicked "SafeEntrypoints" <> " constructor."
-  , pbsHaskell = \p -> "Run (" <> p <> ")"
-  , pbsMichelson = \p ->
-      let param = Types.Pause @(EmptyContractVersion Empty) ()
-      in build $
-         T.replace (fmt . build . T.untypeValue $ toVal param)
-                   ("(" <> fmt p <> ")")
-                   (fmt . build . T.untypeValue . toVal $ SafeEntrypoints param)
-  }
 
 executeRun :: Entrypoint (VerParam ver) (Storage ver)
 executeRun = do

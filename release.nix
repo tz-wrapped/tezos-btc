@@ -11,7 +11,7 @@ let
   packageDesc = {
     project = "tzbtc-client";
     majorVersion = "0";
-    minorVersion = "2";
+    minorVersion = "3";
     packageRevision = "0";
     bin = "${tzbtc-static}/bin/tzbtc-client";
     arch = "amd64";
