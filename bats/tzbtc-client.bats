@@ -167,6 +167,10 @@ setup () {
   stack exec -- tzbtc-client addOperator --operator "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --multisig package.txt --dry-run
 }
 
+@test "invoking multisig package creation for acceptOwnership" {
+  stack exec -- tzbtc-client acceptOwnership --multisig package.txt --dry-run
+}
+
 @test "deploy contract" {
   stack exec -- tzbtc-client deployTzbtcContract --owner boba --redeem boba --token-name Kukareq --token-code Cococoq --dry-run
 }

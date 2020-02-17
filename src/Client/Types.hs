@@ -71,7 +71,7 @@ data ClientArgsRaw
   | CmdUnpause (Maybe FilePath)
   | CmdSetRedeemAddress AddrOrAlias (Maybe FilePath)
   | CmdTransferOwnership AddrOrAlias (Maybe FilePath)
-  | CmdAcceptOwnership AcceptOwnershipParams
+  | CmdAcceptOwnership AcceptOwnershipParams (Maybe FilePath)
   | CmdGetTotalSupply (Maybe AddrOrAlias)
   | CmdGetTotalMinted (Maybe AddrOrAlias)
   | CmdGetTotalBurned (Maybe AddrOrAlias)
