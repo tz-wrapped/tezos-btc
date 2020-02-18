@@ -173,7 +173,7 @@ clientArgRawParser = Opt.hsubparser $
     acceptOwnershipCmd =
       (mkCommandParser
          "acceptOwnership"
-         (pure $ CmdAcceptOwnership ())
+         (CmdAcceptOwnership () <$> multisigOption)
          "Accept ownership")
 
     getTotalSupplyCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw

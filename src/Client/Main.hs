@@ -106,8 +106,9 @@ mainProgram = do
           newOwner <- addrOrAliasToAddr newOwner'
           runMultisigTzbtcContract mbMultisig $
             fromFlatParameter $ TransferOwnership (#newOwner .! newOwner)
-        CmdAcceptOwnership p -> runTzbtcContract $
-          fromFlatParameter $ AcceptOwnership p
+        CmdAcceptOwnership p mbMultisig -> do
+          runMultisigTzbtcContract mbMultisig $
+            fromFlatParameter $ AcceptOwnership p
         CmdGetTotalSupply callback -> do
           simpleGetter #totalSupply "Total supply" GetTotalSupply callback
         CmdGetTotalMinted callback -> do
