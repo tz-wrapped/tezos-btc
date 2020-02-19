@@ -8,10 +8,13 @@
 
 Changes that affect Michelson code are tagged with `[CONTRACT]`.
 
-0.3.0
-=====
+Unreleased
+==========
 * [#100](https://github.com/serokell/tezos-btc/pull/100)
   - Add `--multisig` option for `acceptOwnership` tzbtc-client command.
+
+0.3.0
+=====
 * [#98](https://github.com/serokell/tezos-btc/pull/98)
   - Further update automated documentation.
 * [#96](https://github.com/serokell/tezos-btc/pull/96)
