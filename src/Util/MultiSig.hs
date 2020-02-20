@@ -141,14 +141,15 @@ mkPackage msigAddress counter tzbtc param
         msigTAddr = (toTAddress @MSigParameter) msigAddress
     -- Create the Lambda for required action
     in Package
-      { pkToSign = encodeToSign $ (toAddress msigTAddr, (Counter counter, msigLambda))
-      -- ^ Wrap the the lambda with multisig address and replay attack counter,
-      -- forming a structure that the multi-sig contract will ultimately
-      -- verify the included signatures against
+      {
+       -- Wrap the the lambda with multisig address and replay attack counter,
+       -- forming a structure that the multi-sig contract will ultimately
+       -- verify the included signatures against
+        pkToSign = encodeToSign $ (toAddress msigTAddr, (Counter counter, msigLambda))
       , pkSignatures = [] -- No signatures when creating package
-      , pkSrcParam = encodeHex $ lPackValue (param, counter, tzbtc)
-      -- ^ Include the input parameter for integrity check and showing human
+      -- Include the input parameter for integrity check and showing human
       -- readable description of the action parameter.
+      , pkSrcParam = encodeHex $ lPackValue (param, counter, tzbtc)
       }
 
 mergeSignatures
@@ -156,9 +157,9 @@ mergeSignatures
   -> Package
   -> Maybe Package
 mergeSignatures p1 p2 =
+  -- If the payloads are same, then merge the signatures from both
+  -- packages and form a new package with both the signatures.
   if pkToSign p1 == pkToSign p2
-    -- ^ If the payloads are same, then merge the signatures from both
-    -- packages and form a new package with both the signatures.
     then Just $ p1 { pkSignatures = pkSignatures p1 ++ pkSignatures p2 }
     else Nothing
 
