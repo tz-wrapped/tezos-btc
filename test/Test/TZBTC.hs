@@ -20,7 +20,7 @@ module Test.TZBTC
 
   -- * Utilities
   , checkField
-  , dummyOriginationParameters
+  , dummyV1Parameters
   , originateTzbtcV1ContractRaw
   ) where
 
@@ -90,13 +90,12 @@ dummyTokenName = [mt|Test token|]
 dummyTokenCode :: MText
 dummyTokenCode = [mt|TEST|]
 
-dummyOriginationParameters :: Address -> Address -> Map Address Natural -> OriginationParameters
-dummyOriginationParameters owner redeem balances = OriginationParameters
-  { opOwner = owner
-  , opRedeemAddress = redeem
-  , opBalances = balances
-  , opTokenName = dummyTokenName
-  , opTokenCode = dummyTokenCode
+dummyV1Parameters :: Address -> Map Address Natural -> V1Parameters
+dummyV1Parameters redeem balances = V1Parameters
+  { v1RedeemAddress = redeem
+  , v1Balances = balances
+  , v1TokenName = dummyTokenName
+  , v1TokenCode = dummyTokenCode
   }
 
 originateTzbtcV1ContractRaw
@@ -106,8 +105,7 @@ originateTzbtcV1ContractRaw redeem op = do
   c <- lOriginate tzbtcContract "TZBTC Contract"
     (mkEmptyStorageV0 owner) (toMutez 1000)
   let
-    opTZBTC =
-      dummyOriginationParameters owner redeem (ML.opBalances op)
+    opTZBTC = dummyV1Parameters redeem (ML.opBalances op)
     upgradeParams = makeOneShotUpgradeParameters @TZBTCv0 EpwUpgradeParameters
       { upMigrationScripts =
         Identity $

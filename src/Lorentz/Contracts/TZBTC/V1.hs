@@ -88,15 +88,15 @@ tzbtcContractRouterRaw :: UContractRouter TZBTCv1
 tzbtcContractRouterRaw = epwServe epwContract
 
 -- | Migrations to version 1 before preprocessing.
-migrationScriptsRaw :: OriginationParameters -> [MigrationScript StoreTemplateV0 StoreTemplateV1]
-migrationScriptsRaw op = migrateStorage op : epwCodeMigrations epwContract
+migrationScriptsRaw :: V1Parameters -> [MigrationScript StoreTemplateV0 StoreTemplateV1]
+migrationScriptsRaw v1p = migrateStorage v1p : epwCodeMigrations epwContract
 
 epwContract :: EpwContract TZBTCv1
 epwContract = mkEpwContract v1Impl epwFallbackFail
 
-originationParamsToStoreTemplate :: OriginationParameters -> StoreTemplate
-originationParamsToStoreTemplate OriginationParameters {..} = let
-  total = Prelude.sum $ M.elems opBalances
+originationParamsToStoreTemplate :: V1Parameters -> StoreTemplate
+originationParamsToStoreTemplate V1Parameters {..} = let
+  total = Prelude.sum $ M.elems v1Balances
   in StoreTemplate
     { paused = UStoreField False
     , totalSupply = UStoreField total
@@ -104,19 +104,19 @@ originationParamsToStoreTemplate OriginationParameters {..} = let
     , totalBurned = UStoreField 0
     , newOwner = UStoreField Nothing
     , operators = UStoreField mempty
-    , redeemAddress = UStoreField opRedeemAddress
-    , tokenName = UStoreField opTokenName
-    , tokenCode = UStoreField opTokenCode
+    , redeemAddress = UStoreField v1RedeemAddress
+    , tokenName = UStoreField v1TokenName
+    , tokenCode = UStoreField v1TokenCode
     , code = UStoreSubMap mempty
     , fallback = UStoreField epwFallbackFail
-    , ledger = UStoreSubMap $ toLedgerValue <$> opBalances
+    , ledger = UStoreSubMap $ toLedgerValue <$> v1Balances
     }
   where
     toLedgerValue i = (#balance .! i, #approvals .! mempty)
 
-migrateStorage :: OriginationParameters -> MigrationScript StoreTemplateV0 StoreTemplateV1
-migrateStorage op =
-  templateToMigration $ originationParamsToStoreTemplate op
+migrateStorage :: V1Parameters -> MigrationScript StoreTemplateV0 StoreTemplateV1
+migrateStorage v1p =
+  templateToMigration $ originationParamsToStoreTemplate v1p
   where
     templateToMigration :: StoreTemplate -> MigrationScript StoreTemplateV0 StoreTemplateV1
     templateToMigration template =

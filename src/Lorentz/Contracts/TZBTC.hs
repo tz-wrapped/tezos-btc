@@ -21,7 +21,8 @@ module Lorentz.Contracts.TZBTC
   , TZBTCParameter
   , TZBTCStorage
   , OneShotUpgradeParameters
-  , OriginationParameters (..)
+  , V1Parameters (..)
+  , V1DeployParameters (..)
   , tzbtcContract
   , fromFlatParameter
   , mkEmptyStorageV0

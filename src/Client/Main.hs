@@ -162,12 +162,14 @@ mainProgram = do
             Nothing  -> ccUserAlias <$> throwLeft readConfig
           [owner, redeem] <- mapM addrOrAliasToAddr [ownerAlias, dcoRedeem]
           let
-            originationParams = OriginationParameters
-              { opOwner = owner
-              , opRedeemAddress = redeem
-              , opBalances = mempty
-              , opTokenName = dcoTokenName
-              , opTokenCode = dcoTokenCode
+            originationParams = V1DeployParameters
+              { v1Owner = owner
+              , v1MigrationParams = V1Parameters
+                { v1RedeemAddress = redeem
+                , v1Balances = mempty
+                , v1TokenName = dcoTokenName
+                , v1TokenCode = dcoTokenCode
+                }
               }
           deployTzbtcContract originationParams
         CmdDeployMultisigContract threshold keys' useCustomErrors -> do

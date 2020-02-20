@@ -25,7 +25,7 @@ import Lorentz.Contracts.TZBTC.Preprocess (upgradeParameters)
 import Lorentz.Contracts.TZBTC.Types
 import Lorentz.Contracts.TZBTC.V0 (TZBTCv0)
 
-import Test.TZBTC (dummyOriginationParameters)
+import Test.TZBTC (dummyV1Parameters)
 
 (@??) :: (Show a, HasCallStack) => a -> (a -> Bool) -> Assertion
 (@??) val predicate =
@@ -51,7 +51,7 @@ test_nicePackedValueToExpression = testGroup "Test converting Parameter to Miche
     _upgradeParam =
       let
         ownerAddr = genesisAddress1
-        origParams = dummyOriginationParameters ownerAddr ownerAddr mempty
+        origParams = dummyV1Parameters ownerAddr mempty
       in
         Upgrade @TZBTCv0 $ upgradeParameters origParams
 

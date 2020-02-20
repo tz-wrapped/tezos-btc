@@ -16,7 +16,8 @@ module Lorentz.Contracts.TZBTC.Types
   , ManagedLedger.MintParams
   , ManagedLedger.TransferParams
   , OperatorParams
-  , OriginationParameters(..)
+  , V1Parameters(..)
+  , V1DeployParameters (..)
   , Parameter(..)
   , SafeParameter(..)
   , PauseParams
@@ -283,14 +284,19 @@ type Operators = Set Address
 instance Buildable Operators where
   build = mconcat . intersperse ", " . Prelude.map build . toList
 
--- | The data required to initialize the V1 version of the contract storage.
-data OriginationParameters = OriginationParameters
-  { opOwner :: !Address
-    -- TODO: ^ remove?
-  , opRedeemAddress :: !Address
-  , opBalances :: !(Map Address Natural)
-  , opTokenName :: !MText
-  , opTokenCode :: !MText
+-- | The data required to upgrade contract storage from V0 to V1.
+data V1Parameters = V1Parameters
+  { v1RedeemAddress :: !Address
+  , v1Balances :: !(Map Address Natural)
+  , v1TokenName :: !MText
+  , v1TokenCode :: !MText
+  }
+
+-- | The data required to initialize the V1 version of the contract storage
+-- from scratch.
+data V1DeployParameters = V1DeployParameters
+  { v1Owner :: Address
+  , v1MigrationParams :: V1Parameters
   }
 
 -- | A safe view to act as argument to the inner stored procedures that

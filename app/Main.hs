@@ -24,10 +24,10 @@ import Paths_tzbtc (version)
 
 import CLI.Parser
 import Client.IO ()
-import Lorentz.Contracts.TZBTC
-  ( OriginationParameters(..), Parameter, TZBTCv1,migrationScripts, mkEmptyStorageV0
-  , tzbtcContract, tzbtcContractRouter, tzbtcDoc)
 import Lorentz.Contracts.Multisig
+import Lorentz.Contracts.TZBTC
+  (Parameter, TZBTCv1, V1Parameters(..), migrationScripts, mkEmptyStorageV0, tzbtcContract,
+  tzbtcContractRouter, tzbtcDoc)
 import Lorentz.Contracts.TZBTC.Test (mkTestScenario)
 import Util.AbstractIO
 import Util.Migration
@@ -58,18 +58,16 @@ main = do
         showTestScenario <$> mkTestScenario tsoMaster tsoAddresses
     CmdMigrate
       (arg #version -> version_)
-      (arg #ownerAddress -> owner)
       (arg #redeemAddress -> redeem)
       (arg #tokenName -> tokenName)
       (arg #tokenCode -> tokenCode)
       (arg #output -> fp) -> do
         let
-          originationParams = OriginationParameters
-            { opOwner = owner
-            , opRedeemAddress = redeem
-            , opBalances = mempty
-            , opTokenName = tokenName
-            , opTokenCode = tokenCode
+          originationParams = V1Parameters
+            { v1RedeemAddress = redeem
+            , v1Balances = mempty
+            , v1TokenName = tokenName
+            , v1TokenCode = tokenCode
             }
         maybe printTextLn writeFileUtf8 fp $
           makeMigrationParams version_ tzbtcContractRouter $
