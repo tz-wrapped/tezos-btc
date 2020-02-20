@@ -7,7 +7,7 @@ module Test.MultiSig (test_multisig) where
 import qualified Data.Set as Set
 import qualified Data.Text as T (drop)
 import Test.Hspec (Expectation)
-import Test.HUnit (assertBool, assertEqual)
+import Test.HUnit (assertEqual)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase)
 
@@ -263,24 +263,6 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           "The signatures in multi-sig parameter is in the expected order"
           [Just aliceSig, Nothing, Just carlosSig]
           sigList
-
-  , testCase "Test user is not allowed to sign a bad package" $ do
-      let
-        msig  = TAddress @MSigParameter $
-                unsafeParseAddress "KT19rTTBPeG1JAvrECgoQ8LJj1mJrN7gsdaH"
-        tzbtc = TAddress @(TZBTC.Parameter SomeTZBTCVersion) $
-                unsafeParseAddress "KT1XXJWcjrwfcPL4n3vjmwCBsvkazDt8scYY"
-
-        tzbtcParam = TZBTCTypes.AddOperator (#operator .! operatorAddress)
-        tzbtcParamBadParam = TZBTCTypes.RemoveOperator (#operator .! operatorAddress)
-        package = MSig.mkPackage @(TAddress MSigParameter) msig 0 tzbtc tzbtcParam
-        package2 = MSig.mkPackage @(TAddress MSigParameter) msig 0 tzbtc tzbtcParamBadParam
-
-        -- replace operation with bad operation
-        badPackage = package { pkToSign = pkToSign package2 } :: Package
-        bytesToSign = getBytesToSign package
-        aliceSig = sign_ aliceSK bytesToSign
-      assertBool "User was able to sign bad package" (isLeft $ addSignature badPackage (alicePK, aliceSig))
   ]
 
   where
