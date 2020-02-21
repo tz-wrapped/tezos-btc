@@ -17,7 +17,7 @@ import Tezos.Common.Json (TezosInt64)
 import Tezos.V005.Micheline (Expression)
 import Time (Second, Time(..), threadDelay)
 
-import Lorentz hiding (address, balance, contract, chainId, cons, map)
+import Lorentz hiding (address, balance, chainId, cons, contract, map)
 import Michelson.Runtime.GState (genesisAddress1, genesisAddress2)
 import Michelson.Untyped (InternalByteString(..))
 import Tezos.Address
@@ -245,18 +245,18 @@ originateContract contract initialStorage config@ClientConfig{..} = do
           "Error during contract origination, expecting to \
           \originate exactly one contract."
 
-deployTzbtcContract :: ClientConfig -> OriginationParameters -> IO Address
-deployTzbtcContract config@ClientConfig{..} op = do
+deployTzbtcContract :: ClientConfig -> V1DeployParameters -> IO Address
+deployTzbtcContract config@ClientConfig{..} V1DeployParameters{..} = do
   putTextLn "Originate contract"
   contractAddr <- throwLeft $
-    originateContract tzbtcContract (mkEmptyStorageV0 $ opOwner op) config
+    originateContract tzbtcContract (mkEmptyStorageV0 v1Owner) config
   let transactionsToTzbtc params = runTransactions contractAddr params config
   putTextLn "Upgrade contract to V1"
   throwClientErrorAfterRetry (10, delayFn) $ try $
     -- We retry here because it was found that in some cases, the storage
     -- is unavailable for a short time since contract origination.
     transactionsToTzbtc $ (\param -> (DefaultEntrypoint . fromFlatParameter $ param, 0)) <$>
-      [ Upgrade @TZBTCv0 $ upgradeParameters op
+      [ Upgrade @TZBTCv0 $ upgradeParameters v1MigrationParams
       ]
   pure contractAddr
   where

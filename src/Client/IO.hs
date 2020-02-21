@@ -164,9 +164,9 @@ instance HasTezosRpc AppM where
     case r of
       Left err -> pure $ Left $ TzbtcServantError err
       Right rawVal -> pure $ Right rawVal
-  deployTzbtcContract op = do
+  deployTzbtcContract dp = do
     config@ClientConfig{..} <- throwLeft readConfig
-    contractAddr <- liftIO $ IO.deployTzbtcContract config op
+    contractAddr <- liftIO $ IO.deployTzbtcContract config dp
     putTextLn $ "Contract was successfully deployed. Contract address: " <> formatAddress contractAddr
     liftIO $ case ccContractAddress of
       Just c -> putTextLn $ "Current contract address for alias 'tzbtc' in the tezos-client config is " <> formatAddress c <> "."
@@ -302,12 +302,12 @@ getAllowance owner spender = do
       pure $ maybe 0 id $ Map.lookup spender approvals
 
 type HasStoreTemplateField t name =
-  ( HasUField name t StoreTemplate
+  ( HasUField name t StoreTemplateV1
   , NiceUnpackedValue t
   )
 
 type HasStoreTemplateSubmap key value name =
-  ( HasUStore name key value StoreTemplate
+  ( HasUStore name key value StoreTemplateV1
   , NicePackedValue key, NiceUnpackedValue value
   )
 

@@ -22,7 +22,7 @@ import Lorentz.Contracts.Upgradeable.Common (UContractRouter, mkUContractRouter)
 import Lorentz.Test.Integrational
 import Lorentz.UStore.Migration
 
-import Test.TZBTC (dummyOriginationParameters)
+import Test.TZBTC (dummyV1Parameters)
 
 {-# ANN module ("HLint: ignore Reduce duplication" :: Text) #-}
 
@@ -123,12 +123,12 @@ test_migratingVersion = testGroup "TZBTC contract migration version check"
   ]
 
 upgradeParams :: OneShotUpgradeParameters TZBTCv0
-upgradeParams = upgradeParameters originationParameters
+upgradeParams = upgradeParameters v1Parameters
 
 -- Some constants
-migrationScript :: MigrationScript StoreTemplateV0 StoreTemplate
+migrationScript :: MigrationScript StoreTemplateV0 StoreTemplateV1
 migrationScript =
-  manualConcatMigrationScripts $ migrationScripts originationParameters
+  manualConcatMigrationScripts $ migrationScripts v1Parameters
 
 emptyCode :: UContractRouter ver
 emptyCode = mkUContractRouter (Lorentz.drop # nil # pair)
@@ -139,9 +139,8 @@ ownerAddress = genesisAddress3
 redeemAddress_ :: Address
 redeemAddress_ = ownerAddress
 
-originationParameters :: OriginationParameters
-originationParameters =
-  dummyOriginationParameters ownerAddress redeemAddress_ mempty
+v1Parameters :: V1Parameters
+v1Parameters = dummyV1Parameters redeemAddress_ mempty
 
 bob :: Address
 bob = genesisAddress5

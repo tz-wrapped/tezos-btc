@@ -97,7 +97,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         lCallEP msaddr (Call @"MainParameter") mparam
         validate . Right $
           lExpectStorageUpdate tzbtc
-            (checkField operators
+            (checkField (operators . stCustom)
               (Set.member operatorAddress) "New operator not found")
 
   , testCase "Test call to multisig to add an operator by fails with one signature less" $ do
@@ -218,7 +218,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         lCallEP msaddr (Call @"MainParameter") mparam
         validate . Right $
           lExpectStorageUpdate tzbtc
-            (checkField operators
+            (checkField (operators . stCustom)
               (Set.member operatorAddress) "New operator not found")
                                                                 --
         -- Call the clone with the bundle created for the real multisig

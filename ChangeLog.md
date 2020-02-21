@@ -10,6 +10,9 @@ Changes that affect Michelson code are tagged with `[CONTRACT]`.
 
 Unreleased
 ==========
+* [#99](https://github.com/serokell/tezos-btc/pull/99)
+  - "migrate" CLI command does not accept new owner anymore rather retains
+    the owner from V0.
 * [#100](https://github.com/serokell/tezos-btc/pull/100)
   - Add `--multisig` option for `acceptOwnership` tzbtc-client command.
 

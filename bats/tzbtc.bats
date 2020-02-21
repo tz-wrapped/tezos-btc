@@ -14,7 +14,7 @@
 }
 
 @test "invoking tzbtc 'migrate' command" {
-  stack exec -- tzbtc migrate --version 1 --ownerAddress "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --redeemAddress "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --tokenCode aa
+  stack exec -- tzbtc migrate --version 1 --redeemAddress "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --tokenCode aa
 }
 
 @test "invoking tzbtc 'printContract' command with --oneline flag" {

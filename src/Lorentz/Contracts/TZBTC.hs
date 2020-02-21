@@ -12,6 +12,8 @@ module Lorentz.Contracts.TZBTC
   , SafeParameter
   , Storage(..)
   , StoreTemplate(..)
+  , StoreTemplateWithCommons(..)
+  , StoreTemplateV1
   , TZBTCv0
   , TZBTCv1
   , SomeTZBTCVersion
@@ -19,7 +21,8 @@ module Lorentz.Contracts.TZBTC
   , TZBTCParameter
   , TZBTCStorage
   , OneShotUpgradeParameters
-  , OriginationParameters (..)
+  , V1Parameters (..)
+  , V1DeployParameters (..)
   , tzbtcContract
   , fromFlatParameter
   , mkEmptyStorageV0
