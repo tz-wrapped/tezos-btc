@@ -164,11 +164,11 @@ setup () {
 }
 
 @test "invoking multisig package creation" {
-  stack exec -- tzbtc-client addOperator --operator "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --multisig package.txt --dry-run
+  stack exec -- tzbtc-client addOperator --operator "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --multisig-package package.txt --dry-run
 }
 
 @test "invoking multisig package creation for acceptOwnership" {
-  stack exec -- tzbtc-client acceptOwnership --multisig package.txt --dry-run
+  stack exec -- tzbtc-client acceptOwnership --multisig-package package.txt --dry-run
 }
 
 @test "deploy contract" {

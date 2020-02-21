@@ -19,7 +19,7 @@ import Lorentz hiding (address, balance, chainId, cons, map)
 import Lorentz.Contracts.Multisig
 import Lorentz.Macro (View(..))
 import Paths_tzbtc (version)
-import Util.Named ((.!))
+import Util.Named
 import Util.TypeLits
 
 import Client.Env
@@ -40,12 +40,18 @@ mainProgram
   , HasCmdLine m
   ) => m ()
 mainProgram = do
-  ClientArgs cmd maybeuser dryRunFlag <- parseCmdLine programInfo
+  ClientArgs cmd
+    (arg #userOverride -> maybeuser)
+    (arg #multisigOverride -> maybemsig) dryRunFlag <- parseCmdLine programInfo
   -- Change the reader environment to include the user alias
   -- override.
-  withLocal (\e -> case maybeuser of
-      Just u -> e { aeConfigOverride = (aeConfigOverride e) { coTzbtcUser = Just u } }
-      Nothing -> e) $ do
+  withLocal (\e ->
+      let
+        override = aeConfigOverride e
+      in e { aeConfigOverride = override
+               { coTzbtcUser = maybeuser
+               , coTzbtcMultisig = maybemsig
+               }}) $ do
     case dryRunFlag of
       True -> pass
       False -> case cmd of
