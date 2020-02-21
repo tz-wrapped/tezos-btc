@@ -1,0 +1,109 @@
+parameter (or (or (or (pair %getVersion unit
+                                        (contract nat))
+                      (pair %getAllowance (pair (address :owner)
+                                                (address :spender))
+                                          (contract nat)))
+                  (or (pair %getBalance (address :owner)
+                                        (contract nat))
+                      (or (pair %getTotalSupply unit
+                                                (contract nat))
+                          (pair %getTotalMinted unit
+                                                (contract nat)))))
+              (or (or (pair %getTotalBurned unit
+                                            (contract nat))
+                      (or (pair %getOwner unit
+                                          (contract address))
+                          (pair %getTokenName unit
+                                              (contract string))))
+                  (or (pair %getTokenCode unit
+                                          (contract string))
+                      (or (pair %getRedeemAddress unit
+                                                  (contract address))
+                          (or %safeEntrypoints (or (or (or (pair %run string
+                                                                      bytes)
+                                                           (pair %upgrade (pair
+                                                                                (nat :currentVersion)
+                                                                                (nat :newVersion))
+                                                                          (pair
+                                                                                (lambda :migrationScript
+                                                                                                         (big_map
+                                                                                                                  bytes
+                                                                                                                  bytes)
+                                                                                                         (big_map
+                                                                                                                  bytes
+                                                                                                                  bytes))
+                                                                                (pair
+                                                                                      (option :newCode (lambda
+                                                                                                               (pair
+                                                                                                                     (pair
+                                                                                                                           string
+                                                                                                                           bytes)
+                                                                                                                     (big_map
+                                                                                                                              bytes
+                                                                                                                              bytes))
+                                                                                                               (pair
+                                                                                                                     (list operation)
+                                                                                                                     (big_map
+                                                                                                                              bytes
+                                                                                                                              bytes))))
+                                                                                      (option :newPermCode (lambda
+                                                                                                                   (pair
+                                                                                                                         unit
+                                                                                                                         (big_map
+                                                                                                                                  bytes
+                                                                                                                                  bytes))
+                                                                                                                   (pair
+                                                                                                                         (list operation)
+                                                                                                                         (big_map
+                                                                                                                                  bytes
+                                                                                                                                  bytes))))))))
+                                                       (or
+                                                           (pair %epwBeginUpgrade
+                                                                                  (nat :current)
+                                                                                  (nat :new))
+                                                           (lambda :migrationscript %epwApplyMigration
+                                                                                                       (big_map
+                                                                                                                bytes
+                                                                                                                bytes)
+                                                                                                       (big_map
+                                                                                                                bytes
+                                                                                                                bytes))))
+                                                   (or (or
+                                                           (lambda :contractcode %epwSetCode
+                                                                                             (pair
+                                                                                                   (pair
+                                                                                                         string
+                                                                                                         bytes)
+                                                                                                   (big_map
+                                                                                                            bytes
+                                                                                                            bytes))
+                                                                                             (pair
+                                                                                                   (list operation)
+                                                                                                   (big_map
+                                                                                                            bytes
+                                                                                                            bytes)))
+                                                           (unit %epwFinishUpgrade))
+                                                       (or (pair %transfer
+                                                                           (address :from)
+                                                                           (pair
+                                                                                 (address :to)
+                                                                                 (nat :value)))
+                                                           (pair %approve
+                                                                          (address :spender)
+                                                                          (nat :value)))))
+                                               (or (or (or (pair %mint
+                                                                       (address :to)
+                                                                       (nat :value))
+                                                           (nat :value %burn))
+                                                       (or
+                                                           (address :operator %addOperator)
+                                                           (address :operator %removeOperator)))
+                                                   (or (or
+                                                           (address :redeem %setRedeemAddress)
+                                                           (unit %pause))
+                                                       (or (unit %unpause)
+                                                           (or
+                                                               (address :newOwner %transferOwnership)
+                                                               (unit %acceptOwnership))))))))));
+storage ();
+code { cdr; nil operation; pair }
