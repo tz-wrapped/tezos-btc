@@ -37,15 +37,13 @@ import Lorentz.Contracts.TZBTC.Types as Types
 
 -- | Template for the wrapped UStore which will hold the owner address
 -- only
-data StoreTemplateV0 = StoreTemplateV0
-  { owner :: UStoreField Address
-  } deriving stock Generic
+type StoreTemplateV0 = StoreTemplateWithCommons ()
 
 type UStoreV0 = Storage TZBTCv0
 
 mkEmptyStorageV0 :: Address -> UStoreV0
 mkEmptyStorageV0 owner = Storage
-  { dataMap = mkUStore (StoreTemplateV0 $ UStoreField owner)
+  { dataMap = mkUStore (StoreTemplateWithCommons (UStoreField owner) ())
   , fields = StorageFields
     { contractRouter = emptyCode
     , currentVersion = 0
@@ -127,51 +125,51 @@ safeEntrypoints = entryCase @(SafeParameter TZBTCv0) (Proxy @SafeEntryPointKind)
       setMigrating False
       nil; pair
   , #cTransfer /-> do
-      cutLorentzNonDoc (Impl.transfer @(UStore StoreTemplate))
+      cutLorentzNonDoc (Impl.transfer @(UStore StoreTemplateV1))
       callUEp #callTransfer
   , #cApprove /-> do
-      cutLorentzNonDoc (Impl.approve @(UStore StoreTemplate))
+      cutLorentzNonDoc (Impl.approve @(UStore StoreTemplateV1))
       callUEp #callApprove
   , #cMint /-> do
-      cutLorentzNonDoc (Impl.mint @(UStore StoreTemplate))
+      cutLorentzNonDoc (Impl.mint @(UStore StoreTemplateV1))
       callUEp #callMint
   , #cBurn /-> do
-      cutLorentzNonDoc (Impl.burn @(UStore StoreTemplate))
+      cutLorentzNonDoc (Impl.burn @(UStore StoreTemplateV1))
       callUEp #callBurn
   , #cAddOperator /-> do
       doc $ DDescription
         "This entry point is used to add a new operator."
-      cutLorentzNonDoc (Impl.addOperator @(UStore StoreTemplate))
+      cutLorentzNonDoc (Impl.addOperator @(UStore StoreTemplateV1))
       callUEp #callAddOperator
   , #cRemoveOperator /-> do
       doc $ DDescription
         "This entry point is used to remove an operator."
-      cutLorentzNonDoc (Impl.removeOperator @(UStore StoreTemplate))
+      cutLorentzNonDoc (Impl.removeOperator @(UStore StoreTemplateV1))
       callUEp #callRemoveOperator
   , #cSetRedeemAddress /-> do
       doc $ DDescription
         "This entry point is used to set the redeem address."
-      cutLorentzNonDoc (Impl.setRedeemAddress @(UStore StoreTemplate))
+      cutLorentzNonDoc (Impl.setRedeemAddress @(UStore StoreTemplateV1))
       callUEp #callSetRedeemAddress
   , #cPause /-> do
       doc $ DDescription
         "This entry point is used to pause the contract."
-      cutLorentzNonDoc (Impl.pause @(UStore StoreTemplate))
+      cutLorentzNonDoc (Impl.pause @(UStore StoreTemplateV1))
       callUEp #callPause
   , #cUnpause /-> do
       doc $ DDescription
         "This entry point is used to resume the contract during a paused state."
-      cutLorentzNonDoc (Impl.unpause @(UStore StoreTemplate))
+      cutLorentzNonDoc (Impl.unpause @(UStore StoreTemplateV1))
       callUEp #callUnpause
   , #cTransferOwnership /-> do
       doc $ DDescription
         "This entry point is used to transfer ownership to a new owner."
-      cutLorentzNonDoc (Impl.transferOwnership @(UStore StoreTemplate))
+      cutLorentzNonDoc (Impl.transferOwnership @(UStore StoreTemplateV1))
       callUEp #callTransferOwnership
   , #cAcceptOwnership /-> do
       doc $ DDescription
         "This entry point is used to accept ownership by a new owner."
-      cutLorentzNonDoc (Impl.acceptOwnership @(UStore StoreTemplate))
+      cutLorentzNonDoc (Impl.acceptOwnership @(UStore StoreTemplateV1))
       callUEp #callAcceptOwnership
   )
   where
@@ -190,22 +188,22 @@ tzbtcContractRaw = do
           "This entry point is used to get contract version."
         view_ (do cdr; toField #fields; toField #currentVersion)
     , #cGetAllowance /-> do
-        cutLorentzNonDoc (Impl.getAllowance @(UStore StoreTemplate))
+        cutLorentzNonDoc (Impl.getAllowance @(UStore StoreTemplateV1))
         callUSafeViewEP #callGetAllowance
     , #cGetBalance /-> do
-        cutLorentzNonDoc (Impl.getBalance @(UStore StoreTemplate))
+        cutLorentzNonDoc (Impl.getBalance @(UStore StoreTemplateV1))
         callUSafeViewEP #callGetBalance
     , #cGetTotalSupply /-> do
-        cutLorentzNonDoc (Impl.getTotalSupply @(UStore StoreTemplate))
+        cutLorentzNonDoc (Impl.getTotalSupply @(UStore StoreTemplateV1))
         callUSafeViewEP #callGetTotalSupply
     , #cGetTotalMinted /-> do
-        cutLorentzNonDoc (Impl.getTotalMinted @(UStore StoreTemplate))
+        cutLorentzNonDoc (Impl.getTotalMinted @(UStore StoreTemplateV1))
         callUSafeViewEP #callGetTotalMinted
     , #cGetTotalBurned /-> do
-        cutLorentzNonDoc (Impl.getTotalBurned @(UStore StoreTemplate))
+        cutLorentzNonDoc (Impl.getTotalBurned @(UStore StoreTemplateV1))
         callUSafeViewEP #callGetTotalBurned
     , #cGetOwner /-> do
-        cutLorentzNonDoc (Impl.getOwner @(UStore StoreTemplate))
+        cutLorentzNonDoc (Impl.getOwner @(UStore StoreTemplateV1))
         callUSafeViewEP #callGetOwner
     , #cGetTokenName /-> do
         cutLorentzNonDoc Impl.getTokenName
@@ -214,7 +212,7 @@ tzbtcContractRaw = do
         cutLorentzNonDoc Impl.getTokenCode
         callUSafeViewEP #callGetTokenCode
     , #cGetRedeemAddress /-> do
-        cutLorentzNonDoc (Impl.getRedeemAddress @(UStore StoreTemplate))
+        cutLorentzNonDoc (Impl.getRedeemAddress @(UStore StoreTemplateV1))
         callUSafeViewEP #callGetRedeemAddress
     , #cSafeEntrypoints /-> do
         doc $ DDescription

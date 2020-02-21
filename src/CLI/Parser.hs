@@ -40,7 +40,6 @@ data CmdLnArgs
   | CmdTestScenario TestScenarioOptions
   | CmdMigrate
       ("version" :! Natural)
-      ("ownerAddress" :! Address)
       ("redeemAddress" :! Address)
       ("tokenName" :! MText)
       ("tokenCode" :! MText)
@@ -111,7 +110,6 @@ argParser = hsubparser $
           (CmdMigrate
             <$> getParser Nothing "Target version"
             <*> getParser Nothing "Redeem address"
-            <*> getParser Nothing "Owner's address"
             <*> getParser (Just $ #tokenName .! [mt|TZBTC|]) "Token name"
             <*> getParser (Just $ #tokenCode .! [mt|TZBTC|]) "Token code"
             <*> (#output <.!> outputOption))

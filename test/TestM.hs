@@ -32,7 +32,7 @@ import Client.IO ()
 import Client.Types
 import Lorentz.Constraints
 import Lorentz.Contracts.Multisig
-import Lorentz.Contracts.TZBTC (OriginationParameters)
+import Lorentz.Contracts.TZBTC (V1DeployParameters)
 
 import Util.AbstractIO
 
@@ -97,7 +97,7 @@ data Handlers m = Handlers
   , hGetFromBigMap :: Natural -> Text -> m (Either TzbtcClientError Expression)
   , hWaitForOperation :: Text -> m ()
   , hGetTezosClientConfig :: m (Either Text (FilePath, TezosClientConfig))
-  , hDeployTzbtcContract :: OriginationParameters -> m ()
+  , hDeployTzbtcContract :: V1DeployParameters -> m ()
   , hDeployMultisigContract :: MSigStorage -> Bool -> m ()
 
   , hGetAddressAndPKForAlias :: Text -> m (Either TzbtcClientError (Address, PublicKey))
@@ -187,4 +187,3 @@ instance HasEnv TestM where
   withLocal f act = do
     fn <- getHandler hWithLocal
     fn f act
-

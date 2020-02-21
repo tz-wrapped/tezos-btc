@@ -78,11 +78,11 @@ getOwner
 getOwner = getSingleField #owner "the current contract owner"
 
 getTokenName
-  :: Entrypoint (View () MText) (UStore StoreTemplate)
+  :: Entrypoint (View () MText) (UStore StoreTemplateV1)
 getTokenName = getSingleField #tokenName "the token name"
 
 getTokenCode
-  :: Entrypoint (View () MText) (UStore StoreTemplate)
+  :: Entrypoint (View () MText) (UStore StoreTemplateV1)
 getTokenCode = getSingleField #tokenCode "the token code"
 
 getRedeemAddress

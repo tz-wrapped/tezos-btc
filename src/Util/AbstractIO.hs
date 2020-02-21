@@ -26,11 +26,11 @@ import Tezos.V005.Micheline (Expression)
 
 import Lorentz.Contracts.Multisig
 
+import Client.Env
 import Client.Error
 import Client.Types
-import Client.Env
 import Lorentz.Constraints
-import Lorentz.Contracts.TZBTC (OriginationParameters)
+import Lorentz.Contracts.TZBTC (V1DeployParameters)
 
 -- File system operations
 class (Monad m) => HasFilesystem m  where
@@ -59,7 +59,7 @@ class (HasTezosClient m, HasConfig m, Monad m, MonadThrow m) => HasTezosRpc m wh
   getStorage :: Text -> m Expression
   getCounter :: Text -> m TezosInt64
   getFromBigMap :: Natural -> Text -> m (Either TzbtcClientError Expression)
-  deployTzbtcContract :: OriginationParameters -> m ()
+  deployTzbtcContract :: V1DeployParameters -> m ()
   deployMultisigContract :: MSigStorage -> Bool -> m ()
 
 -- Interaction with tezos client binary

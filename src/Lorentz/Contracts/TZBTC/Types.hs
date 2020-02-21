@@ -16,7 +16,8 @@ module Lorentz.Contracts.TZBTC.Types
   , ManagedLedger.MintParams
   , ManagedLedger.TransferParams
   , OperatorParams
-  , OriginationParameters(..)
+  , V1Parameters(..)
+  , V1DeployParameters (..)
   , Parameter(..)
   , SafeParameter(..)
   , PauseParams
@@ -24,7 +25,9 @@ module Lorentz.Contracts.TZBTC.Types
   , SetRedeemAddressParams
   , Storage(..)
   , StorageFields(..)
+  , StoreTemplateWithCommons(..)
   , StoreTemplate(..)
+  , StoreTemplateV1
   , TZBTCv1
   , TZBTCVersionC
   , TransferOwnershipParams
@@ -243,12 +246,17 @@ instance NiceDocVersion ver => TypeHasDoc (Storage ver) where
   typeDocHaskellRep = homomorphicTypeDocHaskellRep
   typeDocMichelsonRep = homomorphicTypeDocMichelsonRep
 
+-- | Template wrapper which keeps contract owner.
+-- It is common for all contract versions.
+data StoreTemplateWithCommons s = StoreTemplateWithCommons
+  { owner :: UStoreField Address
+  , stCustom :: s
+  } deriving stock Generic
 
 -- | Template for the wrapped UStore which will hold the upgradeable code
 -- and fields
 data StoreTemplate = StoreTemplate
-  { owner         :: UStoreField Address
-  , paused        :: UStoreField Bool
+  { paused        :: UStoreField Bool
   , totalSupply   :: UStoreField Natural
   , totalBurned   :: UStoreField Natural
   , totalMinted   :: UStoreField Natural
@@ -262,25 +270,33 @@ data StoreTemplate = StoreTemplate
   -- ^ Textual code of the token, can be set to an arbitrary
   -- (presumably short) string. It is meta information that is not
   -- used by the contract, only stored.
-  , code          :: MText |~> EntryPointImpl StoreTemplate
-  , fallback      :: UStoreField $ EpwFallback StoreTemplate
+  , code          :: MText |~> EntryPointImpl StoreTemplateV1
+  , fallback      :: UStoreField $ EpwFallback StoreTemplateV1
   , ledger        :: Address |~> ManagedLedger.LedgerValue
   } deriving stock Generic
 
-type UStoreV1 = UStore StoreTemplate
+type StoreTemplateV1 = StoreTemplateWithCommons StoreTemplate
+
+type UStoreV1 = UStore StoreTemplateV1
 
 type Operators = Set Address
 
 instance Buildable Operators where
   build = mconcat . intersperse ", " . Prelude.map build . toList
 
--- | The data required to initialize the V1 version of the contract storage.
-data OriginationParameters = OriginationParameters
-  { opOwner :: !Address
-  , opRedeemAddress :: !Address
-  , opBalances :: !(Map Address Natural)
-  , opTokenName :: !MText
-  , opTokenCode :: !MText
+-- | The data required to upgrade contract storage from V0 to V1.
+data V1Parameters = V1Parameters
+  { v1RedeemAddress :: !Address
+  , v1Balances :: !(Map Address Natural)
+  , v1TokenName :: !MText
+  , v1TokenCode :: !MText
+  }
+
+-- | The data required to initialize the V1 version of the contract storage
+-- from scratch.
+data V1DeployParameters = V1DeployParameters
+  { v1Owner :: Address
+  , v1MigrationParams :: V1Parameters
   }
 
 -- | A safe view to act as argument to the inner stored procedures that
@@ -320,7 +336,7 @@ type Interface =
 data TZBTCv1 :: VersionKind
 instance KnownContractVersion TZBTCv1 where
   type VerInterface TZBTCv1 = Interface
-  type VerUStoreTemplate TZBTCv1 = StoreTemplate
+  type VerUStoreTemplate TZBTCv1 = StoreTemplateV1
   contractVersion _ = 1
 
 -- | Type of instruction which implements a part of TZBTC Protocol.
