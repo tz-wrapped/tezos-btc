@@ -7,6 +7,7 @@
 module Test.IO
   ( test_dryRunFlag
   , test_createMultisigPackage
+  , test_createMultisigPackageWithMSigOverride
   , test_multisigSignPackage
   , test_multisigExecutePackage
   , test_userOverride
@@ -24,6 +25,7 @@ import Text.Hex (decodeHex)
 import Util.Named
 
 import Client.Env
+import Client.Error
 import Client.Main (mainProgram)
 import Client.Types
 import Client.Util
@@ -140,6 +142,10 @@ multiSigAddressRaw :: IsString s => s
 multiSigAddressRaw = "KT1MLCp7v3NiY9xeLe4XyPoS4AEgfXT7X5PX"
 multiSigAddress = unsafeParseAddress multiSigAddressRaw
 
+multiSigAddressOverrideRaw :: IsString s => s
+multiSigAddressOverrideRaw = "KT1MwaBC3G3cUa3PfjJ1StFkSuBLbRuoReRK"
+multiSigOverrideAddress = unsafeParseAddress multiSigAddressOverrideRaw
+
 operatorAddress1Raw :: IsString s => s
 operatorAddress1Raw = "tz1cLwfiFZWA4ZgDdxKiMgxACvGZbTJ2tiQQ"
 operatorAddress1 = unsafeParseAddress operatorAddress1Raw
@@ -192,7 +198,7 @@ multiSigCreationTestHandlers =
       args =
         [ "addOperator"
         , "--operator", operatorAddress1Raw
-        , "--multisig", multiSigFilePath
+        , "--multisig-package", multiSigFilePath
         ]
       cc :: TezosClientConfig
       cc = TezosClientConfig
@@ -228,6 +234,87 @@ test_createMultisigPackage = testGroup "Create multisig package"
         checkExpectations
     in runMock multiSigCreationTestHandlers test
   ]
+
+---- Test multisig contract address override
+multiSigCreationWithMSigOverrideTestHandlers :: [String] -> Handlers TestM
+multiSigCreationWithMSigOverrideTestHandlers args =
+  (defaultHandlers (defaultMockInput { miCmdLine =  args}))
+    { hReadFile = \_ -> throwM $ TestError "Unexpected file read"
+    , hRunTransactions = \_ _ -> throwM $ TestError "Unexpected `runTransactions` call"
+    , hGetTezosClientConfig = pure $ Right ("tezos-client", cc)
+    , hGetAddressForContract = \ca ->
+        if ca == "tzbtc"
+          then pure $ Right contractAddress
+          else if ca == "tzbtc-multisig-override"
+            then pure $ Right multiSigOverrideAddress
+            else pure $ Left $ TzbtcUnknownAliasError ca
+    , hGetStorage = \x -> if x == multiSigAddressOverrideRaw
+      then pure $ nicePackedValueToExpression (mkStorage 14 3 [])
+      else throwM $ TestError "Unexpected contract address"
+    , hWriteFile = \fp bs -> do
+        packageOk <- checkPackage bs
+        if packageOk then
+          meetExpectation (WritesFile fp Nothing)
+          else throwM $ TestError "Package check failed"
+    , hGetAddressAndPKForAlias = \ca -> pure $ Left $ TzbtcUnknownAliasError ca
+    }
+    where
+      cc :: TezosClientConfig
+      cc = TezosClientConfig
+        { tcNodeAddr = "localhost"
+        , tcNodePort = 2990
+        , tcTls = False
+        }
+
+      checkToSign package = case getToSign package of
+        Right (addr, (Counter counter, _)) -> pure $
+          ( addr == multiSigOverrideAddress &&
+            counter == 14 )
+        _ -> throwM $ TestError "Getting address and counter from package failed"
+      checkPackage bs = case decodePackage bs of
+        Right package -> case fetchSrcParam package of
+          Right param -> do
+            toSignOk <- checkToSign package
+            pure $ toSignOk &&
+              (param == (TZBTC.fromFlatParameter $ TZBTC.AddOperator
+                (#operator .! operatorAddress1)))
+          _ -> throwM $ TestError "Fetching parameter failed"
+        _ -> throwM $ TestError "Decoding package failed"
+
+test_createMultisigPackageWithMSigOverride :: TestTree
+test_createMultisigPackageWithMSigOverride = testGroup "Create multisig package with multisig override"
+  [ testCase "Check package creation with override" $
+    let
+      test = do
+        addExpectation ParseCmdLine Once
+        addExpectation (WritesFile multiSigFilePath Nothing) Once
+        addExpectation LooksupEnv Multiple
+        mainProgram
+        checkExpectations
+    in runMock (multiSigCreationWithMSigOverrideTestHandlers longOption) test
+  , testCase "Check package creation with override with short option" $
+    let
+      test = do
+        addExpectation ParseCmdLine Once
+        addExpectation (WritesFile multiSigFilePath Nothing) Once
+        addExpectation LooksupEnv Multiple
+        mainProgram
+        checkExpectations
+    in runMock (multiSigCreationWithMSigOverrideTestHandlers shortOption) test
+  ]
+  where
+    longOption =
+        [ "addOperator"
+        , "--operator", operatorAddress1Raw
+        , "--multisig-package", multiSigFilePath
+        , "--multisig-addr", "tzbtc-multisig-override"
+        ]
+    shortOption =
+        [ "addOperator"
+        , "--operator", operatorAddress1Raw
+        , "-m", multiSigFilePath
+        , "--multisig-addr", "tzbtc-multisig-override"
+        ]
 
 ---- Test Signing of multisig package
 ---- Checks that the `signPackage` command correctly includes the

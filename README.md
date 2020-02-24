@@ -157,9 +157,15 @@ public keys in its storage.
 In order to perform these actions make sure, that multisig contract's address is
 an owner/operator of the TZBTC contract.
 
-All administrative operations can be performed using multisig.
-In order to create multisig package you should provide `--multisig` flag.
-E.g. `tzbtc-client pause --multisig`. This command will return encoded multisig package.
+All administrative operations can be performed using multisig.  In order to
+create a multisig package (a file that holds the contract operation along with
+the signatures) you should provide the path to the package file using the
+`--multisig-package` option. By default this command will use the alias
+`tzbtc-multisig` as the contract alias of the multisig that should be used. But
+you can override this using the `--multisig-addr` option.
+
+E.g. `tzbtc-client pause --multisig-package path-to-package-file`. This command
+will create the encoded multisig package at the specified path.
 
 You can get operation description from this package using `tzbtc-client getOpDescription` command.
 

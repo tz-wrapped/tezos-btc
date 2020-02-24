@@ -18,7 +18,7 @@ import Data.Char (isAlpha, isDigit, toUpper)
 import Fmt (pretty)
 import Options.Applicative
   (argument, auto, eitherReader, help, long, metavar, option, optional
-  ,str, strOption, switch)
+  ,short, str, strOption, switch)
 import qualified Options.Applicative as Opt
 import qualified Text.Megaparsec as P (Parsec, customFailure, many, parse, satisfy)
 import Text.Megaparsec.Char (eol, space)
@@ -29,14 +29,21 @@ import Lorentz.Contracts.Multisig
 import Michelson.Text (mt)
 import Tezos.Address (Address, parseAddress)
 import Tezos.Crypto (PublicKey, Signature, parsePublicKey, parseSignature)
+import Util.Named
 
 import CLI.Parser
 import Client.Types
 import Lorentz.Contracts.TZBTC.Types
 
 clientArgParser :: Opt.Parser ClientArgs
-clientArgParser = ClientArgs <$> clientArgRawParser <*> userOption <*> dryRunSwitch
+clientArgParser =
+  ClientArgs
+    <$> clientArgRawParser
+    <*> (#userOverride <.!> userOption)
+    <*> (#multisigOverride <.!> multisigOption)
+    <*> dryRunSwitch
   where
+    multisigOption = mbAddrOrAliasOption "multisig-addr" "The multisig contract address/alias to use"
     userOption = mbAddrOrAliasOption "user" "User to send operations as"
     dryRunSwitch =
       switch (long "dry-run" <>
@@ -60,7 +67,8 @@ clientArgRawParser = Opt.hsubparser $
     multisigOption :: Opt.Parser (Maybe FilePath)
     multisigOption =
       Opt.optional $ Opt.strOption $ mconcat
-      [ long "multisig"
+      [ long "multisig-package"
+      , short 'm'
       , metavar "FILEPATH"
       , help "Create package for multisig transaction and write it to the given file"
       ]

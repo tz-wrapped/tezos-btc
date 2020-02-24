@@ -10,6 +10,8 @@ Changes that affect Michelson code are tagged with `[CONTRACT]`.
 
 Unreleased
 ==========
+* [#105](https://github.com/serokell/tezos-btc/pull/105)
+  - Add global option "--multisig-addr" to override the default multisig address/alias.
 * [#104](https://github.com/serokell/tezos-btc/pull/104)
   - Updated patched `tezos-client` building.
 * [#99](https://github.com/serokell/tezos-btc/pull/99)
