@@ -31,27 +31,22 @@ let
   ubuntuImage = makeImageFromDebDist debDistros.ubuntu1804x86_64;
   fedoraImage = makeImageFromRPMDist rpmDistros.fedora27x86_64;
 
-  mainnetInfo = {
-    url = "https://gitlab.com/serokell/morley/tezos.git";
-    rev = "e0ab0c74"; # rvem/mainnet-client-patched
-    sha256 = "0b5mp7gms31qnqybph1r82v60sx6scigrv0w7y6r9ssb0v23vr4y";
-  };
-
-  babylonnetInfo = {
-    url = "https://gitlab.com/serokell/morley/tezos.git";
-    rev = "dd8a9c6b"; # rvem/babylonnet-client-patched
-    sha256 = "1bpck6q1cgzkhbmgx16m118qff3rs2ndvrzq9bh2hzd6iqww75mj";
-  };
-
-  tezosPackaging = import (fetchFromGitHub {
+  tezos-packaging = import (fetchFromGitHub {
     owner = "serokell";
     repo = "tezos-packaging";
-    rev = "126f6dff28d255058c05bfd917bd6fb5988dd185";
-    sha256 = "1pk5q5q51lgzic6pvvvnb0vskwy7vf2h90461fg3rmvxpzaz2c57";
-  }) { inherit mainnetInfo babylonnetInfo; };
+    rev = "202002241125";
+    sha256 = "1pqggiii21ip27l24y7fdrm1jiyhb9l0lrmkrqw5hgz978rjg9bs";
+  }) { patches = [ ./patch/tezos-client.patch ]; };
+
+  tezos-client = pkgs.runCommand "uncompress-tezos-client" { } ''
+    mkdir tmp && cd tmp
+    cp ${tezos-packaging.binaries}/*.tar.gz ./
+    tar -xvzf *.tar.gz
+    mkdir -p $out && cp tezos-client $out/
+  '';
 
 in rec {
-  inherit (tezosPackaging) tezos-client-mainnet tezos-client-babylonnet;
+  inherit tezos-client;
   static = tzbtc-static;
   rpm = vmTools.runInLinuxImage
     (buildRpm.packageRpm // { diskImage = fedoraImage; });

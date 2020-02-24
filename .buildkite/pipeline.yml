@@ -51,12 +51,10 @@ steps:
    branches: master
 
  - commands:
-   - nix-build release.nix -A tezos-client-mainnet -o tezos-client-mainnet
-   - nix-build release.nix -A tezos-client-babylonnet -o tezos-client-babylonnet
+   - nix-build release.nix -A tezos-client -o tezos-client
    label: patched tezos-client building
    artifact_paths:
-     - ./tezos-client-mainnet/*
-     - ./tezos-client-babylonnet/*
+     - ./tezos-client/*
 
  - commands:
    - nix-build release.nix -A static -o tzbtc-static

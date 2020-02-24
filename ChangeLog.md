@@ -10,6 +10,8 @@ Changes that affect Michelson code are tagged with `[CONTRACT]`.
 
 Unreleased
 ==========
+* [#104](https://github.com/serokell/tezos-btc/pull/104)
+  - Updated patched `tezos-client` building.
 * [#99](https://github.com/serokell/tezos-btc/pull/99)
   - "migrate" CLI command does not accept new owner anymore rather retains
     the owner from V0.

@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2019 Bitcoin Suisse
 # SPDX-License-Identifier: LicenseRef-Proprietary
 
-files=$(git ls-files | xargs grep --files-with-matches --binary-files=without-match '[[:blank:]]$')
+files=$(git ls-files -- . ':!:*.patch' | xargs grep --files-with-matches --binary-files=without-match '[[:blank:]]$')
 if [[ ! -z $files ]];then
   echo '  Files with trailing whitespace found:'
   for f in "${files[@]}"; do
