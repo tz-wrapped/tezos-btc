@@ -82,18 +82,23 @@ instance HasCmdLine IO  where
   printByteString = BSC.putStrLn
   confirmAction = IO.confirmAction
 
-instance (Monad m, HasTezosClient m, HasEnv m) => HasConfig m where
+instance (Monad m, MonadThrow m, HasTezosClient m, HasEnv m) => HasConfig m where
   readConfig = do
     c <- getTezosClientConfig
     -- Lookup config overrides from environment
     -- and apply them
-    env <- lookupEnv
+    configOverrides <- aeConfigOverride <$> lookupEnv
     case c of
       Right (path, tzc) -> do
         config <- toTzbtcConfig tzc path
-        case coTzbtcUser $ aeConfigOverride env of
-          Just a -> pure $ Right $ config { ccUserAlias = a }
-          _ -> pure $ Right config
+        let overridenUserAlias = fromMaybe (ccUserAlias config) (coTzbtcUser configOverrides)
+        overridenMultisig <- case coTzbtcMultisig configOverrides of
+          Just multisig -> Just <$> addrOrAliasToAddr multisig
+          _ -> pure $ ccMultisigAddress config
+        pure $ Right $ config
+          { ccUserAlias = overridenUserAlias
+          , ccMultisigAddress = overridenMultisig
+          }
       Left _ -> pure $ Left TzbtcClientConfigError
 
 toTzbtcConfig :: (HasTezosClient m) => TezosClientConfig -> FilePath -> m ClientConfig

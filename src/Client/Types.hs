@@ -49,12 +49,17 @@ import Michelson.Text (MText)
 import Michelson.Typed (IsoValue)
 import Tezos.Address (Address)
 import Tezos.Crypto (PublicKey, Signature, encodeBase58Check, formatSignature)
+import Util.Named
 
 import Lorentz.Contracts.Multisig
 import Lorentz.Contracts.TZBTC.Types
 
 -- | Client argument with optional dry-run flag
-data ClientArgs = ClientArgs ClientArgsRaw (Maybe AddrOrAlias)  Bool
+data ClientArgs =
+  ClientArgs
+    ClientArgsRaw
+      ("userOverride" :! Maybe AddrOrAlias)
+      ("multisigOverride" :! Maybe AddrOrAlias) Bool
 
 type AddrOrAlias = Text
 
@@ -97,7 +102,9 @@ data DeployContractOptions = DeployContractOptions
   }
 
 data ConfigOverride = ConfigOverride
-  { coTzbtcUser :: Maybe AddrOrAlias }
+  { coTzbtcUser :: Maybe AddrOrAlias
+  , coTzbtcMultisig :: Maybe AddrOrAlias
+  } deriving stock Show
 
 newtype MichelsonExpression = MichelsonExpression Expression
   deriving newtype FromJSON

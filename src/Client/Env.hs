@@ -29,4 +29,4 @@ runAppM :: AppEnv -> AppM a -> IO a
 runAppM = flip runReaderT
 
 emptyConfigOverride :: ConfigOverride
-emptyConfigOverride  = ConfigOverride Nothing
+emptyConfigOverride  = ConfigOverride Nothing Nothing
