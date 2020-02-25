@@ -35,9 +35,9 @@ library:
     - http-client-tls
     - http-types
     - fmt
+    - lorentz
     - morley
     - morley-ledgers
-    - morley-lorentz
     - morley-multisig
     - morley-prelude
     - morley-upgradeable
@@ -63,8 +63,8 @@ executables:
 
     dependencies:
       - fmt
+      - lorentz
       - morley
-      - morley-lorentz
       - morley-multisig
       - morley-prelude
       - optparse-applicative
@@ -92,12 +92,12 @@ tests:
     - hex-text
     - hspec
     - HUnit
-    - morley-prelude
+    - lorentz
     - morley
     - morley-ledgers
     - morley-ledgers-test
-    - morley-lorentz
     - morley-multisig
+    - morley-prelude
     - morley-upgradeable
     - mtl
     - optparse-applicative

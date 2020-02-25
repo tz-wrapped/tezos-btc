@@ -9,7 +9,6 @@ module Client.Main
   ) where
 
 import Data.Version (showVersion)
-import Data.Vinyl
 import Fmt (Buildable, pretty)
 import Options.Applicative
   (footerDoc, fullDesc, header, help, helper, info, infoOption, long, progDesc)

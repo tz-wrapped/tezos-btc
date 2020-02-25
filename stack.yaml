@@ -14,20 +14,18 @@ extra-deps:
     https://gitlab.com/morley-framework/morley.git
     # ^ CI cannot use ssh, so we use http clone here
   commit:
-    5fbc76f61fb8da7dbb3642d44ee21ce92d2d43b8 # master
-  # nix-sha256: 0hmzkh5i00m8l06rqn21n41kicmfgjxamq9zwp926rbg8w4n6dmh
+    173e8f87e5769695ddf616c7190f361129e0a334 # master
+  # nix-sha256: 1bf968zqckswglrv2naflv19mjvmzml4jqzpqz832qgpil4p3smq
   subdirs:
-    - .
-    - indigo
-    - morley-ledgers
-    - morley-ledgers-test
-    - morley-lorentz
-    - morley-upgradeable
-    - morley-multisig
-    - morley-client
-    - morley-nettest
-    - prelude
-    - tasty-hunit-compat
+    - code/indigo
+    - code/lorentz
+    - code/morley
+    - code/morley-ledgers
+    - code/morley-ledgers-test
+    - code/morley-upgradeable
+    - code/morley-multisig
+    - code/morley-client
+    - code/morley-nettest
 
 - git:
     https://gitlab.com/obsidian.systems/tezos-bake-monitor-lib.git
@@ -36,6 +34,10 @@ extra-deps:
   # nix-sha256: 0ypf7z2c9w59rz7hymzdyx87783qdfp3kygs9jl8qnmbfslmi8jr
   subdirs:
     - tezos-bake-monitor-lib
+
+# Stable parts of morley available from Hackage
+- morley-prelude-0.3.0
+- tasty-hunit-compat-0.2
 
 # Required by tzbtc
 - o-clock-1.1.0@sha256:941ac2bc1732e6622b165831c4badb1a8e846f451620bd028064339f5b284224

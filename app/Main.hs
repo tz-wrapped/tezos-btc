@@ -76,7 +76,7 @@ main = do
     multisigContract
       :: forall (e :: ErrorsKind).
         (Typeable e, ErrorHandler e)
-      => Contract MSigParameter MSigStorage
+      => ContractCode MSigParameter MSigStorage
     multisigContract = tzbtcMultisigContract @e
     printContract
       :: ( NiceParameterFull parameter
@@ -85,7 +85,7 @@ main = do
          , HasCmdLine m)
       => Bool
       -> Maybe FilePath
-      -> Contract parameter storage
+      -> ContractCode parameter storage
       -> m ()
     printContract singleLine mbFilePath c =
       maybe printTextLn writeFileUtf8 mbFilePath $
