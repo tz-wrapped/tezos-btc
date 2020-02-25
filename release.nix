@@ -12,7 +12,7 @@ let
     project = "tzbtc-client";
     majorVersion = "0";
     minorVersion = "3";
-    packageRevision = "0";
+    packageRevision = "1";
     bin = "${tzbtc-static}/bin/tzbtc-client";
     arch = "amd64";
     license = "Proprietary";
