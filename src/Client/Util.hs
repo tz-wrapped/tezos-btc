@@ -22,10 +22,9 @@ import Data.Singletons (SingI)
 import Servant.Client.Core (ClientError)
 import Tezos.Common.Binary (decode, encode)
 import Tezos.Common.Json (TezosInt64)
-import Tezos.V005.Micheline
-  (Expression(..), MichelinePrimAp(..), MichelinePrimitive(..))
+import Tezos.V005.Micheline (Expression(..), MichelinePrimAp(..), MichelinePrimitive(..))
 
-import Lorentz (Contract, compileLorentzContract)
+import Lorentz (ContractCode, compileLorentzContract)
 import Lorentz.Constraints
 import Lorentz.Pack (lPackValue, lUnpackValue)
 import Michelson.Interpret.Pack (encodeValue', packCode', packNotedT')
@@ -54,7 +53,7 @@ lEncodeValue' = encodeValue' . toVal \\ nicePrintedValueEvi @a
 
 mkOriginationScript
   :: forall cp st. (NiceParameterFull cp, NiceStorage st)
-  => Contract cp st -> st -> OriginationScript
+  => ContractCode cp st -> st -> OriginationScript
 mkOriginationScript contract storage = OriginationScript
   { osCode = Expression_Seq $ fromList
     [ Expression_Prim $

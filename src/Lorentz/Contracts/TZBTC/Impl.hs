@@ -33,7 +33,6 @@ module Lorentz.Contracts.TZBTC.Impl
 import Prelude hiding (drop, get, some, swap, (>>))
 
 import Data.Set (Set)
-import Data.Vinyl.Derived (Label)
 import Fmt (Builder)
 
 import Util.Markdown (mdTicked)

@@ -189,7 +189,7 @@ getAppliedResults env op = do
 
 originateContract
   :: (NiceParameterFull cp, NiceStorage st)
-  => Contract cp st -> st -> ClientConfig -> IO (Either TzbtcClientError Address)
+  => ContractCode cp st -> st -> ClientConfig -> IO (Either TzbtcClientError Address)
 originateContract contract initialStorage config@ClientConfig{..} = do
   OperationConstants{..} <- preProcessOperation config
   let origOp = OriginationOperation

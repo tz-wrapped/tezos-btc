@@ -27,7 +27,7 @@ import Lorentz.Contracts.Upgradeable.Common.Interface
 import Lorentz.UStore.Migration
 
 -- | Preprocessed version of V0 contract.
-tzbtcContract :: Contract (Parameter TZBTCv0) UStoreV0
+tzbtcContract :: ContractCode (Parameter TZBTCv0) UStoreV0
 tzbtcContract = preprocess tzbtcContractRaw
 
 -- | Preprocessed version of contract router for V1.

@@ -42,7 +42,7 @@ import Lorentz.Test
 import Lorentz.Test.Unit (expectContractEntrypoints)
 import Lorentz.UStore.Migration
 import Michelson.Runtime (parseExpandContract)
-import Michelson.Test.Unit (matchContractEntryPoints)
+import Michelson.Test.Unit (matchContractEntryPoints, mkEntrypointsMap)
 import Michelson.Typed.Convert (convertFullContract)
 import qualified Michelson.Untyped as U
 import Util.IO
@@ -149,26 +149,14 @@ initialSupply = 500
 -- We have the header of the actual tzbtc contract (parameter, storage types with
 -- some nop code) in ./test/resources/tzbtc-parameter-entrypoints-ref.tz.
 -- We parse it, extract the paramter type from the parsed contract. Then we use
--- the mkAnnotationsMap function to extract the field and type annotations from
+-- the 'mkEntrypointsMap' function to extract the field and type annotations from
 -- the relavant parts of the parameter type. This is compared against the
 -- auto derivied entrypoints of the contract. They should match or else the
 -- test fails. If the tzbtc parameter has to be changed, then this test should
 -- be fixed by editing the `tzbtc-parameter-entrypoints-ref.tz` file.
 entrypointsRef :: IO (Map EpName U.Type)
-entrypointsRef = mkAnnotationsMap <$> tzbtcParameterType
+entrypointsRef = mkEntrypointsMap <$> tzbtcParameterType
   where
-    mkAnnotationsMap :: U.Type -> Map EpName U.Type
-    mkAnnotationsMap ty = case ty of
-      U.Type t _ -> case t of
-        -- We are only interested in `Or` branches to extract entrypoint
-        -- annotations.
-        U.TOr f1 f2 t1 t2 -> let
-          ep1 = U.unAnnotation f1
-          ep2 = U.unAnnotation f2
-          n1 = if length ep1 > 0 then  M.fromList [(U.EpNameUnsafe ep1, t1)] else mempty
-          n2 = if length ep2 > 0 then  M.fromList [(U.EpNameUnsafe ep2, t2)] else mempty
-          in n1 <> n2 <> (mkAnnotationsMap t1) <> (mkAnnotationsMap t2)
-        _ -> mempty
     tzbtcParameterType :: IO U.Type
     tzbtcParameterType = do
       code <- readFileUtf8 "./test/resources/tzbtc-parameter-entrypoints-ref.mtz"

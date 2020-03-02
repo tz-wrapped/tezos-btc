@@ -22,10 +22,10 @@ module Lorentz.Contracts.Multisig
 
 import Lorentz
 
-import Lorentz.Contracts.Multisig.Specialized as SM
-import qualified Lorentz.Contracts.TZBTC as TZBTC
-import Lorentz.Contracts.TZBTC hiding (Parameter, Storage)
 import Lorentz.Contracts.Multisig.Generic (ErrorHandler, ErrorsKind(..), Keys(..))
+import Lorentz.Contracts.Multisig.Specialized as SM
+import Lorentz.Contracts.TZBTC hiding (Parameter, Storage)
+import qualified Lorentz.Contracts.TZBTC as TZBTC
 
 type Version = SomeTZBTCVersion
 
@@ -36,7 +36,7 @@ type MSigStorage = SM.Storage
 
 tzbtcMultisigContract
   :: forall e.  (ErrorHandler e, Typeable e)
-  => Contract MSigParameter Storage
+  => ContractCode MSigParameter Storage
 tzbtcMultisigContract =
   SM.specializedMultisigContract
     @_
