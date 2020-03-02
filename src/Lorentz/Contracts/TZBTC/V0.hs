@@ -21,7 +21,6 @@ module Lorentz.Contracts.TZBTC.V0
 import Prelude hiding (drop, swap, (>>))
 
 import qualified Data.Text as T
-import Data.Vinyl.Derived (Label)
 
 import Lorentz
 import Lorentz.Contracts.Upgradeable.Common hiding (Parameter(..), Storage)
@@ -30,7 +29,6 @@ import Lorentz.UStore.Migration (SomeUTemplate)
 import Michelson.Doc (DComment(..), DDescription(..))
 import Michelson.Text
 import qualified Michelson.Typed as T
-import Util.TypeLits
 
 import qualified Lorentz.Contracts.TZBTC.Impl as Impl
 import Lorentz.Contracts.TZBTC.Types as Types
@@ -178,7 +176,7 @@ safeEntrypoints = entryCase @(SafeParameter TZBTCv0) (Proxy @SafeEntryPointKind)
 -- | Version 0 of TZBTC contract as written in Lorentz.
 -- It generally should not be used because we preprocess it before
 -- actually using. See 'Lorentz.Contracts.TZBTC.Preprocess'.
-tzbtcContractRaw :: Contract (Parameter TZBTCv0) UStoreV0
+tzbtcContractRaw :: ContractCode (Parameter TZBTCv0) UStoreV0
 tzbtcContractRaw = do
   doc $ T.DStorageType $ DType $ Proxy @UStoreV0
   unpair
@@ -272,7 +270,7 @@ callUEp
   :: forall ep ver interface.
      ( interface ~ VerInterface ver
      , NicePackedValue (LookupEntryPoint ep interface)
-     , KnownSymbol ep)
+     )
   => Label ep
   -> Entrypoint (LookupEntryPoint ep interface) (Storage ver)
 callUEp epName = do
@@ -289,7 +287,7 @@ callUSafeViewEP
      ( interface ~ VerInterface ver
      , LookupEntryPoint ep interface ~ (SafeView vi vo)
      , NicePackedValue vi
-     , KnownSymbol ep)
+     )
   => Label ep
   -> Entrypoint (View vi vo) (Storage ver)
 callUSafeViewEP epName = do

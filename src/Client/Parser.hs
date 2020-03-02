@@ -14,11 +14,9 @@ module Client.Parser
   , parseSignatureFromOutput
   ) where
 
-import Data.Char (isAlpha, isDigit, toUpper)
-import Fmt (pretty)
-import Options.Applicative
-  (argument, auto, eitherReader, help, long, metavar, option, optional
-  ,short, str, strOption, switch)
+import Data.Char (isAlpha, isDigit)
+import Fmt (Buildable, pretty)
+import Options.Applicative (eitherReader, help, long, metavar, option, optional, short, str, switch)
 import qualified Options.Applicative as Opt
 import qualified Text.Megaparsec as P (Parsec, customFailure, many, parse, satisfy)
 import Text.Megaparsec.Char (eol, space)
@@ -29,11 +27,13 @@ import Lorentz.Contracts.Multisig
 import Michelson.Text (mt)
 import Tezos.Address (Address, parseAddress)
 import Tezos.Crypto (PublicKey, Signature, parsePublicKey, parseSignature)
+import Util.CLI
 import Util.Named
 
 import CLI.Parser
 import Client.Types
 import Lorentz.Contracts.TZBTC.Types
+import Morley.CLI
 
 clientArgParser :: Opt.Parser ClientArgs
 clientArgParser =
@@ -287,9 +287,11 @@ clientArgRawParser = Opt.hsubparser $
           dcoOwner <- mbAddrOrAliasOption "owner" "Address of the owner"
           dcoRedeem <- addrOrAliasOption "redeem" "Redeem address"
           dcoTokenName <-
-            mTextOption (Just [mt|TZBTC|]) "token-name" "Name of this token"
+            mTextOption (Just [mt|TZBTC|])
+              (#name .! "token-name") (#help .! "Name of this token")
           dcoTokenCode <-
-            mTextOption (Just [mt|TZBTC|]) "token-code" "Token code"
+            mTextOption (Just [mt|TZBTC|])
+              (#name .! "token-code") (#help .! "Token code")
           pure DeployContractOptions {..}
 
     deployMultisigCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
@@ -312,39 +314,35 @@ clientArgRawParser = Opt.hsubparser $
     callbackParser :: Opt.Parser (Maybe AddrOrAlias)
     callbackParser = mbAddrOrAliasOption "callback" "Callback address"
 
+-- This wrapper is needed to override 'getMetavar' for 'AddrOrAlias'
+-- because it is a type synonym for 'Text'. I think one day we will
+-- be end up using @AddrOrAlias@ from @morley-nettest@.
+newtype AddrOrAliasWrapper =
+  AddrOrAliasWrapper
+    { unAddrOrAliasWrapper :: AddrOrAlias
+    } deriving newtype Buildable
+
+instance HasCLReader AddrOrAliasWrapper where
+  getReader = AddrOrAliasWrapper <$> getReader
+  getMetavar = "ADDRESS | ALIAS"
+
 addrOrAliasOption :: String -> String -> Opt.Parser AddrOrAlias
 addrOrAliasOption name hInfo =
-  option str $ mconcat
-  [ metavar "ADDRESS | ALIAS"
-  , long name
-  , help hInfo
-  ]
+  unAddrOrAliasWrapper <$>
+  mkCLOptionParser Nothing (#name .! name) (#help .! hInfo)
 
 mbAddrOrAliasOption :: String -> String -> Opt.Parser (Maybe AddrOrAlias)
-mbAddrOrAliasOption name hInfo =
-  optional $ strOption $ mconcat
-  [ metavar "ADDRESS | ALIAS"
-  , long name
-  , help hInfo
-  ]
+mbAddrOrAliasOption = optional ... addrOrAliasOption
 
 addrOrAliasArg :: String -> Opt.Parser AddrOrAlias
 addrOrAliasArg hInfo =
-  argument str $ mconcat
-  [ metavar "ADDRESS | ALIAS"
-  , help hInfo
-  ]
+  unAddrOrAliasWrapper <$> mkCLArgumentParser Nothing (#help .! hInfo)
 
 natOption :: String -> String -> Opt.Parser Natural
-natOption name hInfo =
-  option auto $ mconcat
-  [ metavar $ toUpper <$> name
-  , long name
-  , help hInfo
-  ]
+natOption name hInfo = mkCLOptionParser Nothing (#name .! name) (#help .! hInfo)
 
 burnParamsParser :: Opt.Parser BurnParams
-burnParamsParser = getParser Nothing "Amount to burn"
+burnParamsParser = namedParser Nothing "Amount to burn"
 
 signatureOption :: Opt.Parser Signature
 signatureOption = option (eitherReader parseSignatureDo) $ mconcat
