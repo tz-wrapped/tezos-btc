@@ -6,7 +6,7 @@
 
 # TZBTC
 
-**Code revision:** [4cdad92](https://github.com/serokell/tezos-btc/commit/4cdad92385157c1ff6bd6ad913b0c5b7590af130) *(Tue Feb 25 18:13:14 2020 +0300)*
+**Code revision:** [2c632c3](https://github.com/serokell/tezos-btc/commit/2c632c321dc09fbf6333a04036aec356c835d655) *(Mon Mar 2 21:03:53 2020 +0300)*
 
 This contract is implemented using Lorentz language.
 Basically, this contract is [FA1.2](https://gitlab.com/serokell/morley/tzip/blob/master/A/FA1.2.md)-compatible approvable ledger that maps user addresses to their token balances. The main idea of this token contract is to provide 1-to-1 correspondance with BTC.
@@ -1128,7 +1128,8 @@ This type keeps general information about upgradeable contract and the logic res
 ### `Text`
 
 Michelson string.
-Not every text literal is valid string, see list of constraints in the [Official Michelson documentation](https://tezos.gitlab.io/whitedoc/michelson.html#constants).
+
+This has to contain only ASCII characters with codes from [32; 126] range; additionally, newline feed character is allowed.
 
 **Final Michelson representation:** `string`
 
