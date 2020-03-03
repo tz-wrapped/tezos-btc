@@ -4,7 +4,9 @@
  -}
 module CLI.Parser
   ( CmdLnArgs(..)
-  , TestScenarioOptions(..)
+  , addressArgument
+  , addressOption
+  , mTextOption
   , argParser
   , mkCommandParser
   ) where
@@ -26,19 +28,13 @@ data CmdLnArgs
   | CmdPrintMultisigContract Bool Bool (Maybe FilePath)
   | CmdPrintDoc (Maybe FilePath)
   | CmdParseParameter Text
-  | CmdTestScenario TestScenarioOptions
+  | CmdTestScenario
   | CmdMigrate
       ("version" :! Natural)
       ("redeemAddress" :! Address)
       ("tokenName" :! MText)
       ("tokenCode" :! MText)
       ("output" :! Maybe FilePath)
-
-data TestScenarioOptions = TestScenarioOptions
-  { tsoMaster :: !Address
-  , tsoOutput :: !(Maybe FilePath)
-  , tsoAddresses :: ![Address]
-  }
 
 argParser :: Opt.Parser CmdLnArgs
 argParser = hsubparser $
@@ -91,8 +87,8 @@ argParser = hsubparser $
     testScenarioCmd =
       (mkCommandParser
           "testScenario"
-          (CmdTestScenario <$> testScenarioOptions)
-          "Print parameters for smoke tests")
+          (pure CmdTestScenario)
+          "Do smoke tests")
     migrateCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     migrateCmd =
       (mkCommandParser
@@ -112,12 +108,6 @@ mkCommandParser
   -> Opt.Mod Opt.CommandFields a
 mkCommandParser commandName parser desc =
   command commandName $ info parser $ progDesc desc
-
-testScenarioOptions :: Opt.Parser TestScenarioOptions
-testScenarioOptions = TestScenarioOptions <$>
-  addressArgument "Owner's address" <*>
-  outputOption <*>
-  (many $ addressOption Nothing (#name .! "address") (#help .! "Other owned addresses"))
 
 addressArgument :: String -> Opt.Parser Address
 addressArgument hInfo = mkCLArgumentParser Nothing (#help .! hInfo)

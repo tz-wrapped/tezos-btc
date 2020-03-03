@@ -33,7 +33,6 @@ import Util.Named
 import CLI.Parser
 import Client.Types
 import Lorentz.Contracts.TZBTC.Types
-import Morley.CLI
 
 clientArgParser :: Opt.Parser ClientArgs
 clientArgParser =
