@@ -62,7 +62,7 @@ steps:
    - nix-build release.nix -A deb -o tzbtc-client-deb
    - nix-build release.nix -A rpm -o tzbtc-client-rpm
    label: packaging
-   branches: master
+   branches: "!autodoc/master"
    artifact_paths:
      - ./tzbtc-static/bin/tzbtc-client
      - ./tzbtc-client-deb/*
