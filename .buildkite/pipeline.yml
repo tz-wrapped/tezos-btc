@@ -9,16 +9,16 @@ env:
 steps:
  - command: nix run nixpkgs.{gnumake,hlint,ncurses} -c make lint
    label: make lint
-   branches: !autodoc/master
+   branches: "!autodoc/master"
  - command: nix run nixpkgs.reuse -c reuse lint
    label: reuse lint
-   branches: !autodoc/master
+   branches: "!autodoc/master"
  - command: .buildkite/check-trailing-whitespace.sh
-   branches: !autodoc/master
+   branches: "!autodoc/master"
  - command: nix-shell --run "${crossref_verify} --config ./.crossref-verifier.yaml"
    label: crossref-verify
    soft_fail: true  # TODO: remove
-   branches: !autodoc/master
+   branches: "!autodoc/master"
  - commands:
    - nix-shell --run "make test-ci"
    - echo +++ Weeder
@@ -33,7 +33,7 @@ steps:
    label: ${test_step}
    artifact_paths:
      - "TZBTC-contract.md"
-   branches: !autodoc/master
+   branches: "!autodoc/master"
 
  - commands:
    - nix-shell --run "mkdir tmp"
@@ -41,7 +41,7 @@ steps:
    - nix-shell --run "${crossref_verify} --config ./.crossref-verifier.yaml --root tmp"
    label: crossref-verify generated doc
    soft_fail: true  # TODO: remove
-   branches: !autodoc/master
+   branches: "!autodoc/master"
 
  - commands:
    - nix-shell --run "mkdir tmp"
@@ -53,6 +53,7 @@ steps:
  - commands:
    - nix-build release.nix -A tezos-client -o tezos-client
    label: patched tezos-client building
+   branches: "!autodoc/master"
    artifact_paths:
      - ./tezos-client/*
 
@@ -61,7 +62,7 @@ steps:
    - nix-build release.nix -A deb -o tzbtc-client-deb
    - nix-build release.nix -A rpm -o tzbtc-client-rpm
    label: packaging
-   branches: master
+   branches: "!autodoc/master"
    artifact_paths:
      - ./tzbtc-static/bin/tzbtc-client
      - ./tzbtc-client-deb/*
