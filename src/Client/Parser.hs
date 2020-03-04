@@ -11,15 +11,17 @@ module Client.Parser
   , DeployContractOptions (..)
   , clientArgParser
   , parseAddressFromOutput
+  , parseContractAddressFromOutput
   , parseSignatureFromOutput
+  , tzbtcClientAddressParser
   ) where
 
 import Data.Char (isAlpha, isDigit)
 import Fmt (Buildable, pretty)
 import Options.Applicative (eitherReader, help, long, metavar, option, optional, short, str, switch)
 import qualified Options.Applicative as Opt
-import qualified Text.Megaparsec as P (Parsec, customFailure, many, parse, satisfy)
-import Text.Megaparsec.Char (eol, space)
+import qualified Text.Megaparsec as P (Parsec, customFailure, many, parse, satisfy, skipManyTill)
+import Text.Megaparsec.Char (eol, newline, space, printChar)
 import Text.Megaparsec.Char.Lexer (symbol)
 import Text.Megaparsec.Error (ParseErrorBundle, ShowErrorComponent(..))
 
@@ -40,9 +42,11 @@ clientArgParser =
     <$> clientArgRawParser
     <*> (#userOverride <.!> userOption)
     <*> (#multisigOverride <.!> multisigOption)
+    <*> (#contractOverride <.!> contractOverride)
     <*> dryRunSwitch
   where
     multisigOption = mbAddrOrAliasOption "multisig-addr" "The multisig contract address/alias to use"
+    contractOverride = mbAddrOrAliasOption "contract-addr" "The tzbtc contract address/alias to use"
     userOption = mbAddrOrAliasOption "user" "User to send operations as"
     dryRunSwitch =
       switch (long "dry-run" <>
@@ -411,3 +415,16 @@ parseSignatureFromOutput output = P.parse tezosClientSignatureParser "" output
 parseAddressFromOutput
   :: Text -> Either (ParseErrorBundle Text OutputParseError) (Address, PublicKey)
 parseAddressFromOutput output = P.parse tezosClientAddressParser "" output
+
+tzbtcClientAddressParser :: Parser Address
+tzbtcClientAddressParser = do
+  P.skipManyTill (printChar <|> newline) $ do
+    void $ symbol space "Contract address:"
+    rawAddr <- P.many (P.satisfy isBase58Char)
+    case parseAddress (fromString rawAddr) of
+      Left err -> P.customFailure $ OutputParseError "address" $ pretty err
+      Right addr -> return addr
+
+parseContractAddressFromOutput
+  :: Text -> Either (ParseErrorBundle Text OutputParseError) Address
+parseContractAddressFromOutput output = P.parse tzbtcClientAddressParser "" output

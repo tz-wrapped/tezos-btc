@@ -28,7 +28,7 @@ data CmdLnArgs
   | CmdPrintMultisigContract Bool Bool (Maybe FilePath)
   | CmdPrintDoc (Maybe FilePath)
   | CmdParseParameter Text
-  | CmdTestScenario
+  | CmdTestScenario Bool -- verbose flag
   | CmdMigrate
       ("version" :! Natural)
       ("redeemAddress" :! Address)
@@ -87,7 +87,7 @@ argParser = hsubparser $
     testScenarioCmd =
       (mkCommandParser
           "testScenario"
-          (pure CmdTestScenario)
+          (CmdTestScenario <$> verboseSwitch)
           "Do smoke tests")
     migrateCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     migrateCmd =
@@ -100,6 +100,9 @@ argParser = hsubparser $
             <*> namedParser (Just [mt|TZBTC|]) "Token code"
             <*> (#output <.!> outputOption))
           "Print migration scripts.")
+    verboseSwitch =
+      switch (long "verbose" <>
+              help "Verbose logging")
 
 mkCommandParser
   :: String

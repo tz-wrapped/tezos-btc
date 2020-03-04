@@ -50,10 +50,10 @@ main = do
     CmdParseParameter t ->
       either (throwString . pretty) (printStringLn . pretty) $
       parseLorentzValue @(Parameter TZBTCv1) t
-    CmdTestScenario -> do
+    CmdTestScenario verbose -> do
       env <- mkInitEnv
       tzbtcConfig <- runAppM env $ throwLeft readConfig
-      smokeTests $ toNettestClientConfig tzbtcConfig
+      smokeTests $ toNettestClientConfig verbose tzbtcConfig
     CmdMigrate
       (arg #version -> version_)
       (arg #redeemAddress -> redeem)
@@ -71,14 +71,14 @@ main = do
           makeMigrationParams version_ tzbtcContractRouter $
             (migrationScripts originationParams)
   where
-    toNettestClientConfig :: ClientConfig -> NettestClientConfig
-    toNettestClientConfig ClientConfig {..} =
+    toNettestClientConfig :: Bool -> ClientConfig -> NettestClientConfig
+    toNettestClientConfig verbose ClientConfig {..} =
       NettestClientConfig
         { nccScenarioName = Just "TZBTC_Smoke_tests"
         , nccNodeAddress = Just ccNodeAddress
         , nccNodePort = Just (fromIntegral ccNodePort)
         , nccTezosClient = ccTezosClientExecutable
-        , nccVerbose = False
+        , nccVerbose = verbose
         , nccNodeUseHttps = ccNodeUseHttps
         }
     multisigContract

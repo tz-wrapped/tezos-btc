@@ -6,27 +6,41 @@ module Lorentz.Contracts.TZBTC.Test
   ( smokeTests
   ) where
 
-import Tezos.Address (Address)
-import Morley.Nettest
-import Michelson.Text
-import Michelson.Untyped.EntryPoints
-import Util.Named ((.!))
-import Lorentz.Address (TAddress(..))
+import Data.Typeable (cast)
+import qualified Data.Text as T
+import System.Environment (setEnv)
+import System.Exit (ExitCode(..))
+import System.Process (readProcessWithExitCode)
+
+import Tezos.Address
+import Lorentz (TAddress(..), View(..), arg, mkView)
 import Lorentz.Contracts.Upgradeable.Common (EpwUpgradeParameters(..), emptyPermanentImpl)
-import Lorentz.Macro (mkView)
 import Lorentz.Test (contractConsumer)
 import Lorentz.UStore.Migration
+import Michelson.Typed.Haskell.Value
+import Michelson.Text
+import Michelson.Untyped.EntryPoints
+import Morley.Nettest
+import qualified Morley.Nettest.Client as TezosClient
+import Util.Named
 
+import Client.Parser (parseContractAddressFromOutput)
 import Lorentz.Contracts.TZBTC
+import qualified Lorentz.Contracts.TZBTC.Types as TZBTCTypes
 
 -- Prerequisites:
 -- 1. `tezos-client` program should be available or configured via env variable
---    just like required for `tzbtc-client` config
--- 2. `tezos-client` alias `nettest` should exists with some balance
+--    just like required for `tzbtc-client` config.
+-- 2. `tezos-client` alias `nettest` should exist with some balance.
 smokeTests :: NettestClientConfig -> IO ()
 smokeTests config = do
-  runNettestViaIntegrational simpleScenario
-  runNettestClient config simpleScenario
+  runNettestViaIntegrational $ simpleScenario True
+  case mconfig of
+    Nothing -> pass
+    Just config -> do
+      let sname n = (<> n) <$> nccScenarioName config
+      runNettestClient (config { nccScenarioName = sname "_tezos_client"}) $ simpleScenario True
+      runNettestTzbtcClient (config { nccScenarioName = sname "_tzbtc_client"}) $ simpleScenario False
 
 dummyTokenName :: MText
 dummyTokenName = [mt|Test token|]
@@ -42,8 +56,8 @@ dummyV1Parameters redeem balances = V1Parameters
   , v1TokenCode = dummyTokenCode
   }
 
-simpleScenario :: NettestScenario
-simpleScenario = uncapsNettest $ do
+simpleScenario :: Bool -> NettestScenario
+simpleScenario requireUpgrade = uncapsNettest $ do
   admin <- resolveNettestAddr -- Fetch address for alias `nettest`.
 
   -- Originate and upgrade
@@ -72,11 +86,12 @@ simpleScenario = uncapsNettest $ do
       , upNewCode = tzbtcContractRouter
       , upNewPermCode = emptyPermanentImpl
       }
-  callFrom
-    adminAddr
-    tzbtcAddr
-    DefEpName
-    (fromFlatParameter $ Upgrade upgradeParams :: Parameter TZBTCv0)
+  when requireUpgrade $
+    callFrom
+      adminAddr
+      tzbtcAddr
+      DefEpName
+      (fromFlatParameter $ Upgrade upgradeParams :: Parameter TZBTCv0)
 
   -- Add an operator
   operator <- newAddress "operator"
@@ -258,3 +273,160 @@ simpleScenario = uncapsNettest $ do
     tzbtcAddr
     DefEpName
     (fromFlatParameterV1 $ GetRedeemAddress (mkView () (TAddress @Address addressView)))
+
+runNettestTzbtcClient :: NettestClientConfig -> NettestScenario -> IO ()
+runNettestTzbtcClient config scenario = do
+  scenario $ nettestImplTzbtcClient config
+
+nettestImplTzbtcClient :: NettestClientConfig -> NettestImpl IO
+nettestImplTzbtcClient config@(NettestClientConfig {..}) = NettestImpl
+  { niOriginate = tzbtcClientOriginate
+  , niTransfer = tzbtcClientTransfer
+  , ..
+  }
+  where
+    NettestImpl {..} = TezosClient.nettestImplClient config
+
+    tzbtcClientOriginate :: OriginateData -> IO Address
+    tzbtcClientOriginate od@(OriginateData {..}) =
+      if odName == "TZBTCContract" then do
+        output <- callTzbtcClient
+          [ "deployTzbtcContract"
+          , "--owner", toString (formatAddrOrAlias odFrom)
+          , "--redeem", toString (formatAddrOrAlias odFrom)
+          , "--user", toString (formatAddrOrAlias odFrom)
+          ]
+        case parseContractAddressFromOutput output of
+          Right a -> pure a
+          Left err -> throwM $ TezosClient.UnexpectedClientFailure (show err)
+      else niOriginate od
+
+    tzbtcClientTransfer :: TransferData -> IO ()
+    tzbtcClientTransfer td@(TransferData {..}) =
+      -- If we had a Typeable constraint for `v` in definition of
+      -- `TransferData`, we could save this use of toVal/fromVal conversion and
+      -- use `tdParameter` directly.
+      case cast (toVal tdParameter) of
+        Just srcVal -> case (fromVal srcVal :: TZBTCTypes.Parameter SomeTZBTCVersion) of
+          TZBTCTypes.GetTotalSupply (viewCallbackTo -> (crAddress -> view_)) ->
+            callTzbtc
+              [ "getTotalSupply"
+              , "--callback", toString (formatAddress view_)
+              ]
+
+          TZBTCTypes.GetTotalMinted (viewCallbackTo -> (crAddress -> view_)) ->
+            callTzbtc
+              [ "getTotalMinted"
+              , "--callback", toString (formatAddress view_)
+              ]
+
+          TZBTCTypes.GetTotalBurned (viewCallbackTo -> (crAddress -> view_)) ->
+            callTzbtc
+              [ "getTotalBurned"
+              , "--callback", toString (formatAddress view_)
+              ]
+
+          TZBTCTypes.GetAllowance
+            (View (arg #owner -> owner, arg #spender -> spender) (crAddress -> view_)) ->
+              callTzbtc
+                [ "getAllowance"
+                , "--owner", toString (formatAddress owner)
+                , "--spender", toString (formatAddress spender)
+                , "--callback", toString (formatAddress view_)
+                ]
+
+          TZBTCTypes.GetOwner (viewCallbackTo -> (crAddress -> view_)) ->
+            callTzbtc
+              [ "getOwner"
+              , "--callback", toString (formatAddress view_)
+              ]
+
+          TZBTCTypes.GetRedeemAddress (viewCallbackTo -> (crAddress -> view_)) ->
+            callTzbtc
+              [ "getRedeemAddress"
+              , "--callback", toString (formatAddress view_)
+              ]
+
+          TZBTCTypes.GetTokenName (viewCallbackTo -> (crAddress -> view_)) ->
+            callTzbtc
+              [ "getTokenName"
+              , "--callback", toString (formatAddress view_)
+              ]
+
+          TZBTCTypes.GetTokenCode (viewCallbackTo -> (crAddress -> view_)) ->
+            callTzbtc
+              [ "getTokenCode"
+              , "--callback", toString (formatAddress view_)
+              ]
+
+          TZBTCTypes.SafeEntrypoints sp -> case sp of
+            TZBTCTypes.Transfer (arg #from -> from, arg #to -> to, arg #value -> value) ->
+              callTzbtc
+                [ "transfer"
+                , "--from", toString $ formatAddress from
+                , "--to", toString $ formatAddress to
+                , "--value", show value
+                ]
+
+            TZBTCTypes.Approve (arg #spender -> spender, arg #value -> value) ->
+              callTzbtc
+                [ "approve"
+                , "--spender", toString $ formatAddress spender
+                , "--value", show value
+                ]
+
+            TZBTCTypes.Mint (arg #to -> to, arg #value -> value) ->
+              callTzbtc
+                [ "mint"
+                , "--to", toString $ formatAddress to
+                , "--value", show value
+                ]
+
+            TZBTCTypes.Burn (arg #value -> value) -> callTzbtc [ "burn" , "--value", show value ]
+            TZBTCTypes.AddOperator (arg #operator -> operator) ->
+              callTzbtc [ "addOperator" , "--operator", toString $ formatAddress operator ]
+            TZBTCTypes.RemoveOperator (arg #operator -> operator) ->
+              callTzbtc [ "removeOperator" , "--operator", toString $ formatAddress operator ]
+            TZBTCTypes.Pause _  -> callTzbtc $ [ "pause" ]
+            TZBTCTypes.Unpause _  -> callTzbtc $ [ "unpause" ]
+            TZBTCTypes.TransferOwnership (arg #newOwner -> newOwnerAddress) ->
+              callTzbtc [ "transferOwnership" , toString $ formatAddress newOwnerAddress ]
+            TZBTCTypes.AcceptOwnership _ -> callTzbtc $ [ "acceptOwnership" ]
+            _ -> niTransfer td
+          _ -> niTransfer td
+        Nothing -> niTransfer td
+      where
+        callTzbtc :: [String] -> IO ()
+        callTzbtc args = void $ callTzbtcClient $
+          args <> ["--user", toString (formatAddrOrAlias tdFrom)
+                  , "--contract-addr", toString (formatAddrOrAlias tdTo)
+                  ]
+
+    -- Names visible to users of nettest will be prefixed with
+    -- "<nettest>" and optional scenario name before being passed to
+    -- 'tezos-client'.
+    prefixName :: Text -> Text
+    prefixName name
+      | name == "nettest" = name
+      | otherwise =
+        T.intercalate "." $ "nettest" : catMaybes [nccScenarioName, Just name]
+
+    formatAddrOrAlias :: AddrOrAlias -> Text
+    formatAddrOrAlias = \case
+      AddrResolved addr -> formatAddress addr
+      AddrAlias name -> prefixName name
+
+
+-- | Write something to stderr.
+putErrLn :: Print a => a -> IO ()
+putErrLn = hPutStrLn stderr
+
+callTzbtcClient :: [String] -> IO Text
+callTzbtcClient args = toText <$> do
+  setEnv "TEZOS_CLIENT_UNSAFE_DISABLE_DISCLAIMER" "YES"
+  readProcessWithExitCode "tzbtc-client" args "N" >>=
+    \case
+      (ExitSuccess, output, errOutput) ->
+        output <$ putErrLn errOutput
+      (ExitFailure _, _, toText -> errOutput) ->
+        throwM $ TezosClient.UnexpectedClientFailure errOutput

@@ -41,7 +41,9 @@ mainProgram
 mainProgram = do
   ClientArgs cmd
     (arg #userOverride -> maybeuser)
-    (arg #multisigOverride -> maybemsig) dryRunFlag <- parseCmdLine programInfo
+    (arg #multisigOverride -> maybemsig)
+    (arg #contractOverride -> maybecontract)
+    dryRunFlag <- parseCmdLine programInfo
   -- Change the reader environment to include the user alias
   -- override.
   withLocal (\e ->
@@ -50,6 +52,7 @@ mainProgram = do
       in e { aeConfigOverride = override
                { coTzbtcUser = maybeuser
                , coTzbtcMultisig = maybemsig
+               , coTzbtcContract = maybecontract
                }}) $ do
     case dryRunFlag of
       True -> pass

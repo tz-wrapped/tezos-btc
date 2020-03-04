@@ -59,7 +59,9 @@ data ClientArgs =
   ClientArgs
     ClientArgsRaw
       ("userOverride" :! Maybe AddrOrAlias)
-      ("multisigOverride" :! Maybe AddrOrAlias) Bool
+      ("multisigOverride" :! Maybe AddrOrAlias)
+      ("contractOverride" :! Maybe AddrOrAlias)
+      Bool
 
 type AddrOrAlias = Text
 
@@ -104,6 +106,7 @@ data DeployContractOptions = DeployContractOptions
 data ConfigOverride = ConfigOverride
   { coTzbtcUser :: Maybe AddrOrAlias
   , coTzbtcMultisig :: Maybe AddrOrAlias
+  , coTzbtcContract :: Maybe AddrOrAlias
   } deriving stock Show
 
 newtype MichelsonExpression = MichelsonExpression Expression
