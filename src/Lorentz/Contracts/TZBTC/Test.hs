@@ -32,8 +32,8 @@ import qualified Lorentz.Contracts.TZBTC.Types as TZBTCTypes
 -- 1. `tezos-client` program should be available or configured via env variable
 --    just like required for `tzbtc-client` config.
 -- 2. `tezos-client` alias `nettest` should exist with some balance.
-smokeTests :: NettestClientConfig -> IO ()
-smokeTests config = do
+smokeTests :: Maybe NettestClientConfig -> IO ()
+smokeTests mconfig = do
   runNettestViaIntegrational $ simpleScenario True
   case mconfig of
     Nothing -> pass

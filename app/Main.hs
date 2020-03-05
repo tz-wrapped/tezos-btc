@@ -50,10 +50,11 @@ main = do
     CmdParseParameter t ->
       either (throwString . pretty) (printStringLn . pretty) $
       parseLorentzValue @(Parameter TZBTCv1) t
-    CmdTestScenario verbose -> do
+    CmdTestScenario (arg #verbose -> verbose) (arg #dryRun -> dryRun) -> do
       env <- mkInitEnv
-      tzbtcConfig <- runAppM env $ throwLeft readConfig
-      smokeTests $ toNettestClientConfig verbose tzbtcConfig
+      if dryRun then smokeTests Nothing else do
+        tzbtcConfig <- runAppM env $ throwLeft readConfig
+        smokeTests $ Just $ toNettestClientConfig verbose tzbtcConfig
     CmdMigrate
       (arg #version -> version_)
       (arg #redeemAddress -> redeem)

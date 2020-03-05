@@ -20,4 +20,4 @@ addr2="tz1PPPYChg5xXHpGzygnNkmzPd1hyVRMxvJf"
 addr3="tz1g3oS1UPgWFFpxrc2pEn4sgV3ky1Z6Qaz2"
 addrKT="KT1L1Qa7PkDahr9X7K6sp8VdnbHzQxYqb3At"
 
-stack exec -- tzbtc testScenario > /dev/null
+stack exec -- tzbtc testScenario --dry-run > /dev/null

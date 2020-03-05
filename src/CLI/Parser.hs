@@ -28,7 +28,7 @@ data CmdLnArgs
   | CmdPrintMultisigContract Bool Bool (Maybe FilePath)
   | CmdPrintDoc (Maybe FilePath)
   | CmdParseParameter Text
-  | CmdTestScenario Bool -- verbose flag
+  | CmdTestScenario ("verbose" :! Bool) ("dryRun" :! Bool)
   | CmdMigrate
       ("version" :! Natural)
       ("redeemAddress" :! Address)
@@ -87,7 +87,7 @@ argParser = hsubparser $
     testScenarioCmd =
       (mkCommandParser
           "testScenario"
-          (CmdTestScenario <$> verboseSwitch)
+          (CmdTestScenario <$> (#verbose <.!> verboseSwitch) <*> (#dryRun <.!> dryRunSwitch))
           "Do smoke tests")
     migrateCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     migrateCmd =
@@ -103,6 +103,9 @@ argParser = hsubparser $
     verboseSwitch =
       switch (long "verbose" <>
               help "Verbose logging")
+    dryRunSwitch =
+      switch (long "dry-run" <>
+              help "Don't run tests over a real network.")
 
 mkCommandParser
   :: String
