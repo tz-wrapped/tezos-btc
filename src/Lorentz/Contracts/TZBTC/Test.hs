@@ -12,16 +12,16 @@ import System.Environment (setEnv)
 import System.Exit (ExitCode(..))
 import System.Process (readProcessWithExitCode)
 
-import Tezos.Address
 import Lorentz (TAddress(..), View(..), arg, mkView)
 import Lorentz.Contracts.Upgradeable.Common (EpwUpgradeParameters(..), emptyPermanentImpl)
 import Lorentz.Test (contractConsumer)
 import Lorentz.UStore.Migration
-import Michelson.Typed.Haskell.Value
 import Michelson.Text
+import Michelson.Typed.Haskell.Value
 import Michelson.Untyped.EntryPoints
 import Morley.Nettest
 import qualified Morley.Nettest.Client as TezosClient
+import Tezos.Address
 import Util.Named
 
 import Client.Parser (parseContractAddressFromOutput)

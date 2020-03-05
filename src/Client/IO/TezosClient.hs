@@ -7,9 +7,9 @@ module Client.IO.TezosClient
   , getAddressForContract
   , getOperationHex
   , getTezosClientConfig
+  , rememberContractAs
   , revealKeyForAlias
   , signWithTezosClient
-  , rememberContractAs
   , waitForOperationInclusion
   ) where
 

@@ -3,12 +3,12 @@
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
 module CLI.Parser
-  ( CmdLnArgs(..)
+  ( CmdLnArgs (..)
   , addressArgument
   , addressOption
-  , mTextOption
   , argParser
   , mkCommandParser
+  , mTextOption
   ) where
 
 import Options.Applicative (command, help, hsubparser, info, long, progDesc, switch)

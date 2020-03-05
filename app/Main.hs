@@ -18,14 +18,14 @@ import Morley.Nettest
 import Paths_tzbtc (version)
 
 import CLI.Parser
-import Client.IO (mkInitEnv)
 import Client.Env
-import Client.Types (ClientConfig(..))
+import Client.IO (mkInitEnv)
+import Client.Types (ClientConfig (..))
 import Client.Util
 import Lorentz.Contracts.Multisig
 import Lorentz.Contracts.TZBTC
-  (Parameter, TZBTCv1, V1Parameters(..), migrationScripts, mkEmptyStorageV0, tzbtcContract,
-  tzbtcContractRouter, tzbtcDoc)
+  ( Parameter, TZBTCv1, V1Parameters (..), migrationScripts, mkEmptyStorageV0, tzbtcContract
+  , tzbtcContractRouter, tzbtcDoc)
 import Lorentz.Contracts.TZBTC.Test (smokeTests)
 import Util.AbstractIO
 import Util.Migration
