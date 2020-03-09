@@ -1,14 +1,38 @@
 {
+    "crossref-verifier": {
+        "branch": "master",
+        "description": "Check cross-references in repository documents",
+        "homepage": "",
+        "owner": "serokell",
+        "repo": "crossref-verifier",
+        "rev": "f97ded8356e5afe4d3ebdeaccd4eed504bb99b0f",
+        "sha256": "0d4bf30r382659gmhngy6pkm463sa78nkp0846wg1sr6jkclk6fb",
+        "type": "tarball",
+        "url": "https://github.com/serokell/crossref-verifier/archive/f97ded8356e5afe4d3ebdeaccd4eed504bb99b0f.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
+    "haskell-nix-weeder": {
+        "branch": "master",
+        "description": "Nix library to run weeder on haskell projects built with haskell.nix",
+        "homepage": "",
+        "owner": "serokell",
+        "repo": "haskell-nix-weeder",
+        "rev": "7f11f514b54474c3281b25ac2c09975c918e0492",
+        "sha256": "0nww0cx8sjn8gg5k6371f17kdbp72nmdz34hwa9sxwvrmxzagg2x",
+        "type": "tarball",
+        "url": "https://github.com/serokell/haskell-nix-weeder/archive/7f11f514b54474c3281b25ac2c09975c918e0492.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
     "haskell.nix": {
         "branch": "master",
         "description": "Alternative Haskell Infrastructure for Nixpkgs",
         "homepage": "https://input-output-hk.github.io/haskell.nix",
         "owner": "input-output-hk",
         "repo": "haskell.nix",
-        "rev": "fbeb1e09aa05f8c8125b9df74112fcb446b4f3d2",
-        "sha256": "1qgjm1964ixs3knap3xsnwbrmbbnhajszv6fixyg538kpcls2zyr",
+        "rev": "4d38d4d2e6100ef1e137601c556acc48ee938392",
+        "sha256": "1jmkzlxl84n454z6dy9q8hazpapnrh3d77zbci5vvzlp0sbfs44a",
         "type": "tarball",
-        "url": "https://github.com/input-output-hk/haskell.nix/archive/fbeb1e09aa05f8c8125b9df74112fcb446b4f3d2.tar.gz",
+        "url": "https://github.com/input-output-hk/haskell.nix/archive/4d38d4d2e6100ef1e137601c556acc48ee938392.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "niv": {
@@ -24,15 +48,15 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "nixpkgs": {
-        "branch": "nixos-19.03",
-        "description": "A read-only mirror of NixOS/nixpkgs tracking the released channels. Send issues and PRs to",
-        "homepage": "https://github.com/NixOS/nixpkgs",
-        "owner": "NixOS",
-        "repo": "nixpkgs-channels",
-        "rev": "c8db7a8a16ee9d54103cade6e766509e1d1c8d7b",
-        "sha256": "1b3h4mwpi10blzpvgsc0191k4shaw3nw0qd2p82hygbr8vv4g9dv",
+        "branch": "master",
+        "description": "Pinned Nixpkgs tree (master follows nixos-unstable-small, only tags have stable history)",
+        "homepage": "",
+        "owner": "serokell",
+        "repo": "nixpkgs",
+        "rev": "45c5124eab8b6272b6d868fefe405d8031c16846",
+        "sha256": "0mrx31aswr58jwdfsklhi945yw6iz2rbqiiapydrz8frfclk9yry",
         "type": "tarball",
-        "url": "https://github.com/NixOS/nixpkgs-channels/archive/c8db7a8a16ee9d54103cade6e766509e1d1c8d7b.tar.gz",
+        "url": "https://github.com/serokell/nixpkgs/archive/45c5124eab8b6272b6d868fefe405d8031c16846.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     }
 }

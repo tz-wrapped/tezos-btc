@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: MPL-2.0
 #
-.PHONY: tzbtc test test-ci haddock haddock-no-deps stylish lint upload-doc clean all
+.PHONY: tzbtc test haddock haddock-no-deps stylish lint clean all
 
 # Build target from the common utility Makefile
 MAKEU = $(MAKE) -C make/
@@ -13,8 +13,6 @@ tzbtc:
 	$(MAKE_PACKAGE) dev
 test:
 	$(MAKE_PACKAGE) test
-test-ci:
-	$(MAKE_PACKAGE) test-ci
 test-dumb-term:
 	$(MAKE_PACKAGE) test-dumb-term
 test-hide-successes:
@@ -27,8 +25,6 @@ stylish:
 	$(MAKE_PACKAGE) stylish
 lint:
 	$(MAKE_PACKAGE) lint
-upload-doc:
-	./scripts/ci/upload-autodoc.sh
 clean:
 	$(MAKE_PACKAGE) clean
 all:

@@ -6,7 +6,7 @@ in { pkgs ? import sources.nixpkgs { } }:
 with pkgs;
 
 let
-  tzbtc-static = import ./default.nix { static = true; };
+  tzbtc-static = (import ./ci.nix).tzbtc.components.exes.tzbtc-client;
   root = ./.;
   packageDesc = {
     project = "tzbtc-client";
@@ -36,7 +36,10 @@ let
     repo = "tezos-packaging";
     rev = "202002241125";
     sha256 = "1pqggiii21ip27l24y7fdrm1jiyhb9l0lrmkrqw5hgz978rjg9bs";
-  }) { patches = [ ./patch/tezos-client.patch ]; };
+  }) {
+    pkgs = pkgs;
+    patches = [ ./patch/tezos-client.patch ];
+  };
 
   tezos-client = pkgs.runCommand "uncompress-tezos-client" { } ''
     mkdir tmp && cd tmp
