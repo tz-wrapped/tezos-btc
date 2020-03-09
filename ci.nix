@@ -9,6 +9,7 @@ rec {
   weeder-hacks = import sources.haskell-nix-weeder { inherit pkgs; };
 
   tzbtc-with-commit = commitInfo: import ./tzbtc.nix { inherit pkgs weeder-hacks commitInfo; };
+  tzbtc-release = import ./tzbtc.nix { inherit pkgs weeder-hacks; release = true; };
   tzbtc = tzbtc-with-commit null;
 
   all-components = with tzbtc.components;

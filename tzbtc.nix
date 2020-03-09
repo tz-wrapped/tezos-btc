@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: LicenseRef-Proprietary
 {
   pkgs, weeder-hacks, static ? true,
+  release ? false,   # release build with optimizations enabled
   commitInfo ? null  # git commit sha and date
 }:
 
@@ -20,15 +21,19 @@ with rec {
     modules =
       [{
         packages.tzbtc = {
-          package.ghcOptions = with pkgs.lib; concatStringsSep " " [
-            "-Werror"
+          package.ghcOptions = with pkgs.lib; concatStringsSep " " (concatLists [
+            # error on warning
+            [ "-Werror" ]
+
+            # disable optimizations in non-release build
+            (optional (!release) "-O0")
 
             # output *.dump-hi files (required for weeder)
-            "-ddump-to-file" "-ddump-hi"
-          ];
+            (optionals (!release) [ "-ddump-to-file" "-ddump-hi" ])
+          ]);
 
           # collect all *.dump-hi files (required for weeder)
-          postInstall = weeder-hacks.collect-dump-hi-files;
+          postInstall = if release then "" else weeder-hacks.collect-dump-hi-files;
 
           # the code expects commit sha and date to be provided in build-time
           preBuild = if commitInfo != null then ''
@@ -40,9 +45,9 @@ with rec {
           '';
         };
 
-        # don't haddock dependencies
+        # don't haddock dependencies, haddock our package in non-release build only
         doHaddock = false;
-        packages.tzbtc.doHaddock = true;
+        packages.tzbtc.doHaddock = if release then false else true;
 
       }] ++ pkgs.lib.optional static {
         packages.tzbtc = {

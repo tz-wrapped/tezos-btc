@@ -6,7 +6,7 @@ in { pkgs ? import sources.nixpkgs { } }:
 with pkgs;
 
 let
-  tzbtc-static = (import ./ci.nix).tzbtc.components.exes.tzbtc-client;
+  tzbtc-static = (import ./ci.nix).tzbtc-release.components.exes.tzbtc-client;
   root = ./.;
   packageDesc = {
     project = "tzbtc-client";
