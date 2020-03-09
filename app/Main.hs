@@ -30,9 +30,6 @@ import Lorentz.Contracts.TZBTC.Test (smokeTests)
 import Util.AbstractIO
 import Util.Migration
 
--- Here in main function we will just accept commands from user
--- and print the smart contract parameter by using `printLorentzValue`
--- function from Lorentz
 main :: IO ()
 main = do
   cmd <- execParser programInfo

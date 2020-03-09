@@ -30,28 +30,28 @@ originateContract
   :: IntegrationalScenarioM (TAddress (Parameter TZBTCv0))
 originateContract = lOriginate tzbtcContract "TZBTC Contract" (mkEmptyStorageV0 ownerAddress) (toMutez 1000)
 
--- Test that all owneristrative endpoints can only be called as master
+-- Test that all administrative endpoints can only be called as owner
 test_ownerCheck :: TestTree
 test_ownerCheck = testGroup "TZBTC contract migration endpoints test"
-  [  testCase "Test call to owneristrative endpoints are only available to master" $
+  [  testCase "Test call to administrative endpoints are only available to owner" $
       integrationalTestExpectation $ do
         -- Originate a V0 contract
         v0 <- originateContract
         withSender bob $ lCallDef v0 $ fromFlatParameter $ EpwBeginUpgrade (#current .! 0, #new .! 1)
         validate . Left $ lExpectCustomError_ #senderIsNotOwner
-  , testCase "Test call to `ApplyMigration` endpoints are only available to master" $
+  , testCase "Test call to `ApplyMigration` endpoints are only available to owner" $
       integrationalTestExpectation $ do
         v0 <- originateContract
         withSender bob $ lCallDef v0 $ fromFlatParameter $ EpwApplyMigration (checkedCoerce migrationScript)
         validate . Left $ lExpectCustomError_ #senderIsNotOwner
 
-  , testCase "Test call to `SetCode` endpoints are only available to master" $
+  , testCase "Test call to `SetCode` endpoints are only available to owner" $
       integrationalTestExpectation $ do
         v0 <- originateContract
         withSender bob $ lCallDef v0 $ fromFlatParameter $ EpwSetCode emptyCode
         validate . Left $ lExpectCustomError_ #senderIsNotOwner
 
-  , testCase "Test call to `FinishUpgrade` endpoints are only available to master" $
+  , testCase "Test call to `FinishUpgrade` endpoints are only available to owner" $
       integrationalTestExpectation $ do
         v0 <- originateContract
         withSender bob $ lCallDef v0 $ fromFlatParameter $ EpwFinishUpgrade
