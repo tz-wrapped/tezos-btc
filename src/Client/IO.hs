@@ -95,9 +95,14 @@ instance (Monad m, MonadThrow m, HasTezosClient m, HasEnv m) => HasConfig m wher
         overridenMultisig <- case coTzbtcMultisig configOverrides of
           Just multisig -> Just <$> addrOrAliasToAddr multisig
           _ -> pure $ ccMultisigAddress config
+
+        overridenContract <- case coTzbtcContract configOverrides of
+          Just cntr -> Just <$> addrOrAliasToAddr cntr
+          _ -> pure $ ccContractAddress config
         pure $ Right $ config
           { ccUserAlias = overridenUserAlias
           , ccMultisigAddress = overridenMultisig
+          , ccContractAddress = overridenContract
           }
       Left _ -> pure $ Left TzbtcClientConfigError
 

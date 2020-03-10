@@ -10,6 +10,10 @@ Changes that affect Michelson code are tagged with `[CONTRACT]`.
 
 Unreleased
 ==========
+* [#108](https://github.com/serokell/tezos-btc/pull/108)
+  - Add global option "--contract-addr" to override the default TZBTC contract address/alias.
+  - Add option "--dry-run" to `testScenario` command to run the tests using integrational test
+  framework
 
 0.3.1
 =====

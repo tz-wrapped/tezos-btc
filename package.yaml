@@ -41,6 +41,7 @@ library:
     - morley-multisig
     - morley-prelude
     - morley-upgradeable
+    - morley-nettest
     - named
     - optparse-applicative
     - megaparsec
@@ -67,6 +68,7 @@ executables:
       - morley
       - morley-multisig
       - morley-prelude
+      - morley-nettest
       - optparse-applicative
       - safe-exceptions
       - tzbtc

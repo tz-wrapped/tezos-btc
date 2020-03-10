@@ -3,10 +3,12 @@
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
 module CLI.Parser
-  ( CmdLnArgs(..)
-  , TestScenarioOptions(..)
+  ( CmdLnArgs (..)
+  , addressArgument
+  , addressOption
   , argParser
   , mkCommandParser
+  , mTextOption
   ) where
 
 import Options.Applicative (command, help, hsubparser, info, long, progDesc, switch)
@@ -26,19 +28,13 @@ data CmdLnArgs
   | CmdPrintMultisigContract Bool Bool (Maybe FilePath)
   | CmdPrintDoc (Maybe FilePath)
   | CmdParseParameter Text
-  | CmdTestScenario TestScenarioOptions
+  | CmdTestScenario ("verbose" :! Bool) ("dryRun" :! Bool)
   | CmdMigrate
       ("version" :! Natural)
       ("redeemAddress" :! Address)
       ("tokenName" :! MText)
       ("tokenCode" :! MText)
       ("output" :! Maybe FilePath)
-
-data TestScenarioOptions = TestScenarioOptions
-  { tsoMaster :: !Address
-  , tsoOutput :: !(Maybe FilePath)
-  , tsoAddresses :: ![Address]
-  }
 
 argParser :: Opt.Parser CmdLnArgs
 argParser = hsubparser $
@@ -91,8 +87,8 @@ argParser = hsubparser $
     testScenarioCmd =
       (mkCommandParser
           "testScenario"
-          (CmdTestScenario <$> testScenarioOptions)
-          "Print parameters for smoke tests")
+          (CmdTestScenario <$> (#verbose <.!> verboseSwitch) <*> (#dryRun <.!> dryRunSwitch))
+          "Do smoke tests")
     migrateCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     migrateCmd =
       (mkCommandParser
@@ -104,6 +100,12 @@ argParser = hsubparser $
             <*> namedParser (Just [mt|TZBTC|]) "Token code"
             <*> (#output <.!> outputOption))
           "Print migration scripts.")
+    verboseSwitch =
+      switch (long "verbose" <>
+              help "Verbose logging")
+    dryRunSwitch =
+      switch (long "dry-run" <>
+              help "Don't run tests over a real network.")
 
 mkCommandParser
   :: String
@@ -112,12 +114,6 @@ mkCommandParser
   -> Opt.Mod Opt.CommandFields a
 mkCommandParser commandName parser desc =
   command commandName $ info parser $ progDesc desc
-
-testScenarioOptions :: Opt.Parser TestScenarioOptions
-testScenarioOptions = TestScenarioOptions <$>
-  addressArgument "Owner's address" <*>
-  outputOption <*>
-  (many $ addressOption Nothing (#name .! "address") (#help .! "Other owned addresses"))
 
 addressArgument :: String -> Opt.Parser Address
 addressArgument hInfo = mkCLArgumentParser Nothing (#help .! hInfo)
