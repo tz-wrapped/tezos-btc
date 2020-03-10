@@ -9,18 +9,22 @@ module Client.Env
   , runAppM
   ) where
 
+import Tezos.Common.Json (TezosInt64)
+
 import Client.Error
 import Client.Types
 
 data AppEnv = AppEnv
   { aeConfigOverride :: ConfigOverride
   , aeTezosClientPath :: Either TzbtcClientError FilePath
+  , aeFees :: Maybe TezosInt64
   }
 
 emptyEnv :: AppEnv
 emptyEnv = AppEnv
   { aeConfigOverride = emptyConfigOverride
   , aeTezosClientPath = Left $ TzbtcTezosClientError "Tezos client path not available"
+  , aeFees = Nothing
   }
 
 type AppM = ReaderT AppEnv IO

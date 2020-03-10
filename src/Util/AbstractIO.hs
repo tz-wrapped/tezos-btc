@@ -55,12 +55,12 @@ class (Monad m) => HasCmdLine m where
 class (HasTezosClient m, HasConfig m, Monad m, MonadThrow m) => HasTezosRpc m where
   runTransactions
     :: (NicePackedValue param)
-    => Address -> [(EntrypointParam param, TezosInt64)] -> m ()
+    => Address -> [(EntrypointParam param, TezosInt64)] -> Maybe TezosInt64 -> m ()
   getStorage :: Text -> m Expression
   getCounter :: Text -> m TezosInt64
   getFromBigMap :: Natural -> Text -> m (Either TzbtcClientError Expression)
-  deployTzbtcContract :: V1DeployParameters -> m ()
-  deployMultisigContract :: MSigStorage -> Bool -> m ()
+  deployTzbtcContract :: Maybe TezosInt64 -> V1DeployParameters -> m ()
+  deployMultisigContract :: Maybe TezosInt64 -> MSigStorage -> Bool -> m ()
 
 -- Interaction with tezos client binary
 class (HasConfig m, HasEnv m, Monad m) => HasTezosClient m where

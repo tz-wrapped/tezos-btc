@@ -157,9 +157,9 @@ mkInitEnv = do
   pure $ emptyEnv { aeTezosClientPath = Right tzPath }
 
 instance HasTezosRpc AppM where
-  runTransactions addr param = do
+  runTransactions addr param mbFees = do
     config <- throwLeft readConfig
-    liftIO $ IO.runTransactions addr param config
+    liftIO $ IO.runTransactions addr param config mbFees
   getStorage addr = do
     config <- throwLeft readConfig
     liftIO $ IO.getStorage config addr
@@ -174,9 +174,9 @@ instance HasTezosRpc AppM where
     case r of
       Left err -> pure $ Left $ TzbtcServantError err
       Right rawVal -> pure $ Right rawVal
-  deployTzbtcContract dp = do
+  deployTzbtcContract mbFees dp = do
     config@ClientConfig{..} <- throwLeft readConfig
-    contractAddr <- liftIO $ IO.deployTzbtcContract config dp
+    contractAddr <- liftIO $ IO.deployTzbtcContract config mbFees dp
     putTextLn $ "Contract was successfully deployed. Contract address: " <> formatAddress contractAddr
     liftIO $ case ccContractAddress of
       Just c -> putTextLn $ "Current contract address for alias 'tzbtc' in the tezos-client config is " <> formatAddress c <> "."
@@ -185,7 +185,7 @@ instance HasTezosRpc AppM where
     case res of
       Canceled -> pass
       Confirmed -> rememberContractAs contractAddr "tzbtc"
-  deployMultisigContract msigStorage useCustomErrors = do
+  deployMultisigContract mbFees msigStorage useCustomErrors = do
     let (_, (Threshold thresholdValue, Keys keysList)) = msigStorage
     when (thresholdValue == 0) $ throwM TzbtcMultisigZeroThreshold
     when (thresholdValue > fromIntegral (length keysList)) $
@@ -195,7 +195,7 @@ instance HasTezosRpc AppM where
           else tzbtcMultisigContract @'BaseErrors
     config@ClientConfig{..} <- throwLeft readConfig
     msigAddr <- throwLeft $ liftIO $
-      IO.originateContract msigToOriginate msigStorage config
+      IO.originateContract msigToOriginate msigStorage config mbFees
     putTextLn $ "Multisig contract was successfully deployed. Contract address: " <>
       formatAddress msigAddr
     liftIO $ case ccMultisigAddress of
@@ -232,8 +232,9 @@ runTzbtcContract param = do
   ClientConfig{..} <- throwLeft readConfig
   case ccContractAddress of
     Nothing -> throwM TzbtcContractConfigUnavailable
-    Just contractAddr ->
-      runTransactions contractAddr [(DefaultEntrypoint param, 0)]
+    Just contractAddr -> do
+      mbFees <- aeFees <$> lookupEnv
+      runTransactions contractAddr [(DefaultEntrypoint param, 0)] mbFees
 
 runMultisigContract :: forall m.(MonadThrow m, HasTezosRpc m) => NonEmpty Package -> m ()
 runMultisigContract packages = do
@@ -242,7 +243,8 @@ runMultisigContract packages = do
   multisigAddr <- throwLeft $ pure (fst <$> getToSign package)
   (_, (_, (Keys keys'))) <- getMultisigStorage multisigAddr config
   (_, multisigParam) <- throwLeft $ pure $ mkMultiSigParam keys' packages
-  runTransactions multisigAddr [(Entrypoint "mainParameter" multisigParam, 0)]
+  mbFees <- aeFees <$> lookupEnv
+  runTransactions multisigAddr [(Entrypoint "mainParameter" multisigParam, 0)] mbFees
 
 getMultisigStorage
   :: (MonadThrow m, HasTezosRpc m) => Address -> ClientConfig -> m MSigStorage

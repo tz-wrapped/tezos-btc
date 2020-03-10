@@ -2,6 +2,7 @@
  -
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
+{-# OPTIONS_GHC -Wno-orphans #-}
 module Client.Types
   ( AddrOrAlias
   , AlmostStorage (..)
@@ -61,6 +62,7 @@ data ClientArgs =
       ("userOverride" :! Maybe AddrOrAlias)
       ("multisigOverride" :! Maybe AddrOrAlias)
       ("contractOverride" :! Maybe AddrOrAlias)
+      ("fee" :! Maybe TezosInt64)
       Bool
 
 type AddrOrAlias = Text

@@ -43,6 +43,7 @@ mainProgram = do
     (arg #userOverride -> maybeuser)
     (arg #multisigOverride -> maybemsig)
     (arg #contractOverride -> maybecontract)
+    (arg #fee -> maybefees)
     dryRunFlag <- parseCmdLine programInfo
   -- Change the reader environment to include the user alias
   -- override.
@@ -53,7 +54,9 @@ mainProgram = do
                { coTzbtcUser = maybeuser
                , coTzbtcMultisig = maybemsig
                , coTzbtcContract = maybecontract
-               }}) $ do
+               }
+           , aeFees = maybefees
+           }) $ do
     case dryRunFlag of
       True -> pass
       False -> case cmd of
@@ -179,9 +182,11 @@ mainProgram = do
                 , v1TokenCode = dcoTokenCode
                 }
               }
-          deployTzbtcContract originationParams
+          mbFees <- aeFees <$> lookupEnv
+          deployTzbtcContract mbFees originationParams
         CmdDeployMultisigContract threshold keys' useCustomErrors -> do
-          deployMultisigContract ((Counter 0), (threshold, keys')) useCustomErrors
+          mbFees <- aeFees <$> lookupEnv
+          deployMultisigContract mbFees ((Counter 0), (threshold, keys')) useCustomErrors
         CmdShowConfig -> do
           config <- readConfig
           case config of

@@ -123,8 +123,8 @@ addOperationPrefix (InternalByteString bs) =
 -- so we are accepting list of param's here.
 runTransactions
   :: (NicePackedValue param)
-  => Address -> [(EntrypointParam param, TezosInt64)] -> ClientConfig -> IO ()
-runTransactions to params config@ClientConfig{..} = do
+  => Address -> [(EntrypointParam param, TezosInt64)] -> ClientConfig -> Maybe TezosInt64 -> IO ()
+runTransactions to params config@ClientConfig{..} mbFees = do
   OperationConstants{..} <- preProcessOperation config
   let opsToRun = zipWith (\(param, transferAmount) i -> dumbOp
         { toDestination = to
@@ -152,7 +152,7 @@ runTransactions to params config@ClientConfig{..} = do
                           Left $ opToRun
                           { toGasLimit = arConsumedGas + 200
                           , toStorageLimit = arStorageSize + 20
-                          , toFee = calcFees arConsumedGas arPaidStorageDiff
+                          , toFee = fromMaybe (calcFees arConsumedGas arPaidStorageDiff) mbFees
                           }
                        ) opsToRun results
     }
@@ -190,8 +190,8 @@ getAppliedResults env op = do
 
 originateContract
   :: (NiceParameterFull cp, NiceStorage st)
-  => ContractCode cp st -> st -> ClientConfig -> IO (Either TzbtcClientError Address)
-originateContract contract initialStorage config@ClientConfig{..} = do
+  => ContractCode cp st -> st -> ClientConfig -> Maybe TezosInt64 -> IO (Either TzbtcClientError Address)
+originateContract contract initialStorage config@ClientConfig{..} mbFees = do
   OperationConstants{..} <- preProcessOperation config
   let origOp = OriginationOperation
         { ooKind = "origination"
@@ -219,7 +219,7 @@ originateContract contract initialStorage config@ClientConfig{..} = do
   -- Update limits and fee
   let updOrigOp = origOp { ooGasLimit = arConsumedGas ar1 + 200
                          , ooStorageLimit = arStorageSize ar1 + 1000
-                         , ooFee = calcFees (arConsumedGas ar1) (arPaidStorageDiff ar1)
+                         , ooFee = fromMaybe (calcFees (arConsumedGas ar1) (arPaidStorageDiff ar1)) mbFees
                          }
   hex <- throwClientError $ getOperationHex ocClientEnv ForgeOperation
     { foBranch = ocLastBlockHash
@@ -246,12 +246,12 @@ originateContract contract initialStorage config@ClientConfig{..} = do
           "Error during contract origination, expecting to \
           \originate exactly one contract."
 
-deployTzbtcContract :: ClientConfig -> V1DeployParameters -> IO Address
-deployTzbtcContract config@ClientConfig{..} V1DeployParameters{..} = do
+deployTzbtcContract :: ClientConfig -> Maybe TezosInt64 -> V1DeployParameters -> IO Address
+deployTzbtcContract config@ClientConfig{..} mbFees V1DeployParameters{..} = do
   putTextLn "Originate contract"
   contractAddr <- throwLeft $
-    originateContract tzbtcContract (mkEmptyStorageV0 v1Owner) config
-  let transactionsToTzbtc params = runTransactions contractAddr params config
+    originateContract tzbtcContract (mkEmptyStorageV0 v1Owner) config mbFees
+  let transactionsToTzbtc params = runTransactions contractAddr params config mbFees
   putTextLn "Upgrade contract to V1"
   throwClientErrorAfterRetry (10, delayFn) $ try $
     -- We retry here because it was found that in some cases, the storage

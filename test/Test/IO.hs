@@ -11,6 +11,7 @@ module Test.IO
   , test_multisigSignPackage
   , test_multisigExecutePackage
   , test_userOverride
+  , test_feesAndContractAddressOverride
   ) where
 
 import qualified Data.List as DL
@@ -69,13 +70,13 @@ defaultHandlers mi = Handlers
   , hPrintTextLn = \_ -> meetExpectation PrintsMessage
   , hPrintByteString = \bs -> meetExpectation (PrintByteString bs)
   , hConfirmAction = \_ -> unavailable "confirmAction"
-  , hRunTransactions = \_ _ -> unavailable "runTransactions"
+  , hRunTransactions = \_ _ _ -> unavailable "runTransactions"
   , hGetStorage = \_ -> unavailable "getStorage"
   , hGetCounter = \_ -> unavailable "getCounter"
   , hGetFromBigMap = \_ _ -> unavailable "getFromBigMap"
   , hWaitForOperation = \_ -> unavailable "waitForOperation"
-  , hDeployTzbtcContract = \_ -> meetExpectation DeployTzbtcContract
-  , hDeployMultisigContract = \_ _ -> meetExpectation DeployMultisigContract
+  , hDeployTzbtcContract = \_ _ -> meetExpectation DeployTzbtcContract
+  , hDeployMultisigContract = \_ _ _ -> meetExpectation DeployMultisigContract
   , hGetAddressAndPKForAlias = \_ -> unavailable "getAddressAndPKForAlias"
   , hRememberContract = \c a -> meetExpectation (RememberContract c a)
   , hSignWithTezosClient = \_ _ -> unavailable "signWithTezosClient"
@@ -177,14 +178,14 @@ multiSigCreationTestHandlers :: Handlers TestM
 multiSigCreationTestHandlers =
   (defaultHandlers (defaultMockInput { miCmdLine =  args}))
     { hReadFile = \_ -> throwM $ TestError "Unexpected file read"
-    , hRunTransactions = \_ _ -> throwM $ TestError "Unexpected `runTransactions` call"
+    , hRunTransactions = \_ _ _ -> throwM $ TestError "Unexpected `runTransactions` call"
     , hGetTezosClientConfig = pure $ Right ("tezos-client", cc)
     , hGetAddressForContract = \ca ->
         if ca == "tzbtc"
           then pure $ Right contractAddress
           else if ca == "tzbtc-multisig"
             then pure $ Right multiSigAddress
-            else throwM $ TestError $ "Unexpected contract alias" ++ (toString ca)
+            else throwM $ TestError $ "Unexpected contract alias: " ++ (toString ca)
     , hGetStorage = \x -> if x == multiSigAddressRaw
       then pure $ nicePackedValueToExpression (mkStorage 14 3 [])
       else throwM $ TestError "Unexpected contract address"
@@ -240,7 +241,7 @@ multiSigCreationWithMSigOverrideTestHandlers :: [String] -> Handlers TestM
 multiSigCreationWithMSigOverrideTestHandlers args =
   (defaultHandlers (defaultMockInput { miCmdLine =  args}))
     { hReadFile = \_ -> throwM $ TestError "Unexpected file read"
-    , hRunTransactions = \_ _ -> throwM $ TestError "Unexpected `runTransactions` call"
+    , hRunTransactions = \_ _ _ -> throwM $ TestError "Unexpected `runTransactions` call"
     , hGetTezosClientConfig = pure $ Right ("tezos-client", cc)
     , hGetAddressForContract = \ca ->
         if ca == "tzbtc"
@@ -395,7 +396,7 @@ test_multisigSignPackage = testGroup "Sign multisig package"
 multisigExecutionTestHandlers :: Handlers TestM
 multisigExecutionTestHandlers =
   (defaultHandlers (defaultMockInput { miCmdLine =  args}))
-    { hRunTransactions =  \addr params ->
+    { hRunTransactions =  \addr params _ ->
         if addr == multiSigAddress then do
           case params of
             [] -> throwM $ TestError "Unexpected empty parameters"
@@ -529,4 +530,61 @@ test_userOverride = testGroup "Default user override"
         mainProgram
         checkExpectations
     in runMock userOverrideTestHandlers test
+  ]
+
+-- Tests the following arguments work as expected.
+-- --fees, --contract-addr, --multisig-addr
+feesAndContractAddrTestHandlers :: Handlers TestM
+feesAndContractAddrTestHandlers =
+  (defaultHandlers (defaultMockInput { miCmdLine =  args}))
+    { hGetTezosClientConfig = pure $ Right ("tezos-client", cc)
+    , hGetAddressForContract = \case
+        "custom-tzbtc-alias" -> pure $ Right contractAddress
+        "custom-multisig-alias" -> pure $ Right multiSigAddress
+        "tzbtc" -> pure $ Left $ TzbtcUnknownAliasError "tzbtc"
+        "tzbtc-multisig" -> pure $ Left (TzbtcUnknownAliasError "tzbtc")
+        ca -> throwM $ TestError $ "Unexpected contract alias:" ++ (toString ca)
+
+    , hRunTransactions =  \_ _ fees ->
+        -- Fees specified as fractional tezos value will be
+        -- converted as a mutez value, so we expect 0.00123 * 10e6 here
+        if fees == Just 12300 then meetExpectation RunsTransaction else
+          throwM $ TestError $ "Unexpected fees:" ++ (show fees)
+
+    , hGetAddressAndPKForAlias = \case
+        "tzbtc-user" -> pure $ Right (johnAddress, johnAddressPK)
+        "custom-multisig-alias" -> pure $ Left (TzbtcUnknownAliasError "custom-multisig-alias")
+        "custom-tzbtc-alias" -> pure $ Left (TzbtcUnknownAliasError "custom-tzbtc-alias")
+        ca -> throwM $ TestError $ "Unexpected alias alias:" ++ (toString ca)
+    }
+  where
+    nodePort = 2990
+    nodeAddr = "dummy.node.address"
+    args =
+      [ "getTotalSupply"
+      , "--callback", contractAddressRaw
+      , "--fee", "0.00123"
+      , "--contract-addr", "custom-tzbtc-alias"
+      , "--multisig-addr", "custom-multisig-alias"
+      ]
+    cc :: TezosClientConfig
+    cc = TezosClientConfig
+      { tcNodeAddr = nodeAddr
+      , tcNodePort = nodePort
+      , tcTls = False
+      }
+
+test_feesAndContractAddressOverride :: TestTree
+test_feesAndContractAddressOverride = testGroup "Fees argument and contract address override test"
+  [ testCase
+      "Check if we can override default contract/multisig address and baker fee \
+      \using --contract-addr/--multisig-addr/--fee option" $
+    let
+      test = do
+        addExpectation ParseCmdLine Once
+        addExpectation LooksupEnv Multiple
+        addExpectation RunsTransaction Once
+        mainProgram
+        checkExpectations
+    in runMock feesAndContractAddrTestHandlers test
   ]

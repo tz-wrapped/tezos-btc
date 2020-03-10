@@ -24,6 +24,7 @@ import qualified Text.Megaparsec as P (Parsec, customFailure, many, parse, satis
 import Text.Megaparsec.Char (eol, newline, space, printChar)
 import Text.Megaparsec.Char.Lexer (symbol)
 import Text.Megaparsec.Error (ParseErrorBundle, ShowErrorComponent(..))
+import Tezos.Common.Json (TezosInt64)
 
 import Lorentz.Contracts.Multisig
 import Michelson.Text (mt)
@@ -43,14 +44,20 @@ clientArgParser =
     <*> (#userOverride <.!> userOption)
     <*> (#multisigOverride <.!> multisigOption)
     <*> (#contractOverride <.!> contractOverride)
+    <*> (#fee <.!> explictFee)
     <*> dryRunSwitch
   where
     multisigOption = mbAddrOrAliasOption "multisig-addr" "The multisig contract address/alias to use"
     contractOverride = mbAddrOrAliasOption "contract-addr" "The tzbtc contract address/alias to use"
     userOption = mbAddrOrAliasOption "user" "User to send operations as"
+    explictFee =
+      optional (option (toMuTez <$> Opt.auto) (long "fee" <> short 'f' <> help feeHelpText))
+    feeHelpText = "Specify baker fee, in Tez, to pay for transactions"
     dryRunSwitch =
       switch (long "dry-run" <>
               help "Dry run command to ensure correctness of the arguments")
+    toMuTez :: Double -> TezosInt64
+    toMuTez x = fromInteger (round (x * 10e6))
 
 clientArgRawParser :: Opt.Parser ClientArgsRaw
 clientArgRawParser = Opt.hsubparser $
