@@ -79,11 +79,13 @@ mkOriginationScript contract storage = OriginationScript
 calcFees :: TezosInt64 -> TezosInt64 -> TezosInt64
 calcFees consumedGas storageSize =
   minimalFees +
-  minimalTezPerGas * consumedGas +
+  (computeFeesForGas consumedGas) +
   minimalTezPerStorage * storageSize
   where
     minimalFees = 100
-    minimalTezPerGas = 1
+    computeFeesForGas gas = div (gas + 9) 10
+      -- Assuming tez per unit of gas to be 0.1 MuTez
+      -- this is essentially doing (ceiling $ gas * 0.1)
     minimalTezPerStorage = 10
 
 throwClientError :: MonadThrow m => m (Either ClientError a) -> m a
