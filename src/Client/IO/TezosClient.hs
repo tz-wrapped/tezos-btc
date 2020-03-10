@@ -7,8 +7,9 @@ module Client.IO.TezosClient
   , getAddressForContract
   , getOperationHex
   , getTezosClientConfig
-  , signWithTezosClient
   , rememberContractAs
+  , revealKeyForAlias
+  , signWithTezosClient
   , waitForOperationInclusion
   ) where
 
@@ -52,6 +53,11 @@ getTezosClientConfig exePath  = do
       , tcNodePort = 8732
       , tcTls = False
       }
+
+revealKeyForAlias :: FilePath -> Text -> IO ()
+revealKeyForAlias tcPath alias = do
+  void $ readProcessWithExitCode tcPath
+    ["reveal", "key", "for", toString alias] ""
 
 getAddressAndPKForAlias
   :: FilePath -> Text -> IO (Either TzbtcClientError (Address, PublicKey))

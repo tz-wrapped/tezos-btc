@@ -2,11 +2,6 @@
  -
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
-
--- Use of Lorentz.TestScenario has been deprecated.
--- TODO [TBTC-86]: remove
-{-# OPTIONS_GHC -Wno-deprecations #-}
-
 module Main
   ( main
   ) where
@@ -19,16 +14,19 @@ import Options.Applicative
 import Options.Applicative.Help.Pretty (Doc, linebreak)
 
 import Lorentz
-import Lorentz.TestScenario (showTestScenario)
+import Morley.Nettest
 import Paths_tzbtc (version)
 
 import CLI.Parser
-import Client.IO ()
+import Client.Env
+import Client.IO (mkInitEnv)
+import Client.Types (ClientConfig (..))
+import Client.Util
 import Lorentz.Contracts.Multisig
 import Lorentz.Contracts.TZBTC
-  (Parameter, TZBTCv1, V1Parameters(..), migrationScripts, mkEmptyStorageV0, tzbtcContract,
-  tzbtcContractRouter, tzbtcDoc)
-import Lorentz.Contracts.TZBTC.Test (mkTestScenario)
+  ( Parameter, TZBTCv1, V1Parameters (..), migrationScripts, mkEmptyStorageV0, tzbtcContract
+  , tzbtcContractRouter, tzbtcDoc)
+import Lorentz.Contracts.TZBTC.Test (smokeTests)
 import Util.AbstractIO
 import Util.Migration
 
@@ -52,10 +50,11 @@ main = do
     CmdParseParameter t ->
       either (throwString . pretty) (printStringLn . pretty) $
       parseLorentzValue @(Parameter TZBTCv1) t
-    CmdTestScenario TestScenarioOptions {..} -> do
-      maybe (throwString "Not enough addresses")
-        (maybe printTextLn writeFileUtf8 tsoOutput) $
-        showTestScenario <$> mkTestScenario tsoMaster tsoAddresses
+    CmdTestScenario (arg #verbose -> verbose) (arg #dryRun -> dryRun) -> do
+      env <- mkInitEnv
+      if dryRun then smokeTests Nothing else do
+        tzbtcConfig <- runAppM env $ throwLeft readConfig
+        smokeTests $ Just $ toNettestClientConfig verbose tzbtcConfig
     CmdMigrate
       (arg #version -> version_)
       (arg #redeemAddress -> redeem)
@@ -73,6 +72,16 @@ main = do
           makeMigrationParams version_ tzbtcContractRouter $
             (migrationScripts originationParams)
   where
+    toNettestClientConfig :: Bool -> ClientConfig -> NettestClientConfig
+    toNettestClientConfig verbose ClientConfig {..} =
+      NettestClientConfig
+        { nccScenarioName = Just "TZBTC_Smoke_tests"
+        , nccNodeAddress = Just ccNodeAddress
+        , nccNodePort = Just (fromIntegral ccNodePort)
+        , nccTezosClient = ccTezosClientExecutable
+        , nccVerbose = verbose
+        , nccNodeUseHttps = ccNodeUseHttps
+        }
     multisigContract
       :: forall (e :: ErrorsKind).
         (Typeable e, ErrorHandler e)

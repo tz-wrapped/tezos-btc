@@ -42,3 +42,7 @@
   result=$(eval $exec_command)
   [ "$result" == 'Burn, value = 100500' ]
 }
+
+@test "invoking smoke tests" {
+  stack exec -- tzbtc testScenario --dry-run
+}

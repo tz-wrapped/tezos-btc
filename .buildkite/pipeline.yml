@@ -26,9 +26,6 @@ steps:
    - echo +++ Bats
    - nix-shell --run "nix run nixpkgs.bats -c bats bats/*.bats"
    - echo 'bats passed successfully'
-   - echo +++ Smoke
-   - nix-shell --run "nix run nixpkgs.python3 -c bash scripts/ci-test.sh"
-   - echo 'ci-test passed successfully'
    - nix-shell --run "stack exec tzbtc printContractDoc > TZBTC-contract.md"
    label: ${test_step}
    artifact_paths:

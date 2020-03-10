@@ -90,6 +90,7 @@ preProcessOperation :: ClientConfig -> IO OperationConstants
 preProcessOperation config@ClientConfig{..} = do
   ocClientEnv <- IO.getClientEnv config
   ocLastBlockHash <- throwClientError $ getLastBlockHash ocClientEnv
+  revealKeyForAlias ccTezosClientExecutable ccUserAlias
   (ocSourceAddr, _) <- throwLeft $ getAddressAndPKForAlias ccTezosClientExecutable ccUserAlias
   ocBlockConstants <-
     throwClientError $ getCurrentBlockConstants ocClientEnv ocLastBlockHash
