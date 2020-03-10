@@ -115,11 +115,3 @@ mkCommandParser commandName parser desc =
 
 addressArgument :: String -> Opt.Parser Address
 addressArgument hInfo = mkCLArgumentParser Nothing (#help .! hInfo)
-
-outputOption :: Opt.Parser (Maybe FilePath)
-outputOption = Opt.optional $ Opt.strOption $ mconcat
-  [ Opt.short 'o'
-  , Opt.long "output"
-  , Opt.metavar "FILEPATH"
-  , Opt.help "Output file"
-  ]

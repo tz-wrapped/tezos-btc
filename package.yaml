@@ -95,6 +95,7 @@ tests:
     - hex-text
     - hspec
     - HUnit
+    - lens
     - lorentz
     - morley
     - morley-ledgers

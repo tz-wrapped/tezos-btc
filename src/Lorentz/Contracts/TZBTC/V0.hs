@@ -180,7 +180,8 @@ tzbtcContractRaw :: ContractCode (Parameter TZBTCv0) UStoreV0
 tzbtcContractRaw = do
   doc $ T.DStorageType $ DType $ Proxy @UStoreV0
   unpair
-  entryCase @(Parameter TZBTCv0) (Proxy @UpgradeableEntryPointKind)
+  finalizeParamCallingDoc $
+    entryCase @(Parameter TZBTCv0) (Proxy @UpgradeableEntryPointKind)
     ( #cGetVersion /-> do
         doc $ DDescription
           "This entry point is used to get contract version."

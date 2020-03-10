@@ -37,9 +37,9 @@ import Fmt (Builder)
 import Util.Markdown (mdTicked)
 
 import Lorentz
-import Lorentz.Contracts.Metadata
 import qualified Lorentz.Contracts.ManagedLedger.Impl as ManagedLedger
-import qualified Lorentz.Contracts.ManagedLedger.Types as ManagedLedger
+import Lorentz.Contracts.Metadata
+import qualified Lorentz.Contracts.Spec.ManagedLedgerInterface as ManagedLedger
 import Lorentz.Contracts.TZBTC.Types hiding (AddOperator, RemoveOperator)
 
 type StorageC store = StorageContains store

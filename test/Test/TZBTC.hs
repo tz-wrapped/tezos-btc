@@ -34,7 +34,7 @@ import Test.Tasty.HUnit (testCase)
 
 import Lorentz
 import Lorentz.Contracts.ManagedLedger.Test
-  (ApprovableLedger(..), OriginationParams(..), approvableLedgerSpec, originateManagedLedger)
+  (OriginationParams(..), approvableLedgerSpec, originateManagedLedger)
 import qualified Lorentz.Contracts.ManagedLedger.Test as ML
 import Lorentz.Contracts.Metadata
 import qualified Lorentz.Contracts.Spec.ApprovableLedgerInterface as AL
@@ -55,17 +55,6 @@ import Lorentz.Contracts.TZBTC.V0 (TZBTCv0)
 {-# ANN module ("HLint: ignore Reduce duplication" :: Text) #-}
 
 -- | Convert sane parameter to parameter of this contract.
-fromProxyParam :: AL.Parameter -> Parameter v
-fromProxyParam =
-  \case
-    AL.Transfer tp -> fromFlatParameter $ Transfer tp
-    AL.Approve ap' -> fromFlatParameter $ Approve ap'
-    AL.GetAllowance v -> fromFlatParameter $ GetAllowance v
-    AL.GetTotalSupply v ->
-      fromFlatParameter $ GetTotalSupply v
-    AL.GetBalance v ->
-      fromFlatParameter $ GetBalance v
-
 -- Helpers to check storage state.
 checkStorage
   :: (StoreTemplateV1 -> Either ValidationError ())
@@ -404,10 +393,9 @@ test_mint = testGroup "TZBTC contract `mint` test"
 
 test_approvableLedger :: IO TestTree
 test_approvableLedger = testSpec "TZBTC contract approvable ledger tests" $
-  approvableLedgerSpec $ ApprovableLedger
-    { alOriginate = originateManagedLedger (originateTzbtcV1ContractRaw redeemAddress_)
-    , alMkParam = fromProxyParam
-    }
+  approvableLedgerSpec alOriginate
+  where
+    alOriginate = originateManagedLedger (originateTzbtcV1ContractRaw redeemAddress_)
 
 test_pause :: TestTree
 test_pause = testGroup "TZBTC contract `pause` test"
