@@ -70,15 +70,14 @@ originateTzbtc msig =
 
 test_multisig :: TestTree
 test_multisig = testGroup "TZBTC contract multi-sig functionality test"
-  [ testCase "Test call to multisig to add an operator by owner works" $ do
+  [ testCase "Test call to multisig to add an operator works" $ do
       -- Originate multisig with threshold 2 and a master pk list of
       -- three public keys
       withMultiSigContract 0 2 masterPKList $ \msig -> do
-        -- Define initial storage for main contract and expected storage
-        -- after the call
+        -- Originate main contract with owner set to multisig
         tzbtc <- originateTzbtc msig
-        -- Make the multi-sig call that adds an operator
         let
+          -- Make the multi-sig call that adds an operator
           tzbtcParam = TZBTCTypes.AddOperator (#operator .! operatorAddress)
           package = MSig.mkPackage msig 0 tzbtc tzbtcParam
           bytesToSign = getBytesToSign package
@@ -100,7 +99,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
             (checkField (operators . stCustom)
               (Set.member operatorAddress) "New operator not found")
 
-  , testCase "Test call to multisig to add an operator by fails with one signature less" $ do
+  , testCase "Test call to multisig to add an operator fails with one signature less" $ do
       -- Originate multisig with threshold 2 and a master pk list of
       -- three public keys
       withMultiSigContract 0 2 masterPKList $ \msig -> do
@@ -124,7 +123,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         lCallEP msig (Call @"MainParameter") mparam
         validate . Left $
           lExpectMichelsonFailed (const True) msig
-  , testCase "Test call to multisig to add an operator by fails for bad signatures" $ do
+  , testCase "Test call to multisig to add an operator fails for bad signatures" $ do
       -- Originate multisig with threshold 2 and a master pk list of
       -- three public keys
       withMultiSigContract 0 2 masterPKList $ \msig -> do
@@ -165,7 +164,6 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           encodedPackage = MSig.encodePackage package
           -- Signing the bytes
           alicePackage = fromRight_ "Adding signature failed" $
-            --Use Alice's public key but bob's secret.
             addSignature_ encodedPackage
             (alicePK, sign_ aliceSK bytesToSign)
           carlosPackage = fromRight_ "Adding signature failed" $
@@ -184,26 +182,22 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
       -- Originate multisig with threshold 2 and a master pk list of
       -- three public keys
       withMultiSigContract 0 2 masterPKList $ \msig -> do
-        -- Originate main contract with owner set to multisig
-        --
-        -- Make another multisig, after adding some nop seq to the front, so that
-        -- the Integrational test will allow to originate it without complaining about
-        -- the already originated one.
+        -- Originate another multisig, with a different initial balance
         mClone <- lOriginate (tzbtcMultisigContract @'CustomErrors) "Multisig Contract Clone"
           (mkStorage 0 2 masterPKList) (toMutez 1) -- Use a different initial balance
            -- so 'contract already originated' error is not triggered.
+        -- Originate main contract with owner set to multisig
         tzbtc <- originateTzbtc msig
         -- Make the multi-sig call that adds an operator
         let
           tzbtcParam = TZBTCTypes.AddOperator (#operator .! operatorAddress)
-          -- Here we make the multi-sig pacakge for msig address.
+          -- Here we make the multi-sig pacakge for `msig` address.
           -- But will call the cloned multi-sig using it.
           package = MSig.mkPackage msig 0 tzbtc tzbtcParam
           bytesToSign = getBytesToSign package
           encodedPackage = MSig.encodePackage package
           -- Signing the bytes
           alicePackage = fromRight_ "Adding signature failed" $
-            --Use Alice's public key but bob's secret.
             addSignature_ encodedPackage
             (alicePK, sign_ aliceSK bytesToSign)
           carlosPackage = fromRight_ "Adding signature failed" $
@@ -220,11 +214,11 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           lExpectStorageUpdate tzbtc
             (checkField (operators . stCustom)
               (Set.member operatorAddress) "New operator not found")
-                                                                --
+
         -- Call the clone with the bundle created for the real multisig
         -- contract.
         lCallEP mClone (Call @"MainParameter") mparam
-        -- It should fail
+        -- It should fail.
         validate . Left $
           lExpectMichelsonFailed (const True) mClone
 
@@ -243,11 +237,10 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         aliceSig = sign_ aliceSK bytesToSign
         carlosSig = sign_ carlosSK bytesToSign
         alicePackage = fromRight_ "Adding signature failed" $
-          --Use Alice's public key but bob's secret.
           addSignature_ encodedPackage (alicePK, aliceSig)
         carlosPackage = fromRight_ "Adding signature failed" $
           addSignature_ encodedPackage (carlosPK, carlosSig)
-        --Make multisig param, but extract the signature list
+        --Make multisig param.
         mparam = fromRight_ "Making multisig parameter failed" $
           MSig.mkMultiSigParam masterPKList ((carlosPackage) :| [alicePackage])
       case mparam of
@@ -255,6 +248,9 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           "The signatures in multi-sig parameter is in the expected order"
           [Just aliceSig, Nothing, Just carlosSig]
           sigList
+      -- Now specify packages in different order while creating multisig param
+      -- and ensure that the order of signatures remins valid in the generated
+      -- parameter.
       let
         mparam_ = fromRight_ "Making multisig parameter failed" $
           MSig.mkMultiSigParam masterPKList ((alicePackage) :| [carlosPackage])
