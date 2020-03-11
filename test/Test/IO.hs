@@ -168,7 +168,7 @@ test_dryRunFlag = testGroup "Dry run does not execute any action"
   ]
 
 ---- Test Creation of multisig package. Checks the following.
----- The command is parsed correctely
+---- The command is parsed correctly
 ---- Checks the package is created with the provided parameter
 ---- The replay attack counter is correct
 ---- The multisig address is correct
@@ -235,7 +235,7 @@ test_createMultisigPackage = testGroup "Create multisig package"
     in runMock multiSigCreationTestHandlers test
   ]
 
----- Test multisig contract address override
+-- Test multisig contract address override
 multiSigCreationWithMSigOverrideTestHandlers :: [String] -> Handlers TestM
 multiSigCreationWithMSigOverrideTestHandlers args =
   (defaultHandlers (defaultMockInput { miCmdLine =  args}))
@@ -514,7 +514,7 @@ userOverrideTestHandlers =
       , tcTls = False
       }
 
--- Test user alias gets overrided in config
+-- Test user alias gets overridden in config
 -- if `--user` option is provided.
 -- Also, tests if the config from tezos-client
 -- was included in the printed output.

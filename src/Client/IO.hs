@@ -322,7 +322,6 @@ type HasStoreTemplateSubmap key value name =
   )
 
 -- | Get field with given name from TZBTC contract UStore.
---
 getFieldFromTzbtcUStore
   :: forall name t m. (HasTezosRpc m, HasStoreTemplateField t name)
   => m (Maybe t)

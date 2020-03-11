@@ -41,37 +41,35 @@ import Lorentz.Contracts.Multisig
 import Michelson.Interpret.Unpack
 import Tezos.Crypto
 
--- The work flow consist of first calling the `mkPackage` function with the
--- required parameters to get a `Package` object which will hold the byte string
--- to be signed along with the environment to recreate the original action, along
--- with a place holder for storing the signatures. This can be json encoded and
--- written to a file using the `encodePackage` function.
+-- The workflow consists of first calling the `mkPackage` function with the
+-- required parameters to get a `Package` object which will hold the bytestring
+-- to be signed. It also has a field for storing the signatures.
 --
--- Signatures can be added to the file using the `addSignature` function.
+-- This can be json encoded and written to a file using the `encodePackage`
+-- function.
 --
--- After collecting enough signatures, the file can be passed to
--- `mkMultiSigParam` function, which will create a multi-sig contract param.
--- This to param, when used in a call to the multisig contract make it validate
--- the signatures and call the action in the main contract.
+-- Signatures can be added to the package file using the `addSignature` function.
+--
+-- After collecting enough signatures, the package file (or multiple ones) can
+-- be passed to `mkMultiSigParam` function, which will create a multi-sig
+-- contract param.  This param, when used in a call to the multisig contract
+-- make it validate the signatures and forward the action to the main contract.
 
 -- | This is the structure that will be serialized and signed on. We are using
 -- this particular type because the multisig contract extracts the payload,
--- `MSigPayload` from its parameter, pair it with the contracts address
--- (self), then serialize and check the signatures provided on that serialized
+-- `MSigPayload` from its parameter, pair it with its own contracts address
+-- and then serialize it and check the signatures provided on that serialized
 -- data.
 type ToSign = (Address, MSigPayload)
 
--- | The type that will represent the actual data that will be provide to
--- signers. We are using this, instead of just providing the byte sequence,
--- because we need the `TcOriginatedContracts` map to recreate the original
--- payload from the serialized bytesequence. So this information along with
--- the signatures should be enough to actually execute the transaction at the
--- multisig contract.
---
--- Note that we are also collecting the public key associated with a signature.
--- This is because the multisig expects the signatures to be ordered in the
--- exact same way as the keys in its storage. If a signature is not available
--- then it expects a Nothing value in its place.
+-- | The type that will represent the actual data that will be provide to the
+-- signers. Note that we are also collecting the public key associated with a
+-- signature. This is because the multisig expects the signatures to be
+-- ordered in the exact same way as the keys in its storage. If a signature is
+-- not available then it expects a Nothing value in its place. So while calling
+-- the multisig we have to correlate the public keys from the multisig
+-- contract, and arrange the available signatures, in the same order, filling
+-- the unavailable ones with Nothings.
 data Package = Package
   { pkToSign :: !Text  -- ^ Hex encoded byte sequence that should be signed
   , pkSignatures :: ![(PublicKey, Signature)] -- ^ Field to hold signatures and public keys as they are collected.
@@ -92,10 +90,8 @@ instance Buildable Package where
     where
       newLine = "\n" :: String
 
--- | Match packed parameter with the signed bytesequence and if it matches,
--- return it, or else return an error. The idea is that the source parameter
--- is meaningless (and probably dangerous) if it does not match with the
--- packed bytesequence that is being signed on.
+-- | Extract and return the source parameter from the packed byte sequence
+-- that is to be signed.
 fetchSrcParam
   :: Package
   -> Either UnpackageError (TZBTC.Parameter SomeTZBTCVersion)
@@ -182,14 +178,12 @@ data UnpackageError
   = HexDecodingFailure
   | UnpackFailure UnpackError
   | PackageMergeFailure
-  | BadSrcParameterFailure -- If the bundled operation differes from the one that is being signed for
   | UnexpectedParameterWithView
 
 instance Buildable UnpackageError where
   build = \case
     HexDecodingFailure -> "Error decoding hex encoded string"
     PackageMergeFailure -> "Provied packages had different action/enviroments"
-    BadSrcParameterFailure -> "ERROR!! The bundled operation does not match the byte sequence that is being signed."
     UnpackFailure err -> build err
     UnexpectedParameterWithView -> "Unexpected parameter with View in package"
 
