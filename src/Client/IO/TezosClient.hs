@@ -10,15 +10,20 @@ module Client.IO.TezosClient
   , rememberContractAs
   , revealKeyForAlias
   , signWithTezosClient
+  , simulateOrigination
+  , simulateTransaction
+  , toTezString
   , waitForOperationInclusion
   ) where
 
 import Data.Aeson (eitherDecodeStrict)
 import Data.Text as T (strip, length)
+import Numeric (showFFloat)
 import Servant.Client (ClientEnv, runClientM)
 import Servant.Client.Core as Servant (ClientError(..))
 import System.Exit (ExitCode(..))
 import System.Process (readProcessWithExitCode)
+import Tezos.Common.Json (TezosInt64)
 
 import Lorentz hiding (address, balance, chainId, cons, map)
 import Michelson.Untyped (InternalByteString(..))
@@ -115,6 +120,71 @@ rememberContractAs tcPath addr alias = do
     ExitSuccess -> pass
     ExitFailure _ -> throwM (TzbtcTezosClientError
       $ "There was an error in saving the contract alias" <> toText stderr')
+
+-- | Dry run a transaction using 'tezos-client' and extract the expected baker fees
+-- from the output. If the command fails due to a low 'burn-cap' detect it and parse
+-- the required 'burn-cap' value from the stderr, and call again with that value using
+-- the optional 'burn-cap' arugment.
+simulateTransaction
+  :: (NicePrintedValue param)
+  => ClientConfig
+  -> Maybe TezosInt64 -- burn cap
+  -> Address
+  -> EntrypointParam param
+  -> IO (Either TzbtcClientError SimulationResult)
+simulateTransaction config mbbc_ addr arg_ = simulateTransaction_ mbbc_
+  where
+    simulateTransaction_ mbbc = do
+      let epArgs = case arg_ of
+            DefaultEntrypoint p -> ["--arg", toString (printLorentzValue True p)]
+            Entrypoint n p ->
+              ["--arg", toString (printLorentzValue True p), "--entrypoint", toString n]
+          bcArgs = case mbbc of
+            Just bc -> ["--burn-cap", toTezString bc]
+            Nothing -> []
+      let args = ([ "transfer", "0.0", "from", (toString $ ccUserAlias config)
+                  , "to",  toString $ formatAddress addr ] <> epArgs <> bcArgs <> ["-D"])
+      (exitCode, stdout', stderr') <- readProcessWithExitCode (ccTezosClientExecutable config)
+        args ""
+      case exitCode of
+        ExitSuccess -> do
+          Right <$> (throwLeft $ pure $ parseSimulationResultFromOutput (fromString stdout'))
+        ExitFailure _ -> case parseBurncapErrorFromOutput (fromString stderr') of
+          Right p -> simulateTransaction_ (Just p)
+          Left _ -> throwM (TzbtcTezosClientError $
+            "There was an error in simulating the transaction:" <> (show args) <> "\nError:" <> toText stderr')
+
+-- Same as above, but for origination
+simulateOrigination
+  :: (NiceParameterFull param, NiceStorage st)
+  => ClientConfig
+  -> Maybe TezosInt64 -- burn cap
+  -> ContractCode param st
+  -> st
+  -> IO (Either TzbtcClientError SimulationResult)
+simulateOrigination config mbbc_ contract_ initst = simulateOrigination_ mbbc_
+  where
+    simulateOrigination_ mbbc = do
+      let bcArgs = case mbbc of
+            Just bc -> ["--burn-cap", toTezString bc]
+            Nothing -> []
+      let args = ([ "originate", "contract", "-", "transferring", "0.0", "from", (toString $ ccUserAlias config)
+                  , "running"
+                  , toString $ printLorentzContract True contract_
+                  , "--init", toString $ printLorentzValue True initst
+                  ] <> bcArgs <> ["-D", "--force"])
+      (exitCode, stdout', stderr') <- readProcessWithExitCode (ccTezosClientExecutable config) args ""
+      case exitCode of
+        ExitSuccess -> do
+          Right <$> (throwLeft $ pure $ parseSimulationResultFromOutput (fromString stdout'))
+        ExitFailure _ -> case parseBurncapErrorFromOutput (fromString stderr') of
+          Right p -> do
+            simulateOrigination_ (Just p)
+          Left _ -> throwM (TzbtcTezosClientError $
+            "There was an error in simulating the transaction:" <> (show args) <> "\nError:" <> toText stderr')
+
+toTezString :: TezosInt64 -> String
+toTezString x = showFFloat Nothing ((realToFrac x :: Double)/10e6) ""
 
 getOperationHex
   :: ClientEnv -> ForgeOperation

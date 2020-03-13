@@ -11,8 +11,8 @@ Changes that affect Michelson code are tagged with `[CONTRACT]`.
 Unreleased
 ==========
 * [#113](https://github.com/serokell/tezos-btc/pull/113)
-  - Fix baker fee calculation for transactions to match with behavior of `tezos-client`.
-  - Add global option "--fee" to specify fees that should be sent along with the transactions.
+  - Fix baker fee calculation for transactions by using `tezos-client` to compute fees.
+  - Add global option "--fee" to explicitly specify baker fees for transactions.
 * [#108](https://github.com/serokell/tezos-btc/pull/108)
   - Add global option "--contract-addr" to override the default TZBTC contract address/alias.
   - Add option "--dry-run" to `testScenario` command to run the tests using integrational test

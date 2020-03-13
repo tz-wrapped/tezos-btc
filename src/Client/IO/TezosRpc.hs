@@ -99,8 +99,9 @@ preProcessOperation config@ClientConfig{..} = do
 
 -- | Function which waits for operation to be included into
 -- the chain.
-postProcessOperation :: ClientConfig -> Text -> IO ()
-postProcessOperation config opHash = do
+postProcessOperation :: ClientConfig -> TezosInt64 -> Text -> IO ()
+postProcessOperation config fee opHash = do
+  putStrLn $ "Fee: " <> toTezString fee <> " Tez"
   putStrLn $ "Operation hash: " <> opHash
   waitForOperationInclusion (ccTezosClientExecutable config) opHash
 
@@ -123,38 +124,45 @@ addOperationPrefix (InternalByteString bs) =
 -- so we are accepting list of param's here.
 runTransactions
   :: (NicePackedValue param)
-  => Address -> [(EntrypointParam param, TezosInt64)] -> ClientConfig -> Maybe TezosInt64 -> IO ()
-runTransactions to params config@ClientConfig{..} mbFees = do
+  => Address -> (EntrypointParam param, TezosInt64) -> ClientConfig -> Maybe TezosInt64 -> IO ()
+runTransactions to (param, transferAmount) config@ClientConfig{..} mbFees = do
   OperationConstants{..} <- preProcessOperation config
-  let opsToRun = zipWith (\(param, transferAmount) i -> dumbOp
+  let opsToRun = dumbOp
         { toDestination = to
         , toSource = ocSourceAddr
-        , toCounter = ocCounter + (fromInteger i)
+        , toCounter = ocCounter + 1
         , toAmount = transferAmount
         , toParameters = toParametersInternals param
-        }) params [1..]
+        }
   let runOp = RunOperation
         { roOperation =
           RunOperationInternal
           { roiBranch = ocLastBlockHash
-          , roiContents = map (\opToRun -> Left opToRun) opsToRun
+          , roiContents = [Left opsToRun]
           , roiSignature = stubSignature
           }
         , roChainId = bcChainId ocBlockConstants
         }
   -- Perform run_operation with dumb signature in order
   -- to estimate gas cost, storage size and paid storage diff
-  results <- getAppliedResults ocClientEnv (Left runOp)
+  [results] <- getAppliedResults ocClientEnv (Left runOp)
+
+  bakerFee <- case mbFees of
+    Just f -> pure f
+    Nothing -> do
+      fee <- IO.simulateTransaction config Nothing to param
+      pure $ case fee of
+        Right sr -> srComputedFees sr
+        Left _ -> calcFees (arConsumedGas results) (arPaidStorageDiff results)
+
   -- Forge operation with given limits and get its hexadecimal representation
   hex <- throwClientError $ getOperationHex ocClientEnv ForgeOperation
     { foBranch = ocLastBlockHash
-    , foContents = zipWith (\opToRun AppliedResult{..} ->
-                          Left $ opToRun
-                          { toGasLimit = arConsumedGas + 200
-                          , toStorageLimit = arStorageSize + 20
-                          , toFee = fromMaybe (calcFees arConsumedGas arPaidStorageDiff) mbFees
-                          }
-                       ) opsToRun results
+    , foContents = [Left $ opsToRun
+                          { toGasLimit = (arConsumedGas results) + 200
+                          , toStorageLimit = (arStorageSize results) + 20
+                          , toFee = bakerFee
+                          }]
     }
   -- Sign operation with sender secret key
   signRes <- IO.signWithTezosClient ccTezosClientExecutable (Left $ addOperationPrefix hex) ccUserAlias
@@ -163,7 +171,7 @@ runTransactions to params config@ClientConfig{..} mbFees = do
     Right signature' -> do
       -- Sign and inject the operation
       injectOp (formatByteString hex) signature' config >>=
-        (postProcessOperation config)
+        (postProcessOperation config bakerFee)
 
 getAppliedResults
   :: ClientEnv -> Either RunOperation PreApplyOperation
@@ -216,10 +224,20 @@ originateContract contract initialStorage config@ClientConfig{..} mbFees = do
   -- Estimate limits and paid storage diff
   -- We run only one op and expect to have only one result
   [ar1] <- getAppliedResults ocClientEnv (Left runOp)
+
+
+  bakerFee <- case mbFees of
+    Just f -> pure $ f
+    Nothing -> do
+      fee <- IO.simulateOrigination config Nothing contract initialStorage
+      pure $ case fee of
+        Right sr -> srComputedFees sr
+        Left _ -> calcFees (arConsumedGas ar1) (arPaidStorageDiff ar1)
+
   -- Update limits and fee
   let updOrigOp = origOp { ooGasLimit = arConsumedGas ar1 + 200
                          , ooStorageLimit = arStorageSize ar1 + 1000
-                         , ooFee = fromMaybe (calcFees (arConsumedGas ar1) (arPaidStorageDiff ar1)) mbFees
+                         , ooFee = bakerFee
                          }
   hex <- throwClientError $ getOperationHex ocClientEnv ForgeOperation
     { foBranch = ocLastBlockHash
@@ -239,7 +257,7 @@ originateContract contract initialStorage config@ClientConfig{..} mbFees = do
       -- We preapply only one op and expect to have only one result
       [ar2] <- getAppliedResults ocClientEnv (Right preApplyOp)
       injectOp (formatByteString hex) signature' config >>=
-        (postProcessOperation config)
+        (postProcessOperation config bakerFee)
       case arOriginatedContracts ar2 of
         [contractAddr] -> pure $ Right contractAddr
         _ -> pure $ Left $ TzbtcOriginationError
@@ -256,9 +274,8 @@ deployTzbtcContract config@ClientConfig{..} mbFees V1DeployParameters{..} = do
   throwClientErrorAfterRetry (10, delayFn) $ try $
     -- We retry here because it was found that in some cases, the storage
     -- is unavailable for a short time since contract origination.
-    transactionsToTzbtc $ (\param -> (DefaultEntrypoint . fromFlatParameter $ param, 0)) <$>
-      [ Upgrade @TZBTCv0 $ upgradeParameters v1MigrationParams
-      ]
+    let param = Upgrade @TZBTCv0 $ upgradeParameters v1MigrationParams
+    in transactionsToTzbtc $ (DefaultEntrypoint . fromFlatParameter $ param, 0)
   pure contractAddr
   where
     delayFn = do

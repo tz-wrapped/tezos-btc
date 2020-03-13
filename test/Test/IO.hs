@@ -399,8 +399,7 @@ multisigExecutionTestHandlers =
     { hRunTransactions =  \addr params _ ->
         if addr == multiSigAddress then do
           case params of
-            [] -> throwM $ TestError "Unexpected empty parameters"
-            [(Entrypoint "mainParameter" param, 0)] -> do
+            (Entrypoint "mainParameter" param, 0) -> do
               case Typ.cast (toVal param) of
                 Just param' -> case (fromVal param') of
                   (_ :: MSigPayload, sigs) ->
@@ -413,9 +412,9 @@ multisigExecutionTestHandlers =
                       ] then meetExpectation RunsTransaction
                     else throwM $ TestError "Unexpected signature list"
                 Nothing -> throwM $ TestError "Decoding parameter failed"
-            [(Entrypoint x _, 0)] ->
+            (Entrypoint x _, 0) ->
               throwM $ TestError $ "Unexpected entrypoint: " <> toString x
-            [(DefaultEntrypoint _, 0)] ->
+            (DefaultEntrypoint _, 0) ->
               throwM $ TestError "Unexpected default entrypoint"
             _ -> throwM $ TestError "Unexpected multiple parameters"
         else throwM $ TestError "Unexpected multisig address"

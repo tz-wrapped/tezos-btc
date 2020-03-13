@@ -83,7 +83,7 @@ calcFees consumedGas storageSize =
   minimalTezPerStorage * storageSize
   where
     minimalFees = 100
-    computeFeesForGas gas = div (gas + 9) 10
+    computeFeesForGas gas = div ((gas + 100) + 9) 10
       -- Assuming tez per unit of gas to be 0.1 MuTez
       -- this is essentially doing (ceiling $ gas * 0.1)
     minimalTezPerStorage = 10

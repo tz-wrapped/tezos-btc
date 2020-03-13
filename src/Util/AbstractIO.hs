@@ -53,9 +53,9 @@ class (Monad m) => HasCmdLine m where
 
 -- Interaction with tezos node via RPC
 class (HasTezosClient m, HasConfig m, Monad m, MonadThrow m) => HasTezosRpc m where
-  runTransactions
+  runTransaction
     :: (NicePackedValue param)
-    => Address -> [(EntrypointParam param, TezosInt64)] -> Maybe TezosInt64 -> m ()
+    => Address -> (EntrypointParam param, TezosInt64) -> Maybe TezosInt64 -> m ()
   getStorage :: Text -> m Expression
   getCounter :: Text -> m TezosInt64
   getFromBigMap :: Natural -> Text -> m (Either TzbtcClientError Expression)

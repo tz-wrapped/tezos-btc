@@ -142,6 +142,7 @@ instance HasTezosClient AppM where
   rememberContractAs addr alias = do
     tcPath <- lookupTezosClient
     liftIO $ IO.rememberContractAs tcPath addr alias
+
 ---
 
 lookupTezosClient :: (MonadThrow m, HasEnv m) => m String
@@ -157,7 +158,7 @@ mkInitEnv = do
   pure $ emptyEnv { aeTezosClientPath = Right tzPath }
 
 instance HasTezosRpc AppM where
-  runTransactions addr param mbFees = do
+  runTransaction addr param mbFees = do
     config <- throwLeft readConfig
     liftIO $ IO.runTransactions addr param config mbFees
   getStorage addr = do
@@ -234,7 +235,7 @@ runTzbtcContract param = do
     Nothing -> throwM TzbtcContractConfigUnavailable
     Just contractAddr -> do
       mbFees <- aeFees <$> lookupEnv
-      runTransactions contractAddr [(DefaultEntrypoint param, 0)] mbFees
+      runTransaction contractAddr (DefaultEntrypoint param, 0) mbFees
 
 runMultisigContract :: forall m.(MonadThrow m, HasTezosRpc m) => NonEmpty Package -> m ()
 runMultisigContract packages = do
@@ -244,7 +245,7 @@ runMultisigContract packages = do
   (_, (_, (Keys keys'))) <- getMultisigStorage multisigAddr config
   (_, multisigParam) <- throwLeft $ pure $ mkMultiSigParam keys' packages
   mbFees <- aeFees <$> lookupEnv
-  runTransactions multisigAddr [(Entrypoint "mainParameter" multisigParam, 0)] mbFees
+  runTransaction multisigAddr (Entrypoint "mainParameter" multisigParam, 0) mbFees
 
 getMultisigStorage
   :: (MonadThrow m, HasTezosRpc m) => Address -> ClientConfig -> m MSigStorage

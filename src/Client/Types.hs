@@ -2,7 +2,6 @@
  -
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -}
-{-# OPTIONS_GHC -Wno-orphans #-}
 module Client.Types
   ( AddrOrAlias
   , AlmostStorage (..)
@@ -29,6 +28,7 @@ module Client.Types
   , RunOperationInternal (..)
   , RunOperationResult (..)
   , RunRes (..)
+  , SimulationResult (..)
   , TransactionOperation (..)
   , TezosClientConfig (..)
   , combineResults
@@ -301,6 +301,10 @@ data AppliedResult = AppliedResult
   , arStorageSize :: TezosInt64
   , arPaidStorageDiff :: TezosInt64
   , arOriginatedContracts :: [Address]
+  } deriving Show
+
+data SimulationResult = SimulationResult
+  { srComputedFees :: TezosInt64 -- Baker Fee in micro tez
   } deriving Show
 
 instance Semigroup AppliedResult where
