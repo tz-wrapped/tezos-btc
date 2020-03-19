@@ -9,12 +9,14 @@ module Client.Parser
   , ClientArgs(..)
   , ClientArgsRaw(..)
   , DeployContractOptions (..)
+  , Parser
   , clientArgParser
   , parseAddressFromOutput
   , parseBurncapErrorFromOutput
   , parseContractAddressFromOutput
   , parseSignatureFromOutput
   , parseSimulationResultFromOutput
+  , toMuTez
   , tzbtcClientAddressParser
   ) where
 
@@ -48,6 +50,7 @@ clientArgParser =
     <*> (#multisigOverride <.!> multisigOption)
     <*> (#contractOverride <.!> contractOverride)
     <*> (#fee <.!> explictFee)
+    <*> (#verbose <.!> verboseSwitch)
     <*> dryRunSwitch
   where
     multisigOption = mbAddrOrAliasOption "multisig-addr" "The multisig contract address/alias to use"
@@ -59,6 +62,9 @@ clientArgParser =
     dryRunSwitch =
       switch (long "dry-run" <>
               help "Dry run command to ensure correctness of the arguments")
+    verboseSwitch =
+      switch (long "verbose" <> short 'v' <>
+              help "Verbose logging.")
 
 clientArgRawParser :: Opt.Parser ClientArgsRaw
 clientArgRawParser = Opt.hsubparser $
@@ -443,12 +449,12 @@ parseSimulationResultFromOutput output =
   P.parse (SimulationResult <$> simulationResultParser) "" output
 
 parseBurncapErrorFromOutput
-  :: Text -> Either (ParseErrorBundle Text OutputParseError) TezosInt64
+  :: Text -> Either (ParseErrorBundle Text OutputParseError) Double
 parseBurncapErrorFromOutput output =
   P.parse burnCapParser "" output
 
-burnCapParser :: Parser TezosInt64
-burnCapParser = toMuTez <$> do
+burnCapParser :: Parser Double
+burnCapParser = do
   P.skipManyTill (printChar <|> newline) $ do
     void $ symbol space "The operation will burn"
     P.skipManyTill printChar $ lexeme (space >> pure ()) float

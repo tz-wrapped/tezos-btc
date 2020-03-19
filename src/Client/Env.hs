@@ -18,6 +18,7 @@ data AppEnv = AppEnv
   { aeConfigOverride :: ConfigOverride
   , aeTezosClientPath :: Either TzbtcClientError FilePath
   , aeFees :: Maybe TezosInt64
+  , aeVerbose :: Bool
   }
 
 emptyEnv :: AppEnv
@@ -25,6 +26,7 @@ emptyEnv = AppEnv
   { aeConfigOverride = emptyConfigOverride
   , aeTezosClientPath = Left $ TzbtcTezosClientError "Tezos client path not available"
   , aeFees = Nothing
+  , aeVerbose = False
   }
 
 type AppM = ReaderT AppEnv IO

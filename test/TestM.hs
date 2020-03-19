@@ -91,7 +91,7 @@ data Handlers m = Handlers
 
   , hRunTransactions
     :: forall param. (NicePackedValue param)
-    => Address  -> (EntrypointParam param, TezosInt64) -> Maybe TezosInt64 ->  m ()
+    => Address  -> EntrypointParam param -> TezosInt64 -> Maybe TezosInt64 ->  m ()
   , hGetStorage :: Text -> m Expression
   , hGetCounter :: Text -> m TezosInt64
   , hGetFromBigMap :: Natural -> Text -> m (Either TzbtcClientError Expression)
@@ -144,9 +144,9 @@ instance HasCmdLine TestM where
     fn i
 
 instance HasTezosRpc TestM where
-  runTransaction a b f = do
+  runTransaction a b c f = do
     fn <- getHandler hRunTransactions
-    fn a b f
+    fn a b c f
   getStorage t = do
     fn <- getHandler hGetStorage
     fn t

@@ -70,7 +70,7 @@ defaultHandlers mi = Handlers
   , hPrintTextLn = \_ -> meetExpectation PrintsMessage
   , hPrintByteString = \bs -> meetExpectation (PrintByteString bs)
   , hConfirmAction = \_ -> unavailable "confirmAction"
-  , hRunTransactions = \_ _ _ -> unavailable "runTransactions"
+  , hRunTransactions = \_ _ _ _ -> unavailable "runTransactions"
   , hGetStorage = \_ -> unavailable "getStorage"
   , hGetCounter = \_ -> unavailable "getCounter"
   , hGetFromBigMap = \_ _ -> unavailable "getFromBigMap"
@@ -178,7 +178,7 @@ multiSigCreationTestHandlers :: Handlers TestM
 multiSigCreationTestHandlers =
   (defaultHandlers (defaultMockInput { miCmdLine =  args}))
     { hReadFile = \_ -> throwM $ TestError "Unexpected file read"
-    , hRunTransactions = \_ _ _ -> throwM $ TestError "Unexpected `runTransactions` call"
+    , hRunTransactions = \_ _ _ _ -> throwM $ TestError "Unexpected `runTransactions` call"
     , hGetTezosClientConfig = pure $ Right ("tezos-client", cc)
     , hGetAddressForContract = \ca ->
         if ca == "tzbtc"
@@ -241,7 +241,7 @@ multiSigCreationWithMSigOverrideTestHandlers :: [String] -> Handlers TestM
 multiSigCreationWithMSigOverrideTestHandlers args =
   (defaultHandlers (defaultMockInput { miCmdLine =  args}))
     { hReadFile = \_ -> throwM $ TestError "Unexpected file read"
-    , hRunTransactions = \_ _ _ -> throwM $ TestError "Unexpected `runTransactions` call"
+    , hRunTransactions = \_ _ _ _ -> throwM $ TestError "Unexpected `runTransactions` call"
     , hGetTezosClientConfig = pure $ Right ("tezos-client", cc)
     , hGetAddressForContract = \ca ->
         if ca == "tzbtc"
@@ -396,9 +396,9 @@ test_multisigSignPackage = testGroup "Sign multisig package"
 multisigExecutionTestHandlers :: Handlers TestM
 multisigExecutionTestHandlers =
   (defaultHandlers (defaultMockInput { miCmdLine =  args}))
-    { hRunTransactions =  \addr params _ ->
+    { hRunTransactions =  \addr params amount _ ->
         if addr == multiSigAddress then do
-          case params of
+          case (params, amount) of
             (Entrypoint "mainParameter" param, 0) -> do
               case Typ.cast (toVal param) of
                 Just param' -> case (fromVal param') of
@@ -544,7 +544,7 @@ feesAndContractAddrTestHandlers =
         "tzbtc-multisig" -> pure $ Left (TzbtcUnknownAliasError "tzbtc")
         ca -> throwM $ TestError $ "Unexpected contract alias:" ++ (toString ca)
 
-    , hRunTransactions =  \_ _ fees ->
+    , hRunTransactions =  \_ _ _ fees ->
         -- Fees specified as fractional tezos value will be
         -- converted as a mutez value, so we expect 0.00123 * 10e6 here
         if fees == Just 12300 then meetExpectation RunsTransaction else

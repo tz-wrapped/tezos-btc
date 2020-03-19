@@ -44,6 +44,7 @@ mainProgram = do
     (arg #multisigOverride -> maybemsig)
     (arg #contractOverride -> maybecontract)
     (arg #fee -> maybefees)
+    (arg #verbose -> verbosity)
     dryRunFlag <- parseCmdLine programInfo
   -- Change the reader environment to include the user alias
   -- override.
@@ -56,6 +57,7 @@ mainProgram = do
                , coTzbtcContract = maybecontract
                }
            , aeFees = maybefees
+           , aeVerbose = verbosity
            }) $ do
     case dryRunFlag of
       True -> pass

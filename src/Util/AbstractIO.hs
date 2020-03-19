@@ -55,7 +55,11 @@ class (Monad m) => HasCmdLine m where
 class (HasTezosClient m, HasConfig m, Monad m, MonadThrow m) => HasTezosRpc m where
   runTransaction
     :: (NicePackedValue param)
-    => Address -> (EntrypointParam param, TezosInt64) -> Maybe TezosInt64 -> m ()
+    => Address
+    -> EntrypointParam param
+    -> TezosInt64 -- ^ Amount to transfer
+    -> Maybe TezosInt64 -- ^ Optional baker fee to pay.
+    -> m ()
   getStorage :: Text -> m Expression
   getCounter :: Text -> m TezosInt64
   getFromBigMap :: Natural -> Text -> m (Either TzbtcClientError Expression)

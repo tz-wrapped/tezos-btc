@@ -63,6 +63,7 @@ data ClientArgs =
       ("multisigOverride" :! Maybe AddrOrAlias)
       ("contractOverride" :! Maybe AddrOrAlias)
       ("fee" :! Maybe TezosInt64)
+      ("verbose" :! Bool)
       Bool
 
 type AddrOrAlias = Text
@@ -304,7 +305,7 @@ data AppliedResult = AppliedResult
   } deriving Show
 
 data SimulationResult = SimulationResult
-  { srComputedFees :: TezosInt64 -- Baker Fee in micro tez
+  { srComputedFees :: TezosInt64 -- ^ Baker Fee in micro tez
   } deriving Show
 
 instance Semigroup AppliedResult where

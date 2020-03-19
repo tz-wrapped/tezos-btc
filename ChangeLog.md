@@ -13,6 +13,7 @@ Unreleased
 * [#113](https://github.com/serokell/tezos-btc/pull/113)
   - Fix baker fee calculation for transactions by using `tezos-client` to compute fees.
   - Add global option "--fee" to explicitly specify baker fees for transactions.
+  - Add global option "--verbose" to enable verbose output.
 * [#108](https://github.com/serokell/tezos-btc/pull/108)
   - Add global option "--contract-addr" to override the default TZBTC contract address/alias.
   - Add option "--dry-run" to `testScenario` command to run the tests using integrational test
