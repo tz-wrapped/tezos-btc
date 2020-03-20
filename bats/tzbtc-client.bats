@@ -5,178 +5,179 @@
 #
 
 setup () {
+  tzbtc_client="tzbtc-client"
   callback="KT1SyriCZ2kDyEMJ6BtQecGkFqVciQcfWj46"
 }
 
 @test "invoking tzbtc-client 'approve' command" {
-  stack exec -- tzbtc-client approve\
+  $tzbtc_client approve\
           --spender "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" --value 100 --dry-run
 
 }
 
 @test "invoking tzbtc-client 'approve' command with user" {
-  stack exec -- tzbtc-client approve\
+  $tzbtc_client approve\
           --spender "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" --value 100 --dry-run --user john
 
 }
 
 @test "invoking tzbtc-client 'mint' command" {
-  stack exec -- tzbtc-client mint\
+  $tzbtc_client mint\
           --to "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" --value 100 --dry-run
 }
 
 @test "invoking tzbtc-client 'mint' command with user" {
-  stack exec -- tzbtc-client mint\
+  $tzbtc_client mint\
           --to "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" --value 100 --dry-run --user john
 }
 
 @test "invoking tzbtc-client 'burn' command" {
-  stack exec -- tzbtc-client burn --value 100 --dry-run
+  $tzbtc_client burn --value 100 --dry-run
 }
 
 @test "invoking tzbtc-client 'burn' command with user" {
-  stack exec -- tzbtc-client burn --value 100 --dry-run --user john
+  $tzbtc_client burn --value 100 --dry-run --user john
 }
 
 @test "invoking tzbtc-client 'transfer' command" {
-  stack exec -- tzbtc-client transfer\
+  $tzbtc_client transfer\
     --to "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"\
     --from "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" --value 100 --dry-run
 }
 
 @test "invoking tzbtc-client 'transfer' command with user" {
-  stack exec -- tzbtc-client transfer\
+  $tzbtc_client transfer\
     --to "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"\
     --from "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" --value 100 --dry-run --user john
 }
 
 @test "invoking tzbtc-client 'getAllowance' command" {
-  stack exec -- tzbtc-client getAllowance\
+  $tzbtc_client getAllowance\
     --owner "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"\
     --spender "tz3VEZ4k6a4Wx42iyev6i2aVAptTRLEAivNN"\
     --callback "$callback" --dry-run
 }
 
 @test "invoking tzbtc-client 'getAllowance' command without callback" {
-  stack exec -- tzbtc-client getAllowance\
+  $tzbtc_client getAllowance\
     --owner "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"\
     --spender "tz1MuPWVNHwcqLXdJ5UWcjvTHiaAMocaZisx" --dry-run
 }
 
 @test "invoking tzbtc-client 'getBalance' command" {
-  stack exec -- tzbtc-client getBalance\
+  $tzbtc_client getBalance\
     --address "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV"\
     --callback "$callback" --dry-run
 }
 
 @test "invoking tzbtc-client 'getBalance' command without callback" {
-  stack exec -- tzbtc-client getBalance\
+  $tzbtc_client getBalance\
     --address "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --dry-run
 }
 
 @test "invoking tzbtc-client 'getOwner' command" {
-  stack exec -- tzbtc-client getOwner\
+  $tzbtc_client getOwner\
     --callback "$callback" --dry-run
 }
 
 @test "invoking tzbtc-client 'getOwner' command without callback" {
-  stack exec -- tzbtc-client getOwner --dry-run
+  $tzbtc_client getOwner --dry-run
 }
 
 @test "invoking tzbtc-client 'getTokenName' command" {
-  stack exec -- tzbtc-client getTokenName\
+  $tzbtc_client getTokenName\
     --callback "$callback" --dry-run
 }
 
 @test "invoking tzbtc-client 'getTokenName' command without callback" {
-  stack exec -- tzbtc-client getTokenName --dry-run
+  $tzbtc_client getTokenName --dry-run
 }
 
 @test "invoking tzbtc-client 'getTokenCode' command" {
-  stack exec -- tzbtc-client getTokenCode\
+  $tzbtc_client getTokenCode\
     --callback "$callback" --dry-run
 }
 
 @test "invoking tzbtc-client 'getTokenCode' command without callback" {
-  stack exec -- tzbtc-client getTokenCode --dry-run
+  $tzbtc_client getTokenCode --dry-run
 }
 
 @test "invoking tzbtc-client 'getRedeemAddress' command" {
-  stack exec -- tzbtc-client getRedeemAddress\
+  $tzbtc_client getRedeemAddress\
     --callback "$callback" --dry-run
 }
 
 @test "invoking tzbtc-client 'getRedeemAddress' command without callback" {
-  stack exec -- tzbtc-client getRedeemAddress --dry-run
+  $tzbtc_client getRedeemAddress --dry-run
 }
 
 @test "invoking tzbtc-client 'getTotalSupply' command" {
-  stack exec -- tzbtc-client getTotalSupply\
+  $tzbtc_client getTotalSupply\
     --callback "$callback" --dry-run
 }
 
 @test "invoking tzbtc-client 'getTotalSupply' command without callback" {
-  stack exec -- tzbtc-client getTotalSupply --dry-run
+  $tzbtc_client getTotalSupply --dry-run
 }
 
 @test "invoking tzbtc-client 'getTotalMinted' command" {
-  stack exec -- tzbtc-client getTotalMinted\
+  $tzbtc_client getTotalMinted\
     --callback "$callback" --dry-run
 }
 
 @test "invoking tzbtc-client 'getTotalMinted' command without callback" {
-  stack exec -- tzbtc-client getTotalMinted --dry-run
+  $tzbtc_client getTotalMinted --dry-run
 }
 
 @test "invoking tzbtc-client 'getTotalBurned' command" {
-  stack exec -- tzbtc-client getTotalBurned\
+  $tzbtc_client getTotalBurned\
     --callback "$callback" --dry-run
 }
 
 @test "invoking tzbtc-client 'getTotalBurned' command without callback" {
-  stack exec -- tzbtc-client getTotalBurned --dry-run
+  $tzbtc_client getTotalBurned --dry-run
 }
 
 @test "invoking tzbtc-cliet 'getOperators' command" {
-  stack exec -- tzbtc-client getOperators --dry-run
+  $tzbtc_client getOperators --dry-run
 }
 
 @test "invoking tzbtc-client 'addOperator' command" {
-  stack exec -- tzbtc-client addOperator\
+  $tzbtc_client addOperator\
     --operator "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --dry-run
 }
 
 @test "invoking tzbtc-client 'removeOperator' command" {
-  stack exec -- tzbtc-client removeOperator\
+  $tzbtc_client removeOperator\
     --operator "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --dry-run
 }
 
 @test "invoking tzbtc-client 'pause' command" {
-  stack exec -- tzbtc-client pause --dry-run
+  $tzbtc_client pause --dry-run
 }
 
 @test "invoking tzbtc-client 'unpause' command" {
-  stack exec -- tzbtc-client unpause --dry-run
+  $tzbtc_client unpause --dry-run
 }
 
 @test "invoking tzbtc-client 'setRedeemAddress' command" {
-  stack exec -- tzbtc-client setRedeemAddress "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --dry-run
+  $tzbtc_client setRedeemAddress "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --dry-run
 }
 
 @test "invoking multisig package creation" {
-  stack exec -- tzbtc-client addOperator --operator "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --multisig-package package.txt --dry-run
+  $tzbtc_client addOperator --operator "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --multisig-package package.txt --dry-run
 }
 
 @test "invoking multisig package creation for acceptOwnership" {
-  stack exec -- tzbtc-client acceptOwnership --multisig-package package.txt --dry-run
+  $tzbtc_client acceptOwnership --multisig-package package.txt --dry-run
 }
 
 @test "deploy contract" {
-  stack exec -- tzbtc-client deployTzbtcContract --owner boba --redeem boba --token-name Kukareq --token-code Cococoq --dry-run
+  $tzbtc_client deployTzbtcContract --owner boba --redeem boba --token-name Kukareq --token-code Cococoq --dry-run
 }
 
 @test "deploy multisig" {
-  stack exec -- tzbtc-client deployMultisigContract --threshold 2 \
+  $tzbtc_client deployMultisigContract --threshold 2 \
     --public-key edpkvD74whcSw91LUtJex5V16115w4BTwgu3dXHdtNDbbbBRiYEQqP \
     --public-key edpkvXeP2mxHEyF8GSakTy6Fg2G9EsN23eUbjBWtfgTez3b2ZQj3nL \
     --public-key edpkvJq6xRTcQyBpGVLPEcNqRijB2WKZ2M1TYvWhiKjQQPUzYgq9ec \
@@ -184,5 +185,5 @@ setup () {
 }
 
 @test "show config" {
-  stack exec -- tzbtc-client config --dry-run
+  $tzbtc_client config --dry-run
 }
