@@ -4,7 +4,6 @@
  -}
 module Client.Util
   ( addTezosBytesPrefix
-  , calcFees
   , exprToValue
   , mkOriginationScript
   , nicePackedValueToExpression
@@ -21,7 +20,6 @@ import Data.Sequence (fromList)
 import Data.Singletons (SingI)
 import Servant.Client.Core (ClientError)
 import Tezos.Common.Binary (decode, encode)
-import Tezos.Common.Json (TezosInt64)
 import Tezos.V005.Micheline (Expression(..), MichelinePrimAp(..), MichelinePrimitive(..))
 
 import Lorentz (ContractCode, compileLorentzContract)
@@ -75,16 +73,6 @@ mkOriginationScript contract storage = OriginationScript
   }
   where
     compiledContract = compileLorentzContract contract
-
-calcFees :: TezosInt64 -> TezosInt64 -> TezosInt64
-calcFees consumedGas storageSize =
-  minimalFees +
-  minimalTezPerGas * consumedGas +
-  minimalTezPerStorage * storageSize
-  where
-    minimalFees = 100
-    minimalTezPerGas = 1
-    minimalTezPerStorage = 10
 
 throwClientError :: MonadThrow m => m (Either ClientError a) -> m a
 throwClientError =

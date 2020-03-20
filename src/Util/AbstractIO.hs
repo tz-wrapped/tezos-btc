@@ -53,14 +53,18 @@ class (Monad m) => HasCmdLine m where
 
 -- Interaction with tezos node via RPC
 class (HasTezosClient m, HasConfig m, Monad m, MonadThrow m) => HasTezosRpc m where
-  runTransactions
+  runTransaction
     :: (NicePackedValue param)
-    => Address -> [(EntrypointParam param, TezosInt64)] -> m ()
+    => Address
+    -> EntrypointParam param
+    -> TezosInt64 -- ^ Amount to transfer
+    -> Maybe TezosInt64 -- ^ Optional baker fee to pay.
+    -> m ()
   getStorage :: Text -> m Expression
   getCounter :: Text -> m TezosInt64
   getFromBigMap :: Natural -> Text -> m (Either TzbtcClientError Expression)
-  deployTzbtcContract :: V1DeployParameters -> m ()
-  deployMultisigContract :: MSigStorage -> Bool -> m ()
+  deployTzbtcContract :: Maybe TezosInt64 -> V1DeployParameters -> m ()
+  deployMultisigContract :: Maybe TezosInt64 -> MSigStorage -> Bool -> m ()
 
 -- Interaction with tezos client binary
 class (HasConfig m, HasEnv m, Monad m) => HasTezosClient m where
