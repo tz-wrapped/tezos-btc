@@ -67,8 +67,9 @@ steps:
     - nix-build ci.nix -A contract-doc-release
         --argstr sha "$(git rev-parse HEAD)"
         --argstr date "$(git log HEAD -1 --format=%cd)"
+    - ln -s ./result/TZBTC-contract.md TZBTC-contract.md
     artifact_paths:
-      - result/TZBTC-contract.md
+      - TZBTC-contract.md
 
   - label: crossref-verify generated doc
     branches: "!autodoc/master"
@@ -78,7 +79,7 @@ steps:
       then CONTRACT_DOC_STEP="contract-doc (master)";
       else CONTRACT_DOC_STEP="contract-doc";
       fi
-    - buildkite-agent artifact download result/TZBTC-contract.md tmp/ --step "$$CONTRACT_DOC_STEP"
+    - buildkite-agent artifact download TZBTC-contract.md tmp/ --step "$$CONTRACT_DOC_STEP"
     - nix run -f ci.nix crossref-verifier -c
         crossref-verify --mode local-only --config ./.crossref-verifier.yaml --root tmp
     soft_fail: true  # TODO: remove
@@ -87,7 +88,7 @@ steps:
     branches: master
     commands:
     - mkdir tmp
-    - buildkite-agent artifact download result/TZBTC-contract.md tmp/ --step "contract-doc (master)"
+    - buildkite-agent artifact download TZBTC-contract.md tmp/ --step "contract-doc (master)"
     - ./scripts/ci/upload-autodoc.sh
 
   - label: patched tezos-client building
