@@ -9,10 +9,14 @@ module Client.Parser
   , ClientArgs(..)
   , ClientArgsRaw(..)
   , DeployContractOptions (..)
+  , Parser
   , clientArgParser
   , parseAddressFromOutput
+  , parseBurncapErrorFromOutput
   , parseContractAddressFromOutput
   , parseSignatureFromOutput
+  , parseSimulationResultFromOutput
+  , toMuTez
   , tzbtcClientAddressParser
   ) where
 
@@ -20,10 +24,12 @@ import Data.Char (isAlpha, isDigit)
 import Fmt (Buildable, pretty)
 import Options.Applicative (eitherReader, help, long, metavar, option, optional, short, str, switch)
 import qualified Options.Applicative as Opt
-import qualified Text.Megaparsec as P (Parsec, customFailure, many, parse, satisfy, skipManyTill)
+import qualified Text.Megaparsec as P
+  (Parsec, customFailure, many, parse, satisfy, skipManyTill)
 import Text.Megaparsec.Char (eol, newline, space, printChar)
-import Text.Megaparsec.Char.Lexer (symbol)
+import Text.Megaparsec.Char.Lexer (float, lexeme, symbol)
 import Text.Megaparsec.Error (ParseErrorBundle, ShowErrorComponent(..))
+import Tezos.Common.Json (TezosInt64)
 
 import Lorentz.Contracts.Multisig
 import Michelson.Text (mt)
@@ -43,14 +49,22 @@ clientArgParser =
     <*> (#userOverride <.!> userOption)
     <*> (#multisigOverride <.!> multisigOption)
     <*> (#contractOverride <.!> contractOverride)
+    <*> (#fee <.!> explictFee)
+    <*> (#verbose <.!> verboseSwitch)
     <*> dryRunSwitch
   where
     multisigOption = mbAddrOrAliasOption "multisig-addr" "The multisig contract address/alias to use"
     contractOverride = mbAddrOrAliasOption "contract-addr" "The tzbtc contract address/alias to use"
     userOption = mbAddrOrAliasOption "user" "User to send operations as"
+    explictFee =
+      optional (option (toMuTez <$> Opt.auto) (long "fee" <> short 'f' <> help feeHelpText))
+    feeHelpText = "Specify baker fee, in Tez, to pay for transactions"
     dryRunSwitch =
       switch (long "dry-run" <>
               help "Dry run command to ensure correctness of the arguments")
+    verboseSwitch =
+      switch (long "verbose" <> short 'v' <>
+              help "Verbose logging.")
 
 clientArgRawParser :: Opt.Parser ClientArgsRaw
 clientArgRawParser = Opt.hsubparser $
@@ -428,3 +442,30 @@ tzbtcClientAddressParser = do
 parseContractAddressFromOutput
   :: Text -> Either (ParseErrorBundle Text OutputParseError) Address
 parseContractAddressFromOutput output = P.parse tzbtcClientAddressParser "" output
+
+parseSimulationResultFromOutput
+  :: Text -> Either (ParseErrorBundle Text OutputParseError) SimulationResult
+parseSimulationResultFromOutput output =
+  P.parse (SimulationResult <$> simulationResultParser) "" output
+
+parseBurncapErrorFromOutput
+  :: Text -> Either (ParseErrorBundle Text OutputParseError) Double
+parseBurncapErrorFromOutput output =
+  P.parse burnCapParser "" output
+
+burnCapParser :: Parser Double
+burnCapParser = do
+  P.skipManyTill (printChar <|> newline) $ do
+    void $ symbol space "The operation will burn"
+    P.skipManyTill printChar $ lexeme (space >> pure ()) float
+
+simulationResultParser :: Parser TezosInt64
+simulationResultParser = toMuTez <$> do
+  P.skipManyTill (printChar <|> newline) $ do
+    void $ symbol space "Fee to the baker: "
+    P.skipManyTill printChar $ lexeme (newline >> pure ()) float
+
+toMuTez :: Double -> TezosInt64
+toMuTez mt_ = fromInteger $ floor $ mt_ * 10e6
+-- floor does not loose precision here since the fees
+-- from simulation won't have more precision then 1 microtez

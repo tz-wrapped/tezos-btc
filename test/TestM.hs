@@ -91,14 +91,14 @@ data Handlers m = Handlers
 
   , hRunTransactions
     :: forall param. (NicePackedValue param)
-    => Address -> [(EntrypointParam param, TezosInt64)] -> m ()
+    => Address  -> EntrypointParam param -> TezosInt64 -> Maybe TezosInt64 ->  m ()
   , hGetStorage :: Text -> m Expression
   , hGetCounter :: Text -> m TezosInt64
   , hGetFromBigMap :: Natural -> Text -> m (Either TzbtcClientError Expression)
   , hWaitForOperation :: Text -> m ()
   , hGetTezosClientConfig :: m (Either Text (FilePath, TezosClientConfig))
-  , hDeployTzbtcContract :: V1DeployParameters -> m ()
-  , hDeployMultisigContract :: MSigStorage -> Bool -> m ()
+  , hDeployTzbtcContract :: Maybe TezosInt64 -> V1DeployParameters -> m ()
+  , hDeployMultisigContract :: Maybe TezosInt64 -> MSigStorage -> Bool -> m ()
 
   , hGetAddressAndPKForAlias :: Text -> m (Either TzbtcClientError (Address, PublicKey))
   , hSignWithTezosClient :: Either ByteString Text -> Text -> m (Either Text Signature)
@@ -144,9 +144,9 @@ instance HasCmdLine TestM where
     fn i
 
 instance HasTezosRpc TestM where
-  runTransactions a b = do
+  runTransaction a b c f = do
     fn <- getHandler hRunTransactions
-    fn a b
+    fn a b c f
   getStorage t = do
     fn <- getHandler hGetStorage
     fn t
@@ -156,12 +156,12 @@ instance HasTezosRpc TestM where
   getFromBigMap n t = do
     fn <- getHandler hGetFromBigMap
     fn n t
-  deployTzbtcContract op = do
+  deployTzbtcContract f op = do
     fn <- getHandler hDeployTzbtcContract
-    fn op
-  deployMultisigContract storage useCustomErrors = do
+    fn f op
+  deployMultisigContract f storage useCustomErrors = do
     fn <- getHandler hDeployMultisigContract
-    fn storage useCustomErrors
+    fn f storage useCustomErrors
 
 instance HasTezosClient TestM where
   getAddressAndPKForAlias a = do

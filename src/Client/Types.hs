@@ -28,6 +28,7 @@ module Client.Types
   , RunOperationInternal (..)
   , RunOperationResult (..)
   , RunRes (..)
+  , SimulationResult (..)
   , TransactionOperation (..)
   , TezosClientConfig (..)
   , combineResults
@@ -61,6 +62,8 @@ data ClientArgs =
       ("userOverride" :! Maybe AddrOrAlias)
       ("multisigOverride" :! Maybe AddrOrAlias)
       ("contractOverride" :! Maybe AddrOrAlias)
+      ("fee" :! Maybe TezosInt64)
+      ("verbose" :! Bool)
       Bool
 
 type AddrOrAlias = Text
@@ -299,6 +302,10 @@ data AppliedResult = AppliedResult
   , arStorageSize :: TezosInt64
   , arPaidStorageDiff :: TezosInt64
   , arOriginatedContracts :: [Address]
+  } deriving Show
+
+data SimulationResult = SimulationResult
+  { srComputedFees :: TezosInt64 -- ^ Baker Fee in micro tez
   } deriving Show
 
 instance Semigroup AppliedResult where
