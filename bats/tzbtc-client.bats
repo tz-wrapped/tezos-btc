@@ -84,22 +84,13 @@ setup () {
   $tzbtc_client getOwner --dry-run
 }
 
-@test "invoking tzbtc-client 'getTokenName' command" {
-  $tzbtc_client getTokenName\
+@test "invoking tzbtc-client 'getTokenMetadata' command" {
+  $tzbtc_client getTokenMetadata\
     --callback "$callback" --dry-run
 }
 
-@test "invoking tzbtc-client 'getTokenName' command without callback" {
-  $tzbtc_client getTokenName --dry-run
-}
-
-@test "invoking tzbtc-client 'getTokenCode' command" {
-  $tzbtc_client getTokenCode\
-    --callback "$callback" --dry-run
-}
-
-@test "invoking tzbtc-client 'getTokenCode' command without callback" {
-  $tzbtc_client getTokenCode --dry-run
+@test "invoking tzbtc-client 'getTokenMetadata' command without callback" {
+  $tzbtc_client getTokenMetadata --dry-run
 }
 
 @test "invoking tzbtc-client 'getRedeemAddress' command" {
@@ -173,7 +164,7 @@ setup () {
 }
 
 @test "deploy contract" {
-  $tzbtc_client deployTzbtcContract --owner boba --redeem boba --token-name Kukareq --token-code Cococoq --dry-run
+  $tzbtc_client deployTzbtcContract --owner boba --redeem boba --token-name Kukareq --token-symbol Cococoq --dry-run
 }
 
 @test "deploy multisig" {

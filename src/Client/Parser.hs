@@ -31,8 +31,8 @@ import Text.Megaparsec.Char.Lexer (float, lexeme, symbol)
 import Text.Megaparsec.Error (ParseErrorBundle, ShowErrorComponent(..))
 import Tezos.Common.Json (TezosInt64)
 
+import Lorentz.Contracts.Metadata
 import Lorentz.Contracts.Multisig
-import Michelson.Text (mt)
 import Tezos.Address (Address, parseAddress)
 import Tezos.Crypto (PublicKey, Signature, parsePublicKey, parseSignature)
 import Util.CLI
@@ -73,7 +73,7 @@ clientArgRawParser = Opt.hsubparser $
   <> removeOperatorCmd <> pauseCmd <> unpauseCmd
   <> setRedeemAddressCmd <> transferOwnershipCmd <> acceptOwnershipCmd
   <> getTotalSupplyCmd <>  getTotalMintedCmd <> getTotalBurnedCmd
-  <> getOwnerCmd <> getTokenNameCmd <> getTokenCodeCmd <> getRedeemAddressCmd
+  <> getOwnerCmd <> getTokenMetadataCmd <> getRedeemAddressCmd
   <> getOperatorsCmd <> getOpDescriptionCmd
   <> getBytesToSignCmd <> getTotalBurnedCmd
   <> addSignatureCmd <> signPackageCmd <> callMultisigCmd
@@ -227,17 +227,11 @@ clientArgRawParser = Opt.hsubparser $
          (CmdGetOwner <$> callbackParser)
          "Get current contract owner")
 
-    getTokenNameCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
-    getTokenNameCmd =
-      (mkCommandParser "getTokenName"
-         (CmdGetTokenName <$> callbackParser)
-         "Get the token name")
-
-    getTokenCodeCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
-    getTokenCodeCmd =
-      (mkCommandParser "getTokenCode"
-         (CmdGetTokenCode <$> callbackParser)
-         "Get the token code")
+    getTokenMetadataCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
+    getTokenMetadataCmd =
+      (mkCommandParser "getTokenMetadata"
+         (CmdGetTokenMetadata <$> callbackParser)
+         "Get the token metadata")
 
     getRedeemAddressCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     getRedeemAddressCmd =
@@ -303,12 +297,7 @@ clientArgRawParser = Opt.hsubparser $
         deployContractOptions = do
           dcoOwner <- mbAddrOrAliasOption "owner" "Address of the owner"
           dcoRedeem <- addrOrAliasOption "redeem" "Redeem address"
-          dcoTokenName <-
-            mTextOption (Just [mt|TZBTC|])
-              (#name .! "token-name") (#help .! "Name of this token")
-          dcoTokenCode <-
-            mTextOption (Just [mt|TZBTC|])
-              (#name .! "token-code") (#help .! "Token code")
+          dcoTokenMetadata <- parseSingleTokenMetadata
           pure DeployContractOptions {..}
 
     deployMultisigCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
@@ -457,13 +446,13 @@ burnCapParser :: Parser Double
 burnCapParser = do
   P.skipManyTill (printChar <|> newline) $ do
     void $ symbol space "The operation will burn"
-    P.skipManyTill printChar $ lexeme (space >> pure ()) float
+    P.skipManyTill printChar $ lexeme (space >> pass) float
 
 simulationResultParser :: Parser TezosInt64
 simulationResultParser = toMuTez <$> do
   P.skipManyTill (printChar <|> newline) $ do
     void $ symbol space "Fee to the baker: "
-    P.skipManyTill printChar $ lexeme (newline >> pure ()) float
+    P.skipManyTill printChar $ lexeme (newline >> pass) float
 
 toMuTez :: Double -> TezosInt64
 toMuTez mt_ = fromInteger $ floor $ mt_ * 10e6

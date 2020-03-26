@@ -15,6 +15,7 @@ import Options.Applicative
 import Options.Applicative.Help.Pretty (Doc, linebreak)
 
 import Lorentz hiding (address, balance, chainId, cons, map)
+import Lorentz.Contracts.Metadata
 import Lorentz.Contracts.Multisig
 import Lorentz.Macro (View(..))
 import Paths_tzbtc (version)
@@ -130,10 +131,18 @@ mainProgram = do
           simpleGetter #totalBurned "Total burned" GetTotalBurned callback
         CmdGetOwner callback ->
           simpleGetter #owner "Owner" GetOwner callback
-        CmdGetTokenName callback ->
-          simpleGetter #tokenName "Token name" GetTokenName callback
-        CmdGetTokenCode callback ->
-          simpleGetter #tokenCode "Token code" GetTokenCode callback
+        CmdGetTokenMetadata callback ->
+          case callback of
+            Just callback' -> do
+              callback'' <- addrOrAliasToAddr callback'
+              runTzbtcContract $
+                fromFlatParameter $
+                GetTokenMetadata $
+                View [singleTokenTokenId] $
+                callingDefTAddress $
+                toTAddress @[TokenMetadata] callback''
+            Nothing -> do
+              printFieldFromStorage #tokenMetadata "Token metadata"
         CmdGetRedeemAddress callback ->
           simpleGetter #redeemAddress "Redeem address" GetRedeemAddress callback
         CmdGetOperators ->
@@ -179,9 +188,8 @@ mainProgram = do
               { v1Owner = owner
               , v1MigrationParams = V1Parameters
                 { v1RedeemAddress = redeem
+                , v1TokenMetadata = dcoTokenMetadata
                 , v1Balances = mempty
-                , v1TokenName = dcoTokenName
-                , v1TokenCode = dcoTokenCode
                 }
               }
           mbFees <- aeFees <$> lookupEnv
