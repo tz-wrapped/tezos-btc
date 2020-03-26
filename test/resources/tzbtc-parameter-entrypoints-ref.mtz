@@ -1,3 +1,6 @@
+# parameter generated with:
+#   TL.putStrLn $ L.printLorentzContract False (L.drop @(Parameter TZBTCv0, ()) # unit # nil # pair)
+
 parameter (or (or (or (pair %getVersion unit
                                         (contract nat))
                       (pair %getAllowance (pair (address :owner)
@@ -11,14 +14,21 @@ parameter (or (or (or (pair %getVersion unit
                                                 (contract nat)))))
               (or (or (pair %getTotalBurned unit
                                             (contract nat))
-                      (or (pair %getOwner unit
-                                          (contract address))
-                          (pair %getTokenName unit
-                                              (contract string))))
-                  (or (pair %getTokenCode unit
-                                          (contract string))
-                      (or (pair %getRedeemAddress unit
-                                                  (contract address))
+                      (pair %getOwner unit
+                                      (contract address)))
+                  (or (pair %getRedeemAddress unit
+                                              (contract address))
+                      (or (pair %getTokenMetadata (list nat)
+                                                  (contract (list (pair nat
+                                                                        (pair
+                                                                              string
+                                                                              (pair
+                                                                                    string
+                                                                                    (pair
+                                                                                          nat
+                                                                                          (map
+                                                                                               string
+                                                                                               string))))))))
                           (or %safeEntrypoints (or (or (or (pair %run string
                                                                       bytes)
                                                            (pair %upgrade (pair
@@ -105,5 +115,5 @@ parameter (or (or (or (pair %getVersion unit
                                                            (or
                                                                (address :newOwner %transferOwnership)
                                                                (unit %acceptOwnership))))))))));
-storage ();
+storage unit;
 code { cdr; nil operation; pair }

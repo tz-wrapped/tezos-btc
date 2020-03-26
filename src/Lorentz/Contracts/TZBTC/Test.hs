@@ -13,10 +13,10 @@ import System.Exit (ExitCode(..))
 import System.Process (readProcessWithExitCode)
 
 import Lorentz (TAddress(..), View(..), arg, mkView)
+import Lorentz.Contracts.Metadata
 import Lorentz.Contracts.Upgradeable.Common (EpwUpgradeParameters(..), emptyPermanentImpl)
 import Lorentz.Test (contractConsumer)
 import Lorentz.UStore.Migration
-import Michelson.Text
 import Michelson.Typed.Haskell.Value
 import Michelson.Untyped.EntryPoints
 import Morley.Nettest
@@ -42,18 +42,11 @@ smokeTests mconfig = do
       runNettestClient (config { nccScenarioName = sname "_tezos_client"}) $ simpleScenario True
       runNettestTzbtcClient (config { nccScenarioName = sname "_tzbtc_client"}) $ simpleScenario False
 
-dummyTokenName :: MText
-dummyTokenName = [mt|Test token|]
-
-dummyTokenCode :: MText
-dummyTokenCode = [mt|TEST|]
-
-dummyV1Parameters :: Address -> Map Address Natural -> V1Parameters
-dummyV1Parameters redeem balances = V1Parameters
+dummyV1Parameters :: Address -> TokenMetadata -> Map Address Natural -> V1Parameters
+dummyV1Parameters redeem tokenMetadata balances = V1Parameters
   { v1RedeemAddress = redeem
+  , v1TokenMetadata = tokenMetadata
   , v1Balances = balances
-  , v1TokenName = dummyTokenName
-  , v1TokenCode = dummyTokenCode
   }
 
 simpleScenario :: Bool -> NettestScenario
@@ -69,15 +62,15 @@ simpleScenario requireUpgrade = uncapsNettest $ do
   -- Originate Natural view callback
   naturalView <- originateSimple "Natural view" [] (contractConsumer @Natural)
 
-  -- Originate Text view callback
-  textView <- originateSimple "Text view" [] (contractConsumer @MText)
+  -- Originate [TokenMetadata] view callback
+  tokenMetadatasView <- originateSimple "[TokenMetadata] view" [] (contractConsumer @[TokenMetadata])
 
   let
     fromFlatParameterV1  :: FlatParameter TZBTCv1 -> Parameter TZBTCv1
     fromFlatParameterV1 = fromFlatParameter
     adminAddr = AddrResolved admin
     tzbtcAddr = AddrResolved tzbtc
-    opTZBTC = dummyV1Parameters admin mempty
+    opTZBTC = dummyV1Parameters admin defaultTZBTCMetadata mempty
     upgradeParams :: OneShotUpgradeParameters TZBTCv0
     upgradeParams = makeOneShotUpgradeParameters @TZBTCv0 EpwUpgradeParameters
       { upMigrationScripts =
@@ -254,13 +247,7 @@ simpleScenario requireUpgrade = uncapsNettest $ do
     (AddrAlias "guest")
     tzbtcAddr
     DefEpName
-    (fromFlatParameterV1 $ GetTokenName (mkView () (TAddress @MText textView)))
-
-  callFrom
-    (AddrAlias "guest")
-    tzbtcAddr
-    DefEpName
-    (fromFlatParameterV1 $ GetTokenCode (mkView () (TAddress @MText textView)))
+    (fromFlatParameterV1 $ GetTokenMetadata (mkView [0] (TAddress @[TokenMetadata] tokenMetadatasView)))
 
   callFrom
     (AddrAlias "guest")
@@ -347,15 +334,9 @@ nettestImplTzbtcClient config@(NettestClientConfig {..}) = NettestImpl
               , "--callback", toString (formatAddress view_)
               ]
 
-          TZBTCTypes.GetTokenName (viewCallbackTo -> (crAddress -> view_)) ->
+          TZBTCTypes.GetTokenMetadata (viewCallbackTo -> (crAddress -> view_)) ->
             callTzbtc
-              [ "getTokenName"
-              , "--callback", toString (formatAddress view_)
-              ]
-
-          TZBTCTypes.GetTokenCode (viewCallbackTo -> (crAddress -> view_)) ->
-            callTzbtc
-              [ "getTokenCode"
+              [ "getTokenMetadata"
               , "--callback", toString (formatAddress view_)
               ]
 

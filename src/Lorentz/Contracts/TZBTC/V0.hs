@@ -203,15 +203,12 @@ tzbtcContractRaw = do
     , #cGetOwner /-> do
         cutLorentzNonDoc (Impl.getOwner @(UStore StoreTemplateV1))
         callUSafeViewEP #callGetOwner
-    , #cGetTokenName /-> do
-        cutLorentzNonDoc Impl.getTokenName
-        callUSafeViewEP #callGetTokenName
-    , #cGetTokenCode /-> do
-        cutLorentzNonDoc Impl.getTokenCode
-        callUSafeViewEP #callGetTokenCode
     , #cGetRedeemAddress /-> do
         cutLorentzNonDoc (Impl.getRedeemAddress @(UStore StoreTemplateV1))
         callUSafeViewEP #callGetRedeemAddress
+    , #cGetTokenMetadata /-> do
+        cutLorentzNonDoc (Impl.getTokenMetadata @(UStore StoreTemplateV1))
+        callUSafeViewEP #callGetTokenMetadata
     , #cSafeEntrypoints /-> do
         doc $ DDescription
           "This entry point is used to call the safe entrypoints of the contract. \

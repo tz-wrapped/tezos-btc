@@ -10,6 +10,11 @@ Changes that affect Michelson code are tagged with `[CONTRACT]`.
 
 Unreleased
 ==========
+* [#115](https://github.com/serokell/tezos-btc/pull/115)
+  - Add FA2-style metadata
+  - Move `tokenName`, `tokenCode` fields to `TokenMetadata`
+  - `tokenCode`/`token-code` is now `tokenSymbol`/`token-symbol`
+  - New `tzbtc-client` contract metadata option, provided along with `token-name`/`token-symbol`: `token-decimals`
 * [#113](https://github.com/serokell/tezos-btc/pull/113)
   - Fix baker fee calculation for transactions by using `tezos-client` to compute fees.
   - Add global option "--fee" to explicitly specify baker fees for transactions.

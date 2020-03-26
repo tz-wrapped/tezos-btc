@@ -36,6 +36,7 @@ import Lorentz
 import Lorentz.Contracts.ManagedLedger.Test
   (ApprovableLedger(..), OriginationParams(..), approvableLedgerSpec, originateManagedLedger)
 import qualified Lorentz.Contracts.ManagedLedger.Test as ML
+import Lorentz.Contracts.Metadata
 import qualified Lorentz.Contracts.Spec.ApprovableLedgerInterface as AL
 import Lorentz.Contracts.Upgradeable.Common (EpwUpgradeParameters(..), emptyPermanentImpl)
 import Lorentz.Test
@@ -84,18 +85,11 @@ checkField ef cf ms = checkStorage (\st ->
   then Right ()
   else Left $ CustomValidationError ms)
 
-dummyTokenName :: MText
-dummyTokenName = [mt|Test token|]
-
-dummyTokenCode :: MText
-dummyTokenCode = [mt|TEST|]
-
 dummyV1Parameters :: Address -> Map Address Natural -> V1Parameters
 dummyV1Parameters redeem balances = V1Parameters
   { v1RedeemAddress = redeem
+  , v1TokenMetadata = defaultTZBTCMetadata
   , v1Balances = balances
-  , v1TokenName = dummyTokenName
-  , v1TokenCode = dummyTokenCode
   }
 
 originateTzbtcV1ContractRaw
@@ -177,7 +171,7 @@ test_interface = testGroup "TZBTC consistency test"
         reference <- entrypointsRef
         let untypedTzbtc = convertFullContract . compileLorentzContract $ tzbtcContract
         case matchContractEntryPoints untypedTzbtc reference of
-          Right _ -> pure ()
+          Right _ -> pass
           Left missing -> do
             assertFailure $ "Some entrypoints were not found:" <> (show missing)
   ]
@@ -531,10 +525,9 @@ unit_get_meta :: Assertion
 unit_get_meta = integrationalTestExpectation $ do
   v1 <- originateTzbtcV1Contract
   consumer <- lOriginateEmpty contractConsumer "consumer"
-  lCallDef v1 $ fromFlatParameter $ GetTokenName (mkView () consumer)
-  lCallDef v1 $ fromFlatParameter $ GetTokenCode (mkView () consumer)
+  lCallDef v1 $ fromFlatParameter $ GetTokenMetadata (mkView [singleTokenTokenId] consumer)
   validate . Right $
-    lExpectViewConsumerStorage consumer [dummyTokenName, dummyTokenCode]
+    lExpectViewConsumerStorage consumer [[defaultTZBTCMetadata]]
 
 test_documentation :: [TestTree]
 test_documentation = runDocTests testLorentzDoc tzbtcDoc

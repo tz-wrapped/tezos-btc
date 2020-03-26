@@ -43,6 +43,7 @@ import Fmt (Buildable(..), (+|), (|+))
 
 import Lorentz
 import qualified Lorentz.Contracts.ManagedLedger.Types as ManagedLedger
+import Lorentz.Contracts.Metadata
 import Lorentz.Contracts.Upgradeable.Common
   (KnownContractVersion(..), MigrationScript, MigrationScriptFrom, OneShotUpgradeParameters,
   PermanentImpl, SomeUContractRouter, UContractRouter(..), VerParam, VerUStore, Version,
@@ -123,9 +124,8 @@ data Parameter (ver :: VersionKind)
   | GetTotalMinted      !(View () Natural)
   | GetTotalBurned      !(View () Natural)
   | GetOwner            !(View () Address)
-  | GetTokenName        !(View () MText)
-  | GetTokenCode        !(View () MText)
   | GetRedeemAddress    !(View () Address)
+  | GetTokenMetadata    !(View [TokenId] [TokenMetadata])
   | SafeEntrypoints !(SafeParameter ver)
   deriving stock (Eq, Generic, Show)
   deriving anyclass (IsoValue)
@@ -156,12 +156,10 @@ instance Buildable (Parameter ver) where
       "Get total burned"
     GetOwner _ ->
       "Get owner"
-    GetTokenName _ ->
-      "Get token name"
-    GetTokenCode _ ->
-      "Get token code"
     GetRedeemAddress _ ->
       "Get redeem address"
+    GetTokenMetadata _ ->
+      "Get token metadata"
     GetVersion _ ->
       "Get contract version"
     SafeEntrypoints param -> case param of
@@ -263,13 +261,7 @@ data StoreTemplate = StoreTemplate
   , newOwner      :: UStoreField (Maybe Address)
   , operators     :: UStoreField Operators
   , redeemAddress :: UStoreField Address
-  , tokenName     :: UStoreField MText
-  -- ^ Name of the token, can be set to an arbitrary string. It is
-  -- meta information that is not used by the contract, only stored.
-  , tokenCode     :: UStoreField MText
-  -- ^ Textual code of the token, can be set to an arbitrary
-  -- (presumably short) string. It is meta information that is not
-  -- used by the contract, only stored.
+  , tokenMetadata :: UStoreField TokenMetadata
   , code          :: MText |~> EntryPointImpl StoreTemplateV1
   , fallback      :: UStoreField $ EpwFallback StoreTemplateV1
   , ledger        :: Address |~> ManagedLedger.LedgerValue
@@ -287,9 +279,8 @@ instance Buildable Operators where
 -- | The data required to upgrade contract storage from V0 to V1.
 data V1Parameters = V1Parameters
   { v1RedeemAddress :: !Address
+  , v1TokenMetadata :: !TokenMetadata
   , v1Balances :: !(Map Address Natural)
-  , v1TokenName :: !MText
-  , v1TokenCode :: !MText
   }
 
 -- | The data required to initialize the V1 version of the contract storage
@@ -317,9 +308,8 @@ type Interface =
   , "callGetTotalMinted" ?: (SafeView () Natural)
   , "callGetTotalBurned" ?: (SafeView () Natural)
   , "callGetOwner" ?: (SafeView () Address)
-  , "callGetTokenName" ?: (SafeView () MText)
-  , "callGetTokenCode" ?: (SafeView () MText)
   , "callGetRedeemAddress" ?: (SafeView () Address)
+  , "callGetTokenMetadata" ?: (SafeView [TokenId] [TokenMetadata])
   , "callTransfer" ?: ManagedLedger.TransferParams
   , "callApprove" ?: ManagedLedger.ApproveParams
   , "callMint" ?: ManagedLedger.MintParams
