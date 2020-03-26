@@ -20,8 +20,7 @@ module Lorentz.Contracts.TZBTC.Impl
   , getTotalBurned
   , getTotalMinted
   , getRedeemAddress
-  , getTokenName
-  , getTokenCode
+  , getTokenMetadata
   , mint
   , pause
   , removeOperator
@@ -38,6 +37,7 @@ import Fmt (Builder)
 import Util.Markdown (mdTicked)
 
 import Lorentz
+import Lorentz.Contracts.Metadata
 import qualified Lorentz.Contracts.ManagedLedger.Impl as ManagedLedger
 import qualified Lorentz.Contracts.ManagedLedger.Types as ManagedLedger
 import Lorentz.Contracts.TZBTC.Types hiding (AddOperator, RemoveOperator)
@@ -50,6 +50,7 @@ type StorageC store = StorageContains store
   , "totalBurned" := Natural
   , "operators" := Set Address
   , "redeemAddress" := Address
+  , "tokenMetadata" := TokenMetadata
   , "newOwner" := Maybe Address
   , "ledger" := Address ~> LedgerValue
   ]
@@ -76,17 +77,20 @@ getOwner
   :: forall store. StorageC store => Entrypoint (View () Address) store
 getOwner = getSingleField #owner "the current contract owner"
 
-getTokenName
-  :: Entrypoint (View () MText) (UStore StoreTemplateV1)
-getTokenName = getSingleField #tokenName "the token name"
-
-getTokenCode
-  :: Entrypoint (View () MText) (UStore StoreTemplateV1)
-getTokenCode = getSingleField #tokenCode "the token code"
-
 getRedeemAddress
   :: forall store. StorageC store => Entrypoint (View () Address) store
 getRedeemAddress = getSingleField #redeemAddress "the redeem address"
+
+-- | Assert that all of the given `TokenId`'s are @0@ (since this is a single
+-- token contract) and replace each with the current `TokenMetadata`.
+getTokenMetadata
+  :: forall store. StorageC store => Entrypoint (View [TokenId] [TokenMetadata]) store
+getTokenMetadata =  do
+  doc $ DDescription $ "This view returns the token metadata."
+  view_ $ do
+    unpair
+    dip $ stToField #tokenMetadata
+    singleTokenResolveMetadata
 
 -- | Burn the specified amount of tokens from redeem address. Since it
 -- is not possible to burn from any other address, this entry point does

@@ -46,12 +46,12 @@ import Tezos.Common.Json (StringEncode(..), TezosInt64)
 import Tezos.V005.Micheline
   (Expression(..), MichelinePrimAp(..), MichelinePrimitive(..), annotToText)
 
-import Michelson.Text (MText)
 import Michelson.Typed (IsoValue)
 import Tezos.Address (Address)
 import Tezos.Crypto (PublicKey, Signature, encodeBase58Check, formatSignature)
 import Util.Named
 
+import Lorentz.Contracts.Metadata
 import Lorentz.Contracts.Multisig
 import Lorentz.Contracts.TZBTC.Types
 
@@ -86,8 +86,7 @@ data ClientArgsRaw
   | CmdGetTotalMinted (Maybe AddrOrAlias)
   | CmdGetTotalBurned (Maybe AddrOrAlias)
   | CmdGetOwner (Maybe AddrOrAlias)
-  | CmdGetTokenName (Maybe AddrOrAlias)
-  | CmdGetTokenCode (Maybe AddrOrAlias)
+  | CmdGetTokenMetadata (Maybe AddrOrAlias)
   | CmdGetRedeemAddress (Maybe AddrOrAlias)
   | CmdGetOperators
   | CmdGetOpDescription FilePath
@@ -102,8 +101,7 @@ data ClientArgsRaw
 data DeployContractOptions = DeployContractOptions
   { dcoOwner :: !(Maybe AddrOrAlias)
   , dcoRedeem :: !AddrOrAlias
-  , dcoTokenName :: !MText
-  , dcoTokenCode :: !MText
+  , dcoTokenMetadata :: !TokenMetadata
   }
 
 data ConfigOverride = ConfigOverride

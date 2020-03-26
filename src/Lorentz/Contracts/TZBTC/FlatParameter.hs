@@ -13,6 +13,7 @@ module Lorentz.Contracts.TZBTC.FlatParameter
 import Prelude hiding (drop, swap, (>>))
 
 import Lorentz
+import Lorentz.Contracts.Metadata
 import Lorentz.Contracts.Upgradeable.Common hiding (Parameter(..), Storage, mkEmptyStorage)
 import Util.Named
 
@@ -40,9 +41,8 @@ data FlatParameter (ver :: VersionKind)
   | GetTotalMinted      !(View () Natural)
   | GetTotalBurned      !(View () Natural)
   | GetOwner            !(View () Address)
-  | GetTokenName        !(View () MText)
-  | GetTokenCode        !(View () MText)
   | GetRedeemAddress    !(View () Address)
+  | GetTokenMetadata    !(View [TokenId] [TokenMetadata])
   | Transfer            !TransferParams
   | Approve             !ApproveParams
   | Mint                !MintParams
@@ -83,9 +83,8 @@ fromFlatParameter = \case
   GetTotalMinted a -> TZBTC.GetTotalMinted a
   GetTotalBurned a -> TZBTC.GetTotalBurned a
   GetOwner a -> TZBTC.GetOwner a
-  GetTokenName a -> TZBTC.GetTokenName a
-  GetTokenCode a -> TZBTC.GetTokenCode a
   GetRedeemAddress a -> TZBTC.GetRedeemAddress a
+  GetTokenMetadata a -> TZBTC.GetTokenMetadata a
   where
     wrapInSafe :: TZBTC.SafeParameter s -> TZBTC.Parameter s
     wrapInSafe s = TZBTC.SafeEntrypoints s

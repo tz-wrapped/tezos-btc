@@ -38,9 +38,8 @@ v1Impl = recFromTuple
   , #callGetTotalMinted //==> toSafeView TZBTC.getTotalMinted
   , #callGetTotalBurned //==> toSafeView TZBTC.getTotalBurned
   , #callGetOwner //==> toSafeView TZBTC.getOwner
-  , #callGetTokenName //==> toSafeView TZBTC.getTokenName
-  , #callGetTokenCode //==> toSafeView TZBTC.getTokenCode
   , #callGetRedeemAddress //==> toSafeView TZBTC.getRedeemAddress
+  , #callGetTokenMetadata //==> toSafeView TZBTC.getTokenMetadata
   , #callTransfer //==> TZBTC.transfer
   , #callApprove //==> TZBTC.approve
   , #callMint //==> TZBTC.mint
@@ -105,8 +104,7 @@ originationParamsToStoreTemplate V1Parameters {..} = let
     , newOwner = UStoreField Nothing
     , operators = UStoreField mempty
     , redeemAddress = UStoreField v1RedeemAddress
-    , tokenName = UStoreField v1TokenName
-    , tokenCode = UStoreField v1TokenCode
+    , tokenMetadata = UStoreField v1TokenMetadata
     , code = UStoreSubMap mempty
     , fallback = UStoreField epwFallbackFail
     , ledger = UStoreSubMap $ toLedgerValue <$> v1Balances

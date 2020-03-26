@@ -15,7 +15,7 @@ import Options.Applicative (command, help, hsubparser, info, long, progDesc, swi
 import qualified Options.Applicative as Opt
 
 import Lorentz ((:!))
-import Michelson.Text (MText, mt)
+import Lorentz.Contracts.Metadata
 import Morley.CLI
 import Tezos.Address (Address)
 import Util.CLI
@@ -32,8 +32,7 @@ data CmdLnArgs
   | CmdMigrate
       ("version" :! Natural)
       ("redeemAddress" :! Address)
-      ("tokenName" :! MText)
-      ("tokenCode" :! MText)
+      ("tokenMetadata" :! TokenMetadata)
       ("output" :! Maybe FilePath)
 
 argParser :: Opt.Parser CmdLnArgs
@@ -96,8 +95,7 @@ argParser = hsubparser $
           (CmdMigrate
             <$> namedParser Nothing "Target version"
             <*> namedParser Nothing "Redeem address"
-            <*> namedParser (Just [mt|TZBTC|]) "Token name"
-            <*> namedParser (Just [mt|TZBTC|]) "Token code"
+            <*> fmap (#tokenMetadata .!) parseSingleTokenMetadata
             <*> (#output <.!> outputOption))
           "Print migration scripts.")
     verboseSwitch =

@@ -55,15 +55,13 @@ main = do
     CmdMigrate
       (arg #version -> version_)
       (arg #redeemAddress -> redeem)
-      (arg #tokenName -> tokenName)
-      (arg #tokenCode -> tokenCode)
+      (arg #tokenMetadata -> tokenMetadata)
       (arg #output -> fp) -> do
         let
           originationParams = V1Parameters
             { v1RedeemAddress = redeem
+            , v1TokenMetadata = tokenMetadata
             , v1Balances = mempty
-            , v1TokenName = tokenName
-            , v1TokenCode = tokenCode
             }
         maybe printTextLn writeFileUtf8 fp $
           makeMigrationParams version_ tzbtcContractRouter $
