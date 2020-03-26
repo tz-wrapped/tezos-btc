@@ -6,7 +6,7 @@
 
 # TZBTC
 
-**Code revision:** [59cae20](https://github.com/serokell/tezos-btc/commit/59cae2073ba5977c964a15744e40300a1e5297ef) *(Fri Mar 20 19:25:21 2020 +0530)*
+**Code revision:** [663d060](https://github.com/serokell/tezos-btc/commit/663d060d03278154b4ac1d62a479cb6f3f92f0fd) *(Thu Mar 26 17:29:01 2020 -0400)*
 
 This contract is implemented using Lorentz language.
 Basically, this contract is [FA1.2](https://gitlab.com/serokell/morley/tzip/blob/master/A/FA1.2.md)-compatible approvable ledger that maps user addresses to their token balances. The main idea of this token contract is to provide 1-to-1 correspondance with BTC.
@@ -199,56 +199,6 @@ This view returns the current contract owner.
 
 ---
 
-### `getTokenName`
-
-This view returns the token name.
-
-**Argument:** 
-  + **In Haskell:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Text`](#types-Text)
-  + **In Michelson:** `(pair unit (contract string))`
-
-<details>
-  <summary><b>How to call this entrypoint</b></summary>
-
-0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
-</details>
-<p>
-
-
-
-**Possible errors:**
-* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
-
-
-
----
-
-### `getTokenCode`
-
-This view returns the token code.
-
-**Argument:** 
-  + **In Haskell:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Text`](#types-Text)
-  + **In Michelson:** `(pair unit (contract string))`
-
-<details>
-  <summary><b>How to call this entrypoint</b></summary>
-
-0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
-</details>
-<p>
-
-
-
-**Possible errors:**
-* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
-
-
-
----
-
 ### `getRedeemAddress`
 
 This view returns the redeem address.
@@ -268,6 +218,33 @@ This view returns the redeem address.
 
 
 **Possible errors:**
+* [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
+
+
+
+---
+
+### `getTokenMetadata`
+
+This view returns the token metadata.
+
+**Argument:** 
+  + **In Haskell:** [`View`](#types-View) ([`List`](#types-List) [`Natural`](#types-Natural)) ([`List`](#types-List) [`TokenMetadata`](#types-TokenMetadata))
+  + **In Michelson:** `(pair (list nat) (contract (list (pair nat (pair string (pair string (pair nat (map string string))))))))`
+
+<details>
+  <summary><b>How to call this entrypoint</b></summary>
+
+0. Construct an argument for the entrypoint.
+1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
+</details>
+<p>
+
+
+
+**Possible errors:**
+* [`InvalidSingleTokenId`](#errors-InvalidSingleTokenId) — The only valid token id is 0
+
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
@@ -996,6 +973,18 @@ List primitive.
 
 
 
+<a name="types-Map"></a>
+
+---
+
+### `Map`
+
+Map primitive.
+
+**Final Michelson representation (example):** `Map Integer Natural` = `map int nat`
+
+
+
 <a name="types-Maybe"></a>
 
 ---
@@ -1135,6 +1124,62 @@ This has to contain only ASCII characters with codes from [32; 126] range; addit
 
 
 
+<a name="types-TokenMetadata"></a>
+
+---
+
+### `TokenMetadata`
+
+Type which defines metadata of the token.
+
+**Structure:** (***metadata_tokenId*** :[`Natural`](#types-Natural), ***metadata_rest1*** :[`TokenMetadataRest1`](#types-TokenMetadataRest1))
+
+**Final Michelson representation:** `pair nat (pair string (pair string (pair nat (map string string))))`
+
+
+
+<a name="types-TokenMetadataRest1"></a>
+
+---
+
+### `TokenMetadataRest1`
+
+Type which defines 1st continuation of metadata of the token.
+
+**Structure:** (***metadata_symbol*** :[`Text`](#types-Text), ***metadata_rest2*** :[`TokenMetadataRest2`](#types-TokenMetadataRest2))
+
+**Final Michelson representation:** `pair string (pair string (pair nat (map string string)))`
+
+
+
+<a name="types-TokenMetadataRest2"></a>
+
+---
+
+### `TokenMetadataRest2`
+
+Type which defines 2nd continuation of metadata of the token.
+
+**Structure:** (***metadata_name*** :[`Text`](#types-Text), ***metadata_rest3*** :[`TokenMetadataRest3`](#types-TokenMetadataRest3))
+
+**Final Michelson representation:** `pair string (pair nat (map string string))`
+
+
+
+<a name="types-TokenMetadataRest3"></a>
+
+---
+
+### `TokenMetadataRest3`
+
+Type which defines 3rd continuation of metadata of the token.
+
+**Structure:** (***metadata_decimals*** :[`Natural`](#types-Natural), ***metadata_extras*** :[`Map`](#types-Map) [`Text`](#types-Text) [`Text`](#types-Text))
+
+**Final Michelson representation:** `pair nat (map string string)`
+
+
+
 <a name="types-UContractRouter"></a>
 
 ---
@@ -1260,6 +1305,18 @@ We distinquish several error classes:
 **Fires if:** Internal error occured.
 
 **Representation:** Textual error message, see [`Text`](#types-Text).
+
+<a name="errors-InvalidSingleTokenId"></a>
+
+---
+
+### `InvalidSingleTokenId`
+
+**Class:** -
+
+**Fires if:** The only valid token id is 0
+
+**Representation:** `("InvalidSingleTokenId", ())`.
 
 <a name="errors-NotEnoughAllowance"></a>
 
