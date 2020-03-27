@@ -57,8 +57,9 @@ steps:
     branches: "!autodoc/master !master"
     commands:
     - nix-build ci.nix -A contract-doc-dev
+    - ln -s ./result/TZBTC-contract.md TZBTC-contract.md
     artifact_paths:
-      - result/TZBTC-contract.md
+      - TZBTC-contract.md
 
   # for master branch we include commit info in the contract doc
   - label: contract-doc (master)
