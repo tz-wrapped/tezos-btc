@@ -1,5 +1,5 @@
 <!--
- - SPDX-FileCopyrightText: 2019 Bitcoin Suisse
+ - SPDX-FileCopyrightText: 2019-2020 Bitcoin Suisse
  -
  - SPDX-License-Identifier: LicenseRef-Proprietary
  -->
@@ -260,7 +260,7 @@ Contract documentation is located at [TZBTC-contract.md](../autodoc/master/TZBTC
 
 ## Issue Tracker [↑](#TZBTC)
 
-We use [YouTrack](https://issues.serokell.io/issues/TBTC)
+If you want to create a new issue please do it on [GitHub](https://github.com/tz-wrapped/tezos-btc/issues/new).
 
 ## For Contributors [↑](#TZBTC)
 
