@@ -1,6 +1,6 @@
 {- SPDX-FileCopyrightText: 2019 Bitcoin Suisse
  -
- - SPDX-License-Identifier: LicenseRef-Proprietary
+ - SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
  -}
 {-# LANGUAGE DerivingVia, RebindableSyntax #-}
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
@@ -229,7 +229,7 @@ tzbtcDoc = buildLorentzDoc $ do
     , "DX-FileCopyrightText: 2019 Bitcoin Suisse\n"
     , "-\n"
     , "- SP"
-    , "DX-License-Identifier: LicenseRef-Proprietary"
+    , "DX-License-Identifier: LicenseRef-MIT-BitcoinSuisse"
     ]
   contractName "TZBTC" $ do
     doc $ $mkDGitRevision $ GitRepoSettings $

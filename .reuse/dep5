@@ -2,4 +2,4 @@ Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 
 Files: .github/pull_request_template.md test/resources/*
 Copyright: 2019 Bitcoin Suisse
-License: LicenseRef-Proprietary
+License: LicenseRef-MIT-BitcoinSuisse

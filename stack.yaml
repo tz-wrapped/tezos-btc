@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2019 Bitcoin Suisse
 #
-# SPDX-License-Identifier: LicenseRef-Proprietary
+# SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
 #
 # when updating git dependencies, please run
 # nix run -f https://github.com/serokell/scratch/archive/master.tar.gz scripts.update-stack-shas -c update-stack-shas

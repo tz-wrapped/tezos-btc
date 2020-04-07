@@ -76,7 +76,7 @@ but, basically, it all boils down to the following:
     ```haskell
     {- SPDX-FileCopyrightText: 2019 Bitcoin Suisse
      -
-     - SPDX-License-Identifier: LicenseRef-Proprietary
+     - SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
      -}
     ```
 

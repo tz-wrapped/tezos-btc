@@ -1,7 +1,7 @@
 <!--
  - SPDX-FileCopyrightText: 2019-2020 Bitcoin Suisse
  -
- - SPDX-License-Identifier: LicenseRef-Proprietary
+ - SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
  -->
 
 # Changelog for TZBTC

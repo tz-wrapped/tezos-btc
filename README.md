@@ -1,7 +1,7 @@
 <!--
  - SPDX-FileCopyrightText: 2019-2020 Bitcoin Suisse
  -
- - SPDX-License-Identifier: LicenseRef-Proprietary
+ - SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
  -->
 
 # TZBTC
@@ -265,4 +265,4 @@ Please see [CONTRIBUTING.md](CONTRIBUTING.md) for more information.
 
 ## License
 
-TODO
+[MIT](/LICENSE)

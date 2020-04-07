@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2019 Bitcoin Suisse
 #
-# SPDX-License-Identifier: LicenseRef-Proprietary
+# SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
 rec {
   sources = import ./nix/sources.nix;
   haskellNixArgs = import sources."haskell.nix";

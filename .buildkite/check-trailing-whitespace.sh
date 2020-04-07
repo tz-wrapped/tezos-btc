@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # SPDX-FileCopyrightText: 2019 Bitcoin Suisse
-# SPDX-License-Identifier: LicenseRef-Proprietary
+# SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
 
 files=$(git ls-files -- . ':!:*.patch' | xargs grep --files-with-matches --binary-files=without-match '[[:blank:]]$')
 if [[ ! -z $files ]];then
