@@ -233,7 +233,7 @@ tzbtcDoc = buildLorentzDoc $ do
     ]
   contractName "TZBTC" $ do
     doc $ $mkDGitRevision $ GitRepoSettings $
-      mappend "https://github.com/serokell/tezos-btc/commit/"
+      mappend "https://github.com/tz-wrapped/tezos-btc/commit/"
     doc $ DDescription
       "This contract is implemented using Lorentz language.\n\
       \Basically, this contract is [FA1.2](https://gitlab.com/serokell/morley/tzip/blob/master/A/FA1.2.md)\

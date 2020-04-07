@@ -10,12 +10,11 @@ _definitions:
     - &meta
         author:              Serokell, Bitcoin Suisse
         maintainer:          Serokell <hi@serokell.io>
-        copyright:           2019 Bitcoin Suisse
+        copyright:           2019-2020 Bitcoin Suisse
         license:             AllRightsReserved
         license-file:        LICENSE
-        git:                 git@github.com:serokell/tezos-btc.git
-        homepage:            https://github.com/serokell/tezos-btc.git
-        bug-reports:         https://issues.serokell.io/issues/TBTC
+        github:              tz-wrapped/tezos-btc
+        homepage:            https://tzbtc.io/
 
     - &default-extensions
         - ApplicativeDo

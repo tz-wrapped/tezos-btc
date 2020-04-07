@@ -22,7 +22,7 @@ executable. `tezos-client` is used for key storing, operation signing and ledger
 For now, `tezos-client` doesn't support packed value signing via ledger,
 so in order to fully use `tzbtc-client` (perform multisig package signing via ledger)
 you should use patched `tezos-client` binary. This binary is bundled along
-with `tzbtc-client` in the [releases](https://github.com/serokell/tezos-btc/releases).
+with `tzbtc-client` in the [releases](https://github.com/tz-wrapped/tezos-btc/releases).
 
 Alternatively, you can build patched binary using nix.
 
@@ -231,7 +231,7 @@ After that the packages can be found in `./tzbtc-client-package` directory.
 ## Obtain static binary or package
 
 You can either build them from the source code using nix or download the version from
-[latest release](https://github.com/serokell/tezos-btc/releases/latest).
+[latest release](https://github.com/tz-wrapped/tezos-btc/releases/latest).
 
 ## Install packages
 
