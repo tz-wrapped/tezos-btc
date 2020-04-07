@@ -210,8 +210,7 @@ There are two ways:
 * Build stack project `stack build`, thus you'll be able to run executables using
 `stack exec tzbtc` or `stack exec tzbtc-client`. Also you can use
 `stack install tzbtc --local-bin-path ./bin`, thus `tzbtc-client` and `tzbtc` binaries
-will be in `./bin` directory. Note that stack newer than 1.9 is
-not supported due to this bug: [commercialhaskell/stack#4984](https://github.com/commercialhaskell/stack/issues/4984).
+will be in `./bin` directory.
 * Build static binaries from the stack project using nix. For this you will need to run:
 ``` bash
 $(nix-build --no-link -A fullBuildScript) -o ./tzbtc-static
