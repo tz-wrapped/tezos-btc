@@ -1,6 +1,6 @@
 {- SPDX-FileCopyrightText: 2019 Bitcoin Suisse
  -
- - SPDX-License-Identifier: LicenseRef-Proprietary
+ - SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
  -}
 {-# LANGUAGE RebindableSyntax #-}
 {-# OPTIONS_GHC -fno-warn-unused-do-bind -Wno-orphans #-}

@@ -1,5 +1,5 @@
 <!--
- - SPDX-FileCopyrightText: 2019 Serokell <https://serokell.io>, 2019 Bitcoin Suisse
+ - SPDX-FileCopyrightText: 2019 Serokell <https://serokell.io>, 2019-2020 Bitcoin Suisse
  -
  - SPDX-License-Identifier: MPL-2.0
  -->
@@ -7,7 +7,7 @@
 
 ## Reporting Issues
 
-Please [open an issue](https://issues.serokell.io/newIssue?project=TBTC)
+Please [open an issue](https://github.com/tz-wrapped/tezos-btc/issues/new)
 if you find a bug or have a feature request.
 Note: you need to login (e. g. using your GitHub account) first.
 Before submitting a bug report or feature request, check to make sure it hasn't already been submitted.
@@ -76,7 +76,7 @@ but, basically, it all boils down to the following:
     ```haskell
     {- SPDX-FileCopyrightText: 2019 Bitcoin Suisse
      -
-     - SPDX-License-Identifier: LicenseRef-Proprietary
+     - SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
      -}
     ```
 

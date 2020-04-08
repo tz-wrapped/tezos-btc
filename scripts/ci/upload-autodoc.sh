@@ -9,7 +9,7 @@ set -e -o pipefail
 git config --global user.email "hi@serokell.io"
 git config --global user.name "CI autodoc generator"
 git remote remove auth-origin 2> /dev/null || :
-git remote add auth-origin https://serokell:$(cat ~/.config/serokell-bot-token)@github.com/serokell/tezos-btc.git
+git remote add auth-origin https://serokell:$(cat ~/.config/serokell-bot-token)@github.com/tz-wrapped/tezos-btc.git
 git fetch
 
 our_branch="$BUILDKITE_BRANCH"

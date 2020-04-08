@@ -1,7 +1,7 @@
 <!--
- - SPDX-FileCopyrightText: 2019 Bitcoin Suisse
+ - SPDX-FileCopyrightText: 2019-2020 Bitcoin Suisse
  -
- - SPDX-License-Identifier: LicenseRef-Proprietary
+ - SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
  -->
 
 # TZBTC
@@ -22,7 +22,7 @@ executable. `tezos-client` is used for key storing, operation signing and ledger
 For now, `tezos-client` doesn't support packed value signing via ledger,
 so in order to fully use `tzbtc-client` (perform multisig package signing via ledger)
 you should use patched `tezos-client` binary. This binary is bundled along
-with `tzbtc-client` in the [releases](https://github.com/serokell/tezos-btc/releases).
+with `tzbtc-client` in the [releases](https://github.com/tz-wrapped/tezos-btc/releases).
 
 Alternatively, you can build patched binary using nix.
 
@@ -210,8 +210,7 @@ There are two ways:
 * Build stack project `stack build`, thus you'll be able to run executables using
 `stack exec tzbtc` or `stack exec tzbtc-client`. Also you can use
 `stack install tzbtc --local-bin-path ./bin`, thus `tzbtc-client` and `tzbtc` binaries
-will be in `./bin` directory. Note that stack newer than 1.9 is
-not supported due to this bug: [commercialhaskell/stack#4984](https://github.com/commercialhaskell/stack/issues/4984).
+will be in `./bin` directory.
 * Build static binaries from the stack project using nix. For this you will need to run:
 ``` bash
 $(nix-build --no-link -A fullBuildScript) -o ./tzbtc-static
@@ -231,7 +230,7 @@ After that the packages can be found in `./tzbtc-client-package` directory.
 ## Obtain static binary or package
 
 You can either build them from the source code using nix or download the version from
-[latest release](https://github.com/serokell/tezos-btc/releases/latest).
+[latest release](https://github.com/tz-wrapped/tezos-btc/releases/latest).
 
 ## Install packages
 
@@ -253,14 +252,11 @@ Run `stack test` and explore the tests.
 
 ## Contract documentation [↑](#TZBTC)
 
-<!-- TODO TBTC-73 This link is a bit hacky, it relies on GitHub internals to some extent.
--->
-
-Contract documentation is located at [TZBTC-contract.md](../autodoc/master/TZBTC-contract.md).
+Contract documentation is located at [TZBTC-contract.md](https://github.com/tz-wrapped/tezos-btc/blob/autodoc/master/TZBTC-contract.md).
 
 ## Issue Tracker [↑](#TZBTC)
 
-We use [YouTrack](https://issues.serokell.io/issues/TBTC)
+If you want to create a new issue please do it on [GitHub](https://github.com/tz-wrapped/tezos-btc/issues/new).
 
 ## For Contributors [↑](#TZBTC)
 
@@ -268,4 +264,4 @@ Please see [CONTRIBUTING.md](CONTRIBUTING.md) for more information.
 
 ## License
 
-TODO
+[MIT](/LICENSE)
