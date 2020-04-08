@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2019 Bitcoin Suisse
 #
-# SPDX-License-Identifier: LicenseRef-Proprietary
+# SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
 #
 # This file defines sensible defaults but does not actually apply
 # any of them, so it can be safely included.
@@ -10,12 +10,11 @@ _definitions:
     - &meta
         author:              Serokell, Bitcoin Suisse
         maintainer:          Serokell <hi@serokell.io>
-        copyright:           2019 Bitcoin Suisse
-        license:             AllRightsReserved
+        copyright:           2019-2020 Bitcoin Suisse
+        license:             MIT
         license-file:        LICENSE
-        git:                 git@github.com:serokell/tezos-btc.git
-        homepage:            https://github.com/serokell/tezos-btc.git
-        bug-reports:         https://issues.serokell.io/issues/TBTC
+        github:              tz-wrapped/tezos-btc
+        homepage:            https://tzbtc.io/
 
     - &default-extensions
         - ApplicativeDo

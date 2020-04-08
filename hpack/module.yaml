@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2019 Bitcoin Suisse
 #
-# SPDX-License-Identifier: LicenseRef-Proprietary
+# SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
 #
 # Include this file in your module's `package.yaml` to set sensible defaults
 # and get access to useful utilities.

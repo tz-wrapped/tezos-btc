@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2019 Bitcoin Suisse
 #
-# SPDX-License-Identifier: LicenseRef-Proprietary
+# SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
 let sources = import ./nix/sources.nix;
 in { pkgs ? import sources.nixpkgs { } }:
 with pkgs;
@@ -15,7 +15,7 @@ let
     packageRevision = "0";
     bin = "${tzbtc-static}/bin/tzbtc-client";
     arch = "amd64";
-    license = "Proprietary";
+    license = "MIT";
     dependencies = "";
     maintainer = "Serokell https://serokell.io";
     licenseFile = "${root}/LICENSE";
