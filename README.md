@@ -8,14 +8,20 @@
 
 Wrapped Bitcoin on Tezos Blockchain called TZBTC
 
-## `tzbtc-client` executable
+## Prerequisites
 
-This executable performs transactions injection to the chain using remote or local
-tezos-node.
+### Build tools
 
-Use `tzbtc-client --help` to get a list of available commands.
+If you want to build this software from sources you should install:
+* [Nix package manager ](https://nixos.org/nix/manual/#ch-installing-binary)
+* [Haskell Tool Stack](https://docs.haskellstack.org/en/stable/install_and_upgrade/)
 
-### Prerequisites
+### Operating system
+
+Please note that only Linux is officially supported.
+If you want to use `tzbtc-client` on MacOS, you can try [building it from sources](#build-instructions-) using `stack`.
+
+### Executables
 
 In order to use `tzbtc-client` you will need to obtain `tezos-client`
 executable. `tezos-client` is used for key storing, operation signing and ledger interaction.
@@ -26,7 +32,7 @@ with `tzbtc-client` in the [releases](https://github.com/tz-wrapped/tezos-btc/re
 
 Alternatively, you can build patched binary using nix.
 
-In order to do that you should run one of the following command:
+In order to do that you should run the following command:
 ```
 nix-build release.nix -A tezos-client -o tezos-client
 ```
@@ -37,6 +43,13 @@ For more information about this issue take a look at [MR in tezos repo](https://
 If you are not going to use multisig package signing with ledger device,
 you can obtain non-patched version of `tezos-client` in various form of distribution from
 [tezos-packaging repo](https://github.com/serokell/tezos-packaging).
+
+## `tzbtc-client` executable
+
+This executable performs transactions injection to the chain using remote or local
+tezos-node.
+
+Use `tzbtc-client --help` to get a list of available commands.
 
 ### `tzbtc-client` usage [↑](#tzbtc-client-executable)
 
@@ -204,28 +217,23 @@ Use `tzbtc --help` to get a list of available commands.
 
 ## Build instructions [↑](#TZBTC)
 
-You can build `tzbtc-client` and `tzbtc` from the sources.
-
-There are two ways:
-* Build stack project `stack build`, thus you'll be able to run executables using
+You can build `tzbtc-client` and `tzbtc` from the sources with stack.
+Build the project using `stack build`, run executables using
 `stack exec tzbtc` or `stack exec tzbtc-client`. Also you can use
 `stack install tzbtc --local-bin-path ./bin`, thus `tzbtc-client` and `tzbtc` binaries
 will be in `./bin` directory.
-* Build static binaries from the stack project using nix. For this you will need to run:
-``` bash
-$(nix-build --no-link -A fullBuildScript) -o ./tzbtc-static
-```
-Static binaries will be located in `./tzbtc-static/bin` directory.
 
-### Building packages
+CI uses nix to build the project and to produce `.deb` and `.rpm` packages.
+You can use nix locally as well, but it is not recommended, it
+requires building GHC from scratch and takes a long time. Commands for
+building the executables and packages using nix:
 
-Once you've built static binary you can create `.deb` or `.rpm` package with
-`tzbtc-client`. In order to do that run the one of the following commands:
 ```bash
-nix-build release.nix --arg tzbtc-client-binary <path to tzbtc-client binary> -A packageIntoRpm -o tzbtc-client-package
-nix-build release.nix --arg tzbtc-client-binary <path to tzbtc-client binary> -A packageIntoDeb -o tzbtc-client-package
+nix-build ci.nix -A tzbtc.components.exes.tzbtc -o tzbtc-exe
+nix-build ci.nix -A tzbtc.components.exes.tzbtc-client -o tzbtc-client-exe
+nix-build release.nix -A deb -o tzbtc-client-deb
+nix-build release.nix -A rpm -o tzbtc-client-rpm
 ```
-After that the packages can be found in `./tzbtc-client-package` directory.
 
 ## Obtain static binary or package
 
