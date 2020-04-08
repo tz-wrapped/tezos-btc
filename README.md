@@ -6,6 +6,8 @@
 
 # TZBTC
 
+[![Build status](https://badge.buildkite.com/aecd40f89a7a0f1b78495ee2afc40ec575de85e18d42116186.svg?branch=master)](https://buildkite.com/serokell/tezos-btc)
+
 Wrapped Bitcoin on Tezos Blockchain called TZBTC
 
 ## Prerequisites

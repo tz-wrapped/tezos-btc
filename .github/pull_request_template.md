@@ -16,7 +16,7 @@ For example
 Write 'None' if there are no related issues (which is discouraged).
 -->
 
-https://issues.serokell.io/issue/TBTC-
+Resolves #
 
 ## :white_check_mark: Checklist for your Merge Request
 
