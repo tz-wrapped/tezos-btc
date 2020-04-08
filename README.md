@@ -8,14 +8,20 @@
 
 Wrapped Bitcoin on Tezos Blockchain called TZBTC
 
-## `tzbtc-client` executable
+## Prerequisites
 
-This executable performs transactions injection to the chain using remote or local
-tezos-node.
+### Build tools
 
-Use `tzbtc-client --help` to get a list of available commands.
+If you want to build this software from sources you should install:
+* [Nix package manager ](https://nixos.org/nix/manual/#ch-installing-binary)
+* [Haskell Tool Stack](https://docs.haskellstack.org/en/stable/install_and_upgrade/)
 
-### Prerequisites
+### Operating system
+
+Please note that only Linux is officially supported.
+If you want to use `tzbtc-client` on MacOS, you can try [building it from sources](#build-instructions-) using `stack`.
+
+### Executables
 
 In order to use `tzbtc-client` you will need to obtain `tezos-client`
 executable. `tezos-client` is used for key storing, operation signing and ledger interaction.
@@ -37,6 +43,13 @@ For more information about this issue take a look at [MR in tezos repo](https://
 If you are not going to use multisig package signing with ledger device,
 you can obtain non-patched version of `tezos-client` in various form of distribution from
 [tezos-packaging repo](https://github.com/serokell/tezos-packaging).
+
+## `tzbtc-client` executable
+
+This executable performs transactions injection to the chain using remote or local
+tezos-node.
+
+Use `tzbtc-client --help` to get a list of available commands.
 
 ### `tzbtc-client` usage [↑](#tzbtc-client-executable)
 
