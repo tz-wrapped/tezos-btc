@@ -32,7 +32,7 @@ with `tzbtc-client` in the [releases](https://github.com/tz-wrapped/tezos-btc/re
 
 Alternatively, you can build patched binary using nix.
 
-In order to do that you should run one of the following command:
+In order to do that you should run the following command:
 ```
 nix-build release.nix -A tezos-client -o tezos-client
 ```
