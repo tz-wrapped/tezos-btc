@@ -204,28 +204,23 @@ Use `tzbtc --help` to get a list of available commands.
 
 ## Build instructions [↑](#TZBTC)
 
-You can build `tzbtc-client` and `tzbtc` from the sources.
-
-There are two ways:
-* Build stack project `stack build`, thus you'll be able to run executables using
+You can build `tzbtc-client` and `tzbtc` from the sources with stack.
+Build the project using `stack build`, run executables using
 `stack exec tzbtc` or `stack exec tzbtc-client`. Also you can use
 `stack install tzbtc --local-bin-path ./bin`, thus `tzbtc-client` and `tzbtc` binaries
 will be in `./bin` directory.
-* Build static binaries from the stack project using nix. For this you will need to run:
-``` bash
-$(nix-build --no-link -A fullBuildScript) -o ./tzbtc-static
-```
-Static binaries will be located in `./tzbtc-static/bin` directory.
 
-### Building packages
+CI uses nix to build the project and to produce `.deb` and `.rpm` packages.
+You can use nix locally as well, but it is not recommended, it
+requires building GHC from scratch and takes a long time. Commands for
+building the executables and packages using nix:
 
-Once you've built static binary you can create `.deb` or `.rpm` package with
-`tzbtc-client`. In order to do that run the one of the following commands:
 ```bash
-nix-build release.nix --arg tzbtc-client-binary <path to tzbtc-client binary> -A packageIntoRpm -o tzbtc-client-package
-nix-build release.nix --arg tzbtc-client-binary <path to tzbtc-client binary> -A packageIntoDeb -o tzbtc-client-package
+nix-build ci.nix -A tzbtc.components.exes.tzbtc -o tzbtc-exe
+nix-build ci.nix -A tzbtc.components.exes.tzbtc-client -o tzbtc-client-exe
+nix-build release.nix -A deb -o tzbtc-client-deb
+nix-build release.nix -A rpm -o tzbtc-client-rpm
 ```
-After that the packages can be found in `./tzbtc-client-package` directory.
 
 ## Obtain static binary or package
 
