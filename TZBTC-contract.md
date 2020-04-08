@@ -1,12 +1,12 @@
 <!---
 - SPDX-FileCopyrightText: 2019 Bitcoin Suisse
 -
-- SPDX-License-Identifier: LicenseRef-Proprietary
+- SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
 -->
 
 # TZBTC
 
-**Code revision:** [b15e09b](https://github.com/serokell/tezos-btc/commit/b15e09b30c93fe97c213feacaf0bc33b206a6552) *(Fri Mar 27 11:32:16 2020 +0300)*
+**Code revision:** [7a60a81](https://github.com/tz-wrapped/tezos-btc/commit/7a60a81fed9294b66e801d81dc28ce6ecf2b90d5) *(Wed Apr 8 20:11:04 2020 +0300)*
 
 This contract is implemented using Lorentz language.
 Basically, this contract is [FA1.2](https://gitlab.com/serokell/morley/tzip/blob/master/A/FA1.2.md)-compatible approvable ledger that maps user addresses to their token balances. The main idea of this token contract is to provide 1-to-1 correspondance with BTC.
