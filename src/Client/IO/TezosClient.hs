@@ -18,7 +18,7 @@ module Client.IO.TezosClient
 
 import Data.Aeson (eitherDecodeStrict)
 import Data.Text as T (intercalate, length, strip)
-import Numeric (showFFloat)
+import Data.Scientific (FPFormat(..), Scientific, formatScientific)
 import Servant.Client (ClientEnv, runClientM)
 import Servant.Client.Core as Servant (ClientError(..))
 import System.Exit (ExitCode(..))
@@ -103,7 +103,7 @@ callTezosClient' v tcPath args mburnCap sPrcs ePrcs = do
             callTezosClient' v tcPath args (Just $ toMuTez bc) sPrcs ePrcs
           Left err_ -> Left <$> ePrcs err_
   where
-    burnCapParser :: Text -> IO (Either Text Double)
+    burnCapParser :: Text -> IO (Either Text Scientific)
     burnCapParser stderr' = case parseBurncapErrorFromOutput stderr' of
       Right bc -> pure $ Right bc
       Left _ -> pure $ Left stderr'
@@ -222,7 +222,7 @@ simulateOrigination v config mbbc_ contract_ initst = do
   callTezosClient v (ccTezosClientExecutable config) args mbbc_ (parserToCallback parseSimulationResultFromOutput)
 
 toTezString :: TezosInt64 -> String
-toTezString x = showFFloat Nothing ((realToFrac x :: Double)/10e6) ""
+toTezString x = formatScientific Fixed (Just 3) ((realToFrac x :: Scientific) / 10e6)
 
 getOperationHex
   :: ClientEnv -> ForgeOperation
