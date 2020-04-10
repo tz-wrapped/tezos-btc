@@ -11,6 +11,11 @@ Changes that affect Michelson code are tagged with `[CONTRACT]`.
 Unreleased
 ==========
 
+0.4.1
+=====
+* [#122](https://github.com/tz-wrapped/tezos-btc/pull/122)
+  - Fix loss of precision during the parsing of `burn-cap`, `baker-fee` values.
+
 0.4.0
 =====
 * [#115](https://github.com/tz-wrapped/tezos-btc/pull/115)

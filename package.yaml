@@ -6,7 +6,7 @@
 
 name:                tzbtc
 # If you update this version, make sure to update it in release.nix
-version:             0.4.0
+version:             0.4.1
 
 extra-source-files:
 - README.md
@@ -46,6 +46,7 @@ library:
     - optparse-applicative
     - megaparsec
     - process
+    - scientific
     - servant
     - servant-client
     - servant-client-core
@@ -105,6 +106,7 @@ tests:
     - optparse-applicative
     - tasty
     - tasty-hspec
+    - tasty-quickcheck
     - tasty-hunit-compat
     - tezos-bake-monitor-lib
     - text
