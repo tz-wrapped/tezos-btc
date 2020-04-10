@@ -6,12 +6,15 @@ module Test.Client
   ( test_addressParser
   , test_nicePackedValueToExpression
   , test_signatureParser
+  , test_tezosClientFloatingPointRoundTrip
   ) where
 
 import Data.ByteString (cons)
+import Numeric (showFFloat)
 import Test.HUnit (Assertion, (@?), (@?=))
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase)
+import Test.Tasty.QuickCheck (Positive(..), testProperty)
 import Tezos.Common.Binary (encode)
 
 import Lorentz.Test.Integrational (genesisAddress1)
@@ -19,7 +22,11 @@ import Michelson.Interpret.Unpack (UnpackError(..), unpackValue')
 import Michelson.Typed.Haskell.Value (IsoValue(..))
 import Util.Named ((.!))
 
-import Client.Parser (parseAddressFromOutput, parseSignatureFromOutput)
+import Client.Parser
+  ( parseAddressFromOutput, parseBurncapErrorFromOutput, toMuTez
+  , parseSimulationResultFromOutput, parseSignatureFromOutput)
+import Client.IO.TezosClient (toTezString)
+import Client.Types (SimulationResult(..))
 import Client.Util (nicePackedValueToExpression)
 import Lorentz.Contracts.TZBTC.Preprocess (upgradeParameters)
 import Lorentz.Contracts.TZBTC.Types
@@ -54,6 +61,13 @@ test_nicePackedValueToExpression = testGroup "Test converting Parameter to Miche
         origParams = dummyV1Parameters ownerAddr mempty
       in
         Upgrade @TZBTCv0 $ upgradeParameters origParams
+
+test_tezosClientFloatingPointRoundTrip :: TestTree
+test_tezosClientFloatingPointRoundTrip =
+  testGroup "Test floating point values parsed from tezos-clinet output retains precision"
+    [ testProperty "Burn-fee retains precision" burnFeeRoundTrip
+    , testProperty "Baker-fee retains precision" bakerFeeRoundTrip
+    ]
 
 parameterRoundTrip
   :: SafeParameter TZBTCv0
@@ -114,3 +128,17 @@ test_addressParser = testGroup "Test parsing tezos-client output"
      \Public Key: edpkuG18TvSJX8uPNyXetnpjDXqw92AhiTjE51y9cQ21pbGYzL3FYs" :: Text)
     @?? isLeft
   ]
+
+burnFeeRoundTrip :: Positive Double -> Bool
+burnFeeRoundTrip d = let
+  inpString = showFFloat (Just 3) (getPositive d) ""
+  in case parseBurncapErrorFromOutput ("The operation will burn " <> (toText inpString)) of
+    Right bc -> (toTezString $ toMuTez bc) == inpString
+    Left _ -> False
+
+bakerFeeRoundTrip :: Positive Double -> Bool
+bakerFeeRoundTrip d = let
+  inpString = showFFloat (Just 3) (getPositive d) ""
+  in case parseSimulationResultFromOutput ("Fee to the baker: " <> (toText inpString) <> "\n") of
+    Right sr -> (toTezString $ srComputedFees sr) == inpString
+    Left _ -> False

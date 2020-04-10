@@ -21,13 +21,14 @@ module Client.Parser
   ) where
 
 import Data.Char (isAlpha, isDigit)
+import Data.Scientific (Scientific)
 import Fmt (Buildable, pretty)
 import Options.Applicative (eitherReader, help, long, metavar, option, optional, short, str, switch)
 import qualified Options.Applicative as Opt
 import qualified Text.Megaparsec as P
   (Parsec, customFailure, many, parse, satisfy, skipManyTill)
 import Text.Megaparsec.Char (eol, newline, space, printChar)
-import Text.Megaparsec.Char.Lexer (float, lexeme, symbol)
+import Text.Megaparsec.Char.Lexer (lexeme, scientific, symbol)
 import Text.Megaparsec.Error (ParseErrorBundle, ShowErrorComponent(..))
 import Tezos.Common.Json (TezosInt64)
 
@@ -438,23 +439,23 @@ parseSimulationResultFromOutput output =
   P.parse (SimulationResult <$> simulationResultParser) "" output
 
 parseBurncapErrorFromOutput
-  :: Text -> Either (ParseErrorBundle Text OutputParseError) Double
+  :: Text -> Either (ParseErrorBundle Text OutputParseError) Scientific
 parseBurncapErrorFromOutput output =
   P.parse burnCapParser "" output
 
-burnCapParser :: Parser Double
+burnCapParser :: Parser Scientific
 burnCapParser = do
   P.skipManyTill (printChar <|> newline) $ do
     void $ symbol space "The operation will burn"
-    P.skipManyTill printChar $ lexeme (space >> pass) float
+    P.skipManyTill printChar $ lexeme (space >> pass) scientific
 
 simulationResultParser :: Parser TezosInt64
 simulationResultParser = toMuTez <$> do
   P.skipManyTill (printChar <|> newline) $ do
     void $ symbol space "Fee to the baker: "
-    P.skipManyTill printChar $ lexeme (newline >> pass) float
+    P.skipManyTill printChar $ lexeme (newline >> pass) scientific
 
-toMuTez :: Double -> TezosInt64
+toMuTez :: Scientific -> TezosInt64
 toMuTez mt_ = fromInteger $ floor $ mt_ * 10e6
 -- floor does not loose precision here since the fees
 -- from simulation won't have more precision then 1 microtez
