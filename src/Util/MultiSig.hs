@@ -30,7 +30,9 @@ import Data.Aeson.TH (deriveJSON)
 import Data.ByteString.Lazy as LBS (toStrict)
 import Data.List (lookup)
 import Fmt (Buildable(..), Builder, blockListF, pretty, (|+))
+import Michelson.Interpret.Unpack
 import Text.Hex (decodeHex, encodeHex)
+import Tezos.Crypto
 import qualified Text.Show (show)
 
 import Client.Util (addTezosBytesPrefix)
@@ -38,8 +40,7 @@ import Lorentz
 import Lorentz.Contracts.TZBTC as TZBTC
 import Lorentz.Contracts.TZBTC.Types as TZBTC
 import Lorentz.Contracts.Multisig
-import Michelson.Interpret.Unpack
-import Tezos.Crypto
+
 
 -- The workflow consists of first calling the `mkPackage` function with the
 -- required parameters to get a `Package` object which will hold the bytestring
@@ -54,13 +55,6 @@ import Tezos.Crypto
 -- be passed to `mkMultiSigParam` function, which will create a multi-sig
 -- contract param.  This param, when used in a call to the multisig contract
 -- make it validate the signatures and forward the action to the main contract.
-
--- | This is the structure that will be serialized and signed on. We are using
--- this particular type because the multisig contract extracts the payload,
--- `MSigPayload` from its parameter, pair it with its own contracts address
--- and then serialize it and check the signatures provided on that serialized
--- data.
-type ToSign = (Address, MSigPayload)
 
 -- | The type that will represent the actual data that will be provide to the
 -- signers. Note that we are also collecting the public key associated with a
@@ -124,10 +118,11 @@ getOpDescription p = case fetchSrcParam p of
 mkPackage
   :: forall msigAddr. (ToTAddress MSigParameter msigAddr)
   => msigAddr
+  -> ChainId
   -> Counter
   -> TAddress (TZBTC.Parameter SomeTZBTCVersion)
   -> TZBTC.SafeParameter SomeTZBTCVersion -> Package
-mkPackage msigAddress counter tzbtc param
+mkPackage msigAddress chainId_ counter tzbtc param
   = let msigParam = Operation (param, tzbtc)
         msigTAddr = (toTAddress @MSigParameter) msigAddress
     -- Create the package for required action
@@ -136,7 +131,7 @@ mkPackage msigAddress counter tzbtc param
         -- Wrap the parameter with multisig address and replay attack counter,
         -- forming a structure that the multi-sig contract will ultimately
         -- verify the included signatures against
-        pkToSign = encodeToSign $ (toAddress msigTAddr, (counter, msigParam))
+        pkToSign = encodeToSign $ ((chainId_, toAddress msigTAddr), (counter, msigParam))
       , pkSignatures = [] -- No signatures when creating package
       }
 
@@ -235,7 +230,7 @@ mkMultiSigParam pks packages = do
       :: ToSign
       -> [(PublicKey, Signature)]
       -> (TAddress MSigParameter, MSigParamMain)
-    mkParameter (address_, payload) sigs =
+    mkParameter ((_, address_), payload) sigs =
       -- There should be as may signatures in the submitted request
       -- as there are keys in the contract's storage. Not all keys should
       -- be present, but they should be marked as absent using Nothing values [1].

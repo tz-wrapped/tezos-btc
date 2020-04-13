@@ -22,9 +22,9 @@ import Options.Applicative as Opt
 
 import Tezos.Address
 import Tezos.Common.Json (TezosInt64)
+import Tezos.Core (ChainId)
 import Tezos.Crypto
 import Tezos.V005.Micheline (Expression)
-
 
 import Client.Env
 import Client.Error
@@ -103,6 +103,7 @@ data Handlers m = Handlers
   , hGetAddressAndPKForAlias :: Text -> m (Either TzbtcClientError (Address, PublicKey))
   , hSignWithTezosClient :: Either ByteString Text -> Text -> m (Either Text Signature)
   , hGetAddressForContract :: Text -> m (Either TzbtcClientError Address)
+  , hGetChainId :: Text -> m ChainId
   , hRememberContract :: Address -> Text -> m ()
 
   , hLookupEnv :: m AppEnv
@@ -159,6 +160,9 @@ instance HasTezosRpc TestM where
   deployTzbtcContract f op = do
     fn <- getHandler hDeployTzbtcContract
     fn f op
+  getChainId name = do
+    fn <- getHandler hGetChainId
+    fn name
   deployMultisigContract f storage useCustomErrors = do
     fn <- getHandler hDeployMultisigContract
     fn f storage useCustomErrors

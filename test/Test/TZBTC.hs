@@ -518,4 +518,4 @@ unit_get_meta = integrationalTestExpectation $ do
     lExpectViewConsumerStorage consumer [[defaultTZBTCMetadata]]
 
 test_documentation :: [TestTree]
-test_documentation = runDocTests testLorentzDoc tzbtcDoc
+test_documentation = runDocTests testLorentzDoc (buildLorentzDoc tzbtcDoc)

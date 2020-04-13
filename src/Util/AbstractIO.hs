@@ -21,6 +21,7 @@ import Options.Applicative as Opt
 
 import Tezos.Address
 import Tezos.Common.Json (TezosInt64)
+import Tezos.Core (ChainId)
 import Tezos.Crypto
 import Tezos.V005.Micheline (Expression)
 
@@ -62,6 +63,7 @@ class (HasTezosClient m, HasConfig m, Monad m, MonadThrow m) => HasTezosRpc m wh
     -> m ()
   getStorage :: Text -> m Expression
   getCounter :: Text -> m TezosInt64
+  getChainId :: Text -> m ChainId
   getFromBigMap :: Natural -> Text -> m (Either TzbtcClientError Expression)
   deployTzbtcContract :: Maybe TezosInt64 -> V1DeployParameters -> m ()
   deployMultisigContract :: Maybe TezosInt64 -> MSigStorage -> Bool -> m ()

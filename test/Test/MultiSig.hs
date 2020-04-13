@@ -20,6 +20,7 @@ import Lorentz.Test.Integrational
 import Test.TZBTC (checkField, originateTzbtcV1ContractRaw)
 import Text.Hex (decodeHex)
 import Tezos.Address
+import Tezos.Core (dummyChainId)
 import Tezos.Crypto
 import qualified Tezos.Crypto.Ed25519 as Ed25519
 import Util.MultiSig as MSig
@@ -68,6 +69,9 @@ originateTzbtc msig =
     , opBalances = mempty
     }
 
+testChainId :: ChainId
+testChainId = dummyChainId
+
 test_multisig :: TestTree
 test_multisig = testGroup "TZBTC contract multi-sig functionality test"
   [ testCase "Test call to multisig to add an operator works" $ do
@@ -79,7 +83,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         let
           -- Make the multi-sig call that adds an operator
           tzbtcParam = TZBTCTypes.AddOperator (#operator .! operatorAddress)
-          package = MSig.mkPackage msig 0 tzbtc tzbtcParam
+          package = MSig.mkPackage msig testChainId 0 tzbtc tzbtcParam
           bytesToSign = getBytesToSign package
           encodedPackage = MSig.encodePackage package
           -- Signing the bytes
@@ -108,7 +112,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         -- Make the multi-sig call that adds an operator
         let
           tzbtcParam = TZBTCTypes.AddOperator (#operator .! operatorAddress)
-          package = MSig.mkPackage msig 0 tzbtc tzbtcParam
+          package = MSig.mkPackage msig testChainId 0 tzbtc tzbtcParam
           bytesToSign = getBytesToSign package
           encodedPackage = MSig.encodePackage package
           -- Signing the bytes
@@ -132,7 +136,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         -- Make the multi-sig call that adds an operator
         let
           tzbtcParam = TZBTCTypes.AddOperator (#operator .! operatorAddress)
-          package = MSig.mkPackage msig 0 tzbtc tzbtcParam
+          package = MSig.mkPackage msig testChainId 0 tzbtc tzbtcParam
           bytesToSign = getBytesToSign package
           encodedPackage = MSig.encodePackage package
           -- Signing the bytes
@@ -159,7 +163,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         -- Make the multi-sig call that adds an operator
         let
           tzbtcParam = TZBTCTypes.AddOperator (#operator .! operatorAddress)
-          package = MSig.mkPackage msig 0 tzbtc tzbtcParam
+          package = MSig.mkPackage msig testChainId 0 tzbtc tzbtcParam
           bytesToSign = getBytesToSign package
           encodedPackage = MSig.encodePackage package
           -- Signing the bytes
@@ -193,7 +197,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           tzbtcParam = TZBTCTypes.AddOperator (#operator .! operatorAddress)
           -- Here we make the multi-sig pacakge for `msig` address.
           -- But will call the cloned multi-sig using it.
-          package = MSig.mkPackage msig 0 tzbtc tzbtcParam
+          package = MSig.mkPackage msig testChainId 0 tzbtc tzbtcParam
           bytesToSign = getBytesToSign package
           encodedPackage = MSig.encodePackage package
           -- Signing the bytes
@@ -230,7 +234,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
                 unsafeParseAddress "KT1XXJWcjrwfcPL4n3vjmwCBsvkazDt8scYY"
 
         tzbtcParam = TZBTCTypes.AddOperator (#operator .! operatorAddress)
-        package = MSig.mkPackage @(TAddress MSigParameter) msig 0 tzbtc tzbtcParam
+        package = MSig.mkPackage @(TAddress MSigParameter) msig testChainId 0 tzbtc tzbtcParam
         bytesToSign = getBytesToSign package
         encodedPackage = MSig.encodePackage package
         -- Signing the bytes
