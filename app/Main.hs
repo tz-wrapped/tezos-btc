@@ -42,8 +42,12 @@ main = do
         else printContract singleLine mbFilePath (multisigContract @'BaseErrors)
     CmdPrintInitialStorage ownerAddress -> do
       printTextLn $ printLorentzValue True (mkEmptyStorageV0 ownerAddress)
-    CmdPrintDoc mbFilePath ->
-      maybe printTextLn writeFileUtf8 mbFilePath (contractDocToMarkdown tzbtcDoc)
+    CmdPrintDoc mbFilePath -> let
+      gitRev =
+        $mkDGitRevision $ GitRepoSettings $
+          mappend "https://github.com/tz-wrapped/tezos-btc/commit/"
+      in maybe printTextLn writeFileUtf8 mbFilePath
+        (contractDocToMarkdown $ buildLorentzDocWithGitRev gitRev tzbtcDoc)
     CmdParseParameter t ->
       either (throwString . pretty) (printStringLn . pretty) $
       parseLorentzValue @(Parameter TZBTCv1) t

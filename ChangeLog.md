@@ -11,6 +11,14 @@ Changes that affect Michelson code are tagged with `[CONTRACT]`.
 Unreleased
 ==========
 
+0.5.0
+=====
+* [#112](https://github.com/tz-wrapped/tezos-btc/pull/112)
+  - Update to use new version of multisig contract that also include chain id
+  in the signature payload. This is a breaking change and the `tzbtc-client`
+  program in this release will not be compatible with previously deployed, older
+  versions of the multisig contract.
+
 0.4.1
 =====
 * [#122](https://github.com/tz-wrapped/tezos-btc/pull/122)

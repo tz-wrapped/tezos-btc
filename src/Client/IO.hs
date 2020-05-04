@@ -40,6 +40,7 @@ import Lorentz.Contracts.Multisig
 import Lorentz.UStore.Common
 import Michelson.Untyped (InternalByteString(..))
 import Tezos.Address
+import Tezos.Core (parseChainId)
 import Tezos.Crypto
 
 import qualified Client.API as API
@@ -175,6 +176,13 @@ instance HasTezosRpc AppM where
     config <- throwLeft readConfig
     clientEnv <- liftIO $ IO.getClientEnv config
     liftIO $ throwClientError $ runClientM (API.getCounter addr) clientEnv
+  getChainId name = do
+    config <- throwLeft readConfig
+    clientEnv <- liftIO $ IO.getClientEnv config
+    chainIdRaw <- liftIO $ throwClientError $ runClientM (API.getChainId name) clientEnv
+    case parseChainId chainIdRaw of
+      Right x -> pure x
+      Left pe -> throwM (TzbtcParseError $ "Error in parsing of chain id:" <> show pe)
   getFromBigMap bid scriptExpr = do
     config@ClientConfig{..}  <- throwLeft $ readConfig
     clientEnv <- liftIO $ IO.getClientEnv config
@@ -250,7 +258,7 @@ runMultisigContract :: forall m.(MonadThrow m, HasTezosRpc m) => NonEmpty Packag
 runMultisigContract packages = do
   config <- throwLeft $ readConfig
   package <- throwLeft $ pure $ mergePackages packages
-  multisigAddr <- throwLeft $ pure (fst <$> getToSign package)
+  multisigAddr <- throwLeft $ pure (snd . fst <$> getToSign package)
   (_, (_, (Keys keys'))) <- getMultisigStorage multisigAddr config
   (_, multisigParam) <- throwLeft $ pure $ mkMultiSigParam keys' packages
   mbFees <- aeFees <$> lookupEnv
@@ -275,8 +283,9 @@ createMultisigPackage packagePath parameter = do
       (counter, _) <- getMultisigStorage msAddr config
       case ccContractAddress of
         Nothing -> throwM TzbtcContractConfigUnavailable
-        Just (toTAddress -> contractAddr) ->
-          let package = mkPackage msAddr counter contractAddr parameter in
+        Just (toTAddress -> contractAddr) -> do
+          chainId <- getChainId "main"
+          let package = mkPackage msAddr chainId counter contractAddr parameter
           writePackageToFile package packagePath
 
 writePackageToFile :: (HasFilesystem m) => Package -> FilePath -> m ()

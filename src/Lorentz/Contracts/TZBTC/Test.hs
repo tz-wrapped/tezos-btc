@@ -20,6 +20,7 @@ import Lorentz.UStore.Migration
 import Michelson.Typed.Haskell.Value
 import Michelson.Untyped.EntryPoints
 import Morley.Nettest
+import Morley.Nettest.Abstract
 import qualified Morley.Nettest.Client as TezosClient
 import Tezos.Address
 import Util.Named
@@ -267,26 +268,26 @@ runNettestTzbtcClient config scenario = do
 
 nettestImplTzbtcClient :: NettestClientConfig -> NettestImpl IO
 nettestImplTzbtcClient config@(NettestClientConfig {..}) = NettestImpl
-  { niOriginate = tzbtcClientOriginate
+  { niOriginateUntyped = tzbtcClientOriginate
   , niTransfer = tzbtcClientTransfer
   , ..
   }
   where
     NettestImpl {..} = TezosClient.nettestImplClient config
 
-    tzbtcClientOriginate :: OriginateData -> IO Address
-    tzbtcClientOriginate od@(OriginateData {..}) =
-      if odName == "TZBTCContract" then do
+    tzbtcClientOriginate :: UntypedOriginateData -> IO Address
+    tzbtcClientOriginate od@(UntypedOriginateData {..}) =
+      if uodName == "TZBTCContract" then do
         output <- callTzbtcClient
           [ "deployTzbtcContract"
-          , "--owner", toString (formatAddrOrAlias odFrom)
-          , "--redeem", toString (formatAddrOrAlias odFrom)
-          , "--user", toString (formatAddrOrAlias odFrom)
+          , "--owner", toString (formatAddrOrAlias uodFrom)
+          , "--redeem", toString (formatAddrOrAlias uodFrom)
+          , "--user", toString (formatAddrOrAlias uodFrom)
           ]
         case parseContractAddressFromOutput output of
           Right a -> pure a
           Left err -> throwM $ TezosClient.UnexpectedClientFailure (show err)
-      else niOriginate od
+      else niOriginateUntyped od
 
     tzbtcClientTransfer :: TransferData -> IO ()
     tzbtcClientTransfer td@(TransferData {..}) =

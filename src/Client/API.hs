@@ -9,6 +9,7 @@ module Client.API
   , getCounter
   , getStorage
   , getLastBlock
+  , getChainId
   , injectOperation
   , preApplyOperations
   , runOperation
@@ -41,7 +42,8 @@ type NodeAPI =
   "chains" :> "main" :> "blocks" :> "head" :> "context" :> "big_maps" :> Capture "big_map_id" Natural
   :> Capture "script_expr" Text :> Get '[JSON] Expression :<|>
   "chains" :> "main" :> "blocks" :> "head" :> "helpers" :> "preapply" :> "operations"
-  :> ReqBody '[JSON] [PreApplyOperation] :> Post '[JSON] [RunRes]
+  :> ReqBody '[JSON] [PreApplyOperation] :> Post '[JSON] [RunRes] :<|>
+  "chains" :> Capture "chain_id" Text :> "chain_id" :> Get '[JSON] Text
 
 
 nodeAPI :: Proxy NodeAPI
@@ -56,6 +58,7 @@ getStorage :: Text -> ClientM Expression
 getBlockConstants :: Text -> ClientM BlockConstants
 getFromBigMap :: Natural -> Text -> ClientM Expression
 preApplyOperations :: [PreApplyOperation] -> ClientM [RunRes]
+getChainId :: Text -> ClientM Text
 forgeOperation :<|>
   getLastBlock :<|>
   injectOperation :<|>
@@ -64,4 +67,5 @@ forgeOperation :<|>
   getStorage :<|>
   getBlockConstants :<|>
   getFromBigMap :<|>
-  preApplyOperations = client nodeAPI
+  preApplyOperations :<|>
+  getChainId = client nodeAPI

@@ -14,8 +14,8 @@ extra-deps:
     https://gitlab.com/morley-framework/morley.git
     # ^ CI cannot use ssh, so we use http clone here
   commit:
-    173e8f87e5769695ddf616c7190f361129e0a334 # master
-  # nix-sha256: 1bf968zqckswglrv2naflv19mjvmzml4jqzpqz832qgpil4p3smq
+    7e81317ef21f86d17f04b63c1c9679b710fdb54b # master
+    #nix-sha256: 0yy1r9w0jlj11fpfk02p6pn53fcvc4djqflsbd8srz5ngndc57pi
   subdirs:
     - code/indigo
     - code/lorentz
