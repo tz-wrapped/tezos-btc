@@ -37,6 +37,7 @@ import qualified Lorentz.Contracts.TZBTC.Types as TZBTCTypes
 import Michelson.Typed.Haskell.Value (fromVal, toVal)
 import TestM
 import Tezos.Address
+import Tezos.Core (ChainId, dummyChainId)
 import Tezos.Crypto
 import qualified Tezos.Crypto.Ed25519 as Ed25519
 import Util.MultiSig
@@ -50,6 +51,9 @@ data MockInput = MockInput
 
 defaultMockInput = MockInput
   { miCmdLine = [] }
+
+testChainId :: ChainId
+testChainId = dummyChainId
 
 -- | The default mock handlers that indvidual tests could
 -- override.
@@ -82,6 +86,10 @@ defaultHandlers mi = Handlers
   , hSignWithTezosClient = \_ _ -> unavailable "signWithTezosClient"
   , hGetTezosClientConfig = unavailable "getTezosClientConfig"
   , hGetAddressForContract = \_ -> unavailable "getAddressForContract"
+  , hGetChainId = \name ->
+      if name == "main"
+        then pure testChainId
+        else throwM $ TestError ("Unexpected chainId:" <> (toString name))
   , hLookupEnv = do
       meetExpectation LooksupEnv;
       snd <$> ask
@@ -209,8 +217,8 @@ multiSigCreationTestHandlers =
         }
 
       checkToSign package = case getToSign package of
-        Right (addr, (Counter counter, _)) -> pure $
-          ( addr == multiSigAddress &&
+        Right ((chainId, addr), (Counter counter, _)) -> pure $
+          ( addr == multiSigAddress && chainId == testChainId &&
             counter == 14 )
         _ -> throwM $ TestError "Getting address and counter from package failed"
       checkPackage bs = case decodePackage bs of
@@ -268,8 +276,8 @@ multiSigCreationWithMSigOverrideTestHandlers args =
         }
 
       checkToSign package = case getToSign package of
-        Right (addr, (Counter counter, _)) -> pure $
-          ( addr == multiSigOverrideAddress &&
+        Right ((chainId, addr), (Counter counter, _)) -> pure $
+          ( addr == multiSigOverrideAddress && chainId == testChainId &&
             counter == 14 )
         _ -> throwM $ TestError "Getting address and counter from package failed"
       checkPackage bs = case decodePackage bs of
@@ -366,6 +374,7 @@ multisigSigningTestHandlers =
 multisigSignPackageTestPackage :: Package
 multisigSignPackageTestPackage = mkPackage
   multiSigAddress
+  testChainId
   14
   (toTAddress @(TZBTC.Parameter TZBTC.SomeTZBTCVersion) contractAddress)
   (TZBTCTypes.AddOperator (#operator .! operatorAddress1))

@@ -6,7 +6,7 @@
 
 name:                tzbtc
 # If you update this version, make sure to update it in release.nix
-version:             0.4.1
+version:             0.5.0
 
 extra-source-files:
 - README.md
@@ -95,6 +95,7 @@ tests:
     - hex-text
     - hspec
     - HUnit
+    - lens
     - lorentz
     - morley
     - morley-ledgers

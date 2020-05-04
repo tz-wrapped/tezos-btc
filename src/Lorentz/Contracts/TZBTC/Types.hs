@@ -44,6 +44,9 @@ import Fmt (Buildable(..), (+|), (|+))
 import Lorentz
 import qualified Lorentz.Contracts.ManagedLedger.Types as ManagedLedger
 import Lorentz.Contracts.Metadata
+import qualified Lorentz.Contracts.Spec.AbstractLedgerInterface as ManagedLedger
+import qualified Lorentz.Contracts.Spec.ApprovableLedgerInterface as ManagedLedger
+import qualified Lorentz.Contracts.Spec.ManagedLedgerInterface as ManagedLedger
 import Lorentz.Contracts.Upgradeable.Common
   (KnownContractVersion(..), MigrationScript, MigrationScriptFrom, OneShotUpgradeParameters,
   PermanentImpl, SomeUContractRouter, UContractRouter(..), VerParam, VerUStore, Version,

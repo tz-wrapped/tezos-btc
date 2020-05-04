@@ -16,6 +16,7 @@ module Lorentz.Contracts.Multisig
   , NiceMultisigParam
   , Payload
   , Threshold(..)
+  , Lorentz.Contracts.Multisig.ToSign
   , tzbtcMultisigContract
   , mkStorage
   ) where
@@ -33,6 +34,7 @@ type MSigParameter = Parameter (SafeParameter Version) (TZBTC.Parameter Version)
 type MSigParamMain = MainParams (SafeParameter Version) (TZBTC.Parameter Version)
 type MSigPayload = SM.Payload (SafeParameter Version) (TZBTC.Parameter Version)
 type MSigStorage = SM.Storage
+type ToSign = SM.ToSign (SafeParameter Version) (TZBTC.Parameter Version)
 
 tzbtcMultisigContract
   :: forall e.  (ErrorHandler e, Typeable e)

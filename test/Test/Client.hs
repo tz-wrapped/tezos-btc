@@ -9,6 +9,7 @@ module Test.Client
   , test_tezosClientFloatingPointRoundTrip
   ) where
 
+import Control.Lens (_Just)
 import Data.ByteString (cons)
 import Numeric (showFFloat)
 import Test.HUnit (Assertion, (@?), (@?=))
@@ -17,10 +18,12 @@ import Test.Tasty.HUnit (testCase)
 import Test.Tasty.QuickCheck (Positive(..), testProperty)
 import Tezos.Common.Binary (encode)
 
+import Lorentz.Base (mapLorentzInstr, optimizeLorentz)
+import Lorentz.Constraints (NiceFullPackedValue, nicePackedValueEvi, niceUnpackedValueEvi, withDict)
 import Lorentz.Test.Integrational (genesisAddress1)
 import Michelson.Interpret.Unpack (UnpackError(..), unpackValue')
 import Michelson.Typed.Haskell.Value (IsoValue(..))
-import Util.Named ((.!))
+import Util.Named (namedL, (.!))
 
 import Client.Parser
   ( parseAddressFromOutput, parseBurncapErrorFromOutput, toMuTez
@@ -50,17 +53,23 @@ test_nicePackedValueToExpression = testGroup "Test converting Parameter to Miche
   , testCase "RemoveOperator" $
     parameterRoundTrip (RemoveOperator (#operator .! genesisAddress1)) @?=
     Right (RemoveOperator (#operator .! genesisAddress1))
-    -- TODO: [morley:#92] enable
-  -- , testCase "Upgrade" $
-  --   parameterRoundTrip upgradeParam @?= Right _upgradeParam
+  , testCase "Upgrade" $
+    optimizeUpgradeParams <$> valueRoundTrip upgradeParam @?=
+    Right upgradeParam
   ]
   where
-    _upgradeParam =
+    upgradeParam =
       let
         ownerAddr = genesisAddress1
         origParams = dummyV1Parameters ownerAddr mempty
       in
-        Upgrade @TZBTCv0 $ upgradeParameters origParams
+        upgradeParameters origParams
+
+    optimizeUpgradeParams
+      :: OneShotUpgradeParameters TZBTCv0
+      -> OneShotUpgradeParameters TZBTCv0
+    optimizeUpgradeParams =
+      _5 . namedL #newPermCode . _Just %~ mapLorentzInstr optimizeLorentz
 
 test_tezosClientFloatingPointRoundTrip :: TestTree
 test_tezosClientFloatingPointRoundTrip =
@@ -72,8 +81,17 @@ test_tezosClientFloatingPointRoundTrip =
 parameterRoundTrip
   :: SafeParameter TZBTCv0
   -> Either UnpackError (SafeParameter TZBTCv0)
-parameterRoundTrip = fmap fromVal . unpackValue' .
-  cons 0x05 . encode . nicePackedValueToExpression
+parameterRoundTrip = valueRoundTrip
+
+valueRoundTrip
+  :: forall a.
+     (NiceFullPackedValue a)
+  => a -> Either UnpackError a
+valueRoundTrip =
+  withDict (nicePackedValueEvi @a) $
+  withDict (niceUnpackedValueEvi @a) $
+    fmap fromVal . unpackValue' .
+    cons 0x05 . encode . nicePackedValueToExpression
 
 test_signatureParser :: TestTree
 test_signatureParser = testGroup "Test parsing tezos-client sign output"
