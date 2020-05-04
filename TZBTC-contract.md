@@ -6,7 +6,9 @@
 
 # TZBTC
 
-**Code revision:** [9ecb821](https://github.com/tz-wrapped/tezos-btc/commit/9ecb82170c513ee1e3b763a5f4fc8217213a0b64) *(Fri Apr 10 18:56:31 2020 +0530)*
+**Code revision:** [51d66f2](https://github.com/tz-wrapped/tezos-btc/commit/51d66f23c6b94e5f14f54077ee36662f9871b09b) *(Mon May 4 21:10:33 2020 +0530)*
+
+
 
 This contract is implemented using Lorentz language.
 Basically, this contract is [FA1.2](https://gitlab.com/serokell/morley/tzip/blob/master/A/FA1.2.md)-compatible approvable ledger that maps user addresses to their token balances. The main idea of this token contract is to provide 1-to-1 correspondance with BTC.
@@ -19,6 +21,21 @@ There are two special entities for this contract:
 This contract uses upgradeability approach described [here](https://gitlab.com/morley-framework/morley/-/blob/a30dddb633ee880761c3cbf1d4a69ee040ffad25/docs/upgradeableContracts.md#section-2-administrator-forced-upgrades).
 This mechanism provides adminstrator-forced address-preserving upgradeability
 approach. For more information check out the doc referenced earlier.
+
+
+## Storage
+
+---
+
+### `Storage`
+
+Type which defines storage of the upgradeable contract.
+It contains UStore with data related to actual contract logic and fields which relate to upgradeability logic.
+
+**Structure:** (***dataMap*** :[`UStore`](#types-Upgradeable-storage), ***fields*** :[`StorageFields`](#types-StorageFields))
+
+**Final Michelson representation:** `pair (big_map bytes bytes) (pair (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))) (pair nat bool))`
+
 
 
 ## Top-level entry points of upgradeable contract.
@@ -39,7 +56,7 @@ This entry point is used to get contract version.
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
+1. Call contract's `getVersion` entrypoint passing the constructed argument.
 </details>
 <p>
 
@@ -61,7 +78,7 @@ Returns the approval value between two given addresses.
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
+1. Call contract's `getAllowance` entrypoint passing the constructed argument.
 </details>
 <p>
 
@@ -86,7 +103,7 @@ Returns the balance of the address in the ledger.
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
+1. Call contract's `getBalance` entrypoint passing the constructed argument.
 </details>
 <p>
 
@@ -111,7 +128,7 @@ Returns total number of tokens.
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
+1. Call contract's `getTotalSupply` entrypoint passing the constructed argument.
 </details>
 <p>
 
@@ -136,7 +153,7 @@ This view returns the total number of minted tokens.
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
+1. Call contract's `getTotalMinted` entrypoint passing the constructed argument.
 </details>
 <p>
 
@@ -161,7 +178,7 @@ This view returns the total number of burned tokens.
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
+1. Call contract's `getTotalBurned` entrypoint passing the constructed argument.
 </details>
 <p>
 
@@ -186,7 +203,7 @@ This view returns the current contract owner.
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
+1. Call contract's `getOwner` entrypoint passing the constructed argument.
 </details>
 <p>
 
@@ -211,7 +228,7 @@ This view returns the redeem address.
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
+1. Call contract's `getRedeemAddress` entrypoint passing the constructed argument.
 </details>
 <p>
 
@@ -236,7 +253,7 @@ This view returns the token metadata.
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
+1. Call contract's `getTokenMetadata` entrypoint passing the constructed argument.
 </details>
 <p>
 
@@ -263,7 +280,7 @@ This entry point is used to call the safe entrypoints of the contract. Entrypoin
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
+1. Call contract's `safeEntrypoints` entrypoint passing the constructed argument.
 </details>
 <p>
 
@@ -283,7 +300,7 @@ This entrypoint extracts contract code kept in storage under the corresponding n
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
+1. Call contract's `run` entrypoint passing the constructed argument.
 </details>
 <p>
 
@@ -314,7 +331,7 @@ provided migration lambda.
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
+1. Call contract's `upgrade` entrypoint passing the constructed argument.
 </details>
 <p>
 
@@ -343,7 +360,7 @@ This entry point is used to start an entrypoint wise upgrade of the contract.
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
+1. Call contract's `epwBeginUpgrade` entrypoint passing the constructed argument.
 </details>
 <p>
 
@@ -372,7 +389,7 @@ This entry point is used to apply a storage migration script as part of an upgra
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
+1. Call contract's `epwApplyMigration` entrypoint passing the constructed argument.
 </details>
 <p>
 
@@ -399,7 +416,7 @@ This entry point is used to set the dispatching code that calls the packed entry
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
+1. Call contract's `epwSetCode` entrypoint passing the constructed argument.
 </details>
 <p>
 
@@ -424,7 +441,7 @@ This entry point is used to mark that an upgrade has been finsihed.
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
+1. Call contract's `epwFinishUpgrade` entrypoint passing the constructed argument.
 </details>
 <p>
 
@@ -459,7 +476,7 @@ In this case current number of tokens that sender is allowed to withdraw from th
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
+1. Call contract's `transfer` entrypoint passing the constructed argument.
 </details>
 <p>
 
@@ -502,7 +519,7 @@ forbidden to prevent the [corresponding attack vector](https://docs.google.com/d
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
+1. Call contract's `approve` entrypoint passing the constructed argument.
 </details>
 <p>
 
@@ -533,7 +550,7 @@ This entry point is used mint new tokes for an account.
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
+1. Call contract's `mint` entrypoint passing the constructed argument.
 </details>
 <p>
 
@@ -562,7 +579,7 @@ Burn some tokens from the `redeem` address.
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
+1. Call contract's `burn` entrypoint passing the constructed argument.
 </details>
 <p>
 
@@ -593,7 +610,7 @@ This entry point is used to add a new operator.
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
+1. Call contract's `addOperator` entrypoint passing the constructed argument.
 </details>
 <p>
 
@@ -622,7 +639,7 @@ This entry point is used to remove an operator.
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
+1. Call contract's `removeOperator` entrypoint passing the constructed argument.
 </details>
 <p>
 
@@ -651,7 +668,7 @@ This entry point is used to set the redeem address.
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
+1. Call contract's `setRedeemAddress` entrypoint passing the constructed argument.
 </details>
 <p>
 
@@ -680,7 +697,7 @@ This entry point is used to pause the contract.
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
+1. Call contract's `pause` entrypoint passing the constructed argument.
 </details>
 <p>
 
@@ -709,7 +726,7 @@ This entry point is used to resume the contract during a paused state.
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
+1. Call contract's `unpause` entrypoint passing the constructed argument.
 </details>
 <p>
 
@@ -738,7 +755,7 @@ This entry point is used to transfer ownership to a new owner.
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
+1. Call contract's `transferOwnership` entrypoint passing the constructed argument.
 </details>
 <p>
 
@@ -767,7 +784,7 @@ This entry point is used to accept ownership by a new owner.
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
-1. Make a transfer to the contract passing this entrypoint's name and the constructed value as an argument.
+1. Call contract's `acceptOwnership` entrypoint passing the constructed argument.
 </details>
 <p>
 
@@ -783,21 +800,6 @@ The sender has to be the `new owner`.
 * [`UpgContractIsMigrating`](#errors-UpgContractIsMigrating) — An operation was requested when contract is in a state of migration
 
 
-
-
-
-## Storage
-
----
-
-### `Storage`
-
-Type which defines storage of the upgradeable contract.
-It contains UStore with data related to actual contract logic and fields which relate to upgradeability logic.
-
-**Structure:** (***dataMap*** :[`UStore`](#types-Upgradeable-storage), ***fields*** :[`StorageFields`](#types-StorageFields))
-
-**Final Michelson representation:** `pair (big_map bytes bytes) (pair (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))) (pair nat bool))`
 
 
 
@@ -1265,7 +1267,7 @@ given entrypoint call two different errors may take place, the one which
 appears in the list first will be thrown.
 
 Most of the errors are represented according to the same
-`(error name, error argument)` pattern. See the list of errors below
+`(error tag, error argument)` pattern. See the list of errors below
 for details.
 
 We distinquish several error classes:
@@ -1302,7 +1304,7 @@ We distinquish several error classes:
 
 **Class:** Internal
 
-**Fires if:** Internal error occured.
+**Fires if:** Some internal error occured.
 
 **Representation:** Textual error message, see [`Text`](#types-Text).
 
