@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: MPL-2.0
 #
-.PHONY: tzbtc test haddock haddock-no-deps stylish lint clean all
+.PHONY: tzbtc test nettest haddock haddock-no-deps stylish lint clean all
 
 # Build target from the common utility Makefile
 MAKEU = $(MAKE) -C make/
@@ -17,6 +17,8 @@ test-dumb-term:
 	$(MAKE_PACKAGE) test-dumb-term
 test-hide-successes:
 	$(MAKE_PACKAGE) test-hide-successes
+nettest:
+	$(MAKE_PACKAGE) nettest
 haddock:
 	$(MAKE_PACKAGE) haddock
 haddock-no-deps:

@@ -1,9 +1,10 @@
-{- SPDX-FileCopyrightText: 2019 Bitcoin Suisse
+{- SPDX-FileCopyrightText: 2020 Bitcoin Suisse
  -
  - SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
  -}
-module Lorentz.Contracts.TZBTC.Test
-  ( smokeTests
+module Nettest.TZBTC
+  ( runNettestTzbtcClient
+  , tzbtcScenario
   ) where
 
 import Data.Typeable (cast)
@@ -33,15 +34,15 @@ import qualified Lorentz.Contracts.TZBTC.Types as TZBTCTypes
 -- 1. `tezos-client` program should be available or configured via env variable
 --    just like required for `tzbtc-client` config.
 -- 2. `tezos-client` alias `nettest` should exist with some balance.
-smokeTests :: Maybe NettestClientConfig -> IO ()
-smokeTests mconfig = do
-  runNettestViaIntegrational $ simpleScenario True
-  case mconfig of
-    Nothing -> pass
-    Just config -> do
-      let sname n = (<> n) <$> nccScenarioName config
-      runNettestClient (config { nccScenarioName = sname "_tezos_client"}) $ simpleScenario True
-      runNettestTzbtcClient (config { nccScenarioName = sname "_tzbtc_client"}) $ simpleScenario False
+-- smokeTests :: Maybe NettestClientConfig -> IO ()
+-- smokeTests mconfig = do
+--   runNettestViaIntegrational $ simpleScenario True
+--   case mconfig of
+--     Nothing -> pass
+--     Just config -> do
+--       let sname n = (<> n) <$> nccScenarioName config
+--       runNettestClient (config { nccScenarioName = sname "_tezos_client"}) $ simpleScenario True
+--       runNettestTzbtcClient (config { nccScenarioName = sname "_tzbtc_client"}) $ simpleScenario False
 
 dummyV1Parameters :: Address -> TokenMetadata -> Map Address Natural -> V1Parameters
 dummyV1Parameters redeem tokenMetadata balances = V1Parameters
@@ -50,8 +51,8 @@ dummyV1Parameters redeem tokenMetadata balances = V1Parameters
   , v1Balances = balances
   }
 
-simpleScenario :: Bool -> NettestScenario
-simpleScenario requireUpgrade = uncapsNettest $ do
+tzbtcScenario :: Bool -> NettestScenario
+tzbtcScenario requireUpgrade = uncapsNettest $ do
   admin <- resolveNettestAddr -- Fetch address for alias `nettest`.
 
   -- Originate and upgrade

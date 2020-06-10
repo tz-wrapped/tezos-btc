@@ -4,7 +4,7 @@
 #
 # Defines utilities for other Makefiles
 
-.PHONY: dev test haddock haddock-no-deps stylish lint clean
+.PHONY: dev test nettest haddock haddock-no-deps stylish lint clean
 
 # Options for development
 STACK_DEV_OPTIONS = --fast --ghc-options -Wwarn --file-watch
@@ -39,7 +39,10 @@ test-dumb-term:
 # Run tests with `--hide-successes` option. It forces dumb terminal,
 # because otherwise this option is likely to work incorrectly.
 test-hide-successes:
-	TERM=dumb $(call call_test,"--hide-successes",$(STACK_DEV_TEST_OPTIONS))
+	TERM=dumb $(call call_test,"--hide-successes",$(STACK_DEV_TEST_OPTIONS)) $(STACK_DEV_TEST_OPTIONS)
+
+nettest:
+	stack test tzbtc:tzbtc-nettest --test-arguments "$(TEST_ARGUMENTS)" $(STACK_DEV_TEST_OPTIONS)
 
 # Run haddock for all packages.
 haddock:

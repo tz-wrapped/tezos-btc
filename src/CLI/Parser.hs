@@ -28,7 +28,6 @@ data CmdLnArgs
   | CmdPrintMultisigContract Bool Bool (Maybe FilePath)
   | CmdPrintDoc (Maybe FilePath)
   | CmdParseParameter Text
-  | CmdTestScenario ("verbose" :! Bool) ("dryRun" :! Bool)
   | CmdMigrate
       ("version" :! Natural)
       ("redeemAddress" :! Address)
@@ -39,7 +38,7 @@ argParser :: Opt.Parser CmdLnArgs
 argParser = hsubparser $
   printCmd <> printMultisigCmd
   <> printInitialStorageCmd <> printDoc
-  <> parseParameterCmd <> testScenarioCmd <> migrateCmd
+  <> parseParameterCmd <> migrateCmd
   where
     singleLineSwitch = onelineOption
     printCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
@@ -82,12 +81,6 @@ argParser = hsubparser $
           "parseContractParameter"
           (CmdParseParameter <$> Opt.strArgument mempty)
           "Parse contract parameter to Lorentz representation")
-    testScenarioCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
-    testScenarioCmd =
-      (mkCommandParser
-          "testScenario"
-          (CmdTestScenario <$> (#verbose <.!> verboseSwitch) <*> (#dryRun <.!> dryRunSwitch))
-          "Do smoke tests")
     migrateCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     migrateCmd =
       (mkCommandParser
@@ -98,12 +91,6 @@ argParser = hsubparser $
             <*> fmap (#tokenMetadata .!) parseSingleTokenMetadata
             <*> (#output <.!> outputOption))
           "Print migration scripts.")
-    verboseSwitch =
-      switch (long "verbose" <>
-              help "Verbose logging")
-    dryRunSwitch =
-      switch (long "dry-run" <>
-              help "Don't run tests over a real network.")
 
 mkCommandParser
   :: String

@@ -30,4 +30,9 @@
     - message:
       - name: Redundant build-depends entry
       - depends: base-noprelude
+  - section:
+    - name: test:tzbtc-nettest
+    - message:
+      - name: Redundant build-depends entry
+      - depends: base-noprelude
 
