@@ -58,5 +58,17 @@
         "type": "tarball",
         "url": "https://github.com/serokell/nixpkgs/archive/45c5124eab8b6272b6d868fefe405d8031c16846.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
+    "tezos-packaging": {
+        "branch": "v7.1-1",
+        "description": "Various form of distribution for tezos-related executables",
+        "homepage": "",
+        "owner": "serokell",
+        "repo": "tezos-packaging",
+        "rev": "84a3d6cee45912503d2c0dbb96d1b476ce01b47c",
+        "sha256": "03z4c3f9mf113xiszbns8rs0l4adl4jw657cdcrjbsjnr7xpdv5m",
+        "type": "tarball",
+        "url": "https://github.com/serokell/tezos-packaging/archive/84a3d6cee45912503d2c0dbb96d1b476ce01b47c.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     }
 }

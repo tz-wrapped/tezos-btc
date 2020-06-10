@@ -3,42 +3,67 @@
 
 steps:
   - label: hlint
-    branches: "!autodoc/master"
+    if: &not_scheduled_not_autodoc
+      build.source != "schedule" && build.branch != "autodoc/master"
     commands:
     - nix run -f ci.nix pkgs.hlint -c
         ./scripts/lint.sh
 
   - label: reuse lint
-    branches: "!autodoc/master"
+    if: *not_scheduled_not_autodoc
     commands:
     - nix run -f ci.nix pkgs.reuse -c
         reuse lint
 
   - label: check trailing whitespace
-    branches: "!autodoc/master"
+    if: *not_scheduled_not_autodoc
     commands:
     - .buildkite/check-trailing-whitespace.sh
 
   - label: crossref-verify
-    branches: "!autodoc/master"
+    if: *not_scheduled_not_autodoc
     commands:
     - nix run -f ci.nix crossref-verifier -c
         crossref-verify --mode local-only --config ./.crossref-verifier.yaml
     soft_fail: true  # TODO: remove
 
   - label: build
-    branches: "!autodoc/master"
+    if: *not_scheduled_not_autodoc
     commands:
     - nix-build ci.nix -A all-components
 
   - label: test
-    branches: "!autodoc/master"
+    if: *not_scheduled_not_autodoc
     commands:
     - nix-build ci.nix -A tzbtc.components.tests.tzbtc-test
     - ./result/bin/tzbtc-test
 
+  - label: nettest-local-chain
+    if: *not_scheduled_not_autodoc
+    env:
+      NETTEST_NODE_ADDR: "localhost"
+      NETTEST_NODE_PORT: "8734"
+      MONEYBAG: "unencrypted:edsk3D3Gx5q6mVL4jCAuFCoekWjM6hzrmSA3MCtDUnMAjxmxJ2rtes"
+    commands: &run-nettest
+    - nix-build ci.nix -A packages.tzbtc.tests.tzbtc-nettest
+    - nix run -f ci.nix tezos-client pkgs.bats tzbtc.components.exes.tzbtc-client -c ./scripts/ci/run-local-chain-nettest.sh result/bin/tzbtc-nettest
+    retry: &retry-nettest
+      automatic:
+        limit: 1
+
+  - label: nettest-carthagenet-scheduled
+    if: build.source == "schedule"
+    env:
+      NETTEST_NODE_ADDR: "carthage.testnet.tezos.serokell.team"
+      NETTEST_NODE_PORT: "8732"
+      # Note that testnet moneybag can run out of tz. If this happened, someone should transfer it some
+      # more tz, its address: tz1Nhk2cUadeJEqFcE77dkkd2whbqpESXtGG
+      MONEYBAG: "unencrypted:edsk33NEYixB7jFUgV6Q2eVGTYfX5x4PB6uopJZBttus2PDfLQzBQe"
+    commands: *run-nettest
+    retry: *retry-nettest
+
   - label: weeder
-    branches: "!autodoc/master"
+    if: *not_scheduled_not_autodoc
     commands:
     - nix-build ci.nix -A weeder-script
       # weeder needs .cabal file:
@@ -46,7 +71,7 @@ steps:
     - ./result
 
   - label: bats
-    branches: "!autodoc/master"
+    if: *not_scheduled_not_autodoc
     commands:
     - nix run -f ci.nix pkgs.bats tzbtc.components.exes.tzbtc
         -c bats bats/tzbtc.bats
@@ -54,7 +79,7 @@ steps:
         -c bats bats/tzbtc-client.bats
 
   - label: contract-doc
-    branches: "!autodoc/master !master"
+    if: build.source != "schedule" && build.branch != "autodoc/master" && build.branch != "master"
     commands:
     - nix-build ci.nix -A contract-doc-dev
     - ln -s ./result/TZBTC-contract.md TZBTC-contract.md
@@ -63,7 +88,8 @@ steps:
 
   # for master branch we include commit info in the contract doc
   - label: contract-doc (master)
-    branches: master
+    if: &not_scheduled_master
+      build.source != "schedule" && build.branch == "master"
     commands:
     - nix-build ci.nix -A contract-doc-release
         --argstr sha "$(git rev-parse HEAD)"
@@ -73,7 +99,7 @@ steps:
       - TZBTC-contract.md
 
   - label: crossref-verify generated doc
-    branches: "!autodoc/master"
+    if: *not_scheduled_not_autodoc
     commands:
     - mkdir tmp
     - if [ "$BUILDKITE_BRANCH" = "master" ];
@@ -86,21 +112,21 @@ steps:
     soft_fail: true  # TODO: remove
 
   - label: autodoc upload
-    branches: master
+    if: *not_scheduled_master
     commands:
     - mkdir tmp
     - buildkite-agent artifact download TZBTC-contract.md tmp/ --step "contract-doc (master)"
     - ./scripts/ci/upload-autodoc.sh
 
   - label: patched tezos-client building
-    branches: "!autodoc/master"
+    if: *not_scheduled_not_autodoc
     commands:
     - nix-build release.nix -A tezos-client -o tezos-client
     artifact_paths:
       - ./tezos-client/*
 
   - label: packaging
-    branches: "!autodoc/master"
+    if: *not_scheduled_not_autodoc
     commands:
     - nix-build release.nix -A static -o tzbtc-static
     - nix-build release.nix -A deb -o tzbtc-client-deb

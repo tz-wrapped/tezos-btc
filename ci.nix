@@ -7,6 +7,7 @@ rec {
   pkgs = import sources.nixpkgs haskellNixArgs;
   crossref-verifier = import sources.crossref-verifier;
   weeder-hacks = import sources.haskell-nix-weeder { inherit pkgs; };
+  tezos-client = (import "${sources.tezos-packaging}/pkgs.nix" {}).ocamlPackages.tezos-client;
 
   tzbtc-with-commit = commitInfo: import ./tzbtc.nix { inherit pkgs weeder-hacks commitInfo; };
   tzbtc-release = import ./tzbtc.nix { inherit pkgs weeder-hacks; release = true; };
