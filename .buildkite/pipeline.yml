@@ -45,7 +45,7 @@ steps:
       NETTEST_NODE_PORT: "8734"
       MONEYBAG: "unencrypted:edsk3D3Gx5q6mVL4jCAuFCoekWjM6hzrmSA3MCtDUnMAjxmxJ2rtes"
     commands: &run-nettest
-    - nix-build ci.nix -A packages.tzbtc.tests.tzbtc-nettest
+    - nix-build ci.nix -A tzbtc.components.tests.tzbtc-nettest
     - nix run -f ci.nix tezos-client pkgs.bats tzbtc.components.exes.tzbtc-client -c ./scripts/ci/run-local-chain-nettest.sh result/bin/tzbtc-nettest
     retry: &retry-nettest
       automatic:
