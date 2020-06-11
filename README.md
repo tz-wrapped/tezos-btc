@@ -27,8 +27,15 @@ If you want to use `tzbtc-client` on MacOS, you can try [building it from source
 
 In order to use `tzbtc-client` you will need to obtain `tezos-client`
 executable. `tezos-client` is used for key storing, operation signing and ledger interaction.
-For now, `tezos-client` doesn't support packed value signing via ledger,
-so in order to fully use `tzbtc-client` (perform multisig package signing via ledger)
+
+Tezos ledger application supports packed value signing since [v2.2.7](https://github.com/obsidiansystems/ledger-app-tezos/releases/tag/v2.2.7).
+Note, that this version isn't presented in Ledger Live yet, so you'll have to install it
+to your ledger device manually, the process of manual installation is described
+[here](https://github.com/obsidiansystems/ledger-app-tezos#installing-the-apps-onto-your-ledger-device-without-ledger-live).
+If you have this version installed, you can use non-patched `tezos-client` binary with `tzbtc-client`.
+Various forms of distribution for `tezos-client` are presented in [tezos-packaging repo](https://github.com/serokell/tezos-packaging).
+
+Otherwise in order to fully use `tzbtc-client` (perform multisig package signing via ledger)
 you should use patched `tezos-client` binary. This binary is bundled along
 with `tzbtc-client` in the [releases](https://github.com/tz-wrapped/tezos-btc/releases).
 
