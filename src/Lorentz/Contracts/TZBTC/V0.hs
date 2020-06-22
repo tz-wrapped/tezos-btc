@@ -245,8 +245,17 @@ tzbtcDoc = do
       \There is only one owner of the contract.\n\
       \* `operator` -- entity which is capable in pausing the contract \
       \minting and burning tokens. There may be several operators added by the owner."
-    doc $ DUpgradeability U.contractDoc
+    doc $ DUpgradeability $ U.contractDoc <> "\n" <> additionalDeployNotes
     tzbtcContractRaw
+
+additionalDeployNotes :: Markdown
+additionalDeployNotes =
+  "Initially originated contract has V0 which should be empty. However, it's possible\
+  \ to originate contract with some entrypoints implementation, but such origination \
+  \will highly likely exceed operation size limit, so it's recomended to originate \
+  \empty V0 contract.\n\n Once the V0 is originated, it should be upgraded to V1 in order \
+  \to be usable.\n\n The easiest way to originate and upgrade contract to V1 is to use \
+  \`tzbtc-client deployTzbtcContract` command."
 
 executeRun :: Entrypoint (VerParam ver) (Storage ver)
 executeRun = do
