@@ -6,7 +6,7 @@
 
 # TZBTC
 
-**Code revision:** [e744af3](https://github.com/tz-wrapped/tezos-btc/commit/e744af3979f3d7c8106dd35b8c8d537cde0473ca) *(Thu Jun 11 16:46:52 2020 +0300)*
+**Code revision:** [2a190a4](https://github.com/tz-wrapped/tezos-btc/commit/2a190a4b4ac414c73d8747547c11ac5a5d3274c2) *(Mon Jun 22 20:16:08 2020 +0300)*
 
 
 
@@ -22,6 +22,11 @@ This contract uses upgradeability approach described [here](https://gitlab.com/m
 This mechanism provides adminstrator-forced address-preserving upgradeability
 approach. For more information check out the doc referenced earlier.
 
+Initially originated contract has V0 which should be empty. However, it's possible to originate contract with some entrypoints implementation, but such origination will highly likely exceed operation size limit, so it's recomended to originate empty V0 contract.
+
+ Once the V0 is originated, it should be upgraded to V1 in order to be usable.
+
+ The easiest way to originate and upgrade contract to V1 is to use `tzbtc-client deployTzbtcContract` command.
 
 ## Storage
 
