@@ -3,8 +3,8 @@
 # SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
 rec {
   sources = import ./nix/sources.nix;
-  haskellNixArgs = import sources."haskell.nix";
-  pkgs = import sources.nixpkgs haskellNixArgs;
+  haskellNix = import sources."haskell.nix" {};
+  pkgs = import sources.nixpkgs haskellNix.nixpkgsArgs;
   crossref-verifier = import sources.crossref-verifier;
   weeder-hacks = import sources.haskell-nix-weeder { inherit pkgs; };
 
