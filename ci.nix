@@ -3,8 +3,10 @@
 # SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
 rec {
   sources = import ./nix/sources.nix;
-  haskellNixArgs = import sources."haskell.nix";
-  pkgs = import sources.nixpkgs haskellNixArgs;
+  haskellNix = import sources."haskell.nix" {
+    sourceOverrides = { hackage = sources."hackage.nix"; stackage = sources."stackage.nix"; };
+  };
+  pkgs = import sources.nixpkgs haskellNix.nixpkgsArgs;
   crossref-verifier = import sources.crossref-verifier;
   weeder-hacks = import sources.haskell-nix-weeder { inherit pkgs; };
 
@@ -15,8 +17,16 @@ rec {
   all-components = with tzbtc.components;
     [ library ] ++ pkgs.lib.attrValues exes ++ pkgs.lib.attrValues tests;
 
+  # nixpkgs has weeder 2, but we use weeder 1
+  weeder-legacy = pkgs.haskellPackages.callHackageDirect {
+    pkg = "weeder";
+    ver = "1.0.9";
+    sha256 = "0gfvhw7n8g2274k74g8gnv1y19alr1yig618capiyaix6i9wnmpa";
+  } {};
+
   # a derivation which generates a script for running weeder
   weeder-script = weeder-hacks.weeder-script {
+    weeder = weeder-legacy;
     hs-pkgs = { tzbtc = tzbtc; };
     local-packages = [
       { name = "tzbtc"; subdirectory = "."; }
