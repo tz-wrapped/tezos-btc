@@ -31,25 +31,7 @@ let
   ubuntuImage = makeImageFromDebDist debDistros.ubuntu1804x86_64;
   fedoraImage = makeImageFromRPMDist rpmDistros.fedora27x86_64;
 
-  tezos-packaging = import (fetchFromGitHub {
-    owner = "serokell";
-    repo = "tezos-packaging";
-    rev = "202002241125";
-    sha256 = "1pqggiii21ip27l24y7fdrm1jiyhb9l0lrmkrqw5hgz978rjg9bs";
-  }) {
-    pkgs = pkgs;
-    patches = [ ./patch/tezos-client.patch ];
-  };
-
-  tezos-client = pkgs.runCommand "uncompress-tezos-client" { } ''
-    mkdir tmp && cd tmp
-    cp ${tezos-packaging.binaries}/*.tar.gz ./
-    tar -xvzf *.tar.gz
-    mkdir -p $out && cp tezos-client $out/
-  '';
-
 in rec {
-  inherit tezos-client;
   static = tzbtc-static;
   rpm = vmTools.runInLinuxImage
     (buildRpm.packageRpm // { diskImage = fedoraImage; });
