@@ -92,13 +92,6 @@ steps:
     - buildkite-agent artifact download TZBTC-contract.md tmp/ --step "contract-doc (master)"
     - ./scripts/ci/upload-autodoc.sh
 
-  - label: patched tezos-client building
-    branches: "!autodoc/master"
-    commands:
-    - nix-build release.nix -A tezos-client -o tezos-client
-    artifact_paths:
-      - ./tezos-client/*
-
   - label: packaging
     branches: "!autodoc/master"
     commands:

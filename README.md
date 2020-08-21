@@ -29,29 +29,9 @@ In order to use `tzbtc-client` you will need to obtain `tezos-client`
 executable. `tezos-client` is used for key storing, operation signing and ledger interaction.
 
 Tezos ledger application supports packed value signing since [v2.2.7](https://github.com/obsidiansystems/ledger-app-tezos/releases/tag/v2.2.7).
-Note, that this version isn't presented in Ledger Live yet, so you'll have to install it
-to your ledger device manually, the process of manual installation is described
-[here](https://github.com/obsidiansystems/ledger-app-tezos#installing-the-apps-onto-your-ledger-device-without-ledger-live).
+In order to use it install the newest version of this app using Ledger Live.
 If you have this version installed, you can use non-patched `tezos-client` binary with `tzbtc-client`.
 Various forms of distribution for `tezos-client` are presented in [tezos-packaging repo](https://github.com/serokell/tezos-packaging).
-
-Otherwise in order to fully use `tzbtc-client` (perform multisig package signing via ledger)
-you should use patched `tezos-client` binary. This binary is bundled along
-with `tzbtc-client` in the [releases](https://github.com/tz-wrapped/tezos-btc/releases).
-
-Alternatively, you can build patched binary using nix.
-
-In order to do that you should run the following command:
-```
-nix-build release.nix -A tezos-client -o tezos-client
-```
-Thus `tezos-client` directory will have statically built binary which can be used later.
-
-For more information about this issue take a look at [MR in tezos repo](https://gitlab.com/tezos/tezos/merge_requests/1449).
-
-If you are not going to use multisig package signing with ledger device,
-you can obtain non-patched version of `tezos-client` in various form of distribution from
-[tezos-packaging repo](https://github.com/serokell/tezos-packaging).
 
 ## `tzbtc-client` executable
 
