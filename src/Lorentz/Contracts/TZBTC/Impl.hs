@@ -31,15 +31,13 @@ module Lorentz.Contracts.TZBTC.Impl
 
 import Prelude hiding (drop, get, some, swap, (>>))
 
-import Data.Set (Set)
 import Fmt (Builder)
 
 import Util.Markdown (mdTicked)
 
 import Lorentz
-import qualified Lorentz.Contracts.ManagedLedger.Impl as ManagedLedger
 import Lorentz.Contracts.Metadata
-import qualified Lorentz.Contracts.Spec.ManagedLedgerInterface as ManagedLedger
+import qualified Lorentz.Contracts.OldManagedLedger as ManagedLedger
 import Lorentz.Contracts.TZBTC.Types hiding (AddOperator, RemoveOperator)
 
 type StorageC store = StorageContains store
@@ -61,9 +59,9 @@ getSingleField
   :: forall store label val.
     (StoreHasField store label val, NiceParameter val)
   => Label label -> Markdown -> Entrypoint (View () val) store
-getSingleField label entrypointDoc = do
-  doc $ DDescription $ "This view returns " <> entrypointDoc <> "."
-  view_ $ do cdr; stToField label
+getSingleField label entrypointDocDesc = do
+  doc $ DDescription $ "This view returns " <> entrypointDocDesc <> "."
+  view_ $ do drop @(); stToField label
 
 getTotalMinted
   :: forall store. StorageC store => Entrypoint (View () Natural) store
@@ -88,7 +86,6 @@ getTokenMetadata
 getTokenMetadata =  do
   doc $ DDescription $ "This view returns the token metadata."
   view_ $ do
-    unpair
     dip $ stToField #tokenMetadata
     singleTokenResolveMetadata
 
@@ -282,7 +279,7 @@ setPause = do
 data DRequireRole = DRequireRole Builder
 
 instance DocItem DRequireRole where
-  type DocItemPosition DRequireRole = 53
+  docItemPos = 53
   docItemSectionName = Nothing
   docItemToMarkdown _ (DRequireRole role) =
     "The sender has to be the " <> mdTicked role <> "."

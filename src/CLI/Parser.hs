@@ -11,10 +11,9 @@ module CLI.Parser
   , mTextOption
   ) where
 
-import Options.Applicative (command, help, hsubparser, info, long, progDesc, switch)
+import Options.Applicative (command, help, hsubparser, info, long, progDesc, short, switch)
 import qualified Options.Applicative as Opt
 
-import Lorentz ((:!))
 import Lorentz.Contracts.Metadata
 import Morley.CLI
 import Tezos.Address (Address)
@@ -28,7 +27,7 @@ data CmdLnArgs
   | CmdPrintMultisigContract Bool Bool (Maybe FilePath)
   | CmdPrintDoc (Maybe FilePath)
   | CmdParseParameter Text
-  | CmdTestScenario ("verbose" :! Bool) ("dryRun" :! Bool)
+  | CmdTestScenario ("verbosity" :! Word) ("dryRun" :! Bool)
   | CmdMigrate
       ("version" :! Natural)
       ("redeemAddress" :! Address)
@@ -86,7 +85,9 @@ argParser = hsubparser $
     testScenarioCmd =
       (mkCommandParser
           "testScenario"
-          (CmdTestScenario <$> (#verbose <.!> verboseSwitch) <*> (#dryRun <.!> dryRunSwitch))
+          (CmdTestScenario
+             <$> (#verbosity <.!> genericLength <$> many verbositySwitch)
+             <*> (#dryRun <.!> dryRunSwitch))
           "Do smoke tests")
     migrateCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     migrateCmd =
@@ -98,9 +99,11 @@ argParser = hsubparser $
             <*> fmap (#tokenMetadata .!) parseSingleTokenMetadata
             <*> (#output <.!> outputOption))
           "Print migration scripts.")
-    verboseSwitch =
-      switch (long "verbose" <>
-              help "Verbose logging")
+    verbositySwitch =
+      Opt.flag' ()
+                (short 'v' <>
+                 long "verbose" <>
+                 help "Increase verbosity (pass several times to increase further)")
     dryRunSwitch =
       switch (long "dry-run" <>
               help "Don't run tests over a real network.")

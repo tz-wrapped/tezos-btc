@@ -42,19 +42,15 @@ module Lorentz.Contracts.TZBTC.Types
 import Fmt (Buildable(..), (+|), (|+))
 
 import Lorentz
-import qualified Lorentz.Contracts.ManagedLedger.Types as ManagedLedger
 import Lorentz.Contracts.Metadata
-import qualified Lorentz.Contracts.Spec.AbstractLedgerInterface as ManagedLedger
-import qualified Lorentz.Contracts.Spec.ApprovableLedgerInterface as ManagedLedger
-import qualified Lorentz.Contracts.Spec.ManagedLedgerInterface as ManagedLedger
+import qualified Lorentz.Contracts.OldManagedLedger as ManagedLedger
 import Lorentz.Contracts.Upgradeable.Common
-  (KnownContractVersion(..), MigrationScript, MigrationScriptFrom, OneShotUpgradeParameters,
-  PermanentImpl, SomeUContractRouter, UContractRouter(..), VerParam, VerUStore, Version,
-  VersionKind)
+  (KnownContractVersion(..), MigrationScriptFrom, OneShotUpgradeParameters, PermanentImpl,
+  SomeUContractRouter, UContractRouter(..), VerParam, VerUStore, Version, VersionKind)
 import qualified Lorentz.Contracts.Upgradeable.Common as Upgradeable
-import Lorentz.Contracts.Upgradeable.EntryPointWise
-import Lorentz.EntryPoints (EpdDelegate, EpdRecursive, ParameterHasEntryPoints(..))
+import Lorentz.Contracts.Upgradeable.EntrypointWise
 import Util.Instances ()
+import Util.Markdown (md)
 
 type BurnParams = ("value" :! Natural)
 type OperatorParams = ("operator" :! Address)
@@ -64,11 +60,11 @@ type PauseParams = Bool
 type TransferOwnershipParams = ("newOwner" :! Address)
 type AcceptOwnershipParams = ()
 
-deriving instance Eq (UContractRouter ver)
+deriving stock instance Eq (UContractRouter ver)
 
-deriving instance Eq (MigrationScript from to)
+deriving stock instance Eq (MigrationScript from to)
 
-deriving instance Eq (PermanentImpl ver)
+deriving stock instance Eq (PermanentImpl ver)
 
 ----------------------------------------------------------------------------
 -- Parameter
@@ -100,14 +96,16 @@ data SafeParameter (ver :: VersionKind)
   | TransferOwnership   !TransferOwnershipParams
   | AcceptOwnership     !AcceptOwnershipParams
   deriving stock (Eq, Generic, Show)
-  deriving anyclass (IsoValue)
 
-instance HasTypeAnn (VerPermanent ver) => HasTypeAnn (SafeParameter ver)
+deriving anyclass instance IsoValue (VerPermanent ver) => IsoValue (SafeParameter ver)
+
+instance HasAnnotation (VerPermanent ver) => HasAnnotation (SafeParameter ver)
 
 instance ( Typeable ver
          , Typeable (VerInterface ver), Typeable (VerUStoreTemplate ver)
          , Typeable (VerPermanent ver)
          , KnownValue (VerPermanent ver), TypeHasDoc (VerPermanent ver)
+         , UStoreTemplateHasDoc (VerUStoreTemplate ver)
          ) => TypeHasDoc (SafeParameter ver) where
   typeDocName _ = "Parameter.SafeParameter"
   typeDocMdDescription = "Parameter which does not have unsafe arguments, like raw `Contract p` values."
@@ -131,19 +129,20 @@ data Parameter (ver :: VersionKind)
   | GetTokenMetadata    !(View [TokenId] [TokenMetadata])
   | SafeEntrypoints !(SafeParameter ver)
   deriving stock (Eq, Generic, Show)
-  deriving anyclass (IsoValue)
 
-instance HasTypeAnn (VerPermanent ver) => HasTypeAnn (Parameter ver)
+deriving anyclass instance IsoValue (VerPermanent ver) => IsoValue (Parameter ver)
+
+instance HasAnnotation (VerPermanent ver) => HasAnnotation (Parameter ver)
 
 -- We need the following two instances for the `SafeEntrypoint` entrypoint
 -- to show up with an entrypoint annotation. This is required for the multisig
 -- call to work, because the multisig contract calls the `SafeEntrypoint`
 -- named entrypoint in this contract.
-instance (VerPermanent ver ~ Empty) => ParameterHasEntryPoints (Parameter ver) where
-  type ParameterEntryPointsDerivation (Parameter ver) = EpdDelegate
+instance (Typeable ver, VerPermanent ver ~ Empty) => ParameterHasEntrypoints (Parameter ver) where
+  type ParameterEntrypointsDerivation (Parameter ver) = EpdDelegate
 
-instance (VerPermanent ver ~ Empty) => ParameterHasEntryPoints (SafeParameter ver) where
-  type ParameterEntryPointsDerivation (SafeParameter ver) = EpdRecursive
+instance (VerPermanent ver ~ Empty) => ParameterHasEntrypoints (SafeParameter ver) where
+  type ParameterEntrypointsDerivation (SafeParameter ver) = EpdRecursive
 
 instance Buildable (Parameter ver) where
   build = \case
@@ -212,17 +211,19 @@ data StorageFields (ver :: VersionKind) = StorageFields
   , currentVersion :: Version
   , migrating :: Bool
   } deriving stock (Generic, Show)
-    deriving anyclass IsoValue
+    deriving anyclass (IsoValue, HasAnnotation)
 
 -- | The concrete storage of the contract
 data Storage (ver :: VersionKind) = Storage
   { dataMap :: VerUStore ver
   , fields :: StorageFields ver
   } deriving stock (Generic, Show)
-    deriving anyclass IsoValue
+    deriving anyclass (IsoValue, HasAnnotation)
 
 type NiceDocVersion ver =
-  (Typeable ver, Typeable (VerUStoreTemplate ver), Typeable (VerInterface ver))
+  ( Typeable ver, Typeable (VerUStoreTemplate ver), Typeable (VerInterface ver)
+  , UStoreTemplateHasDoc (VerUStoreTemplate ver)
+  )
 
 instance NiceDocVersion ver => TypeHasDoc (StorageFields ver) where
   typeDocName _ = "StorageFields"
@@ -265,7 +266,7 @@ data StoreTemplate = StoreTemplate
   , operators     :: UStoreField Operators
   , redeemAddress :: UStoreField Address
   , tokenMetadata :: UStoreField TokenMetadata
-  , code          :: MText |~> EntryPointImpl StoreTemplateV1
+  , code          :: MText |~> EntrypointImpl StoreTemplateV1
   , fallback      :: UStoreField $ EpwFallback StoreTemplateV1
   , ledger        :: Address |~> ManagedLedger.LedgerValue
   } deriving stock Generic
@@ -301,7 +302,7 @@ newtype SafeView i o = SafeView { unSafeView :: (i, Address) }
    deriving stock (Generic, Show)
    deriving anyclass IsoValue
 
-instance Wrapped (SafeView i o)
+instance Wrappable (SafeView i o)
 
 -- | Interface of the V1 contract.
 type Interface =
@@ -339,6 +340,12 @@ type TZBTCPartInstr param store =
 
 type TZBTCStorage = Storage TZBTCv1
 type TZBTCParameter = Parameter TZBTCv1
+
+instance UStoreTemplateHasDoc StoreTemplateV1 where
+  ustoreTemplateDocName = "Store template V1"
+  ustoreTemplateDocDescription = [md|
+    Contains all the storage entries for V1 contract.
+    |]
 
 -- | Common for all TZBTC versions.
 type TZBTCVersionC ver = (VerPermanent ver ~ Empty, Typeable ver)

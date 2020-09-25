@@ -11,9 +11,9 @@ import Test.HUnit (assertEqual)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase)
 
-import Lorentz hiding (SomeContract)
-import Lorentz.Contracts.ManagedLedger.Test (OriginationParams(..))
+import Lorentz
 import Lorentz.Contracts.Multisig
+import Lorentz.Contracts.Test.ManagedLedger (OriginationParams(..))
 import Lorentz.Contracts.TZBTC as TZBTC
 import qualified Lorentz.Contracts.TZBTC.Types as TZBTCTypes (SafeParameter(..))
 import Lorentz.Test.Integrational
@@ -98,10 +98,9 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
             MSig.mkMultiSigParam masterPKList ((alicePackage) :| [carlosPackage])
         -- Finally call the multisig contract
         lCallEP msaddr (Call @"MainParameter") mparam
-        validate . Right $
-          lExpectStorageUpdate tzbtc
-            (checkField (operators . stCustom)
-              (Set.member operatorAddress) "New operator not found")
+        lExpectStorageUpdate tzbtc $
+          (checkField (operators . stCustom)
+            (Set.member operatorAddress) "New operator not found")
 
   , testCase "Test call to multisig to add an operator fails with one signature less" $ do
       -- Originate multisig with threshold 2 and a master pk list of
@@ -124,9 +123,8 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           (_, mparam) = fromRight_ "Making multisig parameter failed" $
             MSig.mkMultiSigParam masterPKList ((alicePackage) :| [])
         -- Finally call the multisig contract
-        lCallEP msig (Call @"MainParameter") mparam
-        validate . Left $
-          lExpectMichelsonFailed (const True) msig
+        err <- expectError $ lCallEP msig (Call @"MainParameter") mparam
+        lExpectMichelsonFailed (const True) msig err
   , testCase "Test call to multisig to add an operator fails for bad signatures" $ do
       -- Originate multisig with threshold 2 and a master pk list of
       -- three public keys
@@ -151,9 +149,8 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           (msaddr, mparam) = fromRight_ "Making multisig parameter failed" $
             MSig.mkMultiSigParam masterPKList ((alicePackage) :| [carlosPackage])
         -- Finally call the multisig contract
-        lCallEP msaddr (Call @"MainParameter") mparam
-        validate . Left $
-          lExpectMichelsonFailed (const True) msig
+        err <- expectError $ lCallEP msaddr (Call @"MainParameter") mparam
+        lExpectMichelsonFailed (const True) msig err
   , testCase "Test replay attack prevention counter" $ do
       -- Originate multisig with threshold 2 and a master pk list of
       -- three public keys
@@ -179,9 +176,8 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         -- Finally call the multisig contract
         lCallEP msaddr (Call @"MainParameter") mparam
         -- Now call again with the same param, this should fail.
-        lCallEP msig (Call @"MainParameter") mparam
-        validate . Left $
-          lExpectMichelsonFailed (const True) msig
+        err <- expectError $ lCallEP msig (Call @"MainParameter") mparam
+        lExpectMichelsonFailed (const True) msig err
   , testCase "Test signed bundle created for one msig contract does not work on other" $ do
       -- Originate multisig with threshold 2 and a master pk list of
       -- three public keys
@@ -214,17 +210,15 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         -- Call the actual contract with the bundle. Should work as
         -- expected.
         lCallEP msaddr (Call @"MainParameter") mparam
-        validate . Right $
-          lExpectStorageUpdate tzbtc
-            (checkField (operators . stCustom)
-              (Set.member operatorAddress) "New operator not found")
+        lExpectStorageUpdate tzbtc $
+          (checkField (operators . stCustom)
+            (Set.member operatorAddress) "New operator not found")
 
         -- Call the clone with the bundle created for the real multisig
         -- contract.
-        lCallEP mClone (Call @"MainParameter") mparam
+        err <- expectError $ lCallEP mClone (Call @"MainParameter") mparam
         -- It should fail.
-        validate . Left $
-          lExpectMichelsonFailed (const True) mClone
+        lExpectMichelsonFailed (const True) mClone err
 
   , testCase "Test mkMultiSigParam function arranges the signatures in the order of public keys" $ do
       let

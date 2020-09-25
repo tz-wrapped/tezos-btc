@@ -33,9 +33,9 @@ import Servant.Client (runClientM)
 import Servant.Client.Core as Servant (ClientError(..))
 import qualified System.Directory as Directory (doesFileExist)
 import qualified System.Environment as SE
+import Util.Exception
 
 import Lorentz hiding (address, balance, chainId, cons, map)
-import Lorentz.Contracts.ManagedLedger.Types
 import Lorentz.Contracts.Multisig
 import Lorentz.UStore.Common
 import Michelson.Untyped (InternalByteString(..))
@@ -51,21 +51,21 @@ import qualified Client.IO.HttpClient as IO
 import qualified Client.IO.TezosClient as IO
 import qualified Client.IO.TezosRpc as IO
 import Client.Types
-import Client.Util
+import Client.Util (exprToValue, throwClientError)
+import qualified Data.Text.Lazy.IO.Utf8 as Utf8
 import Lorentz.Contracts.TZBTC
 import Util.AbstractIO
-import qualified Util.IO as UIO (writeFileUtf8)
 import Util.MultiSig
 
 instance HasFilesystem AppM where
   writeFile fp bs = liftIO $ BS.writeFile fp bs
-  writeFileUtf8 fp c = liftIO $ UIO.writeFileUtf8 fp c
+  writeFileUtf8 fp c = liftIO $ writeFileUtf8 fp c
   readFile fp = liftIO $ BS.readFile fp
   doesFileExist fp = liftIO $ Directory.doesFileExist fp
 
 instance HasFilesystem IO where
   writeFile = BS.writeFile
-  writeFileUtf8 = UIO.writeFileUtf8
+  writeFileUtf8 fp c = Utf8.writeFile fp (toLText c)
   readFile = BS.readFile
   doesFileExist = Directory.doesFileExist
 
@@ -319,14 +319,14 @@ signPackageForConfiguredUser pkg = do
 
 getBalance :: (HasTezosRpc m) => Address -> m Natural
 getBalance addr = do
-  mbLedgerValue <- getValueFromTzbtcUStoreSubmap @"ledger" @Address @LedgerValue addr
+  mbLedgerValue <- getValueFromTzbtcUStoreSubmap @"ledger" addr
   case mbLedgerValue of
     Nothing -> pure 0
     Just ledgerValue -> pure $ arg #balance . fst $ ledgerValue
 
 getAllowance :: (HasTezosRpc m) => Address -> Address -> m Natural
 getAllowance owner spender = do
-  mbLedgerValue <- getValueFromTzbtcUStoreSubmap @"ledger" @Address @LedgerValue owner
+  mbLedgerValue <- getValueFromTzbtcUStoreSubmap @"ledger" owner
   case mbLedgerValue of
     Nothing -> pure 0
     Just ledgerValue -> let approvals = arg #approvals . snd $ ledgerValue in
@@ -375,7 +375,7 @@ getFromTzbtcUStore key = do
   case ccContractAddress of
     Nothing -> throwM TzbtcContractConfigUnavailable
     Just contractAddr -> do
-      AlmostStorage{..} <- getTzbtcStorage contractAddr
+      AlmostStorage{..} <- getTzbtcStorage @TZBTCv1 contractAddr
       let scriptExpr = encodeBase58Check . valueToScriptExpr . lPackValue $ key
       fieldValueRaw <- getFromBigMap asBigMapId scriptExpr
       case fieldValueRaw of
@@ -389,7 +389,7 @@ getFromTzbtcUStore key = do
           fmap Just . throwLeft . pure $ lUnpackValue rawVal
 
 getTzbtcStorage
-  :: forall sign m. (HasTezosRpc m) => Address -> m (AlmostStorage sign)
+  :: forall ver m. (Typeable ver, HasTezosRpc m) => Address -> m (AlmostStorage ver)
 getTzbtcStorage contractAddr = do
   storageRaw <- getStorage $ formatAddress contractAddr
-  throwLeft $ pure $ exprToValue @(AlmostStorage sign) storageRaw
+  throwLeft $ pure $ exprToValue @(AlmostStorage ver) storageRaw

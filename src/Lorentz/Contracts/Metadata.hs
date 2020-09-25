@@ -14,8 +14,8 @@ module Lorentz.Contracts.Metadata
   , singleTokenResolveMetadata
   ) where
 
-import Named
 import Fmt (Buildable(..), genericF)
+import Named
 import qualified Options.Applicative as Opt
 
 import Prelude hiding (drop, map, (>>))
@@ -36,10 +36,8 @@ data TokenMetadata =
     { metadata_tokenId :: TokenId
     , metadata_rest1 :: TokenMetadataRest1
     }
-  deriving (Eq, Generic, Read)
-  deriving anyclass (IsoValue)
-
-instance HasTypeAnn TokenMetadata
+  deriving stock (Eq, Generic, Read)
+  deriving anyclass (IsoValue, HasAnnotation)
 
 instance TypeHasDoc TokenMetadata where
   typeDocName _ = "TokenMetadata"
@@ -57,10 +55,8 @@ data TokenMetadataRest1 =
     { metadata_symbol :: MText
     , metadata_rest2 :: TokenMetadataRest2
     }
-  deriving (Eq, Generic, Read)
-  deriving anyclass (IsoValue)
-
-instance HasTypeAnn TokenMetadataRest1
+  deriving stock (Eq, Generic, Read)
+  deriving anyclass (IsoValue, HasAnnotation)
 
 instance TypeHasDoc TokenMetadataRest1 where
   typeDocName _ = "TokenMetadataRest1"
@@ -78,10 +74,8 @@ data TokenMetadataRest2 =
     { metadata_name :: MText
     , metadata_rest3 :: TokenMetadataRest3
     }
-  deriving (Eq, Generic, Read)
-  deriving anyclass (IsoValue)
-
-instance HasTypeAnn TokenMetadataRest2
+  deriving stock (Eq, Generic, Read)
+  deriving anyclass (IsoValue, HasAnnotation)
 
 instance TypeHasDoc TokenMetadataRest2 where
   typeDocName _ = "TokenMetadataRest2"
@@ -99,10 +93,8 @@ data TokenMetadataRest3 =
     { metadata_decimals :: Natural
     , metadata_extras :: Map MText MText
     }
-  deriving (Eq, Generic, Read)
-  deriving anyclass (IsoValue)
-
-instance HasTypeAnn TokenMetadataRest3
+  deriving stock (Eq, Generic, Read)
+  deriving anyclass (IsoValue, HasAnnotation)
 
 instance TypeHasDoc TokenMetadataRest3 where
   typeDocName _ = "TokenMetadataRest3"

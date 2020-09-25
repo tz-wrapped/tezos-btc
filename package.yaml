@@ -29,19 +29,21 @@ library:
     - bytestring
     - constraints
     - containers
+    - cleveland
     - directory
     - hex-text
     - http-client
     - http-client-tls
     - http-types
     - fmt
+    - lens
     - lorentz
     - morley
     - morley-ledgers
     - morley-multisig
     - morley-prelude
     - morley-upgradeable
-    - morley-nettest
+    - morley-client
     - named
     - optparse-applicative
     - megaparsec
@@ -52,8 +54,8 @@ library:
     - servant-client-core
     - singletons
     - text
-    - tezos-bake-monitor-lib
     - universum
+    - with-utf8
     - safe-exceptions
     - vector
     - vinyl
@@ -64,12 +66,12 @@ executables:
     <<: *exec-common
 
     dependencies:
+      - cleveland
       - fmt
       - lorentz
       - morley
       - morley-multisig
       - morley-prelude
-      - morley-nettest
       - optparse-applicative
       - safe-exceptions
       - tzbtc
@@ -92,6 +94,7 @@ tests:
     dependencies:
     - bytestring
     - containers
+    - cleveland
     - hex-text
     - hspec
     - HUnit
@@ -109,7 +112,7 @@ tests:
     - tasty-hspec
     - tasty-quickcheck
     - tasty-hunit-compat
-    - tezos-bake-monitor-lib
     - text
     - tzbtc
     - universum
+    - with-utf8

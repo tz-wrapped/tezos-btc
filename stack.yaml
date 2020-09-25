@@ -4,7 +4,7 @@
 #
 # when updating git dependencies, please run
 # nix run -f https://github.com/serokell/scratch/archive/master.tar.gz scripts.update-stack-shas -c update-stack-shas
-resolver: lts-14.15
+resolver: lts-16.5
 
 packages:
 - .
@@ -14,46 +14,42 @@ extra-deps:
     https://gitlab.com/morley-framework/morley.git
     # ^ CI cannot use ssh, so we use http clone here
   commit:
-    7e81317ef21f86d17f04b63c1c9679b710fdb54b # master
-    #nix-sha256: 0yy1r9w0jlj11fpfk02p6pn53fcvc4djqflsbd8srz5ngndc57pi
+    9c4583f67fc00738b6f2b6701ce56b4c79f3a55f  # master
+    #nix-sha256: ?
   subdirs:
-    - code/indigo
-    - code/lorentz
-    - code/morley
-    - code/morley-ledgers
-    - code/morley-ledgers-test
-    - code/morley-upgradeable
     - code/morley-multisig
     - code/morley-client
-    - code/morley-nettest
+    - code/cleveland
 
 - git:
-    https://gitlab.com/obsidian.systems/tezos-bake-monitor-lib.git
+    https://gitlab.com/morley-framework/morley-ledgers.git
+    # ^ CI cannot use ssh, so we use http clone here
   commit:
-    19a9ce57a0510bc3ad8a3f639d0a968a65024b86
-  # nix-sha256: 0ypf7z2c9w59rz7hymzdyx87783qdfp3kygs9jl8qnmbfslmi8jr
+    7f0cbca64ed57b072ee9befc4332cf6fcfa29e71 # master
   subdirs:
-    - tezos-bake-monitor-lib
+    - code/morley-ledgers
+    - code/morley-ledgers-test
+
+- git:
+    https://gitlab.com/morley-framework/morley-upgradeable.git
+    # ^ CI cannot use ssh, so we use http clone here
+  commit:
+    4af615e1a98cbd315aaab7ce100ad919812dcef3 # master
 
 # Stable parts of morley available from Hackage
 - morley-prelude-0.3.0
 - tasty-hunit-compat-0.2
+- morley-1.7.1
+- lorentz-0.6.1
+- indigo-0.3.0
 
-# Required by tzbtc
-- o-clock-1.1.0@sha256:941ac2bc1732e6622b165831c4badb1a8e846f451620bd028064339f5b284224
 # Required by morley
 - show-type-0.1.1@sha256:24f681a3481b3f9630e619d816054804ba1bd6cc05b5978ddd2cece8499ff2fa
-- aeson-options-0.1.0
 - base58-bytestring-0.1.0
 - hex-text-0.1.0.0
-- constraints-0.11@sha256:44f80a313d5d4fcfb3c18eb6625dd3db4bb845d5ca8d3b1f62125a4b7241e590
-- pretty-terminal-0.1.0.0@sha256:e9135d86ebb2a8e3aaf5a79088de4628dbd49988388e0fbfc26c5ecb3c399ad9
+- named-0.3.0.1@sha256:69b9722301201f8ed8abc89c4595e22c746e944bf4cdfafa8b21b14d336b26d1,2233
+- vinyl-0.12.1@sha256:43456d4b3009646eee63953cbe539f1f4d0caf8bc3c25e841117e712836508f3,3790
+- cryptonite-0.27
 - git: https://github.com/int-index/caps.git
-  commit: ab4345eabd58fc6f05d3b46bea2c5acdba3ec6f8
+  commit: c5d61837eb358989b581ed82b1e79158c4823b1b
   # nix-sha256: 0r1zqa559gaxavsd8zynlpa2c5hi2qc20n8s4bhcdaw36hasg3kr
-# Required by tezos-bake-monitor-lib
-- functor-infix-0.0.5@sha256:cea21a321031f556d7a21b51e049493e7cb78baf64dd63f0d1a36de01c4c735b
-- hashing-0.1.0.1@sha256:98861f16791946cdf28e3c7a6ee9ac8b72d546d6e33c569c7087ef18253294e7
-- dependent-sum-0.6.2.0
-- dependent-sum-template-0.1.0.0
-- constraints-extras-0.3.0.2@sha256:bf6884be65958e9188ae3c9e5547abfd6d201df021bff8a4704c2c4fe1e1ae5b

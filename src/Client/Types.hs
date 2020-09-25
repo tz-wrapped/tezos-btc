@@ -41,12 +41,10 @@ import Data.Aeson.TH (deriveFromJSON, deriveToJSON)
 import Data.List (isSuffixOf)
 import Data.Vector (fromList)
 import Fmt (Buildable(..), (+|), (|+))
-import Tezos.Common.Base16ByteString (Base16ByteString(..))
-import Tezos.Common.Json (StringEncode(..), TezosInt64)
-import Tezos.V005.Micheline
-  (Expression(..), MichelinePrimAp(..), MichelinePrimitive(..), annotToText)
 
 import Michelson.Typed (IsoValue)
+import Morley.Micheline (TezosInt64)
+import Morley.Micheline (Expression(..), MichelinePrimAp(..), MichelinePrimitive(..), annotToText)
 import Tezos.Address (Address)
 import Tezos.Crypto (PublicKey, Signature, encodeBase58Check, formatSignature)
 import Util.Named
@@ -115,12 +113,12 @@ newtype MichelsonExpression = MichelsonExpression Expression
 
 instance Buildable MichelsonExpression where
   build (MichelsonExpression expr) = case expr of
-    Expression_Int (StringEncode i) -> build $ i
-    Expression_String s -> build s
-    Expression_Bytes b ->
-      build $ encodeBase58Check $ unbase16ByteString b
-    Expression_Seq s -> "(" +| buildSeq (build . MichelsonExpression) s |+ ")"
-    Expression_Prim (MichelinePrimAp (MichelinePrimitive text) s annots) ->
+    ExpressionInt i -> build i
+    ExpressionString s -> build s
+    ExpressionBytes b ->
+      build $ encodeBase58Check b
+    ExpressionSeq s -> "(" +| buildSeq (build . MichelsonExpression) s |+ ")"
+    ExpressionPrim (MichelinePrimAp (MichelinePrimitive text) s annots) ->
       text <> " " |+ "(" +|
       buildSeq (build . MichelsonExpression) s +| ") " +|
       buildSeq (build . annotToText) annots
@@ -129,9 +127,9 @@ instance Buildable MichelsonExpression where
         mconcat . intersperse ", " . map
         buildElem . toList
 
-data AlmostStorage sign = AlmostStorage
+data AlmostStorage ver = AlmostStorage
   { asBigMapId :: Natural
-  , asFields :: StorageFields sign
+  , asFields :: StorageFields ver
   } deriving stock (Show, Generic)
     deriving anyclass IsoValue
 
@@ -300,11 +298,11 @@ data AppliedResult = AppliedResult
   , arStorageSize :: TezosInt64
   , arPaidStorageDiff :: TezosInt64
   , arOriginatedContracts :: [Address]
-  } deriving Show
+  } deriving stock Show
 
 data SimulationResult = SimulationResult
   { srComputedFees :: TezosInt64 -- ^ Baker Fee in micro tez
-  } deriving Show
+  } deriving stock Show
 
 instance Semigroup AppliedResult where
   (<>) ar1 ar2 = AppliedResult
@@ -386,7 +384,7 @@ data ClientConfig = ClientConfig
   , ccMultisigAddress :: Maybe Address
   , ccUserAlias :: Text
   , ccTezosClientExecutable :: FilePath
-  } deriving (Generic, Show, Eq)
+  } deriving stock (Generic, Show, Eq)
 
 instance Buildable ClientConfig where
   build ClientConfig {..} =
@@ -404,7 +402,7 @@ data TezosClientConfig = TezosClientConfig
   { tcNodeAddr :: Text
   , tcNodePort :: Int
   , tcTls :: Bool
-  } deriving (Show)
+  } deriving stock (Show)
 
 deriveToJSON (aesonPrefix snakeCase) ''ParametersInternal
 deriveToJSON (aesonPrefix snakeCase) ''TransactionOperation

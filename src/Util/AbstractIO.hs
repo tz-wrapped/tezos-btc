@@ -19,11 +19,10 @@ module Util.AbstractIO
 
 import Options.Applicative as Opt
 
+import Morley.Micheline (Expression, TezosInt64)
 import Tezos.Address
-import Tezos.Common.Json (TezosInt64)
 import Tezos.Core (ChainId)
 import Tezos.Crypto
-import Tezos.V005.Micheline (Expression)
 
 import Lorentz.Contracts.Multisig
 
@@ -35,7 +34,7 @@ import Lorentz.Contracts.TZBTC (V1DeployParameters)
 
 -- File system operations
 class (Monad m) => HasFilesystem m  where
-  writeFileUtf8 :: Print text => FilePath -> text -> m ()
+  writeFileUtf8 :: ToLText text => FilePath -> text -> m ()
   writeFile :: FilePath -> ByteString -> m ()
   readFile :: FilePath -> m ByteString
   doesFileExist :: FilePath -> m Bool

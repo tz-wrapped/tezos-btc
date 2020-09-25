@@ -1,34 +1,35 @@
 # parameter generated with:
 #   TL.putStrLn $ L.printLorentzContract False (L.drop @(Parameter TZBTCv0, ()) # unit # nil # pair)
 
-parameter (or (or (or (pair %getVersion unit
-                                        (contract nat))
-                      (pair %getAllowance (pair (address :owner)
-                                                (address :spender))
-                                          (contract nat)))
-                  (or (pair %getBalance (address :owner)
-                                        (contract nat))
-                      (or (pair %getTotalSupply unit
-                                                (contract nat))
-                          (pair %getTotalMinted unit
-                                                (contract nat)))))
-              (or (or (pair %getTotalBurned unit
-                                            (contract nat))
-                      (pair %getOwner unit
-                                      (contract address)))
-                  (or (pair %getRedeemAddress unit
-                                              (contract address))
-                      (or (pair %getTokenMetadata (list nat)
-                                                  (contract (list (pair nat
-                                                                        (pair
-                                                                              string
-                                                                              (pair
-                                                                                    string
-                                                                                    (pair
-                                                                                          nat
-                                                                                          (map
-                                                                                               string
-                                                                                               string))))))))
+parameter (or (or (or (pair %getVersion (unit %viewParam)
+                                        (contract %viewCallbackTo nat))
+                      (pair %getAllowance (pair %viewParam (address :owner)
+                                                           (address :spender))
+                                          (contract %viewCallbackTo nat)))
+                  (or (pair %getBalance (address :owner %viewParam)
+                                        (contract %viewCallbackTo nat))
+                      (or (pair %getTotalSupply (unit %viewParam)
+                                                (contract %viewCallbackTo nat))
+                          (pair %getTotalMinted (unit %viewParam)
+                                                (contract %viewCallbackTo nat)))))
+              (or (or (pair %getTotalBurned (unit %viewParam)
+                                            (contract %viewCallbackTo nat))
+                      (pair %getOwner (unit %viewParam)
+                                      (contract %viewCallbackTo address)))
+                  (or (pair %getRedeemAddress (unit %viewParam)
+                                              (contract %viewCallbackTo address))
+                      (or (pair %getTokenMetadata (list %viewParam nat)
+                                                  (contract %viewCallbackTo (list (pair
+                                                                                        (nat %metadata_tokenId)
+                                                                                        (pair
+                                                                                              (string %metadata_symbol)
+                                                                                              (pair
+                                                                                                    (string %metadata_name)
+                                                                                                    (pair
+                                                                                                          (nat %metadata_decimals)
+                                                                                                          (map %metadata_extras
+                                                                                                                                string
+                                                                                                                                string))))))))
                           (or %safeEntrypoints (or (or (or (pair %run string
                                                                       bytes)
                                                            (pair %upgrade (pair
@@ -115,5 +116,6 @@ parameter (or (or (or (pair %getVersion unit
                                                            (or
                                                                (address :newOwner %transferOwnership)
                                                                (unit %acceptOwnership))))))))));
+
 storage unit;
 code { cdr; nil operation; pair }

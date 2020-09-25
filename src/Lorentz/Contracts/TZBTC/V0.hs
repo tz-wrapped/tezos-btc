@@ -4,6 +4,7 @@
  -}
 {-# LANGUAGE DerivingVia, RebindableSyntax #-}
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Lorentz.Contracts.TZBTC.V0
   ( Parameter(..)
@@ -25,10 +26,11 @@ import qualified Data.Text as T
 import Lorentz
 import Lorentz.Contracts.Upgradeable.Common hiding (Parameter(..), Storage)
 import Lorentz.Contracts.Upgradeable.Common.Doc as U
+import Lorentz.UStore.Doc (DUStoreTemplate(..))
 import Lorentz.UStore.Migration (SomeUTemplate)
-import Michelson.Doc (DComment(..), DDescription(..))
 import Michelson.Text
 import qualified Michelson.Typed as T
+import Util.Markdown (md)
 
 import qualified Lorentz.Contracts.TZBTC.Impl as Impl
 import Lorentz.Contracts.TZBTC.Types as Types
@@ -36,6 +38,13 @@ import Lorentz.Contracts.TZBTC.Types as Types
 -- | Template for the wrapped UStore which will hold the owner address
 -- only
 type StoreTemplateV0 = StoreTemplateWithCommons ()
+
+instance UStoreTemplateHasDoc StoreTemplateV0 where
+  ustoreTemplateDocName = "Store template V0"
+  ustoreTemplateDocDescription = [md|
+    Contains entries for V0 contract storage.
+    This includes administrator address which is necessary for a secure upgrade to V1.
+    |]
 
 type UStoreV0 = Storage TZBTCv0
 
@@ -67,26 +76,26 @@ instance KnownContractVersion SomeTZBTCVersion where
   contractVersion _ = 999
 
 -- | Entry point of upgradeable contract.
-data UpgradeableEntryPointKind
+data UpgradeableEntrypointKind
 
 -- | Safe entry points of contract.
-data SafeEntryPointKind
+data SafeEntrypointKind
 
-instance DocItem (DEntryPoint UpgradeableEntryPointKind) where
-  type DocItemPosition (DEntryPoint UpgradeableEntryPointKind) = 1002
+instance DocItem (DEntrypoint UpgradeableEntrypointKind) where
+  docItemPos = 1002
   docItemSectionName = Just "Top-level entry points of upgradeable contract."
   docItemSectionDescription = Just
     "These are entry points of the contract."
-  docItemToMarkdown = diEntryPointToMarkdown
+  docItemToMarkdown = diEntrypointToMarkdown
 
-instance DocItem (DEntryPoint SafeEntryPointKind) where
-  type DocItemPosition (DEntryPoint SafeEntryPointKind) = 1003
+instance DocItem (DEntrypoint SafeEntrypointKind) where
+  docItemPos = 1003
   docItemSectionName = Nothing
   docItemSectionDescription = Nothing
-  docItemToMarkdown = diEntryPointToMarkdown
+  docItemToMarkdown = diEntrypointToMarkdown
 
 safeEntrypoints :: Entrypoint (SafeParameter TZBTCv0) UStoreV0
-safeEntrypoints = entryCase @(SafeParameter TZBTCv0) (Proxy @SafeEntryPointKind)
+safeEntrypoints = entryCase @(SafeParameter TZBTCv0) (Proxy @SafeEntrypointKind)
   ( #cRun /-> do
       doc $ DDescription runDoc
       executeRun
@@ -181,11 +190,11 @@ tzbtcContractRaw = do
   doc $ T.DStorageType $ DType $ Proxy @UStoreV0
   unpair
   finalizeParamCallingDoc $
-    entryCase @(Parameter TZBTCv0) (Proxy @UpgradeableEntryPointKind)
+    entryCase @(Parameter TZBTCv0) (Proxy @UpgradeableEntrypointKind)
     ( #cGetVersion /-> do
         doc $ DDescription
           "This entry point is used to get contract version."
-        view_ (do cdr; toField #fields; toField #currentVersion)
+        view_ (do drop @(); toField #fields; toField #currentVersion)
     , #cGetAllowance /-> do
         cutLorentzNonDoc (Impl.getAllowance @(UStore StoreTemplateV1))
         callUSafeViewEP #callGetAllowance
@@ -246,6 +255,7 @@ tzbtcDoc = do
       \* `operator` -- entity which is capable in pausing the contract \
       \minting and burning tokens. There may be several operators added by the owner."
     doc $ DUpgradeability $ U.contractDoc <> "\n" <> additionalDeployNotes
+    doc $ DUStoreTemplate (Proxy @(VerUStoreTemplate TZBTCv1))
     tzbtcContractRaw
 
 additionalDeployNotes :: Markdown
@@ -275,10 +285,10 @@ executeRun = do
 callUEp
   :: forall ep ver interface.
      ( interface ~ VerInterface ver
-     , NicePackedValue (LookupEntryPoint ep interface)
+     , NicePackedValue (LookupEntrypoint ep interface)
      )
   => Label ep
-  -> Entrypoint (LookupEntryPoint ep interface) (Storage ver)
+  -> Entrypoint (LookupEntrypoint ep interface) (Storage ver)
 callUEp epName = do
   pack
   push (labelToMText epName)
@@ -291,8 +301,9 @@ callUEp epName = do
 callUSafeViewEP
   :: forall ep vi vo ver interface.
      ( interface ~ VerInterface ver
-     , LookupEntryPoint ep interface ~ (SafeView vi vo)
+     , LookupEntrypoint ep interface ~ (SafeView vi vo)
      , NicePackedValue vi
+     , Typeable vo
      )
   => Label ep
   -> Entrypoint (View vi vo) (Storage ver)

@@ -13,13 +13,12 @@ module Client.IO.TezosRpc
 import Data.ByteString (cons)
 import Servant.Client (ClientEnv, runClientM)
 import Servant.Client.Core as Servant (ClientError(..))
-import Tezos.Common.Json (TezosInt64)
-import Tezos.V005.Micheline (Expression)
 import Time (Second, Time(..), threadDelay)
 
 import Lorentz hiding (address, balance, chainId, cons, contract, map)
 import Michelson.Runtime.GState (genesisAddress1, genesisAddress2)
 import Michelson.Untyped (InternalByteString(..))
+import Morley.Micheline (Expression, TezosInt64)
 import Tezos.Address
 
 import qualified Client.API as API
@@ -30,8 +29,7 @@ import Client.IO.TezosClient as IO
 import Client.Types
 import Client.Util
 import Lorentz.Contracts.TZBTC
-import Lorentz.Contracts.TZBTC.Preprocess (tzbtcContract, upgradeParameters)
-import Lorentz.Contracts.TZBTC.V0 (TZBTCv0, mkEmptyStorageV0)
+import Lorentz.Contracts.TZBTC.Preprocess (upgradeParameters)
 
 -- | Datatype that contains various values required for
 -- chain operations.
@@ -194,7 +192,7 @@ getAppliedResults env op = do
 
 originateContract
   :: (NiceParameterFull cp, NiceStorage st)
-  => Bool -> ContractCode cp st -> st -> ClientConfig -> Maybe TezosInt64 -> IO (Either TzbtcClientError Address)
+  => Bool -> Contract cp st -> st -> ClientConfig -> Maybe TezosInt64 -> IO (Either TzbtcClientError Address)
 originateContract v contract initialStorage config@ClientConfig{..} mbFees = do
   OperationConstants{..} <- preProcessOperation v config
   let origOp = OriginationOperation
