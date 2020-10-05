@@ -16,7 +16,6 @@ module Client.Types
   , EntrypointParam (..)
   , ForgeOperation (..)
   , InternalOperation (..)
-  , MichelsonExpression (..)
   , OperationContent (..)
   , OriginationOperation (..)
   , OriginationScript (..)
@@ -43,10 +42,9 @@ import Data.Vector (fromList)
 import Fmt (Buildable(..), (+|), (|+))
 
 import Michelson.Typed (IsoValue)
-import Morley.Micheline (TezosInt64)
-import Morley.Micheline (Expression(..), MichelinePrimAp(..), MichelinePrimitive(..), annotToText)
+import Morley.Micheline (Expression, TezosInt64)
 import Tezos.Address (Address)
-import Tezos.Crypto (PublicKey, Signature, encodeBase58Check, formatSignature)
+import Tezos.Crypto (PublicKey, Signature, formatSignature)
 import Util.Named
 
 import Lorentz.Contracts.Metadata
@@ -107,25 +105,6 @@ data ConfigOverride = ConfigOverride
   , coTzbtcMultisig :: Maybe AddrOrAlias
   , coTzbtcContract :: Maybe AddrOrAlias
   } deriving stock Show
-
-newtype MichelsonExpression = MichelsonExpression Expression
-  deriving newtype FromJSON
-
-instance Buildable MichelsonExpression where
-  build (MichelsonExpression expr) = case expr of
-    ExpressionInt i -> build i
-    ExpressionString s -> build s
-    ExpressionBytes b ->
-      build $ encodeBase58Check b
-    ExpressionSeq s -> "(" +| buildSeq (build . MichelsonExpression) s |+ ")"
-    ExpressionPrim (MichelinePrimAp (MichelinePrimitive text) s annots) ->
-      text <> " " |+ "(" +|
-      buildSeq (build . MichelsonExpression) s +| ") " +|
-      buildSeq (build . annotToText) annots
-    where
-      buildSeq buildElem =
-        mconcat . intersperse ", " . map
-        buildElem . toList
 
 data AlmostStorage ver = AlmostStorage
   { asBigMapId :: Natural
@@ -227,14 +206,14 @@ data EntrypointParam param
 
 data RunError
   = RuntimeError Address
-  | ScriptRejected MichelsonExpression
+  | ScriptRejected Expression
   | BadContractParameter Address
-  | InvalidConstant MichelsonExpression MichelsonExpression
-  | InconsistentTypes MichelsonExpression MichelsonExpression
+  | InvalidConstant Expression Expression
+  | InconsistentTypes Expression Expression
   | InvalidPrimitive [Text] Text
-  | InvalidSyntacticConstantError MichelsonExpression MichelsonExpression
+  | InvalidSyntacticConstantError Expression Expression
   | UnexpectedContract
-  | IllFormedType MichelsonExpression
+  | IllFormedType Expression
   | UnexpectedOperation
 
 instance FromJSON RunError where
