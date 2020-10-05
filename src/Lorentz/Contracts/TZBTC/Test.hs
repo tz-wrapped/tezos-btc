@@ -7,7 +7,6 @@ module Lorentz.Contracts.TZBTC.Test
   ) where
 
 import Control.Lens ((<>~), _Just)
-import qualified Data.Text as T
 import Data.Typeable (cast)
 import System.Environment (setEnv)
 import System.Exit (ExitCode(..))
@@ -47,7 +46,7 @@ smokeTests mconfig = do
     , do
         let config' = config & mccAliasPrefixL . _Just <>~ "_tzbtc_client"
         env <- mkMorleyClientEnv config'
-        runNettestTzbtcClient config' env $ simpleScenario False
+        runNettestTzbtcClient env $ simpleScenario False
     ]
 
 dummyV1Parameters :: Address -> TokenMetadata -> Map Address Natural -> V1Parameters
@@ -94,13 +93,13 @@ simpleScenario requireUpgrade = uncapsNettest $ do
       (fromFlatParameter $ Upgrade upgradeParams :: Parameter TZBTCv0)
 
   -- Add an operator
-  operator <- newAddress "operator"
+  (operator, operatorAddr) <- newAddress' "operator"
 
   -- Transfer some credits to operator for further
   -- operations.
   transfer $ TransferData
     { tdFrom = AddressResolved admin
-    , tdTo = AddressResolved operator
+    , tdTo = operator
     , tdAmount = toMutez $ 5000 * 1000 -- 5 XTZ
     , tdEntrypoint = DefEpName
     , tdParameter = ()
@@ -110,77 +109,77 @@ simpleScenario requireUpgrade = uncapsNettest $ do
     (AddressAlias "nettest")
     tzbtc
     (TrustEpName DefEpName)
-    (fromFlatParameterV1 $ AddOperator (#operator .! operator))
+    (fromFlatParameterV1 $ AddOperator (#operator .! operatorAddr))
 
   -- Add another operator
-  operatorToRemove <- newAddress "operator_to_remove"
+  (operatorToRemove, operatorToRemoveAddr) <- newAddress' "operator_to_remove"
   callFrom
     (AddressAlias "nettest")
     tzbtc
     (TrustEpName DefEpName)
-    (fromFlatParameterV1 $ AddOperator (#operator .! operatorToRemove))
+    (fromFlatParameterV1 $ AddOperator (#operator .! operatorToRemoveAddr))
 
   -- Mint some coins for alice
-  alice <- newAddress "alice"
+  (alice, aliceAddr) <- newAddress' "alice"
 
   callFrom
-    (AddressAlias "operator_to_remove") -- use the new operator to make sure it has been added.
+    operatorToRemove -- use the new operator to make sure it has been added.
     tzbtc
     (TrustEpName DefEpName)
-    (fromFlatParameterV1 $ Mint (#to .! alice, #value .! 100))
+    (fromFlatParameterV1 $ Mint (#to .! aliceAddr, #value .! 100))
 
   -- Remove an operator
   callFrom
     (AddressAlias "nettest")
     tzbtc
     (TrustEpName DefEpName)
-    (fromFlatParameterV1 $ RemoveOperator (#operator .! operatorToRemove))
+    (fromFlatParameterV1 $ RemoveOperator (#operator .! operatorToRemoveAddr))
 
   -- Set allowance
   -- Mint some coins for john
-  john <- newAddress "john"
+  (john, johnAddr) <- newAddress' "john"
 
   callFrom
-    (AddressAlias "operator")
+    operator
     -- We use alias instead of address to let the nettest implementation
     -- to call the `tzbtc-client` program with --user override (which does not work with addresses)
     -- using the alias.
     tzbtc
     (TrustEpName DefEpName)
-    (fromFlatParameterV1 $ Mint (#to .! john, #value .! 100))
+    (fromFlatParameterV1 $ Mint (#to .! johnAddr , #value .! 100))
 
   -- Set allowance for alice to transfer from john
 
   callFrom
-    (AddressAlias "john")
+    john
     tzbtc
     (TrustEpName DefEpName)
-    (fromFlatParameterV1 $ Approve (#spender .! alice, #value .! 100))
+    (fromFlatParameterV1 $ Approve (#spender .! aliceAddr, #value .! 100))
 
   -- Transfer coins from john to alice by alice
   callFrom
-    (AddressAlias "alice")
+    alice
     tzbtc
     (TrustEpName DefEpName)
-    (fromFlatParameterV1 $ Transfer (#from .! john, #to .! alice, #value .! 15))
+    (fromFlatParameterV1 $ Transfer (#from .! johnAddr, #to .! aliceAddr, #value .! 15))
 
   -- Burn some coins from john to redeem address to burn
   callFrom
-    (AddressAlias "john")
+    john
     tzbtc
     (TrustEpName DefEpName)
-    (fromFlatParameterV1 $ Transfer (#from .! john, #to .! admin, #value .! 7))
+    (fromFlatParameterV1 $ Transfer (#from .! johnAddr, #to .! admin, #value .! 7))
 
   -- Burn it
   callFrom
-    (AddressAlias "operator")
+    operator
     tzbtc
     (TrustEpName DefEpName)
     (fromFlatParameterV1 $ Burn (#value .! 7))
 
   -- Pause operations
   callFrom
-    (AddressAlias "operator")
+    operator
     tzbtc
     (TrustEpName DefEpName)
     (fromFlatParameterV1 $ Pause ())
@@ -193,87 +192,97 @@ simpleScenario requireUpgrade = uncapsNettest $ do
     (fromFlatParameterV1 $ Unpause ())
 
   -- Transfer ownership
-  newOwnerAddress <- newAddress "newOwner"
+  (newOwner, newOwnerAddr) <- newAddress' "newOwner"
   callFrom
     (AddressAlias "nettest")
     tzbtc
     (TrustEpName DefEpName)
-    (fromFlatParameterV1 $ TransferOwnership (#newOwner .! newOwnerAddress))
+    (fromFlatParameterV1 $ TransferOwnership (#newOwner .! newOwnerAddr))
 
   -- Accept ownership
   callFrom
-    (AddressAlias "newOwner")
+    newOwner
     tzbtc
     (TrustEpName DefEpName)
     (fromFlatParameterV1 $ AcceptOwnership ())
 
   -- Make an anonymous address
-  guest <- newAddress "guest"
+  (guest, _) <- newAddress' "guest"
 
   -- Transfer some credits to guest for further
   -- operations.
   transfer $ TransferData
     { tdFrom = AddressResolved admin
-    , tdTo = AddressResolved guest
+    , tdTo = guest
     , tdAmount = toMutez $ 5000 * 1000 -- 5 XTZ
     , tdEntrypoint = DefEpName
     , tdParameter = ()
     }
 
   callFrom
-    (AddressAlias "guest")
+    guest
     tzbtc
     (TrustEpName DefEpName)
-    (fromFlatParameterV1 $ GetAllowance (mkView (#owner .! john, #spender .! alice ) naturalView))
+    (fromFlatParameterV1 $ GetAllowance (mkView (#owner .! johnAddr, #spender .! aliceAddr) naturalView))
 
   callFrom
-    (AddressAlias "guest")
+    guest
     tzbtc
     (TrustEpName DefEpName)
-    (fromFlatParameterV1 $ GetBalance (mkView (#owner .! john) naturalView))
+    (fromFlatParameterV1 $ GetBalance (mkView (#owner .! johnAddr) naturalView))
 
   callFrom
-    (AddressAlias "guest")
+    guest
     tzbtc
     (TrustEpName DefEpName)
     (fromFlatParameterV1 $ GetTotalSupply (mkView () naturalView))
 
   callFrom
-    (AddressAlias "guest")
+    guest
     tzbtc
     (TrustEpName DefEpName)
     (fromFlatParameterV1 $ GetTotalMinted (mkView () naturalView))
 
   callFrom
-    (AddressAlias "guest")
+    guest
     tzbtc
     (TrustEpName DefEpName)
     (fromFlatParameterV1 $ GetTotalBurned (mkView () naturalView))
 
   callFrom
-    (AddressAlias "guest")
+    guest
     tzbtc
     (TrustEpName DefEpName)
     (fromFlatParameterV1 $ GetTokenMetadata (mkView [0] tokenMetadatasView))
 
   callFrom
-    (AddressAlias "guest")
+    guest
     tzbtc
     (TrustEpName DefEpName)
     (fromFlatParameterV1 $ GetOwner (mkView () addressView))
 
   callFrom
-    (AddressAlias "guest")
+    guest
     tzbtc
     (TrustEpName DefEpName)
     (fromFlatParameterV1 $ GetRedeemAddress (mkView () addressView))
 
-runNettestTzbtcClient :: MorleyClientConfig -> MorleyClientEnv -> NettestScenario IO -> IO ()
-runNettestTzbtcClient config env scenario = do
-  scenario $ nettestImplTzbtcClient config env
+-- | This is a version of 'newAddress' that returns both an address and an alias.
+--
+-- This is necessary, because tezos-client key revelaing does not work on
+-- addresses somehow.
+newAddress' :: MonadNettest caps base m => TezosClient.Alias -> m (AddressOrAlias, Address)
+newAddress' alias = do
+  addr <- newAddress alias
+  prefixedAlias <- getAlias (AddressResolved addr)
+  return (AddressAlias prefixedAlias, addr)
 
-nettestImplTzbtcClient :: MorleyClientConfig -> MorleyClientEnv -> NettestImpl IO
-nettestImplTzbtcClient config env = NettestImpl
+runNettestTzbtcClient :: MorleyClientEnv -> NettestScenario IO -> IO ()
+runNettestTzbtcClient env scenario = do
+  scenario $ nettestImplTzbtcClient env
+
+nettestImplTzbtcClient :: MorleyClientEnv -> NettestImpl IO
+nettestImplTzbtcClient env = NettestImpl
   { niOriginateUntyped = tzbtcClientOriginate
   , niTransfer = tzbtcClientTransfer
   , ..
@@ -390,20 +399,13 @@ nettestImplTzbtcClient config env = NettestImpl
                   , "--contract-addr", toString (formatAddressOrAlias tdTo)
                   ]
 
-    -- Names visible to users of nettest will be prefixed with
-    -- "<nettest>" and optional scenario name before being passed to
-    -- 'tezos-client'.
-    prefixName :: Text -> Text
-    prefixName name
-      | name == "nettest" = name
-      | otherwise =
-        T.intercalate "." $ "nettest" : catMaybes [mccAliasPrefix config, Just name]
-
     formatAddressOrAlias :: AddressOrAlias -> Text
     formatAddressOrAlias = \case
       AddressResolved addr -> formatAddress addr
-      AddressAlias name -> prefixName name
-
+      AddressAlias name ->
+        -- we rely on alias to be already prefixed
+        -- in order not to diverge with nettest primitives taken from Morley
+        name
 
 -- | Write something to stderr.
 putErrLn :: Print a => a -> IO ()
