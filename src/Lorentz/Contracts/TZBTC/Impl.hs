@@ -29,8 +29,6 @@ module Lorentz.Contracts.TZBTC.Impl
   , unpause
   ) where
 
-import Prelude hiding (drop, get, some, swap, (>>))
-
 import Fmt (Builder)
 
 import Util.Markdown (mdTicked)

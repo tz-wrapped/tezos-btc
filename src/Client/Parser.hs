@@ -30,7 +30,6 @@ import Text.Megaparsec.Char (eol, newline, printChar, space)
 import Text.Megaparsec.Char.Lexer (lexeme, scientific, symbol)
 import Text.Megaparsec.Error (ParseErrorBundle, ShowErrorComponent(..))
 
-import Lorentz.Contracts.Metadata
 import Lorentz.Contracts.Multisig
 import Morley.Micheline (TezosInt64)
 import Tezos.Address (Address, parseAddress)

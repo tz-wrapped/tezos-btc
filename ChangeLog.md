@@ -13,6 +13,7 @@ Unreleased
 * [#133](https://github.com/tz-wrapped/tezos-btc/pull/133)
   + Morley dependency updated.
   + Types appearing in the parameter and storage of the contract now have field annotations.
+    + Some existing type annotations are also replaced with field annotations.
   + Minor code optimizations applied.
   + Minor changes in error messages:
     + Occurrences of "EntryPoint" word are now replaced with "Entrypoint";

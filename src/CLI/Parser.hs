@@ -2,6 +2,9 @@
  -
  - SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
  -}
+
+{-# LANGUAGE ApplicativeDo #-}
+
 module CLI.Parser
   ( CmdLnArgs (..)
   , addressArgument
@@ -9,12 +12,15 @@ module CLI.Parser
   , argParser
   , mkCommandParser
   , mTextOption
+  , parseSingleTokenMetadata
   ) where
 
+import Named (Name(..), arg)
 import Options.Applicative (command, help, hsubparser, info, long, progDesc, short, switch)
 import qualified Options.Applicative as Opt
 
 import Lorentz.Contracts.Metadata
+import Michelson.Text
 import Morley.CLI
 import Tezos.Address (Address)
 import Util.CLI
@@ -118,3 +124,21 @@ mkCommandParser commandName parser desc =
 
 addressArgument :: String -> Opt.Parser Address
 addressArgument hInfo = mkCLArgumentParser Nothing (#help .! hInfo)
+
+-- | Parse `TokenMetadata` for a single token, with no extras
+parseSingleTokenMetadata :: Opt.Parser TokenMetadata
+parseSingleTokenMetadata = do
+  token_id <-
+    pure singleTokenTokenId
+  symbol <-
+    arg (Name @"token-symbol") <$> namedParser (Just [mt|TZBTC|])
+      "Token symbol, as described in TZIP-12."
+  name <-
+    arg (Name @"token-name") <$> namedParser (Just [mt|Tezos BTC|])
+      "Token name, as in TZIP-12."
+  decimals <-
+    arg (Name @"token-decimals") <$> namedParser (Just 0)
+      "Number of decimals token uses, as in TZIP-12."
+  extras <-
+    pure mempty
+  return TokenMetadata{..}
