@@ -12,11 +12,7 @@ module Lorentz.Contracts.Metadata
   , singleTokenTokenId
   ) where
 
-import Prelude hiding (drop, map, (>>))
-
 import Lorentz
-
-import Michelson.Text.Orphans ()
 
 import Lorentz.Contracts.Spec.FA2Interface (TokenId, TokenMetadata(..))
 
