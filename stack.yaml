@@ -15,7 +15,6 @@ extra-deps:
     # ^ CI cannot use ssh, so we use http clone here
   commit:
     9c4583f67fc00738b6f2b6701ce56b4c79f3a55f  # master
-    #nix-sha256: ?
   subdirs:
     - code/morley-multisig
     - code/morley-client
@@ -52,4 +51,3 @@ extra-deps:
 - cryptonite-0.27
 - git: https://github.com/int-index/caps.git
   commit: c5d61837eb358989b581ed82b1e79158c4823b1b
-  # nix-sha256: 0r1zqa559gaxavsd8zynlpa2c5hi2qc20n8s4bhcdaw36hasg3kr
