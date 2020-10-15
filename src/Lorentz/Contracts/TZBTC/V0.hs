@@ -83,7 +83,7 @@ data SafeEntrypointKind
 
 instance DocItem (DEntrypoint UpgradeableEntrypointKind) where
   docItemPos = 1002
-  docItemSectionName = Just "Top-level entry points of upgradeable contract."
+  docItemSectionName = Just "Top-level entry points of upgradeable contract"
   docItemSectionDescription = Just
     "These are entry points of the contract."
   docItemToMarkdown = diEntrypointToMarkdown
