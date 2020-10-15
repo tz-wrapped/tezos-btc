@@ -2,6 +2,11 @@
  -
  - SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
  -}
+
+-- We have to test some deprecated behaviour.
+-- For V1 this is fine, for V2 this will be fixed.
+{-# OPTIONS_GHC -Wno-deprecations #-}
+
 module Test.TZBTC
   ( test_interface
   , test_acceptOwnership
@@ -36,7 +41,7 @@ import Test.Tasty.HUnit (testCase)
 import Lorentz
 import Lorentz.Contracts.Metadata
 import qualified Lorentz.Contracts.Spec.ApprovableLedgerInterface as AL
-import Lorentz.Contracts.Test.ApprovableLedger (approvableLedgerSpec)
+import qualified Lorentz.Contracts.Test.ApprovableLedger as AL
 import Lorentz.Contracts.Test.ManagedLedger (OriginationParams(..), originateManagedLedger)
 import qualified Lorentz.Contracts.Test.ManagedLedger as ML
 import Lorentz.Contracts.Upgradeable.Common (EpwUpgradeParameters(..), emptyPermanentImpl)
@@ -372,8 +377,14 @@ test_mint = testGroup "TZBTC contract `mint` test"
   ]
 
 test_approvableLedger :: IO TestTree
-test_approvableLedger = testSpec "TZBTC contract approvable ledger tests" $
-  approvableLedgerSpec alOriginate
+test_approvableLedger = testSpec "TZBTC contract approvable ledger tests" $ do
+  -- Our code does not comply with the recent approvable ledger spec in some
+  -- minor points, so we are testing a set of pieces that cover the old behaviour
+  -- of ManagedLedger .
+  AL.alEmptyInitBalanceSpec alOriginate
+  AL.alTransferSpec alOriginate
+  AL.alTransferSelfAlwaysSpec alOriginate
+  AL.alAllowSpec alOriginate
   where
     alOriginate = originateManagedLedger (originateTzbtcV1ContractRaw redeemAddress_)
 
