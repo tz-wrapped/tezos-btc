@@ -19,7 +19,7 @@ import Util.Named
 
 import Lorentz.Contracts.TZBTC.Types
   (AcceptOwnershipParams, ApproveParams, BurnParams, GetAllowanceParams, GetBalanceParams,
-  MintParams, OneShotUpgradeParameters, OperatorParams, SetRedeemAddressParams,
+  MintParams, OperatorParams, SetRedeemAddressParams,
   TransferOwnershipParams, TransferParams)
 import qualified Lorentz.Contracts.TZBTC.Types as TZBTC
 

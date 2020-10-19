@@ -2,6 +2,11 @@
  -
  - SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
  -}
+
+-- We have to test some deprecated behaviour.
+-- For V1 this is fine, for V2 this will be fixed.
+{-# OPTIONS_GHC -Wno-deprecations #-}
+
 module Test.TZBTC
   ( test_interface
   , test_acceptOwnership
@@ -27,38 +32,36 @@ module Test.TZBTC
 import Data.Coerce (coerce)
 import qualified Data.Map as M
 import qualified Data.Set as Set
+import qualified Data.Text.IO.Utf8 as Utf8
 import Test.HUnit (Assertion, assertFailure)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.Hspec (testSpec)
 import Test.Tasty.HUnit (testCase)
 
 import Lorentz
-import Lorentz.Contracts.ManagedLedger.Test
-  (OriginationParams(..), approvableLedgerSpec, originateManagedLedger)
-import qualified Lorentz.Contracts.ManagedLedger.Test as ML
 import Lorentz.Contracts.Metadata
 import qualified Lorentz.Contracts.Spec.ApprovableLedgerInterface as AL
+import qualified Lorentz.Contracts.Test.ApprovableLedger as AL
+import Lorentz.Contracts.Test.ManagedLedger (OriginationParams(..), originateManagedLedger)
+import qualified Lorentz.Contracts.Test.ManagedLedger as ML
 import Lorentz.Contracts.Upgradeable.Common (EpwUpgradeParameters(..), emptyPermanentImpl)
 import Lorentz.Test
-import Lorentz.Test.Unit (expectContractEntrypoints)
 import Lorentz.UStore.Migration
 import Michelson.Runtime (parseExpandContract)
-import Michelson.Test.Unit (matchContractEntryPoints, mkEntrypointsMap)
-import Michelson.Typed.Convert (convertFullContract)
+import Michelson.Test.Unit (matchContractEntrypoints, mkEntrypointsMap)
+import Michelson.Typed.Convert (convertContract)
 import qualified Michelson.Untyped as U
-import Util.IO
 import Util.Named
 
 import Lorentz.Contracts.TZBTC
-import Lorentz.Contracts.TZBTC.V0 (TZBTCv0)
 
 {-# ANN module ("HLint: ignore Reduce duplication" :: Text) #-}
 
 -- | Convert sane parameter to parameter of this contract.
 -- Helpers to check storage state.
 checkStorage
-  :: (StoreTemplateV1 -> Either ValidationError ())
-  -> TZBTCStorage -> Either ValidationError ()
+  :: (StoreTemplateV1 -> Either TestError ())
+  -> TZBTCStorage -> Either TestError ()
 checkStorage fn st =
   case ustoreDecomposeFull $ dataMap st of
     Right template -> fn template
@@ -68,11 +71,11 @@ checkField
   :: (StoreTemplateV1 -> UStoreField a)
   -> (a -> Bool)
   -> Text
-  -> (TZBTCStorage -> Either ValidationError ())
-checkField ef cf ms = checkStorage (\st ->
+  -> (TZBTCStorage -> Either TestError ())
+checkField ef cf msg = checkStorage (\st ->
   if cf $ unUStoreField $ ef st
   then Right ()
-  else Left $ CustomValidationError ms)
+  else Left $ CustomTestError msg)
 
 dummyV1Parameters :: Address -> Map Address Natural -> V1Parameters
 dummyV1Parameters redeem balances = V1Parameters
@@ -138,13 +141,14 @@ initialSupply = 500
 -- test fails. If the tzbtc parameter has to be changed, then this test should
 -- be fixed by editing the `tzbtc-parameter-entrypoints-ref.tz` file.
 entrypointsRef :: IO (Map EpName U.Type)
-entrypointsRef = mkEntrypointsMap <$> tzbtcParameterType
+entrypointsRef = (\(U.ParameterType ty _) -> mkEntrypointsMap ty) <$> tzbtcParameterType
+  --- looking into ParameterType ^ should've become unnecessary in the recent morley
   where
-    tzbtcParameterType :: IO U.Type
+    tzbtcParameterType :: IO U.ParameterType
     tzbtcParameterType = do
-      code <- readFileUtf8 "./test/resources/tzbtc-parameter-entrypoints-ref.mtz"
+      code <- Utf8.readFile "./test/resources/tzbtc-parameter-entrypoints-ref.mtz"
       case parseExpandContract Nothing code of
-        Right c -> pure $ U.para c
+        Right c -> pure $ U.contractParameter c
         Left e -> error ("Error in parsing reference contract paramter:" <> show e)
 
 -- Tests
@@ -158,8 +162,8 @@ test_interface = testGroup "TZBTC consistency test"
   , testCase
       "Has the expected interface of TZBTC contract" $ do
         reference <- entrypointsRef
-        let untypedTzbtc = convertFullContract . compileLorentzContract $ tzbtcContract
-        case matchContractEntryPoints untypedTzbtc reference of
+        let untypedTzbtc = convertContract . compileLorentzContract $ tzbtcContract
+        case matchContractEntrypoints untypedTzbtc reference of
           Right _ -> pass
           Left missing -> do
             assertFailure $ "Some entrypoints were not found:" <> (show missing)
@@ -171,20 +175,18 @@ test_addOperator = testGroup "TZBTC contract `addOperator` test"
       "Call to `addOperator` from random address gets denied with `senderIsNotOwner` error." $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
-        withSender bob $ do
+        err <- expectError . withSender bob $ do
           lCallDef c (fromFlatParameter $ AddOperator (#operator .! newOperatorAddress))
-        validate . Left $
-          lExpectCustomError_ #senderIsNotOwner
+        lExpectCustomError_ #senderIsNotOwner err
   , testCase
       "Call to `addOperator` from owner adds operator to the set." $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
         withSender ownerAddress $ do
           lCallDef c (fromFlatParameter $ AddOperator (#operator .! newOperatorAddress))
-        validate . Right $
-          lExpectStorageUpdate c
-            (checkField (operators . stCustom)
-              (Set.member newOperatorAddress) "New operator not found")
+        lExpectStorageUpdate c $
+          checkField (operators . stCustom)
+            (Set.member newOperatorAddress) "New operator not found"
   ]
 
 test_removeOperator :: TestTree
@@ -193,10 +195,9 @@ test_removeOperator = testGroup "TZBTC contract `addOperator` test"
       "Call to `removeOperator` from random address gets denied with `senderIsNotOwner` error." $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
-        withSender bob $ do
+        err <- expectError . withSender bob $ do
           lCallDef c (fromFlatParameter $ RemoveOperator (#operator .! newOperatorAddress))
-        validate . Left $
-          lExpectCustomError_ #senderIsNotOwner
+        lExpectCustomError_ #senderIsNotOwner err
 
   , testCase
       "Call to `removeOperator` from owner removes operator from the set." $
@@ -204,16 +205,14 @@ test_removeOperator = testGroup "TZBTC contract `addOperator` test"
         c <- originateTzbtcV1Contract
         withSender ownerAddress $ do
           lCallDef c (fromFlatParameter $ AddOperator (#operator .! newOperatorAddress))
-        validate . Right $
-          lExpectStorageUpdate c
-            (checkField (operators . stCustom)
-              (Set.member newOperatorAddress) "New operator not found")
+        lExpectStorageUpdate c
+          (checkField (operators . stCustom)
+            (Set.member newOperatorAddress) "New operator not found")
         withSender ownerAddress $ do
           lCallDef c (fromFlatParameter $ RemoveOperator (#operator .! newOperatorAddress))
-        validate . Right $
-          lExpectStorageUpdate c
-            (checkField (operators . stCustom)
-              (Prelude.not . Set.member newOperatorAddress) "Unexpectedly found operator")
+        lExpectStorageUpdate c
+          (checkField (operators . stCustom)
+            (Prelude.not . Set.member newOperatorAddress) "Unexpectedly found operator")
   ]
 
 test_transferOwnership :: TestTree
@@ -222,20 +221,18 @@ test_transferOwnership = testGroup "TZBTC contract `transferOwnership` test"
       "Call to `transferOwnership` from random address gets denied with `senderIsNotOwner` error." $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
-        withSender bob $ do
+        err <- expectError . withSender bob $ do
           lCallDef c (fromFlatParameter $ TransferOwnership (#newOwner .! replaceAddress))
-        validate . Left $
-          lExpectCustomError_ #senderIsNotOwner
+        lExpectCustomError_ #senderIsNotOwner err
   , testCase
       "Call to `transferOwnership` from owner address gets denied with `senderIsNotOwner` error." $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
         withSender ownerAddress $ do
           lCallDef c (fromFlatParameter $ TransferOwnership (#newOwner .! replaceAddress))
-        validate . Right $
-          lExpectStorageUpdate c
-            (checkField (newOwner . stCustom) (== Just replaceAddress)
-              "Expected `newOwner` not found")
+        lExpectStorageUpdate c
+          (checkField (newOwner . stCustom) (== Just replaceAddress)
+            "Expected `newOwner` not found")
   ]
 
 test_acceptOwnership :: TestTree
@@ -244,20 +241,18 @@ test_acceptOwnership = testGroup "TZBTC contract `acceptOwnership` test"
       "Call to `acceptOwnership` to non-transfering contract gets denied with `notInTransferOwnershipMode` error " $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
-        withSender bob $ do
+        err <- expectError . withSender bob $ do
           lCallDef c (fromFlatParameter $ AcceptOwnership ())
-        validate . Left $
-          lExpectCustomError_ #notInTransferOwnershipMode
+        lExpectCustomError_ #notInTransferOwnershipMode err
   , testCase
       "Call to `acceptOwnership` to transferring contract from random address gets denied with `senderIsNotNewOwner` error." $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
         withSender ownerAddress $ do
           lCallDef c (fromFlatParameter $ TransferOwnership (#newOwner .! replaceAddress))
-        withSender bob $ do
+        err <- expectError . withSender bob $ do
           lCallDef c (fromFlatParameter $ AcceptOwnership ())
-        validate . Left $
-          lExpectCustomError_ #senderIsNotNewOwner
+        lExpectCustomError_ #senderIsNotNewOwner err
   , testCase
       "Call to `acceptOwnership` to transferring contract from random address gets denied with `senderIsNotNewOwner` error." $
       integrationalTestExpectation $ do
@@ -266,18 +261,16 @@ test_acceptOwnership = testGroup "TZBTC contract `acceptOwnership` test"
           lCallDef c (fromFlatParameter $ TransferOwnership (#newOwner .! replaceAddress))
         withSender replaceAddress $ do
           lCallDef c (fromFlatParameter $ AcceptOwnership ())
-        validate . Right $
-          lExpectStorageUpdate c (checkField owner (== replaceAddress)  "Expected `owner` not found")
+        lExpectStorageUpdate c (checkField owner (== replaceAddress)  "Expected `owner` not found")
   , testCase
       "Call to `acceptOwnership` to transferring contract from current address gets denied with `senderIsNotNewOwner` error." $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
         withSender ownerAddress $ do
           lCallDef c (fromFlatParameter $ TransferOwnership (#newOwner .! replaceAddress))
-        withSender ownerAddress $ do
+        err <- expectError . withSender ownerAddress $ do
           lCallDef c (fromFlatParameter $ AcceptOwnership ())
-        validate . Left $
-          lExpectCustomError_ #senderIsNotNewOwner
+        lExpectCustomError_ #senderIsNotNewOwner err
   ]
 
 test_setRedeemAddress :: TestTree
@@ -286,20 +279,18 @@ test_setRedeemAddress = testGroup "TZBTC contract `setRedeemAddress` test"
       "Call to `setRedeemAddress` from random address is denied with `SenderIsNotOwner` error" $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
-        withSender bob $ do
+        err <- expectError . withSender bob $ do
           lCallDef c (fromFlatParameter $ SetRedeemAddress (#redeem .! replaceAddress))
-        validate . Left $
-          lExpectCustomError_ #senderIsNotOwner
+        lExpectCustomError_ #senderIsNotOwner err
   , testCase
       "Call to `setRedeemAddress` sets redeem address correctly" $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
         withSender ownerAddress $ do
           lCallDef c (fromFlatParameter $ SetRedeemAddress (#redeem .! replaceAddress))
-        validate . Right $
-          lExpectStorageUpdate c
-            (checkField
-              (redeemAddress . stCustom) (== replaceAddress) "Unexpected redeem address")
+        lExpectStorageUpdate c
+          (checkField
+            (redeemAddress . stCustom) (== replaceAddress) "Unexpected redeem address")
   ]
 
 test_burn :: TestTree
@@ -308,18 +299,16 @@ test_burn = testGroup "TZBTC contract `burn` test"
       "Call to `burn` from random address is denied with `SenderIsNotOperator` error" $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
-        withSender bob $ do
+        err <- expectError . withSender bob $ do
           lCallDef c (fromFlatParameter $ Burn (#value .! 100))
-        validate . Left $
-          lExpectCustomError_ #senderIsNotOperator
+        lExpectCustomError_ #senderIsNotOperator err
   , testCase
       "Call to `burn` from owner address is denied with `SenderIsNotOperator` error" $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
-        withSender ownerAddress $ do
+        err <- expectError . withSender ownerAddress $ do
           lCallDef c (fromFlatParameter $ Burn (#value .! 100))
-        validate . Left $
-          lExpectCustomError_ #senderIsNotOperator
+        lExpectCustomError_ #senderIsNotOperator err
   , testCase
       "Call to `burn` from operator subtracts from redeemAddress and update bookkeeping fields" $
       integrationalTestExpectation $ do
@@ -338,14 +327,13 @@ test_burn = testGroup "TZBTC contract `burn` test"
         lCallDef c $ fromFlatParameter $ GetTotalBurned (mkView () consumer)
         lCallDef c $ fromFlatParameter $ GetTotalSupply (mkView () consumer)
         lCallDef c $ fromFlatParameter $ GetTotalMinted (mkView () consumer)
-        validate . Right $
-          lExpectViewConsumerStorage consumer
-            [ initialSupply
-            , initialSupply - 130
-            , 130
-            , initialSupply - 130
-            , initialSupply
-            ]
+        lExpectViewConsumerStorage consumer
+          [ initialSupply
+          , initialSupply - 130
+          , 130
+          , initialSupply - 130
+          , initialSupply
+          ]
   ]
 
 test_mint :: TestTree
@@ -354,18 +342,16 @@ test_mint = testGroup "TZBTC contract `mint` test"
       "Call to `mint` from random address is denied with `SenderIsNotOperator` error" $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
-        withSender bob $ do
+        err <- expectError . withSender bob $ do
           lCallDef c (fromFlatParameter $ Mint (#to .! alice, #value .! 100))
-        validate . Left $
-          lExpectCustomError_ #senderIsNotOperator
+        lExpectCustomError_ #senderIsNotOperator err
   , testCase
       "Call to `mint` from owner address is denied with `SenderIsNotOperator` error" $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
-        withSender ownerAddress $ do
+        err <- expectError . withSender ownerAddress $ do
           lCallDef c (fromFlatParameter $ Mint (#to .! alice, #value .! 100))
-        validate . Left $
-          lExpectCustomError_ #senderIsNotOperator
+        lExpectCustomError_ #senderIsNotOperator err
   , testCase
       "Call to `mint` from operator adds to account and update bookkeeping fields" $
       integrationalTestExpectation $ do
@@ -382,18 +368,23 @@ test_mint = testGroup "TZBTC contract `mint` test"
         lCallDef c $ fromFlatParameter $ GetTotalBurned (mkView () consumer)
         lCallDef c $ fromFlatParameter $ GetTotalSupply (mkView () consumer)
         lCallDef c $ fromFlatParameter $ GetTotalMinted (mkView () consumer)
-        validate . Right $
-          lExpectViewConsumerStorage consumer
-            [ 130
-            , 0
-            , initialSupply + 130
-            , initialSupply + 130
-            ]
+        lExpectViewConsumerStorage consumer
+          [ 130
+          , 0
+          , initialSupply + 130
+          , initialSupply + 130
+          ]
   ]
 
 test_approvableLedger :: IO TestTree
-test_approvableLedger = testSpec "TZBTC contract approvable ledger tests" $
-  approvableLedgerSpec alOriginate
+test_approvableLedger = testSpec "TZBTC contract approvable ledger tests" $ do
+  -- Our code does not comply with the recent approvable ledger spec in some
+  -- minor points, so we are testing a set of pieces that cover the old behaviour
+  -- of ManagedLedger .
+  AL.alEmptyInitBalanceSpec alOriginate
+  AL.alTransferSpec alOriginate
+  AL.alTransferSelfAlwaysSpec alOriginate
+  AL.alAllowSpec alOriginate
   where
     alOriginate = originateManagedLedger (originateTzbtcV1ContractRaw redeemAddress_)
 
@@ -403,18 +394,16 @@ test_pause = testGroup "TZBTC contract `pause` test"
       "Call to `pause` from random address is denied with `SenderIsNotOperator` error" $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
-        withSender bob $ do
+        err <- expectError . withSender bob $ do
           lCallDef c (fromFlatParameter $ Pause ())
-        validate . Left $
-          lExpectCustomError_ #senderIsNotOperator
+        lExpectCustomError_ #senderIsNotOperator err
   , testCase
       "Call to `pause` from owner address is denied with `SenderIsNotOperator` error" $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
-        withSender ownerAddress $ do
+        err <- expectError . withSender ownerAddress $ do
           lCallDef c (fromFlatParameter $ Pause ())
-        validate . Left $
-          lExpectCustomError_ #senderIsNotOperator
+        lExpectCustomError_ #senderIsNotOperator err
   , testCase
       "Call to `pause` from operator sets the paused status" $
       integrationalTestExpectation $ do
@@ -426,9 +415,8 @@ test_pause = testGroup "TZBTC contract `pause` test"
         -- Call pause
         withSender newOperatorAddress $ lCallDef c (fromFlatParameter $ Pause ())
 
-        validate . Right $
-          lExpectStorageUpdate c
-            (checkField (paused . stCustom) id "Unexpected Paused status")
+        lExpectStorageUpdate c
+          (checkField (paused . stCustom) id "Unexpected Paused status")
   ]
 
 test_unpause :: TestTree
@@ -437,10 +425,9 @@ test_unpause = testGroup "TZBTC contract `unpause` test"
       "Call to `unpause` from random address is denied with `SenderIsNotOwner` error" $
       integrationalTestExpectation $ do
         c <- originateTzbtcV1Contract
-        withSender bob $ do
+        err <- expectError . withSender bob $ do
           lCallDef c (fromFlatParameter $ Unpause ())
-        validate . Left $
-          lExpectCustomError_ #senderIsNotOwner
+        lExpectCustomError_ #senderIsNotOwner err
   , testCase
       "Call to `unpause` from operator address is denied with `SenderIsNotOwner` error" $
       integrationalTestExpectation $ do
@@ -448,10 +435,9 @@ test_unpause = testGroup "TZBTC contract `unpause` test"
         -- Add an operator
         withSender ownerAddress $ do
           lCallDef c (fromFlatParameter $ AddOperator (#operator .! newOperatorAddress))
-        withSender newOperatorAddress $ do
+        err <- expectError . withSender newOperatorAddress $
           lCallDef c (fromFlatParameter $ Unpause ())
-        validate . Left $
-          lExpectCustomError_ #senderIsNotOwner
+        lExpectCustomError_ #senderIsNotOwner err
   , testCase
       "Call to `unpause` from owner unsets the paused status" $
       integrationalTestExpectation $ do
@@ -464,16 +450,14 @@ test_unpause = testGroup "TZBTC contract `unpause` test"
         -- Pause the contract
         withSender newOperatorAddress $ lCallDef c (fromFlatParameter $ Pause ())
 
-        validate . Right $
-          lExpectStorageUpdate c
-            (checkField (paused . stCustom) id "Unexpected Paused status")
+        lExpectStorageUpdate c
+          (checkField (paused . stCustom) id "Unexpected Paused status")
 
         -- Call unpause
         withSender ownerAddress $ lCallDef c (fromFlatParameter $ Unpause ())
 
-        validate . Right $
-          lExpectStorageUpdate c
-            (checkField (paused . stCustom) Prelude.not "Unexpected Paused status")
+        lExpectStorageUpdate c
+          (checkField (paused . stCustom) Prelude.not "Unexpected Paused status")
   ]
 
 test_bookkeeping :: TestTree
@@ -496,8 +480,7 @@ test_bookkeeping = testGroup "TZBTC contract bookkeeping views test"
           lCallDef v1 $ fromFlatParameter $ GetTotalMinted (mkView () consumer)
           lCallDef v1 $ fromFlatParameter $ GetTotalBurned (mkView () consumer)
           -- Check expectations
-          validate . Right $
-            lExpectViewConsumerStorage consumer [610, 630, 20]
+          lExpectViewConsumerStorage consumer [610, 630, 20]
 
           -- Check redeem address getter (we need another consumer
           -- because the type is different).
@@ -505,8 +488,7 @@ test_bookkeeping = testGroup "TZBTC contract bookkeeping views test"
             lCallDef v1 (fromFlatParameter $ SetRedeemAddress (#redeem .! newOperatorAddress))
           consumerAddr <- lOriginateEmpty contractConsumer "consumer"
           lCallDef v1 $ fromFlatParameter $ GetRedeemAddress (mkView () consumerAddr)
-          validate . Right $
-            lExpectViewConsumerStorage consumerAddr [newOperatorAddress]
+          lExpectViewConsumerStorage consumerAddr [newOperatorAddress]
   ]
 
 unit_get_meta :: Assertion
@@ -514,8 +496,7 @@ unit_get_meta = integrationalTestExpectation $ do
   v1 <- originateTzbtcV1Contract
   consumer <- lOriginateEmpty contractConsumer "consumer"
   lCallDef v1 $ fromFlatParameter $ GetTokenMetadata (mkView [singleTokenTokenId] consumer)
-  validate . Right $
-    lExpectViewConsumerStorage consumer [[defaultTZBTCMetadata]]
+  lExpectViewConsumerStorage consumer [[defaultTZBTCMetadata]]
 
 test_documentation :: [TestTree]
 test_documentation = runDocTests testLorentzDoc (buildLorentzDoc tzbtcDoc)

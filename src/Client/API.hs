@@ -15,11 +15,9 @@ module Client.API
   , runOperation
   ) where
 
-import Servant.API
-  (Capture, Get, JSON, Post, ReqBody, QueryParam, (:>), (:<|>)(..))
+import Morley.Micheline (Expression, TezosInt64)
+import Servant.API ((:<|>)(..), (:>), Capture, Get, JSON, Post, QueryParam, ReqBody)
 import Servant.Client (ClientM, client)
-import Tezos.Common.Json (TezosInt64)
-import Tezos.V005.Micheline (Expression)
 
 import Michelson.Untyped (InternalByteString(..))
 

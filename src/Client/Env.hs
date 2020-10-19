@@ -9,7 +9,7 @@ module Client.Env
   , runAppM
   ) where
 
-import Tezos.Common.Json (TezosInt64)
+import Morley.Micheline (TezosInt64)
 
 import Client.Error
 import Client.Types

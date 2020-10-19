@@ -26,9 +26,13 @@ import Lorentz.Contracts.Upgradeable.Common.Interface
   (EpwUpgradeParameters(..), makeOneShotUpgradeParameters)
 import Lorentz.UStore.Migration
 
--- | Preprocessed version of V0 contract.
-tzbtcContract :: ContractCode (Parameter TZBTCv0) UStoreV0
-tzbtcContract = preprocess tzbtcContractRaw
+-- | Full V0 contract info.
+tzbtcContract :: Contract (Parameter TZBTCv0) UStoreV0
+tzbtcContract = Contract
+  { cCode = tzbtcContractRaw
+  , cDisableInitialCast = False
+  , cCompilationOptions = compilationOptions
+  }
 
 -- | Preprocessed version of contract router for V1.
 tzbtcContractRouter :: UContractRouter TZBTCv1
@@ -52,4 +56,12 @@ upgradeParameters op =
     }
 
 preprocess :: inp :-> out -> inp :-> out
-preprocess = optimizeLorentzWithConf (def { gotoValues = True })
+preprocess = optimizeLorentzWithConf optimizationOptions
+
+compilationOptions :: CompilationOptions
+compilationOptions = defaultCompilationOptions
+  { coOptimizerConf = Just optimizationOptions
+  }
+
+optimizationOptions :: OptimizerConf
+optimizationOptions = def { gotoValues = True }

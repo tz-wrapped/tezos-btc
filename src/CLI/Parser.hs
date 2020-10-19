@@ -2,6 +2,9 @@
  -
  - SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
  -}
+
+{-# LANGUAGE ApplicativeDo #-}
+
 module CLI.Parser
   ( CmdLnArgs (..)
   , addressArgument
@@ -9,13 +12,15 @@ module CLI.Parser
   , argParser
   , mkCommandParser
   , mTextOption
+  , parseSingleTokenMetadata
   ) where
 
-import Options.Applicative (command, help, hsubparser, info, long, progDesc, switch)
+import Named (Name(..), arg)
+import Options.Applicative (command, help, hsubparser, info, long, progDesc, short, switch)
 import qualified Options.Applicative as Opt
 
-import Lorentz ((:!))
 import Lorentz.Contracts.Metadata
+import Michelson.Text
 import Morley.CLI
 import Tezos.Address (Address)
 import Util.CLI
@@ -28,7 +33,7 @@ data CmdLnArgs
   | CmdPrintMultisigContract Bool Bool (Maybe FilePath)
   | CmdPrintDoc (Maybe FilePath)
   | CmdParseParameter Text
-  | CmdTestScenario ("verbose" :! Bool) ("dryRun" :! Bool)
+  | CmdTestScenario ("verbosity" :! Word) ("dryRun" :! Bool)
   | CmdMigrate
       ("version" :! Natural)
       ("redeemAddress" :! Address)
@@ -86,7 +91,9 @@ argParser = hsubparser $
     testScenarioCmd =
       (mkCommandParser
           "testScenario"
-          (CmdTestScenario <$> (#verbose <.!> verboseSwitch) <*> (#dryRun <.!> dryRunSwitch))
+          (CmdTestScenario
+             <$> (#verbosity <.!> genericLength <$> many verbositySwitch)
+             <*> (#dryRun <.!> dryRunSwitch))
           "Do smoke tests")
     migrateCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     migrateCmd =
@@ -98,9 +105,11 @@ argParser = hsubparser $
             <*> fmap (#tokenMetadata .!) parseSingleTokenMetadata
             <*> (#output <.!> outputOption))
           "Print migration scripts.")
-    verboseSwitch =
-      switch (long "verbose" <>
-              help "Verbose logging")
+    verbositySwitch =
+      Opt.flag' ()
+                (short 'v' <>
+                 long "verbose" <>
+                 help "Increase verbosity (pass several times to increase further)")
     dryRunSwitch =
       switch (long "dry-run" <>
               help "Don't run tests over a real network.")
@@ -115,3 +124,21 @@ mkCommandParser commandName parser desc =
 
 addressArgument :: String -> Opt.Parser Address
 addressArgument hInfo = mkCLArgumentParser Nothing (#help .! hInfo)
+
+-- | Parse `TokenMetadata` for a single token, with no extras
+parseSingleTokenMetadata :: Opt.Parser TokenMetadata
+parseSingleTokenMetadata = do
+  token_id <-
+    pure singleTokenTokenId
+  symbol <-
+    arg (Name @"token-symbol") <$> namedParser (Just [mt|TZBTC|])
+      "Token symbol, as described in TZIP-12."
+  name <-
+    arg (Name @"token-name") <$> namedParser (Just [mt|Tezos BTC|])
+      "Token name, as in TZIP-12."
+  decimals <-
+    arg (Name @"token-decimals") <$> namedParser (Just 0)
+      "Number of decimals token uses, as in TZIP-12."
+  extras <-
+    pure mempty
+  return TokenMetadata{..}

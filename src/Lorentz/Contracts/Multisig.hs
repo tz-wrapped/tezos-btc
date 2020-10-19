@@ -38,7 +38,7 @@ type ToSign = SM.ToSign (SafeParameter Version) (TZBTC.Parameter Version)
 
 tzbtcMultisigContract
   :: forall e.  (ErrorHandler e, Typeable e)
-  => ContractCode MSigParameter Storage
+  => Contract MSigParameter Storage
 tzbtcMultisigContract =
   SM.specializedMultisigContract
     @_

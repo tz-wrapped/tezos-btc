@@ -17,17 +17,17 @@ module Client.IO.TezosClient
   ) where
 
 import Data.Aeson (eitherDecodeStrict)
-import Data.Text as T (intercalate, length, strip)
 import Data.Scientific (FPFormat(..), Scientific, formatScientific)
+import Data.Text as T (intercalate, length, strip)
 import Servant.Client (ClientEnv, runClientM)
 import Servant.Client.Core as Servant (ClientError(..))
 import System.Exit (ExitCode(..))
 import System.Process (readProcessWithExitCode)
-import Tezos.Common.Json (TezosInt64)
 
 import Lorentz hiding (address, balance, chainId, cons, map)
 import Michelson.Untyped (InternalByteString(..))
-import Tezos.Address (Address, formatAddress, parseAddress)
+import Morley.Micheline (TezosInt64)
+import Tezos.Address (formatAddress, parseAddress)
 
 import qualified Client.API as API
 import Client.Crypto
@@ -210,7 +210,7 @@ simulateOrigination
   => Bool
   -> ClientConfig
   -> Maybe TezosInt64 -- burn cap
-  -> ContractCode param st
+  -> Contract param st
   -> st
   -> IO SimulationResult
 simulateOrigination v config mbbc_ contract_ initst = do

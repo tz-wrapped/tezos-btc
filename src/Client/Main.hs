@@ -17,7 +17,6 @@ import Options.Applicative.Help.Pretty (Doc, linebreak)
 import Lorentz hiding (address, balance, chainId, cons, map)
 import Lorentz.Contracts.Metadata
 import Lorentz.Contracts.Multisig
-import Lorentz.Macro (View(..))
 import Paths_tzbtc (version)
 import Util.Named
 import Util.TypeLits
@@ -249,7 +248,7 @@ mainProgram = do
     simpleGetter ::
       forall a name.
       ( HasStoreTemplateField a name, Buildable a
-      , NiceParameterFull a, NoExplicitDefaultEntryPoint a
+      , NiceParameterFull a, NoExplicitDefaultEntrypoint a
       ) =>
       Label name -> Text -> (View () a -> FlatParameter SomeTZBTCVersion) ->
       Maybe AddrOrAlias -> m ()

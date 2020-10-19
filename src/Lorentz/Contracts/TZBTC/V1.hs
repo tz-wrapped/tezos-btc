@@ -21,7 +21,7 @@ import qualified Data.Map as M
 
 import Lorentz
 import Lorentz.Contracts.Upgradeable.Common.Base
-import Lorentz.Contracts.Upgradeable.EntryPointWise
+import Lorentz.Contracts.Upgradeable.EntrypointWise
 import Lorentz.UStore.Haskell
 import Util.Named
 import Util.TypeTuple.Class

@@ -35,7 +35,6 @@ module Lorentz.Contracts.TZBTC
   ) where
 
 import Lorentz
-import Util.Named
 
 import Lorentz.Contracts.Metadata
 import Lorentz.Contracts.TZBTC.FlatParameter
@@ -52,10 +51,10 @@ toSafeParam _ = Nothing
 
 defaultTZBTCMetadata :: TokenMetadata
 defaultTZBTCMetadata =
-  mkTokenMetadata tokenId symbol name decimals extras
-  where
-    tokenId = #tokenId .! 0
-    symbol = #symbol .! [mt|"TZBTC"|]
-    name = #name .! [mt|"Tezos BTC"|]
-    decimals = #decimals .! 0
-    extras = #extras .! mempty
+  TokenMetadata
+    { token_id = 0
+    , symbol = [mt|"TZBTC"|]
+    , name = [mt|"Tezos BTC"|]
+    , decimals = 0
+    , extras = mempty
+    }
