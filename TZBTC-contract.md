@@ -6,7 +6,7 @@
 
 # TZBTC
 
-**Code revision:** [8cd4b8b](https://github.com/tz-wrapped/tezos-btc/commit/8cd4b8b4ca630c95d56eda418e347ef1a86d59c0) *(Mon Sep 28 16:34:20 2020 +0300)*
+**Code revision:** [625df2e](https://github.com/tz-wrapped/tezos-btc/commit/625df2e08bbe8b7de04011eecb799a2640d670eb) *(Mon Oct 19 11:28:09 2020 +0300)*
 
 
 
@@ -15,6 +15,64 @@ Basically, this contract is [FA1.2](https://gitlab.com/serokell/morley/tzip/blob
 There are two special entities for this contract:
 * `owner` -- owner of the TZBTC contract, capable in unpausing contract, adding/removing operators, transfering ownership and upgrading contract. There is only one owner of the contract.
 * `operator` -- entity which is capable in pausing the contract minting and burning tokens. There may be several operators added by the owner.
+
+## Table of contents
+
+- [Contract upgradeability](#contract-upgradeability)
+- [Storage](#storage)
+  - [Storage](#storage-Storage)
+- [Top-level entry points of upgradeable contract](#top-level-entry-points-of-upgradeable-contract)
+
+**[Definitions](#definitions)**
+
+- [Types](#types)
+  - [()](#types-lparenrparen)
+  - [(a, b)](#types-lparenacomma-brparen)
+  - [(a, b, c)](#types-lparenacomma-bcomma-crparen)
+  - [(a, b, c, d, e)](#types-lparenacomma-bcomma-ccomma-dcomma-erparen)
+  - [Address (no entrypoint)](#types-Address-lparenno-entrypointrparen)
+  - [BigMap](#types-BigMap)
+  - [Bool](#types-Bool)
+  - [ByteString](#types-ByteString)
+  - [Code (extended lambda)](#types-Code-lparenextended-lambdarparen)
+  - [Contract](#types-Contract)
+  - [Empty](#types-Empty)
+  - [Integer](#types-Integer)
+  - [List](#types-List)
+  - [Map](#types-Map)
+  - [Maybe](#types-Maybe)
+  - [MigrationScript](#types-MigrationScript)
+  - [Named entry](#types-Named-entry)
+  - [Natural](#types-Natural)
+  - [Operation](#types-Operation)
+  - [Parameter.SafeParameter](#types-Parameter.SafeParameter)
+  - [PermanentImpl](#types-PermanentImpl)
+  - [Set](#types-Set)
+  - [StorageFields](#types-StorageFields)
+  - [Text](#types-Text)
+  - [TokenMetadata](#types-TokenMetadata)
+  - [UContractRouter](#types-UContractRouter)
+  - [Upgradable parameter](#types-Upgradable-parameter)
+  - [Upgradeable storage](#types-Upgradeable-storage)
+  - [Version](#types-Version)
+  - [View](#types-View)
+- [Errors](#errors)
+  - [InternalError](#errors-InternalError)
+  - [InvalidSingleTokenId](#errors-InvalidSingleTokenId)
+  - [NotEnoughAllowance](#errors-NotEnoughAllowance)
+  - [NotEnoughBalance](#errors-NotEnoughBalance)
+  - [NotInTransferOwnershipMode](#errors-NotInTransferOwnershipMode)
+  - [SenderIsNotNewOwner](#errors-SenderIsNotNewOwner)
+  - [SenderIsNotOperator](#errors-SenderIsNotOperator)
+  - [SenderIsNotOwner](#errors-SenderIsNotOwner)
+  - [TokenOperationsArePaused](#errors-TokenOperationsArePaused)
+  - [UnsafeAllowanceChange](#errors-UnsafeAllowanceChange)
+  - [UpgContractIsMigrating](#errors-UpgContractIsMigrating)
+  - [UpgContractIsNotMigrating](#errors-UpgContractIsNotMigrating)
+  - [UpgVersionMismatch](#errors-UpgVersionMismatch)
+- [Used upgradeable storage formats](#used-upgradeable-storage-formats)
+
+
 
 ## Contract upgradeability
 
@@ -30,6 +88,8 @@ Initially originated contract has V0 which should be empty. However, it's possib
 
 ## Storage
 
+<a name="storage-Storage"></a>
+
 ---
 
 ### `Storage`
@@ -37,13 +97,15 @@ Initially originated contract has V0 which should be empty. However, it's possib
 Type which defines storage of the upgradeable contract.
 It contains UStore with data related to actual contract logic and fields which relate to upgradeability logic.
 
-**Structure:** (***dataMap*** :[`UStore`](#types-Upgradeable-storage), ***fields*** :[`StorageFields`](#types-StorageFields))
+**Structure:** 
+  * ***dataMap*** :[`UStore`](#types-Upgradeable-storage) [`Store template V0`](#ustore-template-Store-template-V0)
+  * ***fields*** :[`StorageFields`](#types-StorageFields)
 
 **Final Michelson representation:** `pair (big_map bytes bytes) (pair (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))) (pair nat bool))`
 
 
 
-## Top-level entry points of upgradeable contract.
+## Top-level entry points of upgradeable contract
 
 These are entry points of the contract.
 
@@ -55,7 +117,8 @@ This entry point is used to get contract version.
 
 **Argument:** 
   + **In Haskell:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Version`](#types-Version)
-  + **In Michelson:** `(pair unit (contract nat))`
+  + **In Michelson:** `(pair (unit %viewParam) (contract %viewCallbackTo nat))`
+    + **Example:** <span id="example-id">`Pair Unit "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <details>
   <summary><b>How to call this entrypoint</b></summary>
@@ -76,8 +139,9 @@ This entry point is used to get contract version.
 Returns the approval value between two given addresses.
 
 **Argument:** 
-  + **In Haskell:** [`View`](#types-View) (***owner*** : [`Address`](#types-Address-simplified), ***spender*** : [`Address`](#types-Address-simplified)) [`Natural`](#types-Natural)
-  + **In Michelson:** `(pair (pair (address :owner) (address :spender)) (contract nat))`
+  + **In Haskell:** [`View`](#types-View) (***owner*** : [`Address (no entrypoint)`](#types-Address-lparenno-entrypointrparen), ***spender*** : [`Address (no entrypoint)`](#types-Address-lparenno-entrypointrparen)) [`Natural`](#types-Natural)
+  + **In Michelson:** `(pair (pair %viewParam (address %owner) (address %spender)) (contract %viewCallbackTo nat))`
+    + **Example:** <span id="example-id">`Pair (Pair "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB" "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB") "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <details>
   <summary><b>How to call this entrypoint</b></summary>
@@ -101,8 +165,9 @@ Returns the approval value between two given addresses.
 Returns the balance of the address in the ledger.
 
 **Argument:** 
-  + **In Haskell:** [`View`](#types-View) (***owner*** : [`Address`](#types-Address-simplified)) [`Natural`](#types-Natural)
-  + **In Michelson:** `(pair (address :owner) (contract nat))`
+  + **In Haskell:** [`View`](#types-View) (***owner*** : [`Address (no entrypoint)`](#types-Address-lparenno-entrypointrparen)) [`Natural`](#types-Natural)
+  + **In Michelson:** `(pair (address :owner %viewParam) (contract %viewCallbackTo nat))`
+    + **Example:** <span id="example-id">`Pair "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB" "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <details>
   <summary><b>How to call this entrypoint</b></summary>
@@ -127,7 +192,8 @@ Returns total number of tokens.
 
 **Argument:** 
   + **In Haskell:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
-  + **In Michelson:** `(pair unit (contract nat))`
+  + **In Michelson:** `(pair (unit %viewParam) (contract %viewCallbackTo nat))`
+    + **Example:** <span id="example-id">`Pair Unit "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <details>
   <summary><b>How to call this entrypoint</b></summary>
@@ -152,7 +218,8 @@ This view returns the total number of minted tokens.
 
 **Argument:** 
   + **In Haskell:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
-  + **In Michelson:** `(pair unit (contract nat))`
+  + **In Michelson:** `(pair (unit %viewParam) (contract %viewCallbackTo nat))`
+    + **Example:** <span id="example-id">`Pair Unit "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <details>
   <summary><b>How to call this entrypoint</b></summary>
@@ -177,7 +244,8 @@ This view returns the total number of burned tokens.
 
 **Argument:** 
   + **In Haskell:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
-  + **In Michelson:** `(pair unit (contract nat))`
+  + **In Michelson:** `(pair (unit %viewParam) (contract %viewCallbackTo nat))`
+    + **Example:** <span id="example-id">`Pair Unit "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <details>
   <summary><b>How to call this entrypoint</b></summary>
@@ -201,8 +269,9 @@ This view returns the total number of burned tokens.
 This view returns the current contract owner.
 
 **Argument:** 
-  + **In Haskell:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Address`](#types-Address-simplified)
-  + **In Michelson:** `(pair unit (contract address))`
+  + **In Haskell:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Address (no entrypoint)`](#types-Address-lparenno-entrypointrparen)
+  + **In Michelson:** `(pair (unit %viewParam) (contract %viewCallbackTo address))`
+    + **Example:** <span id="example-id">`Pair Unit "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <details>
   <summary><b>How to call this entrypoint</b></summary>
@@ -226,8 +295,9 @@ This view returns the current contract owner.
 This view returns the redeem address.
 
 **Argument:** 
-  + **In Haskell:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Address`](#types-Address-simplified)
-  + **In Michelson:** `(pair unit (contract address))`
+  + **In Haskell:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Address (no entrypoint)`](#types-Address-lparenno-entrypointrparen)
+  + **In Michelson:** `(pair (unit %viewParam) (contract %viewCallbackTo address))`
+    + **Example:** <span id="example-id">`Pair Unit "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <details>
   <summary><b>How to call this entrypoint</b></summary>
@@ -252,7 +322,8 @@ This view returns the token metadata.
 
 **Argument:** 
   + **In Haskell:** [`View`](#types-View) ([`List`](#types-List) [`Natural`](#types-Natural)) ([`List`](#types-List) [`TokenMetadata`](#types-TokenMetadata))
-  + **In Michelson:** `(pair (list nat) (contract (list (pair nat (pair string (pair string (pair nat (map string string))))))))`
+  + **In Michelson:** `(pair (list %viewParam nat) (contract %viewCallbackTo (list (pair (nat %token_id) (pair (string %symbol) (pair (string %name) (pair (nat %decimals) (map %extras string string))))))))`
+    + **Example:** <span id="example-id">`Pair { 0 } "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <details>
   <summary><b>How to call this entrypoint</b></summary>
@@ -279,7 +350,8 @@ This entry point is used to call the safe entrypoints of the contract. Entrypoin
 
 **Argument:** 
   + **In Haskell:** [`Parameter.SafeParameter`](#types-Parameter.SafeParameter)
-  + **In Michelson:** `(or (or (or (or (pair string bytes) (pair (pair (nat :currentVersion) (nat :newVersion)) (pair (lambda :migrationScript (big_map bytes bytes) (big_map bytes bytes)) (pair (option :newCode (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))) (option :newPermCode (lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))))))) (or (pair (nat :current) (nat :new)) (lambda :migrationscript (big_map bytes bytes) (big_map bytes bytes)))) (or (or (lambda :contractcode (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))) unit) (or (pair (address :from) (pair (address :to) (nat :value))) (pair (address :spender) (nat :value))))) (or (or (or (pair (address :to) (nat :value)) (nat :value)) (or (address :operator) (address :operator))) (or (or (address :redeem) unit) (or unit (or (address :newOwner) unit)))))`
+  + **In Michelson:** `(or (or (or (or (pair string bytes) (pair (pair (nat :currentVersion) (nat :newVersion)) (pair (lambda :migrationScript (big_map bytes bytes) (big_map bytes bytes)) (pair (option :newCode (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))) (option :newPermCode (lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))))))) (or (pair (nat %current) (nat %new)) (lambda :migrationscript (big_map bytes bytes) (big_map bytes bytes)))) (or (or (lambda :contractcode (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))) unit) (or (pair (address :from) (pair (address :to) (nat :value))) (pair (address %spender) (nat %value))))) (or (or (or (pair (address %to) (nat %value)) (nat :value)) (or (address :operator) (address :operator))) (or (or (address :redeem) unit) (or unit (or (address :newOwner) unit)))))`
+    + **Example:** <span id="example-id">`Left (Left (Left (Left (Pair "hello" 0x0a))))`</span>
 
 <details>
   <summary><b>How to call this entrypoint</b></summary>
@@ -300,6 +372,7 @@ This entrypoint extracts contract code kept in storage under the corresponding n
 **Argument:** 
   + **In Haskell:** [`UParam`](#types-Upgradable-parameter)
   + **In Michelson:** `(pair string bytes)`
+    + **Example:** <span id="example-id">`Pair "hello" 0x0a`</span>
 
 <details>
   <summary><b>How to call this entrypoint</b></summary>
@@ -329,8 +402,9 @@ provided migration lambda.
 
 
 **Argument:** 
-  + **In Haskell:** (***currentVersion*** : [`Version`](#types-Version), ***newVersion*** : [`Version`](#types-Version), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript), ***newCode*** : [`Maybe`](#types-Maybe) [`UContractRouter`](#types-UContractRouter), ***newPermCode*** : [`Maybe`](#types-Maybe) [`PermanentImpl`](#types-PermanentImpl))
+  + **In Haskell:** (***currentVersion*** : [`Version`](#types-Version), ***newVersion*** : [`Version`](#types-Version), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript) [`Store template V0`](#ustore-template-Store-template-V0) [`Some`](#ustore-template-Some), ***newCode*** : [`Maybe`](#types-Maybe) [`UContractRouter`](#types-UContractRouter), ***newPermCode*** : [`Maybe`](#types-Maybe) [`PermanentImpl`](#types-PermanentImpl))
   + **In Michelson:** `(pair (pair (nat :currentVersion) (nat :newVersion)) (pair (lambda :migrationScript (big_map bytes bytes) (big_map bytes bytes)) (pair (option :newCode (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))) (option :newPermCode (lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))))))`
+    + **Example:** <span id="example-id">`Pair (Pair 0 0) (Pair { PUSH string "lambda sample"; FAILWITH } (Pair (Some { PUSH string "lambda sample"; FAILWITH }) (Some { PUSH string "lambda sample"; FAILWITH })))`</span>
 
 <details>
   <summary><b>How to call this entrypoint</b></summary>
@@ -359,7 +433,8 @@ This entry point is used to start an entrypoint wise upgrade of the contract.
 
 **Argument:** 
   + **In Haskell:** (***current*** : [`Version`](#types-Version), ***new*** : [`Version`](#types-Version))
-  + **In Michelson:** `(pair (nat :current) (nat :new))`
+  + **In Michelson:** `(pair (nat %current) (nat %new))`
+    + **Example:** <span id="example-id">`Pair 0 0`</span>
 
 <details>
   <summary><b>How to call this entrypoint</b></summary>
@@ -387,8 +462,9 @@ This entry point is used to start an entrypoint wise upgrade of the contract.
 This entry point is used to apply a storage migration script as part of an upgrade.
 
 **Argument:** 
-  + **In Haskell:** ***migrationscript*** : [`MigrationScript`](#types-MigrationScript)
+  + **In Haskell:** ***migrationscript*** : [`MigrationScript`](#types-MigrationScript) [`Store template V0`](#ustore-template-Store-template-V0) [`Some`](#ustore-template-Some)
   + **In Michelson:** `(lambda :migrationscript (big_map bytes bytes) (big_map bytes bytes))`
+    + **Example:** <span id="example-id">`{ PUSH string "lambda sample"; FAILWITH }`</span>
 
 <details>
   <summary><b>How to call this entrypoint</b></summary>
@@ -416,6 +492,7 @@ This entry point is used to set the dispatching code that calls the packed entry
 **Argument:** 
   + **In Haskell:** ***contractcode*** : [`UContractRouter`](#types-UContractRouter)
   + **In Michelson:** `(lambda :contractcode (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))`
+    + **Example:** <span id="example-id">`{ PUSH string "lambda sample"; FAILWITH }`</span>
 
 <details>
   <summary><b>How to call this entrypoint</b></summary>
@@ -474,8 +551,9 @@ In this case current number of tokens that sender is allowed to withdraw from th
 
 
 **Argument:** 
-  + **In Haskell:** (***from*** : [`Address`](#types-Address-simplified), ***to*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
+  + **In Haskell:** (***from*** : [`Address (no entrypoint)`](#types-Address-lparenno-entrypointrparen), ***to*** : [`Address (no entrypoint)`](#types-Address-lparenno-entrypointrparen), ***value*** : [`Natural`](#types-Natural))
   + **In Michelson:** `(pair (address :from) (pair (address :to) (nat :value)))`
+    + **Example:** <span id="example-id">`Pair "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB" (Pair "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB" 0)`</span>
 
 <details>
   <summary><b>How to call this entrypoint</b></summary>
@@ -507,18 +585,32 @@ In this case current number of tokens that sender is allowed to withdraw from th
 When called with `(address :spender, nat :value)`
 parameters allows `spender` account to withdraw from the sender, multiple times,
 up to the `value` amount.
-Each call of `transfer` entrypoint decreases the allowance amount on the transferred amount of tokens unless `transfer` is called with `from` account equal to sender.
+Each call of `transfer` entrypoint decreases the allowance amount on the transferred amount of
+tokens, unless `transfer` is called with `from` account equal to sender, in which case allowance
+is always ignored.
+In other terms self-approval, where 'from` is equal to sender, is redundant and will never be consumed by a 'transfer'.
 
-If this entrypoint is called again, it overwrites the current allowance
-with `value`.
+If this entrypoint is called again, it overwrites the current allowance with `value`.
 
-Changing allowance value from non-zero value to a non-zero value is
-forbidden to prevent the [corresponding attack vector](https://docs.google.com/document/d/1YLPtQxZu1UAvO9cZ1O2RPXBbT0mooh4DYKjA_jp-RLM).
+**DISCLAIMER**: this suffers from an [attack vector](https://docs.google.com/document/d/1YLPtQxZu1UAvO9cZ1O2RPXBbT0mooh4DYKjA_jp-RLM),
+that is a known issue of `ERC20` and, as a consequence, of `FA1.2` (which is
+based on it).
+It is not safe to change the approval from a non-zero value to a non-zero value.
+This is the reason why performing such a change directly is not allowed by the contract.
+However this is not enough on its own, a token holder that intends to
+safely change the allowance for `X` to `K` token must:
+1. read the current allowance `M` for `X` from the latest transaction `S`.
+2. send a transaction `T` that sets the allowance to `0`.
+3. wait for the blockchain to confirm that `T` is included.
+4. scan all transactions between `S` and `T`.
+5. calculate the allowance `N <= M` spent by `X` in those transactions.
+6. set the allowance to `K - N` iff `N < K`.
 
 
 **Argument:** 
-  + **In Haskell:** (***spender*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
-  + **In Michelson:** `(pair (address :spender) (nat :value))`
+  + **In Haskell:** (***spender*** : [`Address (no entrypoint)`](#types-Address-lparenno-entrypointrparen), ***value*** : [`Natural`](#types-Natural))
+  + **In Michelson:** `(pair (address %spender) (nat %value))`
+    + **Example:** <span id="example-id">`Pair "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB" 0`</span>
 
 <details>
   <summary><b>How to call this entrypoint</b></summary>
@@ -548,8 +640,9 @@ forbidden to prevent the [corresponding attack vector](https://docs.google.com/d
 This entry point is used mint new tokes for an account.
 
 **Argument:** 
-  + **In Haskell:** (***to*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
-  + **In Michelson:** `(pair (address :to) (nat :value))`
+  + **In Haskell:** (***to*** : [`Address (no entrypoint)`](#types-Address-lparenno-entrypointrparen), ***value*** : [`Natural`](#types-Natural))
+  + **In Michelson:** `(pair (address %to) (nat %value))`
+    + **Example:** <span id="example-id">`Pair "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB" 0`</span>
 
 <details>
   <summary><b>How to call this entrypoint</b></summary>
@@ -579,6 +672,7 @@ Burn some tokens from the `redeem` address.
 **Argument:** 
   + **In Haskell:** ***value*** : [`Natural`](#types-Natural)
   + **In Michelson:** `(nat :value)`
+    + **Example:** <span id="example-id">`0`</span>
 
 <details>
   <summary><b>How to call this entrypoint</b></summary>
@@ -608,8 +702,9 @@ The sender has to be the `operator`.
 This entry point is used to add a new operator.
 
 **Argument:** 
-  + **In Haskell:** ***operator*** : [`Address`](#types-Address-simplified)
+  + **In Haskell:** ***operator*** : [`Address (no entrypoint)`](#types-Address-lparenno-entrypointrparen)
   + **In Michelson:** `(address :operator)`
+    + **Example:** <span id="example-id">`"KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <details>
   <summary><b>How to call this entrypoint</b></summary>
@@ -637,8 +732,9 @@ The sender has to be the `owner`.
 This entry point is used to remove an operator.
 
 **Argument:** 
-  + **In Haskell:** ***operator*** : [`Address`](#types-Address-simplified)
+  + **In Haskell:** ***operator*** : [`Address (no entrypoint)`](#types-Address-lparenno-entrypointrparen)
   + **In Michelson:** `(address :operator)`
+    + **Example:** <span id="example-id">`"KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <details>
   <summary><b>How to call this entrypoint</b></summary>
@@ -666,8 +762,9 @@ The sender has to be the `owner`.
 This entry point is used to set the redeem address.
 
 **Argument:** 
-  + **In Haskell:** ***redeem*** : [`Address`](#types-Address-simplified)
+  + **In Haskell:** ***redeem*** : [`Address (no entrypoint)`](#types-Address-lparenno-entrypointrparen)
   + **In Michelson:** `(address :redeem)`
+    + **Example:** <span id="example-id">`"KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <details>
   <summary><b>How to call this entrypoint</b></summary>
@@ -697,6 +794,7 @@ This entry point is used to pause the contract.
 **Argument:** 
   + **In Haskell:** [`()`](#types-lparenrparen)
   + **In Michelson:** `unit`
+    + **Example:** <span id="example-id">`Unit`</span>
 
 <details>
   <summary><b>How to call this entrypoint</b></summary>
@@ -726,6 +824,7 @@ This entry point is used to resume the contract during a paused state.
 **Argument:** 
   + **In Haskell:** [`()`](#types-lparenrparen)
   + **In Michelson:** `unit`
+    + **Example:** <span id="example-id">`Unit`</span>
 
 <details>
   <summary><b>How to call this entrypoint</b></summary>
@@ -753,8 +852,9 @@ The sender has to be the `owner`.
 This entry point is used to transfer ownership to a new owner.
 
 **Argument:** 
-  + **In Haskell:** ***newOwner*** : [`Address`](#types-Address-simplified)
+  + **In Haskell:** ***newOwner*** : [`Address (no entrypoint)`](#types-Address-lparenno-entrypointrparen)
   + **In Michelson:** `(address :newOwner)`
+    + **Example:** <span id="example-id">`"KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <details>
   <summary><b>How to call this entrypoint</b></summary>
@@ -784,6 +884,7 @@ This entry point is used to accept ownership by a new owner.
 **Argument:** 
   + **In Haskell:** [`()`](#types-lparenrparen)
   + **In Michelson:** `unit`
+    + **Example:** <span id="example-id">`Unit`</span>
 
 <details>
   <summary><b>How to call this entrypoint</b></summary>
@@ -866,11 +967,11 @@ Tuple of size 5.
 
 
 
-<a name="types-Address-simplified"></a>
+<a name="types-Address-lparenno-entrypointrparen"></a>
 
 ---
 
-### `Address simplified`
+### `Address (no entrypoint)`
 
 This is similar to Michelson Address, but does not retain entrypoint name if it refers to a contract.
 
@@ -950,7 +1051,8 @@ Type which should never be constructed.
 
 If appears as part of entrypoint argument, this means that the entrypoint should never be called.
 
-**Structure:** [`()`](#types-lparenrparen)
+**Structure:** 
+[`()`](#types-lparenrparen)
 
 **Final Michelson representation:** `unit`
 
@@ -1011,8 +1113,10 @@ Option primitive.
 ### `MigrationScript`
 
 A code which updates storage in order to make it compliant with the new version of the contract.
+It is common to have a group of migration scripts because each of it is to be used in Tezos transaction and thus should fit into gas and operation size limits.
 
-**Structure:** ***unMigrationScript*** :[`Code`](#types-Code-lparenextended-lambdarparen) **[**[`UStore`](#types-Upgradeable-storage)**]** **[**[`UStore`](#types-Upgradeable-storage)**]**
+**Structure:** 
+[`Code`](#types-Code-lparenextended-lambdarparen) **[**[`UStore`](#types-Upgradeable-storage) [`Some`](#ustore-template-Some)**]** **[**[`UStore`](#types-Upgradeable-storage) [`Some`](#ustore-template-Some)**]**
 
 **Final Michelson representation:** `lambda (big_map bytes bytes) (big_map bytes bytes)`
 
@@ -1065,23 +1169,39 @@ Operation primitive.
 Parameter which does not have unsafe arguments, like raw `Contract p` values.
 
 **Structure:** *one of* 
-+ **Run** [`UParam`](#types-Upgradable-parameter)
-+ **Upgrade** (***currentVersion*** : [`Version`](#types-Version), ***newVersion*** : [`Version`](#types-Version), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript), ***newCode*** : [`Maybe`](#types-Maybe) [`UContractRouter`](#types-UContractRouter), ***newPermCode*** : [`Maybe`](#types-Maybe) [`PermanentImpl`](#types-PermanentImpl))
-+ **EpwBeginUpgrade** (***current*** : [`Version`](#types-Version), ***new*** : [`Version`](#types-Version))
-+ **EpwApplyMigration** (***migrationscript*** : [`MigrationScript`](#types-MigrationScript))
-+ **EpwSetCode** (***contractcode*** : [`UContractRouter`](#types-UContractRouter))
-+ **EpwFinishUpgrade** ()
-+ **Transfer** (***from*** : [`Address`](#types-Address-simplified), ***to*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
-+ **Approve** (***spender*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
-+ **Mint** (***to*** : [`Address`](#types-Address-simplified), ***value*** : [`Natural`](#types-Natural))
-+ **Burn** (***value*** : [`Natural`](#types-Natural))
-+ **AddOperator** (***operator*** : [`Address`](#types-Address-simplified))
-+ **RemoveOperator** (***operator*** : [`Address`](#types-Address-simplified))
-+ **SetRedeemAddress** (***redeem*** : [`Address`](#types-Address-simplified))
-+ **Pause** [`()`](#types-lparenrparen)
-+ **Unpause** [`()`](#types-lparenrparen)
-+ **TransferOwnership** (***newOwner*** : [`Address`](#types-Address-simplified))
-+ **AcceptOwnership** [`()`](#types-lparenrparen)
++ **Run**
+[`UParam`](#types-Upgradable-parameter)
++ **Upgrade**
+(***currentVersion*** : [`Version`](#types-Version), ***newVersion*** : [`Version`](#types-Version), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript) [`Store template V0`](#ustore-template-Store-template-V0) [`Some`](#ustore-template-Some), ***newCode*** : [`Maybe`](#types-Maybe) [`UContractRouter`](#types-UContractRouter), ***newPermCode*** : [`Maybe`](#types-Maybe) [`PermanentImpl`](#types-PermanentImpl))
++ **EpwBeginUpgrade**
+(***current*** : [`Version`](#types-Version), ***new*** : [`Version`](#types-Version))
++ **EpwApplyMigration**
+(***migrationscript*** : [`MigrationScript`](#types-MigrationScript) [`Store template V0`](#ustore-template-Store-template-V0) [`Some`](#ustore-template-Some))
++ **EpwSetCode**
+(***contractcode*** : [`UContractRouter`](#types-UContractRouter))
++ **EpwFinishUpgrade**()
++ **Transfer**
+(***from*** : [`Address (no entrypoint)`](#types-Address-lparenno-entrypointrparen), ***to*** : [`Address (no entrypoint)`](#types-Address-lparenno-entrypointrparen), ***value*** : [`Natural`](#types-Natural))
++ **Approve**
+(***spender*** : [`Address (no entrypoint)`](#types-Address-lparenno-entrypointrparen), ***value*** : [`Natural`](#types-Natural))
++ **Mint**
+(***to*** : [`Address (no entrypoint)`](#types-Address-lparenno-entrypointrparen), ***value*** : [`Natural`](#types-Natural))
++ **Burn**
+(***value*** : [`Natural`](#types-Natural))
++ **AddOperator**
+(***operator*** : [`Address (no entrypoint)`](#types-Address-lparenno-entrypointrparen))
++ **RemoveOperator**
+(***operator*** : [`Address (no entrypoint)`](#types-Address-lparenno-entrypointrparen))
++ **SetRedeemAddress**
+(***redeem*** : [`Address (no entrypoint)`](#types-Address-lparenno-entrypointrparen))
++ **Pause**
+[`()`](#types-lparenrparen)
++ **Unpause**
+[`()`](#types-lparenrparen)
++ **TransferOwnership**
+(***newOwner*** : [`Address (no entrypoint)`](#types-Address-lparenno-entrypointrparen))
++ **AcceptOwnership**
+[`()`](#types-lparenrparen)
 
 
 **Final Michelson representation:** `or (or (or (or (pair string bytes) (pair (pair nat nat) (pair (lambda (big_map bytes bytes) (big_map bytes bytes)) (pair (option (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))) (option (lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))))))) (or (pair nat nat) (lambda (big_map bytes bytes) (big_map bytes bytes)))) (or (or (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))) unit) (or (pair address (pair address nat)) (pair address nat)))) (or (or (or (pair address nat) nat) (or address address)) (or (or address unit) (or unit (or address unit))))`
@@ -1096,9 +1216,22 @@ Parameter which does not have unsafe arguments, like raw `Contract p` values.
 
 Implementation of permanent entrypoints.
 
-**Structure:** ***unPermanentImpl*** :[`Code`](#types-Code-lparenextended-lambdarparen) **[**[`Empty`](#types-Empty)**,** [`UStore`](#types-Upgradeable-storage)**]** **[**([`List`](#types-List) [`Operation`](#types-Operation), [`UStore`](#types-Upgradeable-storage))**]**
+**Structure:** 
+[`Code`](#types-Code-lparenextended-lambdarparen) **[**[`Empty`](#types-Empty)**,** [`UStore`](#types-Upgradeable-storage) [`Some`](#ustore-template-Some)**]** **[**([`List`](#types-List) [`Operation`](#types-Operation), [`UStore`](#types-Upgradeable-storage) [`Some`](#ustore-template-Some))**]**
 
 **Final Michelson representation:** `lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))`
+
+
+
+<a name="types-Set"></a>
+
+---
+
+### `Set`
+
+Set primitive.
+
+**Final Michelson representation (example):** `Set Integer` = `set int`
 
 
 
@@ -1111,7 +1244,10 @@ Implementation of permanent entrypoints.
 StorageFields of upgradeable contract.
 This type keeps general information about upgradeable contract and the logic responsible for calling entrypoints implementations kept in UStore.
 
-**Structure:** (***contractRouter*** :[`UContractRouter`](#types-UContractRouter), ***currentVersion*** :[`Version`](#types-Version), ***migrating*** :[`Bool`](#types-Bool))
+**Structure:** 
+  * ***contractRouter*** :[`UContractRouter`](#types-UContractRouter)
+  * ***currentVersion*** :[`Version`](#types-Version)
+  * ***migrating*** :[`Bool`](#types-Bool)
 
 **Final Michelson representation:** `pair (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))) (pair nat bool)`
 
@@ -1137,53 +1273,16 @@ This has to contain only ASCII characters with codes from [32; 126] range; addit
 
 ### `TokenMetadata`
 
-Type which defines metadata of the token.
+Contract's storage holding a big_map with all balances and the operators.
 
-**Structure:** (***metadata_tokenId*** :[`Natural`](#types-Natural), ***metadata_rest1*** :[`TokenMetadataRest1`](#types-TokenMetadataRest1))
+**Structure:** 
+  * ***token_id*** :[`Natural`](#types-Natural)
+  * ***symbol*** :[`Text`](#types-Text)
+  * ***name*** :[`Text`](#types-Text)
+  * ***decimals*** :[`Natural`](#types-Natural)
+  * ***extras*** :[`Map`](#types-Map) [`Text`](#types-Text) [`Text`](#types-Text)
 
 **Final Michelson representation:** `pair nat (pair string (pair string (pair nat (map string string))))`
-
-
-
-<a name="types-TokenMetadataRest1"></a>
-
----
-
-### `TokenMetadataRest1`
-
-Type which defines 1st continuation of metadata of the token.
-
-**Structure:** (***metadata_symbol*** :[`Text`](#types-Text), ***metadata_rest2*** :[`TokenMetadataRest2`](#types-TokenMetadataRest2))
-
-**Final Michelson representation:** `pair string (pair string (pair nat (map string string)))`
-
-
-
-<a name="types-TokenMetadataRest2"></a>
-
----
-
-### `TokenMetadataRest2`
-
-Type which defines 2nd continuation of metadata of the token.
-
-**Structure:** (***metadata_name*** :[`Text`](#types-Text), ***metadata_rest3*** :[`TokenMetadataRest3`](#types-TokenMetadataRest3))
-
-**Final Michelson representation:** `pair string (pair nat (map string string))`
-
-
-
-<a name="types-TokenMetadataRest3"></a>
-
----
-
-### `TokenMetadataRest3`
-
-Type which defines 3rd continuation of metadata of the token.
-
-**Structure:** (***metadata_decimals*** :[`Natural`](#types-Natural), ***metadata_extras*** :[`Map`](#types-Map) [`Text`](#types-Text) [`Text`](#types-Text))
-
-**Final Michelson representation:** `pair nat (map string string)`
 
 
 
@@ -1195,7 +1294,8 @@ Type which defines 3rd continuation of metadata of the token.
 
 Parameter dispatching logic, main purpose of this code is to pass control to an entrypoint carrying the main logic of the contract.
 
-**Structure:** ***unUContractRouter*** :[`Code`](#types-Code-lparenextended-lambdarparen) **[**([`UParam`](#types-Upgradable-parameter), [`UStore`](#types-Upgradeable-storage))**]** **[**([`List`](#types-List) [`Operation`](#types-Operation), [`UStore`](#types-Upgradeable-storage))**]**
+**Structure:** 
+[`Code`](#types-Code-lparenextended-lambdarparen) **[**([`UParam`](#types-Upgradable-parameter), [`UStore`](#types-Upgradeable-storage) [`Store template V0`](#ustore-template-Store-template-V0))**]** **[**([`List`](#types-List) [`Operation`](#types-Operation), [`UStore`](#types-Upgradeable-storage) [`Store template V0`](#ustore-template-Store-template-V0))**]**
 
 **Final Michelson representation:** `lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))`
 
@@ -1209,7 +1309,8 @@ Parameter dispatching logic, main purpose of this code is to pass control to an 
 
 This type encapsulates parameter for one of entry points. It keeps entry point name and corresponding argument serialized.
 
-**Structure:** ([`Text`](#types-Text), [`ByteString`](#types-ByteString))
+**Structure:** 
+([`Text`](#types-Text), [`ByteString`](#types-ByteString))
 
 **Final Michelson representation:** `pair string bytes`
 
@@ -1221,9 +1322,12 @@ This type encapsulates parameter for one of entry points. It keeps entry point n
 
 ### `Upgradeable storage`
 
-Storage with not hardcoded structure, which allows upgrading the contract in place. UStore is capable of storing simple fields and multiple submaps. For simple fields key is serialized field name. For submap element big_map key is serialized `(submapName, keyValue)`.
+Storage with not hardcoded structure, which allows upgrading the contract
+in place. UStore is capable of storing simple fields and multiple submaps.
 
-**Structure:** ***unUStore*** :[`BigMap`](#types-BigMap) [`ByteString`](#types-ByteString) [`ByteString`](#types-ByteString)
+
+**Structure:** 
+[`BigMap`](#types-BigMap) [`ByteString`](#types-ByteString) [`ByteString`](#types-ByteString)
 
 **Final Michelson representation:** `big_map bytes bytes`
 
@@ -1237,7 +1341,8 @@ Storage with not hardcoded structure, which allows upgrading the contract in pla
 
 Contract version.
 
-**Structure:** ***version*** :[`Natural`](#types-Natural)
+**Structure:** 
+[`Natural`](#types-Natural)
 
 **Final Michelson representation:** `nat`
 
@@ -1252,7 +1357,9 @@ Contract version.
 `View a r` accepts an argument of type `a` and callback contract which accepts `r` and returns result via calling that contract.
 Read more in [A1 conventions document](https://gitlab.com/tzip/tzip/-/blob/c42e3f0f5e73669e84e615d69bee73281572eb0a/proposals/tzip-4/tzip-4.md#view-entrypoints).
 
-**Structure (example):** `View () Integer` = ([`()`](#types-lparenrparen), [`ContractRef`](#types-Contract) [`Integer`](#types-Integer))
+**Structure (example):** `View () Integer` = 
+[`()`](#types-lparenrparen)
+[`ContractRef`](#types-Contract) [`Integer`](#types-Integer)
 
 **Final Michelson representation (example):** `View () Integer` = `pair unit (contract int)`
 
@@ -1464,4 +1571,227 @@ Provided error argument will be of type [`Natural`](#types-Natural) and stand fo
 **Representation:** `("UpgVersionMismatch", <error argument>)`.
 
 Provided error argument will be of type (***expectedCurrent*** : [`Version`](#types-Version), ***actualCurrent*** : [`Version`](#types-Version)).
+
+## Used upgradeable storage formats
+
+This section describes formats (aka _templates_) of upgradeable storages mentioned across the given document. Each format describes set of fields and virtual submaps which the storage must have.
+
+<a name="ustore-template-Some"></a>
+
+---
+
+### `Some`
+
+This is a dummy template, usually designates that any format can be used here.
+
+**Contents:** *unspecified*
+
+
+
+<a name="ustore-template-Store-template-V0"></a>
+
+---
+
+### `Store template V0`
+
+Contains entries for V0 contract storage.
+This includes administrator address which is necessary for a secure upgrade to V1.
+
+
+**Contents:** 
+* **Field** `owner`: [`Address (no entrypoint)`](#types-Address-lparenno-entrypointrparen)
+<details>
+  <summary><b>Encoding</b></summary>
+
+  + `key = pack ("owner")`
+
+  + `value = pack (<field value>)`
+
+---
+
+
+</details>
+<p>
+
+
+
+
+
+<a name="ustore-template-Store-template-V1"></a>
+
+---
+
+### `Store template V1`
+
+Contains all the storage entries for V1 contract.
+
+
+**Contents:** 
+* **Field** `owner`: [`Address (no entrypoint)`](#types-Address-lparenno-entrypointrparen)
+<details>
+  <summary><b>Encoding</b></summary>
+
+  + `key = pack ("owner")`
+
+  + `value = pack (<field value>)`
+
+---
+
+
+</details>
+<p>
+
+* **Field** `paused`: [`Bool`](#types-Bool)
+<details>
+  <summary><b>Encoding</b></summary>
+
+  + `key = pack ("paused")`
+
+  + `value = pack (<field value>)`
+
+---
+
+
+</details>
+<p>
+
+* **Field** `totalSupply`: [`Natural`](#types-Natural)
+<details>
+  <summary><b>Encoding</b></summary>
+
+  + `key = pack ("totalSupply")`
+
+  + `value = pack (<field value>)`
+
+---
+
+
+</details>
+<p>
+
+* **Field** `totalBurned`: [`Natural`](#types-Natural)
+<details>
+  <summary><b>Encoding</b></summary>
+
+  + `key = pack ("totalBurned")`
+
+  + `value = pack (<field value>)`
+
+---
+
+
+</details>
+<p>
+
+* **Field** `totalMinted`: [`Natural`](#types-Natural)
+<details>
+  <summary><b>Encoding</b></summary>
+
+  + `key = pack ("totalMinted")`
+
+  + `value = pack (<field value>)`
+
+---
+
+
+</details>
+<p>
+
+* **Field** `newOwner`: [`Maybe`](#types-Maybe) [`Address (no entrypoint)`](#types-Address-lparenno-entrypointrparen)
+<details>
+  <summary><b>Encoding</b></summary>
+
+  + `key = pack ("newOwner")`
+
+  + `value = pack (<field value>)`
+
+---
+
+
+</details>
+<p>
+
+* **Field** `operators`: [`Set`](#types-Set) [`Address (no entrypoint)`](#types-Address-lparenno-entrypointrparen)
+<details>
+  <summary><b>Encoding</b></summary>
+
+  + `key = pack ("operators")`
+
+  + `value = pack (<field value>)`
+
+---
+
+
+</details>
+<p>
+
+* **Field** `redeemAddress`: [`Address (no entrypoint)`](#types-Address-lparenno-entrypointrparen)
+<details>
+  <summary><b>Encoding</b></summary>
+
+  + `key = pack ("redeemAddress")`
+
+  + `value = pack (<field value>)`
+
+---
+
+
+</details>
+<p>
+
+* **Field** `tokenMetadata`: [`TokenMetadata`](#types-TokenMetadata)
+<details>
+  <summary><b>Encoding</b></summary>
+
+  + `key = pack ("tokenMetadata")`
+
+  + `value = pack (<field value>)`
+
+---
+
+
+</details>
+<p>
+
+* **Submap** `code`: [`Text`](#types-Text) -> [`Code`](#types-Code-lparenextended-lambdarparen) **[**([`ByteString`](#types-ByteString), [`UStore`](#types-Upgradeable-storage) [`Store template V1`](#ustore-template-Store-template-V1))**]** **[**([`List`](#types-List) [`Operation`](#types-Operation), [`UStore`](#types-Upgradeable-storage) [`Store template V1`](#ustore-template-Store-template-V1))**]**
+<details>
+  <summary><b>Encoding</b></summary>
+
+ + `key = pack (<submap key>)`
+
+ + `value = pack (<submap value>)`
+
+---
+
+
+</details>
+<p>
+
+* **Field** `fallback`: [`Code`](#types-Code-lparenextended-lambdarparen) **[**(([`Text`](#types-Text), [`ByteString`](#types-ByteString)), [`UStore`](#types-Upgradeable-storage) [`Store template V1`](#ustore-template-Store-template-V1))**]** **[**([`List`](#types-List) [`Operation`](#types-Operation), [`UStore`](#types-Upgradeable-storage) [`Store template V1`](#ustore-template-Store-template-V1))**]**
+<details>
+  <summary><b>Encoding</b></summary>
+
+  + `key = pack ("fallback")`
+
+  + `value = pack (<field value>)`
+
+---
+
+
+</details>
+<p>
+
+* **Submap** `ledger`: [`Address (no entrypoint)`](#types-Address-lparenno-entrypointrparen) -> (***balance*** : [`Natural`](#types-Natural), ***approvals*** : [`Map`](#types-Map) [`Address (no entrypoint)`](#types-Address-lparenno-entrypointrparen) [`Natural`](#types-Natural))
+<details>
+  <summary><b>Encoding</b></summary>
+
+ + `key = pack (<submap key>)`
+
+ + `value = pack (<submap value>)`
+
+---
+
+
+</details>
+<p>
 
