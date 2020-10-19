@@ -20,11 +20,10 @@ module TestM
 import qualified Data.Map as Map
 import Options.Applicative as Opt
 
+import Morley.Micheline (Expression, TezosInt64)
 import Tezos.Address
-import Tezos.Common.Json (TezosInt64)
 import Tezos.Core (ChainId)
 import Tezos.Crypto
-import Tezos.V005.Micheline (Expression)
 
 import Client.Env
 import Client.Error
@@ -50,15 +49,16 @@ data Expectation
   | DeployMultisigContract
   | RememberContract Address Text
   | LooksupEnv
-  deriving (Eq, Show, Ord)
+  deriving stock (Eq, Show, Ord)
 
 -- | Specifiy how may time we expect an event to happen.
-data ExpectationCount = Multiple | Once | Exact Int deriving (Show)
+data ExpectationCount = Multiple | Once | Exact Int
+  deriving stock (Show)
 
 data ExpectationStatus = ExpectationStatus
   { exExpectCount :: ExpectationCount
   , exOccurCount :: Int
-  } deriving (Show)
+  } deriving stock (Show)
 
 type ST = Map.Map Expectation ExpectationStatus
 
@@ -68,7 +68,7 @@ type TestM = StateT ST (ReaderT (MyHandlers, AppEnv) (Either SomeException))
 
 data TestError
   = TestError String
-  deriving Show
+  deriving stock Show
 
 instance Exception TestError
 
@@ -78,7 +78,7 @@ instance MonadFail (Either SomeException) where
 -- | A reader environment for mock so that we can implement some default
 -- instances reading the data from the environment.
 data Handlers m = Handlers
-  { hWriteFileUtf8 :: forall text. Print text => FilePath -> text -> m ()
+  { hWriteFileUtf8 :: forall text. ToLText text => FilePath -> text -> m ()
   , hWriteFile :: FilePath -> ByteString -> m ()
   , hReadFile :: FilePath -> m ByteString
   , hDoesFileExist :: FilePath -> m Bool

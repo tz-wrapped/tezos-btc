@@ -16,19 +16,19 @@ import Test.HUnit (Assertion, (@?), (@?=))
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase)
 import Test.Tasty.QuickCheck (Positive(..), testProperty)
-import Tezos.Common.Binary (encode)
 
 import Lorentz.Base (mapLorentzInstr, optimizeLorentz)
 import Lorentz.Constraints (NiceFullPackedValue, nicePackedValueEvi, niceUnpackedValueEvi, withDict)
 import Lorentz.Test.Integrational (genesisAddress1)
 import Michelson.Interpret.Unpack (UnpackError(..), unpackValue')
 import Michelson.Typed.Haskell.Value (IsoValue(..))
+import Morley.Micheline (encodeExpression)
 import Util.Named (namedL, (.!))
 
-import Client.Parser
-  ( parseAddressFromOutput, parseBurncapErrorFromOutput, toMuTez
-  , parseSimulationResultFromOutput, parseSignatureFromOutput)
 import Client.IO.TezosClient (toTezString)
+import Client.Parser
+  (parseAddressFromOutput, parseBurncapErrorFromOutput, parseSignatureFromOutput,
+  parseSimulationResultFromOutput, toMuTez)
 import Client.Types (SimulationResult(..))
 import Client.Util (nicePackedValueToExpression)
 import Lorentz.Contracts.TZBTC.Preprocess (upgradeParameters)
@@ -91,7 +91,7 @@ valueRoundTrip =
   withDict (nicePackedValueEvi @a) $
   withDict (niceUnpackedValueEvi @a) $
     fmap fromVal . unpackValue' .
-    cons 0x05 . encode . nicePackedValueToExpression
+    cons 0x05 . encodeExpression . nicePackedValueToExpression
 
 test_signatureParser :: TestTree
 test_signatureParser = testGroup "Test parsing tezos-client sign output"

@@ -20,12 +20,12 @@ import Paths_tzbtc (version)
 import CLI.Parser
 import Client.Env
 import Client.IO (mkInitEnv)
-import Client.Types (ClientConfig (..))
+import Client.Types (ClientConfig(..))
 import Client.Util
 import Lorentz.Contracts.Multisig
 import Lorentz.Contracts.TZBTC
-  ( Parameter, TZBTCv1, V1Parameters (..), migrationScripts, mkEmptyStorageV0, tzbtcContract
-  , tzbtcContractRouter, tzbtcDoc)
+  (Parameter, TZBTCv1, V1Parameters(..), migrationScripts, mkEmptyStorageV0, tzbtcContract,
+  tzbtcContractRouter, tzbtcDoc)
 import Lorentz.Contracts.TZBTC.Test (smokeTests)
 import Util.AbstractIO
 import Util.Migration
@@ -51,11 +51,11 @@ main = do
     CmdParseParameter t ->
       either (throwString . pretty) (printStringLn . pretty) $
       parseLorentzValue @(Parameter TZBTCv1) t
-    CmdTestScenario (arg #verbose -> verbose) (arg #dryRun -> dryRun) -> do
+    CmdTestScenario (arg #verbosity -> verbose) (arg #dryRun -> dryRun) -> do
       env <- mkInitEnv
       if dryRun then smokeTests Nothing else do
         tzbtcConfig <- runAppM env $ throwLeft readConfig
-        smokeTests $ Just $ toNettestClientConfig verbose tzbtcConfig
+        smokeTests $ Just $ toMorleyClientConfig verbose tzbtcConfig
     CmdMigrate
       (arg #version -> version_)
       (arg #redeemAddress -> redeem)
@@ -71,20 +71,22 @@ main = do
           makeMigrationParams version_ tzbtcContractRouter $
             (migrationScripts originationParams)
   where
-    toNettestClientConfig :: Bool -> ClientConfig -> NettestClientConfig
-    toNettestClientConfig verbose ClientConfig {..} =
-      NettestClientConfig
-        { nccScenarioName = Just "TZBTC_Smoke_tests"
-        , nccNodeAddress = Just ccNodeAddress
-        , nccNodePort = Just (fromIntegral ccNodePort)
-        , nccTezosClient = ccTezosClientExecutable
-        , nccVerbose = verbose
-        , nccNodeUseHttps = ccNodeUseHttps
+    toMorleyClientConfig :: Word -> ClientConfig -> MorleyClientConfig
+    toMorleyClientConfig verbose ClientConfig {..} =
+      MorleyClientConfig
+        { mccAliasPrefix = Just "TZBTC_Smoke_tests"
+        , mccNodeAddress = Just ccNodeAddress
+        , mccNodePort = Just (fromIntegral ccNodePort)
+        , mccTezosClientPath = ccTezosClientExecutable
+        , mccMbTezosClientDataDir = Nothing
+        , mccNodeUseHttps = ccNodeUseHttps
+        , mccVerbosity = verbose
+        , mccSecretKey = Nothing
         }
     multisigContract
       :: forall (e :: ErrorsKind).
         (Typeable e, ErrorHandler e)
-      => ContractCode MSigParameter MSigStorage
+      => Contract MSigParameter MSigStorage
     multisigContract = tzbtcMultisigContract @e
     printContract
       :: ( NiceParameterFull parameter
@@ -93,7 +95,7 @@ main = do
          , HasCmdLine m)
       => Bool
       -> Maybe FilePath
-      -> ContractCode parameter storage
+      -> Contract parameter storage
       -> m ()
     printContract singleLine mbFilePath c =
       maybe printTextLn writeFileUtf8 mbFilePath $

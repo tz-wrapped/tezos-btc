@@ -23,17 +23,15 @@ module Client.Parser
 import Data.Char (isAlpha, isDigit)
 import Data.Scientific (Scientific)
 import Fmt (Buildable, pretty)
-import Options.Applicative (eitherReader, help, long, metavar, option, optional, short, str, switch)
+import Options.Applicative (help, long, metavar, option, short, str, switch)
 import qualified Options.Applicative as Opt
-import qualified Text.Megaparsec as P
-  (Parsec, customFailure, many, parse, satisfy, skipManyTill)
-import Text.Megaparsec.Char (eol, newline, space, printChar)
+import qualified Text.Megaparsec as P (Parsec, customFailure, many, parse, satisfy, skipManyTill)
+import Text.Megaparsec.Char (eol, newline, printChar, space)
 import Text.Megaparsec.Char.Lexer (lexeme, scientific, symbol)
 import Text.Megaparsec.Error (ParseErrorBundle, ShowErrorComponent(..))
-import Tezos.Common.Json (TezosInt64)
 
-import Lorentz.Contracts.Metadata
 import Lorentz.Contracts.Multisig
+import Morley.Micheline (TezosInt64)
 import Tezos.Address (Address, parseAddress)
 import Tezos.Crypto (PublicKey, Signature, parsePublicKey, parseSignature)
 import Util.CLI

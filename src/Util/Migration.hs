@@ -13,7 +13,7 @@ import Lorentz
 import Lorentz.Contracts.TZBTC
 import Lorentz.Contracts.TZBTC.V0
 import Lorentz.Contracts.Upgradeable.Common
-  (MigrationScript, UContractRouter, coerceUContractRouter)
+  (UContractRouter, coerceUContractRouter)
 import Util.Named
 
 makeMigrationParams
