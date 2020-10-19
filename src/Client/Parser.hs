@@ -39,7 +39,7 @@ import Util.Named
 
 import CLI.Parser
 import Client.Types
-import Lorentz.Contracts.TZBTC.Types
+import Lorentz.Contracts.TZBTC.Common.Types
 
 clientArgParser :: Opt.Parser ClientArgs
 clientArgParser =

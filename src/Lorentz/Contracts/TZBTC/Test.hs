@@ -28,7 +28,7 @@ import Util.Named
 
 import Client.Parser (parseContractAddressFromOutput)
 import Lorentz.Contracts.TZBTC
-import qualified Lorentz.Contracts.TZBTC.Types as TZBTCTypes
+import qualified Lorentz.Contracts.TZBTC.V1.Types as TZBTCTypes
 
 -- Prerequisites:
 -- 1. `tezos-client` program should be available or configured via env variable

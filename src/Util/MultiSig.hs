@@ -32,14 +32,14 @@ import Data.List (lookup)
 import Fmt (Buildable(..), Builder, blockListF, pretty, (|+))
 import Michelson.Interpret.Unpack
 import Text.Hex (decodeHex, encodeHex)
-import Tezos.Crypto
 import qualified Text.Show (show)
+import Tezos.Crypto
 
 import Client.Util (addTezosBytesPrefix)
 import Lorentz
-import Lorentz.Contracts.TZBTC as TZBTC
-import Lorentz.Contracts.TZBTC.Types as TZBTC
 import Lorentz.Contracts.Multisig
+import Lorentz.Contracts.TZBTC as TZBTC
+import Lorentz.Contracts.TZBTC.Common.Types as TZBTC
 
 
 -- The workflow consists of first calling the `mkPackage` function with the

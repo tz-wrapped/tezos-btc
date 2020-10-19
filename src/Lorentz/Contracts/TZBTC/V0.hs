@@ -13,27 +13,20 @@ module Lorentz.Contracts.TZBTC.V0
   , StoreTemplateV0
   , UStoreV0
   , TZBTCv0
-  , SomeTZBTCVersion
   , mkEmptyStorageV0
   , tzbtcContractRaw
-  , tzbtcDoc
   ) where
 
 import Prelude hiding (drop, swap, (>>))
 
-import qualified Data.Text as T
-
 import Lorentz
 import Lorentz.Contracts.Upgradeable.Common hiding (Parameter(..), Storage)
-import Lorentz.Contracts.Upgradeable.Common.Doc as U
-import Lorentz.UStore.Doc (DUStoreTemplate(..))
-import Lorentz.UStore.Migration (SomeUTemplate)
 import Michelson.Text
-import qualified Michelson.Typed as T
 import Util.Markdown (md)
 
-import qualified Lorentz.Contracts.TZBTC.Impl as Impl
-import Lorentz.Contracts.TZBTC.Types as Types
+import Lorentz.Contracts.TZBTC.Common.Types
+import qualified Lorentz.Contracts.TZBTC.V1.Impl as Impl
+import Lorentz.Contracts.TZBTC.V1.Types
 
 -- | Template for the wrapped UStore which will hold the owner address
 -- only
@@ -66,14 +59,6 @@ instance KnownContractVersion TZBTCv0 where
   type VerInterface TZBTCv0 = Interface
   type VerUStoreTemplate TZBTCv0 = StoreTemplateV0
   contractVersion _ = 0
-
--- Use this when don't need particular version but still want to point out
--- that version is TZBTC-specific and thus have empty permanent part.
-data SomeTZBTCVersion :: VersionKind
-instance KnownContractVersion SomeTZBTCVersion where
-  type VerInterface SomeTZBTCVersion = SomeInterface
-  type VerUStoreTemplate SomeTZBTCVersion = SomeUTemplate
-  contractVersion _ = 999
 
 -- | Entry point of upgradeable contract.
 data UpgradeableEntrypointKind
@@ -187,7 +172,6 @@ safeEntrypoints = entryCase @(SafeParameter TZBTCv0) (Proxy @SafeEntrypointKind)
 -- actually using. See 'Lorentz.Contracts.TZBTC.Preprocess'.
 tzbtcContractRaw :: ContractCode (Parameter TZBTCv0) UStoreV0
 tzbtcContractRaw = do
-  doc $ T.DStorageType $ DType $ Proxy @UStoreV0
   unpair
   finalizeParamCallingDoc $
     entryCase @(Parameter TZBTCv0) (Proxy @UpgradeableEntrypointKind)
@@ -230,42 +214,6 @@ tzbtcContractRaw = do
           \`address` instead of `contract p` and call `CONTRACT`, which can fail)."
         safeEntrypoints
     )
-
-tzbtcDoc :: ContractCode (Parameter TZBTCv0) UStoreV0
-tzbtcDoc = do
-  -- License info
-  doc $ DComment $ T.concat
-    [ "- SP"
-    , "DX-FileCopyrightText: 2019 Bitcoin Suisse\n"
-    , "-\n"
-    , "- SP"
-    , "DX-License-Identifier: LicenseRef-MIT-BitcoinSuisse"
-    ]
-  contractName "TZBTC" $ do
-    contractGeneralDefault
-    doc $ DDescription
-      "This contract is implemented using Lorentz language.\n\
-      \Basically, this contract is [FA1.2](https://gitlab.com/serokell/morley/tzip/blob/master/A/FA1.2.md)\
-      \-compatible approvable ledger that maps user addresses to their token balances. \
-      \The main idea of this token contract is to provide 1-to-1 correspondance with BTC.\n\
-      \There are two special entities for this contract:\n\
-      \* `owner` -- owner of the TZBTC contract, capable in unpausing contract, \
-      \adding/removing operators, transfering ownership and upgrading contract. \
-      \There is only one owner of the contract.\n\
-      \* `operator` -- entity which is capable in pausing the contract \
-      \minting and burning tokens. There may be several operators added by the owner."
-    doc $ DUpgradeability $ U.contractDoc <> "\n" <> additionalDeployNotes
-    doc $ DUStoreTemplate (Proxy @(VerUStoreTemplate TZBTCv1))
-    tzbtcContractRaw
-
-additionalDeployNotes :: Markdown
-additionalDeployNotes =
-  "Initially originated contract has V0 which should be empty. However, it's possible\
-  \ to originate contract with some entrypoints implementation, but such origination \
-  \will highly likely exceed operation size limit, so it's recomended to originate \
-  \empty V0 contract.\n\n Once the V0 is originated, it should be upgraded to V1 in order \
-  \to be usable.\n\n The easiest way to originate and upgrade contract to V1 is to use \
-  \`tzbtc-client deployTzbtcContract` command."
 
 executeRun :: Entrypoint (VerParam ver) (Storage ver)
 executeRun = do

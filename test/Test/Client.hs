@@ -33,7 +33,6 @@ import Client.Types (SimulationResult(..))
 import Client.Util (nicePackedValueToExpression)
 import Lorentz.Contracts.TZBTC.Preprocess (upgradeParameters)
 import Lorentz.Contracts.TZBTC.Types
-import Lorentz.Contracts.TZBTC.V0 (TZBTCv0)
 
 import Test.TZBTC (dummyV1Parameters)
 

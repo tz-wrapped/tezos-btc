@@ -5,7 +5,7 @@
 {-# LANGUAGE RebindableSyntax #-}
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 
-module Lorentz.Contracts.TZBTC.Impl
+module Lorentz.Contracts.TZBTC.V1.Impl
   ( Entrypoint
   , StorageC
   , ManagedLedger.approve
@@ -35,8 +35,9 @@ import Util.Markdown (mdTicked)
 
 import Lorentz
 import Lorentz.Contracts.Metadata
-import qualified Lorentz.Contracts.OldManagedLedger as ManagedLedger
-import Lorentz.Contracts.TZBTC.Types hiding (AddOperator, RemoveOperator)
+import Lorentz.Contracts.TZBTC.Common.Types hiding (AddOperator, RemoveOperator)
+import qualified Lorentz.Contracts.TZBTC.V1.ManagedLedger as ManagedLedger
+import Lorentz.Contracts.TZBTC.V1.Types
 
 type StorageC store = StorageContains store
   [ "owner" := Address
@@ -174,16 +175,16 @@ mint = do
 -- entrypoint.
 addOperator :: forall store. StorageC store => Entrypoint OperatorParams store
 addOperator = do
-  addRemoveOperator AddOperator
+  addRemoveOperator AddOperatorAction
 
 -- | Add an operator from the set of Operators. Only owner is allowed to call this
 -- entrypoint.
 removeOperator :: StorageC store => Entrypoint OperatorParams store
 removeOperator = do
-  addRemoveOperator RemoveOperator
+  addRemoveOperator RemoveOperatorAction
 
 -- | A type to indicate required action to the `addRemoveOperator` function.
-data OperatorAction = AddOperator | RemoveOperator
+data OperatorAction = AddOperatorAction | RemoveOperatorAction
 
 -- | Adds or remove an operator.
 addRemoveOperator
@@ -199,8 +200,8 @@ addRemoveOperator ar = do
   dip $ do
     stGetField #operators
     push $ case ar of
-      AddOperator -> True
-      RemoveOperator -> False
+      AddOperatorAction -> True
+      RemoveOperatorAction -> False
   -- and insert/remove the operator address depending
   -- on the value of boolean flag ar
   update

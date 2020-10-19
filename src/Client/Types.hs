@@ -49,7 +49,7 @@ import Util.Named
 
 import Lorentz.Contracts.Metadata
 import Lorentz.Contracts.Multisig
-import Lorentz.Contracts.TZBTC.Types
+import Lorentz.Contracts.TZBTC.Common.Types
 
 -- | Client argument with optional dry-run flag
 data ClientArgs =
