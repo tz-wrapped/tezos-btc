@@ -10,6 +10,13 @@ Changes that affect Michelson code are tagged with `[CONTRACT]`.
 
 Unreleased
 ==========
+* [#134](https://github.com/tz-wrapped/tezos-btc/pull/134)
+  + `migrate` command of the executable now accepts version differently.
+    Instead of
+    `tzbtc migrate --version=1 ...`
+    use
+    `tzbtc migrate v1 ...`.
+
 * [#133](https://github.com/tz-wrapped/tezos-btc/pull/133)
   + Morley dependency updated.
   + Types appearing in the parameter and storage of the contract now have field annotations.

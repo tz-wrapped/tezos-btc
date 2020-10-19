@@ -2,6 +2,10 @@
  -
  - SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
  -}
+
+{-# LANGUAGE PartialTypeSignatures #-}
+{-# OPTIONS_GHC -Wno-partial-type-signatures #-}
+
 module Main
   ( main
   ) where
@@ -13,7 +17,7 @@ import Options.Applicative
   (execParser, footerDoc, fullDesc, header, help, helper, info, infoOption, long, progDesc)
 import Options.Applicative.Help.Pretty (Doc, linebreak)
 
-import Lorentz
+import Lorentz hiding (not)
 import Morley.Nettest
 import Paths_tzbtc (version)
 
@@ -24,9 +28,9 @@ import Client.Types (ClientConfig(..))
 import Client.Util
 import Lorentz.Contracts.Multisig
 import Lorentz.Contracts.TZBTC
-  (Parameter, TZBTCv1, V1Parameters(..), migrationScripts, mkEmptyStorageV0, tzbtcContract,
-  tzbtcContractRouter, tzbtcDoc)
-import Lorentz.Contracts.TZBTC.Test (smokeTests)
+  (Parameter, TZBTCv0, TZBTCv1, V1Parameters(..), migrationScripts, mkEmptyStorageV0,
+  tzbtcContract, tzbtcContractRouter, tzbtcDoc)
+import Lorentz.Contracts.TZBTC.Test (TestUpgrade, smokeTests, testUpgradeToV1)
 import Util.AbstractIO
 import Util.Migration
 
@@ -42,34 +46,49 @@ main = do
         else printContract singleLine mbFilePath (multisigContract @'BaseErrors)
     CmdPrintInitialStorage ownerAddress -> do
       printTextLn $ printLorentzValue True (mkEmptyStorageV0 ownerAddress)
-    CmdPrintDoc mbFilePath -> let
+    CmdPrintDoc ver mbFilePath -> let
       gitRev =
         $mkDGitRevision $ GitRepoSettings $
           mappend "https://github.com/tz-wrapped/tezos-btc/commit/"
+      contractDoc = case ver of
+        V0 -> error "Documentation for V0 is not interesting"
+        V1 -> tzbtcDoc
       in maybe printTextLn writeFileUtf8 mbFilePath
-        (contractDocToMarkdown $ buildLorentzDocWithGitRev gitRev tzbtcDoc)
-    CmdParseParameter t ->
-      either (throwString . pretty) (printStringLn . pretty) $
-      parseLorentzValue @(Parameter TZBTCv1) t
-    CmdTestScenario (arg #verbosity -> verbose) (arg #dryRun -> dryRun) -> do
+        (contractDocToMarkdown $ buildLorentzDocWithGitRev gitRev contractDoc)
+    CmdParseParameter ver t ->
+      let parseAndPrint :: forall ver. (Typeable ver, _) => IO ()
+          parseAndPrint =
+            either (throwString . pretty) (printStringLn . pretty) $
+            parseLorentzValue @(Parameter ver) t
+      in case ver of
+        V0 -> parseAndPrint @TZBTCv0
+        V1 -> parseAndPrint @TZBTCv1
+    CmdTestScenario ver (arg #verbosity -> verbose) (arg #dryRun -> dryRun) -> do
       env <- mkInitEnv
-      if dryRun then smokeTests Nothing else do
-        tzbtcConfig <- runAppM env $ throwLeft readConfig
-        smokeTests $ Just $ toMorleyClientConfig verbose tzbtcConfig
-    CmdMigrate
-      (arg #version -> version_)
-      (arg #redeemAddress -> redeem)
-      (arg #tokenMetadata -> tokenMetadata)
-      (arg #output -> fp) -> do
-        let
-          originationParams = V1Parameters
-            { v1RedeemAddress = redeem
-            , v1TokenMetadata = tokenMetadata
-            , v1Balances = mempty
-            }
-        maybe printTextLn writeFileUtf8 fp $
-          makeMigrationParams version_ tzbtcContractRouter $
-            (migrationScripts originationParams)
+      let
+        testUpgrade :: forall m. Monad m => TestUpgrade m
+        testUpgrade = case ver of
+          V0 -> mempty
+          V1 -> testUpgradeToV1
+      config <- runMaybeT $ do
+        guard (not dryRun)
+        tzbtcConfig <- lift . runAppM env $ throwLeft readConfig
+        return $ toMorleyClientConfig verbose tzbtcConfig
+      smokeTests config testUpgrade
+    CmdMigrate (arg #output -> fp) migrateCmd ->
+      maybe printTextLn writeFileUtf8 fp $
+        case migrateCmd of
+          MigrateV1
+            (arg #redeemAddress -> redeem)
+            (arg #tokenMetadata -> tokenMetadata) -> do
+              let
+                originationParams = V1Parameters
+                  { v1RedeemAddress = redeem
+                  , v1TokenMetadata = tokenMetadata
+                  , v1Balances = mempty
+                  }
+              makeMigrationParamsV1 tzbtcContractRouter $
+                (migrationScripts originationParams)
   where
     toMorleyClientConfig :: Word -> ClientConfig -> MorleyClientConfig
     toMorleyClientConfig verbose ClientConfig {..} =

@@ -18,7 +18,7 @@ setup () {
 }
 
 @test "invoking tzbtc 'migrate' command" {
-  $tzbtc migrate --version 1 --redeemAddress "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --token-symbol aa
+  $tzbtc migrate v1 --redeemAddress "tz1UMD9BcyJsiTrPLQSy1yoYzBhKUry66wRV" --token-symbol aa
 }
 
 @test "invoking tzbtc 'printContract' command with --oneline flag" {

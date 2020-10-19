@@ -4,6 +4,10 @@
  -}
 module Lorentz.Contracts.TZBTC.Test
   ( smokeTests
+
+  , TestUpgrade
+  , noTestUpgrade
+  , testUpgradeToV1
   ) where
 
 import Control.Lens ((<>~), _Just)
@@ -12,7 +16,7 @@ import System.Environment (setEnv)
 import System.Exit (ExitCode(..))
 import System.Process (readProcessWithExitCode)
 
-import Lorentz (TrustEpName(..), View(..), arg, mkView, toMutez)
+import Lorentz (TAddress, TrustEpName(..), View(..), arg, mkView, toMutez)
 import Lorentz.Contracts.Metadata
 import Lorentz.Contracts.Upgradeable.Common (EpwUpgradeParameters(..), emptyPermanentImpl)
 import Lorentz.Test (contractConsumer)
@@ -34,19 +38,22 @@ import qualified Lorentz.Contracts.TZBTC.V1.Types as TZBTCTypes
 -- 1. `tezos-client` program should be available or configured via env variable
 --    just like required for `tzbtc-client` config.
 -- 2. `tezos-client` alias `nettest` should exist with some balance.
-smokeTests :: Maybe MorleyClientConfig -> IO ()
-smokeTests mconfig = do
-  runNettestViaIntegrational $ simpleScenario True
+smokeTests
+  :: Maybe MorleyClientConfig
+  -> (forall m. Monad m => TestUpgrade m)
+  -> IO ()
+smokeTests mconfig upg = do
+  runNettestViaIntegrational $ simpleScenario upg
   whenJust mconfig $ \config ->
     sequence_
     [ do
         let config' = config & mccAliasPrefixL . _Just <>~ "_tezos_client"
         env <- mkMorleyClientEnv config'
-        runNettestClient (NettestEnv env Nothing) $ simpleScenario True
+        runNettestClient (NettestEnv env Nothing) $ simpleScenario upg
     , do
         let config' = config & mccAliasPrefixL . _Just <>~ "_tzbtc_client"
         env <- mkMorleyClientEnv config'
-        runNettestTzbtcClient env $ simpleScenario False
+        runNettestTzbtcClient env $ simpleScenario noTestUpgrade
     ]
 
 dummyV1Parameters :: Address -> TokenMetadata -> Map Address Natural -> V1Parameters
@@ -56,8 +63,43 @@ dummyV1Parameters redeem tokenMetadata balances = V1Parameters
   , v1Balances = balances
   }
 
-simpleScenario :: Bool -> NettestScenario m
-simpleScenario requireUpgrade = uncapsNettest $ do
+newtype TestUpgrade m = TestUpgrade
+  { unTestUpgrade
+      :: Address  --- ^ Admin's address
+      -> TAddress (Parameter TZBTCv0)
+      -> NettestT m ()
+  }
+
+instance Applicative m => Semigroup (TestUpgrade m) where
+  TestUpgrade f1 <> TestUpgrade f2 =
+    TestUpgrade $ \a b -> f1 a b *> f2 a b
+
+instance Applicative m => Monoid (TestUpgrade m) where
+  mempty = TestUpgrade $ \_ _ -> pass
+
+noTestUpgrade :: Monad m => TestUpgrade m
+noTestUpgrade = TestUpgrade $ \_ _ -> pass
+
+testUpgradeToV1 :: Monad m => TestUpgrade m
+testUpgradeToV1 = TestUpgrade $ \admin tzbtc -> do
+  let
+    opTZBTC = dummyV1Parameters admin defaultTZBTCMetadata mempty
+    upgradeParams :: OneShotUpgradeParameters TZBTCv0
+    upgradeParams = makeOneShotUpgradeParameters @TZBTCv0 EpwUpgradeParameters
+      { upMigrationScripts =
+        Identity $
+        manualConcatMigrationScripts (migrationScripts opTZBTC)
+      , upNewCode = tzbtcContractRouter
+      , upNewPermCode = emptyPermanentImpl
+      }
+  callFrom
+    (AddressResolved admin)
+    tzbtc
+    (TrustEpName DefEpName)
+    (fromFlatParameter $ Upgrade upgradeParams :: Parameter TZBTCv0)
+
+simpleScenario :: TestUpgrade m -> NettestScenario m
+simpleScenario upg = uncapsNettest $ do
   admin <- resolveNettestAddress -- Fetch address for alias `nettest`.
 
   -- Originate and upgrade
@@ -72,25 +114,12 @@ simpleScenario requireUpgrade = uncapsNettest $ do
   -- Originate [TokenMetadata] view callback
   tokenMetadatasView <- originateSimple "[TokenMetadata] view" [] (contractConsumer @[TokenMetadata])
 
+  -- Run upgrade
+  unTestUpgrade upg admin tzbtc
+
   let
-    fromFlatParameterV1  :: FlatParameter TZBTCv1 -> Parameter TZBTCv1
+    fromFlatParameterV1  :: FlatParameter SomeTZBTCVersion -> Parameter SomeTZBTCVersion
     fromFlatParameterV1 = fromFlatParameter
-    adminAddr = AddressResolved admin
-    opTZBTC = dummyV1Parameters admin defaultTZBTCMetadata mempty
-    upgradeParams :: OneShotUpgradeParameters TZBTCv0
-    upgradeParams = makeOneShotUpgradeParameters @TZBTCv0 EpwUpgradeParameters
-      { upMigrationScripts =
-        Identity $
-        manualConcatMigrationScripts (migrationScripts opTZBTC)
-      , upNewCode = tzbtcContractRouter
-      , upNewPermCode = emptyPermanentImpl
-      }
-  when requireUpgrade $
-    callFrom
-      adminAddr
-      tzbtc
-      (TrustEpName DefEpName)
-      (fromFlatParameter $ Upgrade upgradeParams :: Parameter TZBTCv0)
 
   -- Add an operator
   (operator, operatorAddr) <- newAddress' "operator"

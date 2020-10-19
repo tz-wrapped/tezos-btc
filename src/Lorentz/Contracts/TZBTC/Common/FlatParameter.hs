@@ -54,7 +54,7 @@ data FlatParameter (ver :: VersionKind)
   | TransferOwnership   !TransferOwnershipParams
   | AcceptOwnership     !AcceptOwnershipParams
 
-fromFlatParameter :: FlatParameter s -> TZBTC.Parameter s
+fromFlatParameter :: FlatParameter ver -> TZBTC.Parameter ver
 fromFlatParameter = \case
   Run a -> wrapInSafe $ TZBTC.Run a
   Upgrade a -> wrapInSafe $ TZBTC.Upgrade a

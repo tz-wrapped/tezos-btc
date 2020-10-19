@@ -7,6 +7,8 @@
 
 module CLI.Parser
   ( CmdLnArgs (..)
+  , VersionArg (..)
+  , MigrationArgs (..)
   , addressArgument
   , addressOption
   , argParser
@@ -16,7 +18,8 @@ module CLI.Parser
   ) where
 
 import Named (Name(..), arg)
-import Options.Applicative (command, help, hsubparser, info, long, progDesc, short, switch)
+import Options.Applicative
+  (ReadM, command, help, hsubparser, info, long, metavar, progDesc, short, switch)
 import qualified Options.Applicative as Opt
 
 import Lorentz.Contracts.Metadata
@@ -31,14 +34,20 @@ data CmdLnArgs
   = CmdPrintInitialStorage Address
   | CmdPrintContract Bool (Maybe FilePath)
   | CmdPrintMultisigContract Bool Bool (Maybe FilePath)
-  | CmdPrintDoc (Maybe FilePath)
-  | CmdParseParameter Text
-  | CmdTestScenario ("verbosity" :! Word) ("dryRun" :! Bool)
-  | CmdMigrate
-      ("version" :! Natural)
+  | CmdPrintDoc VersionArg (Maybe FilePath)
+  | CmdParseParameter VersionArg Text
+  | CmdTestScenario VersionArg ("verbosity" :! Word) ("dryRun" :! Bool)
+  | CmdMigrate ("output" :! Maybe FilePath) MigrationArgs
+
+data VersionArg
+  = V0
+  | V1
+  deriving stock (Show)
+
+data MigrationArgs
+  = MigrateV1
       ("redeemAddress" :! Address)
       ("tokenMetadata" :! TokenMetadata)
-      ("output" :! Maybe FilePath)
 
 argParser :: Opt.Parser CmdLnArgs
 argParser = hsubparser $
@@ -52,13 +61,13 @@ argParser = hsubparser $
       (mkCommandParser
         "printContract"
         (CmdPrintContract <$> singleLineSwitch <*> outputOption)
-        "Print token contract")
+        "Print token contract (V0 version)")
     printMultisigCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     printMultisigCmd =
       (mkCommandParser
         "printMultisigContract"
         (CmdPrintMultisigContract <$> singleLineSwitch <*> customErrorsFlag <*> outputOption)
-        "Print token contract")
+        "Print multisig contract")
       where
         customErrorsFlag = switch
           (long "use-custom-errors" <>
@@ -79,32 +88,57 @@ argParser = hsubparser $
     printDoc =
       (mkCommandParser
         "printContractDoc"
-        (CmdPrintDoc <$> outputOption)
+        (CmdPrintDoc <$> versionOption <*> outputOption)
         "Print tzbtc contract documentation")
     parseParameterCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     parseParameterCmd =
       (mkCommandParser
           "parseContractParameter"
-          (CmdParseParameter <$> Opt.strArgument mempty)
+          (CmdParseParameter <$> versionOption <*> Opt.strArgument mempty)
           "Parse contract parameter to Lorentz representation")
     testScenarioCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     testScenarioCmd =
       (mkCommandParser
           "testScenario"
           (CmdTestScenario
-             <$> (#verbosity <.!> genericLength <$> many verbositySwitch)
+             <$> versionOption
+             <*> (#verbosity <.!> genericLength <$> many verbositySwitch)
              <*> (#dryRun <.!> dryRunSwitch))
           "Do smoke tests")
     migrateCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     migrateCmd =
-      (mkCommandParser
+      mkCommandParser
           "migrate"
           (CmdMigrate
-            <$> namedParser Nothing "Target version"
-            <*> namedParser Nothing "Redeem address"
-            <*> fmap (#tokenMetadata .!) parseSingleTokenMetadata
-            <*> (#output <.!> outputOption))
-          "Print migration scripts.")
+            <$> (#output <.!> outputOption)
+            <*> (hsubparser
+                  (mconcat
+                    [ migrateV1Cmd
+                    ])
+                  <|> migrateV1Parser
+                )
+          )
+          "Print migration scripts."
+    migrateV1Parser =
+      MigrateV1
+          <$> namedParser Nothing "Redeem address"
+          <*> fmap (#tokenMetadata .!) parseSingleTokenMetadata
+    migrateV1Cmd :: Opt.Mod Opt.CommandFields MigrationArgs
+    migrateV1Cmd =
+      mkCommandParser
+        "v1"
+        (MigrateV1
+          <$> namedParser Nothing "Redeem address"
+          <*> fmap (#tokenMetadata .!) parseSingleTokenMetadata
+        )
+        "Migration from V0 to V1."
+    versionOption =
+      Opt.option versionReadM
+        (long "version" <>
+         help "Contract version." <>
+         metavar "NUMBER" <>
+         Opt.value V1 <>
+         Opt.showDefaultWith (\_ -> "1"))
     verbositySwitch =
       Opt.flag' ()
                 (short 'v' <>
@@ -124,6 +158,12 @@ mkCommandParser commandName parser desc =
 
 addressArgument :: String -> Opt.Parser Address
 addressArgument hInfo = mkCLArgumentParser Nothing (#help .! hInfo)
+
+versionReadM :: ReadM VersionArg
+versionReadM = eitherReader $ \case
+  "0" -> pure V0
+  "1" -> pure V1
+  other -> Left $ "Unknown version identifier " <> show other
 
 -- | Parse `TokenMetadata` for a single token, with no extras
 parseSingleTokenMetadata :: Opt.Parser TokenMetadata

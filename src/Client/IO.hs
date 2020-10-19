@@ -193,7 +193,7 @@ instance HasTezosRpc AppM where
   deployTzbtcContract mbFees dp = do
     config@ClientConfig{..} <- throwLeft readConfig
     v <- aeVerbose <$> lookupEnv
-    contractAddr <- liftIO $ IO.deployTzbtcContract v config mbFees dp
+    contractAddr <- liftIO $ IO.deployTzbtcContractV1 v config mbFees dp
     putTextLn $ "Contract was successfully deployed. Contract address: " <> formatAddress contractAddr
     liftIO $ case ccContractAddress of
       Just c -> putTextLn $ "Current contract address for alias 'tzbtc' in the tezos-client config is " <> formatAddress c <> "."
@@ -375,7 +375,8 @@ getFromTzbtcUStore key = do
   case ccContractAddress of
     Nothing -> throwM TzbtcContractConfigUnavailable
     Just contractAddr -> do
-      AlmostStorage{..} <- getTzbtcStorage @TZBTCv1 contractAddr
+      -- Exact version does not matter for such low-level operation
+      AlmostStorage{..} <- getTzbtcStorage @SomeTZBTCVersion contractAddr
       let scriptExpr = encodeBase58Check . valueToScriptExpr . lPackValue $ key
       fieldValueRaw <- getFromBigMap asBigMapId scriptExpr
       case fieldValueRaw of
