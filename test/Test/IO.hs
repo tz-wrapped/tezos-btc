@@ -3,6 +3,7 @@
  - SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
  -}
 {-# OPTIONS_GHC -Wno-missing-signatures #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Test.IO
   ( test_dryRunFlag
@@ -30,7 +31,7 @@ import Client.Error
 import Client.Main (mainProgram)
 import Client.Types
 import Client.Util
-import Lorentz (toTAddress)
+import Lorentz (TSignature(..), toTAddress)
 import Lorentz.Contracts.Multisig
 import qualified Lorentz.Contracts.TZBTC as TZBTC
 import qualified Lorentz.Contracts.TZBTC.Types as TZBTCTypes
@@ -43,6 +44,8 @@ import qualified Tezos.Crypto.Ed25519 as Ed25519
 import Util.MultiSig
 
 {-# ANN module ("HLint: ignore Reduce duplication" :: Text) #-}
+
+deriving stock instance Eq (TSignature a)
 
 -- Some configuration values to configure the
 -- base/default mock behavior.
@@ -161,9 +164,9 @@ operatorAddress1 = unsafeParseAddress operatorAddress1Raw
 
 multiSigFilePath = "/home/user/multisig_package"
 
-sign_ :: Ed25519.SecretKey -> Text -> Signature
+sign_ :: Ed25519.SecretKey -> Text -> Sign
 sign_ sk bs = case decodeHex (T.drop 2 bs) of
-  Just dbs -> SignatureEd25519 $ Ed25519.sign sk dbs
+  Just dbs -> TSignature . SignatureEd25519 $ Ed25519.sign sk dbs
   Nothing -> error "Error with making signatures"
 
 -- Test that no operations are called if the --dry-run flag
@@ -346,7 +349,7 @@ multisigSigningTestHandlers =
        then pure $ Right (johnAddress, johnAddressPK)
        else throwM $ TestError ("Unexpected alias" ++ toString a)
     , hSignWithTezosClient = \_ _ ->
-       pure $ Right multisigSignPackageTestSignature
+       pure $ Right $ unTSignature multisigSignPackageTestSignature
     , hGetAddressForContract = \ca ->
         if ca == "tzbtc"
           then pure $ Right contractAddress
@@ -379,7 +382,7 @@ multisigSignPackageTestPackage = mkPackage
   (toTAddress @(TZBTC.Parameter TZBTC.SomeTZBTCVersion) contractAddress)
   (TZBTCTypes.AddOperator (#operator .! operatorAddress1))
 
-multisigSignPackageTestSignature :: Signature
+multisigSignPackageTestSignature :: Sign
 multisigSignPackageTestSignature =
   sign_ johnSecretKey $ getBytesToSign multisigSignPackageTestPackage
 
@@ -467,15 +470,15 @@ multisigExecutionTestHandlers =
       Right x -> pure x
       Left _ -> throwM $ TestError "There was an error signing the package"
 
-multisigExecutePackageTestSignatureJohn :: Signature
+multisigExecutePackageTestSignatureJohn :: Sign
 multisigExecutePackageTestSignatureJohn =
   sign_ johnSecretKey $ getBytesToSign multisigSignPackageTestPackage
 
-multisigExecutePackageTestSignatureBob :: Signature
+multisigExecutePackageTestSignatureBob :: Sign
 multisigExecutePackageTestSignatureBob =
   sign_ bobSecretKey $ getBytesToSign multisigSignPackageTestPackage
 
-multisigExecutePackageTestSignatureAlice :: Signature
+multisigExecutePackageTestSignatureAlice :: Sign
 multisigExecutePackageTestSignatureAlice =
   sign_ aliceSecretKey $ getBytesToSign multisigSignPackageTestPackage
 

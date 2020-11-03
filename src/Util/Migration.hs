@@ -9,6 +9,7 @@ module Util.Migration
 import Data.Text.Lazy as LT
 
 import Lorentz
+import Lorentz.UStore
 
 import Lorentz.Contracts.TZBTC
 import Lorentz.Contracts.TZBTC.V0

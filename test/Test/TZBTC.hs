@@ -46,6 +46,7 @@ import Lorentz.Contracts.Test.ManagedLedger (OriginationParams(..), originateMan
 import qualified Lorentz.Contracts.Test.ManagedLedger as ML
 import Lorentz.Contracts.Upgradeable.Common (EpwUpgradeParameters(..), emptyPermanentImpl)
 import Lorentz.Test
+import Lorentz.UStore
 import Lorentz.UStore.Migration
 import Michelson.Runtime (parseExpandContract)
 import Michelson.Test.Unit (matchContractEntrypoints, mkEntrypointsMap)
@@ -142,8 +143,7 @@ initialSupply = 500
 -- test fails. If the tzbtc parameter has to be changed, then this test should
 -- be fixed by editing the `tzbtc-parameter-entrypoints-ref.tz` file.
 entrypointsRef :: IO (Map EpName U.Type)
-entrypointsRef = (\(U.ParameterType ty _) -> mkEntrypointsMap ty) <$> tzbtcParameterType
-  --- looking into ParameterType ^ should've become unnecessary in the recent morley
+entrypointsRef = mkEntrypointsMap <$> tzbtcParameterType
   where
     tzbtcParameterType :: IO U.ParameterType
     tzbtcParameterType = do

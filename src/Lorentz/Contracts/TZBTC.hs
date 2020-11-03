@@ -53,9 +53,9 @@ toSafeParam _ = Nothing
 defaultTZBTCMetadata :: TokenMetadata
 defaultTZBTCMetadata =
   TokenMetadata
-    { token_id = 0
-    , symbol = [mt|"TZBTC"|]
-    , name = [mt|"Tezos BTC"|]
-    , decimals = 0
-    , extras = mempty
+    { tmTokenId = singleTokenTokenId
+    , tmSymbol = [mt|"TZBTC"|]
+    , tmName = [mt|"Tezos BTC"|]
+    , tmDecimals = 0
+    , tmExtras = mempty
     }

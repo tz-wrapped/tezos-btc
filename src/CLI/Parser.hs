@@ -168,17 +168,17 @@ versionReadM = eitherReader $ \case
 -- | Parse `TokenMetadata` for a single token, with no extras
 parseSingleTokenMetadata :: Opt.Parser TokenMetadata
 parseSingleTokenMetadata = do
-  token_id <-
+  tmTokenId <-
     pure singleTokenTokenId
-  symbol <-
+  tmSymbol <-
     arg (Name @"token-symbol") <$> namedParser (Just [mt|TZBTC|])
       "Token symbol, as described in TZIP-12."
-  name <-
+  tmName <-
     arg (Name @"token-name") <$> namedParser (Just [mt|Tezos BTC|])
       "Token name, as in TZIP-12."
-  decimals <-
+  tmDecimals <-
     arg (Name @"token-decimals") <$> namedParser (Just 0)
       "Number of decimals token uses, as in TZIP-12."
-  extras <-
+  tmExtras <-
     pure mempty
   return TokenMetadata{..}

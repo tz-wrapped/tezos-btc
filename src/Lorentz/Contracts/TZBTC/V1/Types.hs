@@ -28,6 +28,7 @@ import Lorentz.Contracts.TZBTC.Common.Types
 import qualified Lorentz.Contracts.TZBTC.V1.ManagedLedger as ManagedLedger
 import Lorentz.Contracts.Upgradeable.Common (KnownContractVersion(..), VersionKind)
 import Lorentz.Contracts.Upgradeable.EntrypointWise
+import Lorentz.UStore
 import Util.Instances ()
 import Util.Markdown (md)
 

@@ -24,6 +24,7 @@ import Lorentz
 import Lorentz.Contracts.Upgradeable.Common.Base
 import Lorentz.Contracts.Upgradeable.Common.Doc as U
 import Lorentz.Contracts.Upgradeable.EntrypointWise
+import Lorentz.UStore
 import Lorentz.UStore.Doc (DUStoreTemplate(..))
 import Lorentz.UStore.Haskell
 import qualified Michelson.Typed as T

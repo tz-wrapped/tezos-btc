@@ -37,7 +37,9 @@ import Util.Exception
 
 import Lorentz hiding (address, balance, chainId, cons, map)
 import Lorentz.Contracts.Multisig
-import Lorentz.UStore.Common
+import Lorentz.UStore
+import Lorentz.UStore.Types
+import Michelson.Text
 import Michelson.Untyped (InternalByteString(..))
 import Tezos.Address
 import Tezos.Core (parseChainId)
@@ -315,7 +317,7 @@ signPackageForConfiguredUser pkg = do
       signRes <- signWithTezosClient (Right $ getBytesToSign pkg) ccUserAlias
       case signRes of
         Left err -> pure $ Left $ toString err
-        Right signature' -> pure $ addSignature pkg (pk, signature')
+        Right signature' -> pure $ addSignature pkg (pk, TSignature signature')
 
 getBalance :: (HasTezosRpc m) => Address -> m Natural
 getBalance addr = do
@@ -347,7 +349,7 @@ getFieldFromTzbtcUStore
   :: forall name t m. (HasTezosRpc m, HasStoreTemplateField t name)
   => m (Maybe t)
 getFieldFromTzbtcUStore =
-  getFromTzbtcUStore $ fieldNameToMText @name
+  getFromTzbtcUStore $ mkFieldMarkerUKeyL @UMarkerPlainField (fromLabel @name)
 
 -- | Get value assosiated with given key from given submap of
 -- TZBTC contract UStore.
@@ -355,7 +357,7 @@ getValueFromTzbtcUStoreSubmap
   :: forall name key value m. (HasTezosRpc m, HasStoreTemplateSubmap key value name)
   => key -> m (Maybe value)
 getValueFromTzbtcUStoreSubmap key =
-  getFromTzbtcUStore (fieldNameToMText @name , key)
+  getFromTzbtcUStore (symbolToMText @name , key)
 
 -- | Get value for given key from UStore.
 --
@@ -387,7 +389,7 @@ getFromTzbtcUStore key = do
           _ -> throwM err
         Right veryRawVal -> do
           rawVal <- throwLeft $ pure $ exprToValue @ByteString veryRawVal
-          fmap Just . throwLeft . pure $ lUnpackValue rawVal
+          fmap Just . throwLeft . pure $ lUnpackValueRaw rawVal
 
 getTzbtcStorage
   :: forall ver m. (Typeable ver, HasTezosRpc m) => Address -> m (AlmostStorage ver)

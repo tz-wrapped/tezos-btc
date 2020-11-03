@@ -14,13 +14,11 @@ module Lorentz.Contracts.Metadata
 
 import Lorentz
 
-import Lorentz.Contracts.Spec.FA2Interface (TokenId, TokenMetadata(..))
-
-deriving stock instance Eq TokenMetadata
+import Lorentz.Contracts.Spec.FA2Interface (TokenId, TokenMetadata(..), theTokenId)
 
 -- | The `TokenId` of a token in a single-token contract is @0@
 singleTokenTokenId :: TokenId
-singleTokenTokenId = 0
+singleTokenTokenId = theTokenId
 
 -- | Assert that each `TokenId` is @0@ (`singleTokenTokenId`) and replace each one in the input
 -- list with the given `TokenMetadata`

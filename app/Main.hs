@@ -18,7 +18,6 @@ import Options.Applicative
 import Options.Applicative.Help.Pretty (Doc, linebreak)
 
 import Lorentz hiding (not)
-import Morley.Nettest
 import Paths_tzbtc (version)
 
 import CLI.Parser
@@ -31,6 +30,7 @@ import Lorentz.Contracts.TZBTC
   (Parameter, TZBTCv0, TZBTCv1, V1Parameters(..), migrationScripts, mkEmptyStorageV0,
   tzbtcContract, tzbtcContractRouter, tzbtcDoc)
 import Lorentz.Contracts.TZBTC.Test (TestUpgrade, smokeTests, testUpgradeToV1)
+import Morley.Client.Init (MorleyClientConfig(..))
 import Util.AbstractIO
 import Util.Migration
 

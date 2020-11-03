@@ -160,7 +160,7 @@ mainProgram = do
           pkg <- getPackageFromFile packageFilePath
           case pkg of
             Left err -> printTextLn err
-            Right package -> case addSignature package (pk, sign) of
+            Right package -> case addSignature package (pk, TSignature sign) of
               Right signedPackage -> writePackageToFile signedPackage packageFilePath
               Left err -> printStringLn err
         CmdSignPackage packageFilePath -> do

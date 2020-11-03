@@ -21,6 +21,7 @@ import Prelude hiding (drop, swap, (>>))
 
 import Lorentz
 import Lorentz.Contracts.Upgradeable.Common hiding (Parameter(..), Storage)
+import Lorentz.UStore
 import Michelson.Text
 import Util.Markdown (md)
 
@@ -66,18 +67,18 @@ data UpgradeableEntrypointKind
 -- | Safe entry points of contract.
 data SafeEntrypointKind
 
-instance DocItem (DEntrypoint UpgradeableEntrypointKind) where
-  docItemPos = 1002
-  docItemSectionName = Just "Top-level entry points of upgradeable contract"
-  docItemSectionDescription = Just
-    "These are entry points of the contract."
-  docItemToMarkdown = diEntrypointToMarkdown
+instance EntrypointKindHasDoc UpgradeableEntrypointKind where
+  entrypointKindPos = 1002
+  entrypointKindSectionName = "Top-level entrypoints of upgradeable contract"
+  entrypointKindSectionDescription = Just
+    "These entrypoints may change in new versions of the contract.\n\n\
+    \Also they have a special calling routing, see the respective subsection \
+    \in every entrypoint description."
 
-instance DocItem (DEntrypoint SafeEntrypointKind) where
-  docItemPos = 1003
-  docItemSectionName = Nothing
-  docItemSectionDescription = Nothing
-  docItemToMarkdown = diEntrypointToMarkdown
+instance EntrypointKindHasDoc SafeEntrypointKind where
+  entrypointKindPos = 1003
+  entrypointKindSectionName =
+    "Entrypoints that will remain intact in all versions of the contract."
 
 safeEntrypoints :: Entrypoint (SafeParameter TZBTCv0) UStoreV0
 safeEntrypoints = entryCase @(SafeParameter TZBTCv0) (Proxy @SafeEntrypointKind)
@@ -238,7 +239,7 @@ callUEp
   => Label ep
   -> Entrypoint (LookupEntrypoint ep interface) (Storage ver)
 callUEp epName = do
-  pack
+  packRaw
   push (labelToMText epName)
   pair
   stackType @'[(MText, ByteString), Storage _]

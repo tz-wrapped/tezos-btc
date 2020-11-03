@@ -66,10 +66,10 @@ executables:
     <<: *exec-common
 
     dependencies:
-      - cleveland
       - fmt
       - lorentz
       - morley
+      - morley-client
       - morley-multisig
       - morley-prelude
       - optparse-applicative
