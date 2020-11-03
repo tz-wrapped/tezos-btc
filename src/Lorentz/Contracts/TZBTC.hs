@@ -23,14 +23,18 @@ module Lorentz.Contracts.TZBTC
   , OneShotUpgradeParameters
   , V1Parameters (..)
   , V1DeployParameters (..)
+  , V2.V2Parameters
+  , V2.V2DeployParameters (..)
   , tzbtcContract
   , fromFlatParameter
   , mkEmptyStorageV0
-  , migrationScripts
+  , migrationScriptsV1
+  , migrationScriptsV2
+  , migrationScriptsV2FromV1
   , toSafeParam
   , makeOneShotUpgradeParameters
-  , tzbtcContractRouter
-  , tzbtcDoc
+  , tzbtcContractRouterV1
+  , tzbtcContractRouterV2
   , defaultTZBTCMetadata
   ) where
 
@@ -41,7 +45,7 @@ import Lorentz.Contracts.TZBTC.Common.FlatParameter
 import Lorentz.Contracts.TZBTC.Preprocess
 import Lorentz.Contracts.TZBTC.Types
 import Lorentz.Contracts.TZBTC.V0
-import Lorentz.Contracts.TZBTC.V1
+import qualified Lorentz.Contracts.TZBTC.V2 as V2
 
 -- Implementation
 ----------------------------------------------------------------------------

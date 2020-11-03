@@ -13,6 +13,7 @@ module Test.TZBTC
   , test_burn
   , test_mint
   , test_approvableLedgerV1
+  , test_approvableLedgerV2
   , test_pause
   , test_unpause
   , test_setRedeemAddress
@@ -26,6 +27,7 @@ module Test.TZBTC
   -- * Utilities
   , checkField
   , dummyV1Parameters
+  , dummyV2Parameters
   , originateTzbtcV1ContractRaw
   ) where
 
@@ -56,6 +58,7 @@ import Util.Named
 
 import Lorentz.Contracts.TZBTC
 import qualified Lorentz.Contracts.TZBTC.V1 as V1
+import qualified Lorentz.Contracts.TZBTC.V2 as V2
 
 {-# ANN module ("HLint: ignore Reduce duplication" :: Text) #-}
 
@@ -86,6 +89,11 @@ dummyV1Parameters redeem balances = V1Parameters
   , v1Balances = balances
   }
 
+dummyV2Parameters :: Address -> Map Address Natural -> V2Parameters
+dummyV2Parameters = dummyV1Parameters
+
+-- TODO [#134]: reuse testUpgradeToV1 instead of methods below
+
 originateTzbtcV1ContractRaw
   :: Address -> OriginationParams -> IntegrationalScenarioM (TAddress (Parameter SomeTZBTCVersion))
 originateTzbtcV1ContractRaw redeem op = do
@@ -97,8 +105,8 @@ originateTzbtcV1ContractRaw redeem op = do
     upgradeParams = makeOneShotUpgradeParameters @TZBTCv0 EpwUpgradeParameters
       { upMigrationScripts =
         Identity $
-        manualConcatMigrationScripts (migrationScripts opTZBTC)
-      , upNewCode = tzbtcContractRouter
+        manualConcatMigrationScripts (migrationScriptsV1 opTZBTC)
+      , upNewCode = tzbtcContractRouterV1
       , upNewPermCode = emptyPermanentImpl
       }
   withSender owner $ lCallDef c (fromFlatParameter $ Upgrade upgradeParams)
@@ -107,6 +115,31 @@ originateTzbtcV1ContractRaw redeem op = do
 originateTzbtcV1Contract
   :: IntegrationalScenarioM (TAddress (Parameter SomeTZBTCVersion))
 originateTzbtcV1Contract = originateTzbtcV1ContractRaw redeemAddress_ $ OriginationParams
+  { opAdmin = ownerAddress
+  , opBalances = M.fromList [(redeemAddress_, initialSupply)]
+  }
+
+originateTzbtcV2ContractRaw
+  :: Address -> OriginationParams -> IntegrationalScenarioM (TAddress (Parameter SomeTZBTCVersion))
+originateTzbtcV2ContractRaw redeem op = do
+  let owner = ML.opAdmin op
+  c <- lOriginate tzbtcContract "TZBTC Contract"
+    (mkEmptyStorageV0 owner) (toMutez 1000)
+  let
+    opTZBTC = dummyV2Parameters redeem (ML.opBalances op)
+    upgradeParams = makeOneShotUpgradeParameters @TZBTCv0 EpwUpgradeParameters
+      { upMigrationScripts =
+        Identity $
+        manualConcatMigrationScripts (migrationScriptsV2 opTZBTC)
+      , upNewCode = tzbtcContractRouterV2
+      , upNewPermCode = emptyPermanentImpl
+      }
+  withSender owner $ lCallDef c (fromFlatParameter $ Upgrade upgradeParams)
+  pure $ coerce c
+
+originateTzbtcV2Contract
+  :: IntegrationalScenarioM (TAddress (Parameter SomeTZBTCVersion))
+originateTzbtcV2Contract = originateTzbtcV2ContractRaw redeemAddress_ $ OriginationParams
   { opAdmin = ownerAddress
   , opBalances = M.fromList [(redeemAddress_, initialSupply)]
   }
@@ -160,7 +193,8 @@ testContract
   -> TestTree
 testContract name testSuite =
   testGroup name $
-    [ ("V1", originateTzbtcV1Contract)
+    [ ("V1 contract", originateTzbtcV1Contract)
+    , ("V2 contract", originateTzbtcV2Contract)
     ] <&> \(verName, originateContract) ->
       testCase verName (testSuite originateContract)
 
@@ -399,6 +433,11 @@ test_approvableLedgerV1 = testSpec "TZBTC contract approvable ledger tests" $ do
   where
     alOriginate = originateManagedLedger (originateTzbtcV1ContractRaw redeemAddress_)
 
+test_approvableLedgerV2 :: IO TestTree
+test_approvableLedgerV2 = testSpec "TZBTC contract approvable ledger tests" $ do
+  AL.approvableLedgerSpec $
+    originateManagedLedger (originateTzbtcV2ContractRaw redeemAddress_)
+
 test_pause :: TestTree
 test_pause = testGroup "TZBTC contract `pause` test"
   [ testContract
@@ -515,4 +554,6 @@ test_documentation :: [TestTree]
 test_documentation =
   [ testGroup "V1" $
       runDocTests testLorentzDoc (buildLorentzDoc V1.tzbtcDoc)
+  , testGroup "V2" $
+      runDocTests testLorentzDoc (buildLorentzDoc V2.tzbtcDoc)
   ]

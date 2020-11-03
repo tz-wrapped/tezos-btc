@@ -42,12 +42,17 @@ data CmdLnArgs
 data VersionArg
   = V0
   | V1
+  | V2
   deriving stock (Show)
 
 data MigrationArgs
   = MigrateV1
       ("redeemAddress" :! Address)
       ("tokenMetadata" :! TokenMetadata)
+  | MigrateV2
+      ("redeemAddress" :! Address)
+      ("tokenMetadata" :! TokenMetadata)
+  | MigrateV2FromV1
 
 argParser :: Opt.Parser CmdLnArgs
 argParser = hsubparser $
@@ -114,11 +119,13 @@ argParser = hsubparser $
             <*> (hsubparser
                   (mconcat
                     [ migrateV1Cmd
+                    , migrateV2Cmd
+                    , migrateV2FromV1Cmd
                     ])
                   <|> migrateV1Parser
                 )
           )
-          "Print migration scripts."
+          "Print migration scripts. When version is unspecified, v1 is used."
     migrateV1Parser =
       MigrateV1
           <$> namedParser Nothing "Redeem address"
@@ -132,6 +139,21 @@ argParser = hsubparser $
           <*> fmap (#tokenMetadata .!) parseSingleTokenMetadata
         )
         "Migration from V0 to V1."
+    migrateV2Cmd :: Opt.Mod Opt.CommandFields MigrationArgs
+    migrateV2Cmd =
+      mkCommandParser
+        "v2"
+        (MigrateV2
+          <$> namedParser Nothing "Redeem address"
+          <*> fmap (#tokenMetadata .!) parseSingleTokenMetadata
+        )
+        "Migration from V0 to V2."
+    migrateV2FromV1Cmd :: Opt.Mod Opt.CommandFields MigrationArgs
+    migrateV2FromV1Cmd =
+      mkCommandParser
+        "v1-to-v2"
+        (pure MigrateV2FromV1)
+        "Migration from V1 to V2."
     versionOption =
       Opt.option versionReadM
         (long "version" <>
@@ -163,6 +185,7 @@ versionReadM :: ReadM VersionArg
 versionReadM = eitherReader $ \case
   "0" -> pure V0
   "1" -> pure V1
+  "2" -> pure V2
   other -> Left $ "Unknown version identifier " <> show other
 
 -- | Parse `TokenMetadata` for a single token, with no extras

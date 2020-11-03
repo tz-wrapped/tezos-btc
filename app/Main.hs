@@ -27,9 +27,10 @@ import Client.Types (ClientConfig(..))
 import Client.Util
 import Lorentz.Contracts.Multisig
 import Lorentz.Contracts.TZBTC
-  (Parameter, TZBTCv0, TZBTCv1, V1Parameters(..), migrationScripts, mkEmptyStorageV0,
-  tzbtcContract, tzbtcContractRouter, tzbtcDoc)
-import Lorentz.Contracts.TZBTC.Test (TestUpgrade, smokeTests, testUpgradeToV1)
+import Lorentz.Contracts.TZBTC.Test (TestUpgrade, smokeTests, testUpgradeToV1, testUpgradeToV2)
+import qualified Lorentz.Contracts.TZBTC.V0 as V0
+import qualified Lorentz.Contracts.TZBTC.V1 as V1
+import qualified Lorentz.Contracts.TZBTC.V2 as V2
 import Morley.Client.Init (MorleyClientConfig(..))
 import Util.AbstractIO
 import Util.Migration
@@ -52,7 +53,8 @@ main = do
           mappend "https://github.com/tz-wrapped/tezos-btc/commit/"
       contractDoc = case ver of
         V0 -> error "Documentation for V0 is not interesting"
-        V1 -> tzbtcDoc
+        V1 -> V1.tzbtcDoc
+        V2 -> V2.tzbtcDoc
       in maybe printTextLn writeFileUtf8 mbFilePath
         (contractDocToMarkdown $ buildLorentzDocWithGitRev gitRev contractDoc)
     CmdParseParameter ver t ->
@@ -61,8 +63,9 @@ main = do
             either (throwString . pretty) (printStringLn . pretty) $
             parseLorentzValue @(Parameter ver) t
       in case ver of
-        V0 -> parseAndPrint @TZBTCv0
-        V1 -> parseAndPrint @TZBTCv1
+        V0 -> parseAndPrint @V0.TZBTCv0
+        V1 -> parseAndPrint @V1.TZBTCv1
+        V2 -> parseAndPrint @V2.TZBTCv2
     CmdTestScenario ver (arg #verbosity -> verbose) (arg #dryRun -> dryRun) -> do
       env <- mkInitEnv
       let
@@ -70,6 +73,8 @@ main = do
         testUpgrade = case ver of
           V0 -> mempty
           V1 -> testUpgradeToV1
+          V2 -> testUpgradeToV2
+          -- We do not care much about V1 to V2 migrations for now
       config <- runMaybeT $ do
         guard (not dryRun)
         tzbtcConfig <- lift . runAppM env $ throwLeft readConfig
@@ -87,8 +92,23 @@ main = do
                   , v1TokenMetadata = tokenMetadata
                   , v1Balances = mempty
                   }
-              makeMigrationParamsV1 tzbtcContractRouter $
-                (migrationScripts originationParams)
+              makeMigrationParamsV1 tzbtcContractRouterV1 $
+                (migrationScriptsV1 originationParams)
+          MigrateV2
+            (arg #redeemAddress -> redeem)
+            (arg #tokenMetadata -> tokenMetadata) -> do
+              let
+                originationParams = V1Parameters
+                  { v1RedeemAddress = redeem
+                  , v1TokenMetadata = tokenMetadata
+                  , v1Balances = mempty
+                  }
+              makeMigrationParamsV2 tzbtcContractRouterV2 $
+                (migrationScriptsV2 originationParams)
+          MigrateV2FromV1 -> do
+            makeMigrationParamsV2FromV1
+              (migrationScriptsV2FromV1 V2.V2ParametersFromV1)
+
   where
     toMorleyClientConfig :: Word -> ClientConfig -> MorleyClientConfig
     toMorleyClientConfig verbose ClientConfig {..} =

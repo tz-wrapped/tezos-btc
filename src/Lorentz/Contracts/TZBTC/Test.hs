@@ -8,6 +8,7 @@ module Lorentz.Contracts.TZBTC.Test
   , TestUpgrade
   , noTestUpgrade
   , testUpgradeToV1
+  , testUpgradeToV2
   ) where
 
 import Control.Lens ((<>~), _Just)
@@ -65,6 +66,9 @@ dummyV1Parameters redeem tokenMetadata balances = V1Parameters
   , v1Balances = balances
   }
 
+dummyV2Parameters :: Address -> TokenMetadata -> Map Address Natural -> V2Parameters
+dummyV2Parameters = dummyV1Parameters
+
 newtype TestUpgrade m = TestUpgrade
   { unTestUpgrade
       :: Address  --- ^ Admin's address
@@ -90,8 +94,26 @@ testUpgradeToV1 = TestUpgrade $ \admin tzbtc -> do
     upgradeParams = makeOneShotUpgradeParameters @TZBTCv0 EpwUpgradeParameters
       { upMigrationScripts =
         Identity $
-        manualConcatMigrationScripts (migrationScripts opTZBTC)
-      , upNewCode = tzbtcContractRouter
+        manualConcatMigrationScripts (migrationScriptsV1 opTZBTC)
+      , upNewCode = tzbtcContractRouterV1
+      , upNewPermCode = emptyPermanentImpl
+      }
+  callFrom
+    (AddressResolved admin)
+    tzbtc
+    (TrustEpName DefEpName)
+    (fromFlatParameter $ Upgrade upgradeParams :: Parameter TZBTCv0)
+
+testUpgradeToV2 :: Monad m => TestUpgrade m
+testUpgradeToV2 = TestUpgrade $ \admin tzbtc -> do
+  let
+    opTZBTC = dummyV2Parameters admin defaultTZBTCMetadata mempty
+    upgradeParams :: OneShotUpgradeParameters TZBTCv0
+    upgradeParams = makeOneShotUpgradeParameters @TZBTCv0 EpwUpgradeParameters
+      { upMigrationScripts =
+        Identity $
+        manualConcatMigrationScripts (migrationScriptsV2 opTZBTC)
+      , upNewCode = tzbtcContractRouterV2
       , upNewPermCode = emptyPermanentImpl
       }
   callFrom

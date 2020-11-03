@@ -13,6 +13,10 @@ module Lorentz.Contracts.TZBTC.V1.Contract
   , migrationScriptsRaw
   , tzbtcContractRouterRaw
   , tzbtcDoc
+
+    -- * Helpers
+  , migrateStorage
+  , tzbtcContractDesc
   )
 where
 
@@ -132,19 +136,21 @@ tzbtcDoc = fakeCoercing $ do
   doc licenseInfoDoc
   contractName "TZBTC" $ do
     contractGeneralDefault
-    doc $ DDescription
-      "This contract is implemented using Lorentz language.\n\
-      \Basically, this contract is [FA1.2](https://gitlab.com/serokell/morley/tzip/blob/master/A/FA1.2.md)\
-      \-compatible approvable ledger that maps user addresses to their token balances. \
-      \The main idea of this token contract is to provide 1-to-1 correspondance with BTC.\n\
-      \There are two special entities for this contract:\n\
-      \* `owner` -- owner of the TZBTC contract, capable in unpausing contract, \
-      \adding/removing operators, transfering ownership and upgrading contract. \
-      \There is only one owner of the contract.\n\
-      \* `operator` -- entity which is capable in pausing the contract \
-      \minting and burning tokens. There may be several operators added by the owner."
-
+    doc tzbtcContractDesc
     doc $ DUpgradeability $ U.contractDoc <> "\n" <> additionalDeployNotes
     doc $ T.DStorageType $ DType $ Proxy @UStoreV1
     doc $ DUStoreTemplate (Proxy @(VerUStoreTemplate TZBTCv1))
     V0.tzbtcContractRaw
+
+tzbtcContractDesc :: DDescription
+tzbtcContractDesc = DDescription
+  "This contract is implemented using Lorentz language.\n\
+  \Basically, this contract is [FA1.2](https://gitlab.com/serokell/morley/tzip/blob/master/A/FA1.2.md)\
+  \-compatible approvable ledger that maps user addresses to their token balances. \
+  \The main idea of this token contract is to provide 1-to-1 correspondance with BTC.\n\
+  \There are two special entities for this contract:\n\
+  \* `owner` -- owner of the TZBTC contract, capable in unpausing contract, \
+  \adding/removing operators, transfering ownership and upgrading contract. \
+  \There is only one owner of the contract.\n\
+  \* `operator` -- entity which is capable in pausing the contract \
+  \minting and burning tokens. There may be several operators added by the owner."

@@ -250,6 +250,10 @@ data StoreTemplateWithCommons s = StoreTemplateWithCommons
   , stCustom :: s
   } deriving stock Generic
 
+instance CanCastTo a b =>
+         StoreTemplateWithCommons a `CanCastTo` StoreTemplateWithCommons b where
+  castDummy = castDummyG
+
 type Operators = Set Address
 
 instance Buildable Operators where

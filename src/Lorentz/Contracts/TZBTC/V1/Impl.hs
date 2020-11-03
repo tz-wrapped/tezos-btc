@@ -27,6 +27,9 @@ module Lorentz.Contracts.TZBTC.V1.Impl
   , setRedeemAddress
   , transferOwnership
   , unpause
+
+    -- * Helpers
+  , authorizeOperator
   ) where
 
 import Fmt (Builder)
@@ -308,13 +311,12 @@ authorizeNewOwner = do
 
 -- | Check that the sender is an operator
 authorizeOperator
-  :: StorageC store
+  :: StorageContains store '["operators" := Set Address]
   => store : s :-> store : s
 authorizeOperator = do
   doc $ DRequireRole "operator"
   stGetField #operators; sender; mem;
   assert (CustomError #senderIsNotOperator)
-
 
 -- | Finish with an empty list of operations
 finishNoOp :: '[st] :-> (ContractOut st)

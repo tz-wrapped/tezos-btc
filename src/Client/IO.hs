@@ -8,7 +8,8 @@ module Client.IO
   , HasStoreTemplateSubmap
   , addrOrAliasToAddr
   , createMultisigPackage
-  , deployTzbtcContract
+  , deployTzbtcContractV1
+  , deployTzbtcContractV2
   , getAllowance
   , getBalance
   , getFieldFromTzbtcUStore
@@ -192,18 +193,12 @@ instance HasTezosRpc AppM where
     case r of
       Left err -> pure $ Left $ TzbtcServantError err
       Right rawVal -> pure $ Right rawVal
-  deployTzbtcContract mbFees dp = do
-    config@ClientConfig{..} <- throwLeft readConfig
-    v <- aeVerbose <$> lookupEnv
-    contractAddr <- liftIO $ IO.deployTzbtcContractV1 v config mbFees dp
-    putTextLn $ "Contract was successfully deployed. Contract address: " <> formatAddress contractAddr
-    liftIO $ case ccContractAddress of
-      Just c -> putTextLn $ "Current contract address for alias 'tzbtc' in the tezos-client config is " <> formatAddress c <> "."
-      Nothing -> putTextLn "Right now there is no contract aliased as 'tzbtc' in tezos-client config."
-    res <- confirmAction "Would you like to add/replace alias 'tzbtc' with the newly deployed contract?"
-    case res of
-      Canceled -> pass
-      Confirmed -> rememberContractAs contractAddr "tzbtc"
+  deployTzbtcContractV1 mbFees dp =
+    performTzbtcDeployment $ \v config ->
+      IO.deployTzbtcContractV1 v config mbFees dp
+  deployTzbtcContractV2 mbFees dp =
+    performTzbtcDeployment $ \v config ->
+      IO.deployTzbtcContractV2 v config mbFees dp
   deployMultisigContract mbFees msigStorage useCustomErrors = do
     v <- aeVerbose <$> lookupEnv
     let (_, (Threshold thresholdValue, Keys keysList)) = msigStorage
@@ -396,3 +391,19 @@ getTzbtcStorage
 getTzbtcStorage contractAddr = do
   storageRaw <- getStorage $ formatAddress contractAddr
   throwLeft $ pure $ exprToValue @(AlmostStorage ver) storageRaw
+
+performTzbtcDeployment
+  :: (MonadIO m, MonadThrow m, HasTezosClient m, HasCmdLine m)
+  => (Bool -> ClientConfig -> IO Address) -> m ()
+performTzbtcDeployment deployAction = do
+  config@ClientConfig{..} <- throwLeft readConfig
+  v <- aeVerbose <$> lookupEnv
+  contractAddr <- liftIO $ deployAction v config
+  putTextLn $ "Contract was successfully deployed. Contract address: " <> formatAddress contractAddr
+  liftIO $ case ccContractAddress of
+    Just c -> putTextLn $ "Current contract address for alias 'tzbtc' in the tezos-client config is " <> formatAddress c <> "."
+    Nothing -> putTextLn "Right now there is no contract aliased as 'tzbtc' in tezos-client config."
+  res <- confirmAction "Would you like to add/replace alias 'tzbtc' with the newly deployed contract?"
+  case res of
+    Canceled -> pass
+    Confirmed -> rememberContractAs contractAddr "tzbtc"
