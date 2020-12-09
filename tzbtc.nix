@@ -45,9 +45,9 @@ with rec {
           '';
         };
 
-        # don't haddock dependencies, haddock our package in non-release build only
+        # enable haddock for local package but not for dependencies
         doHaddock = false;
-        packages.tzbtc.doHaddock = if release then false else true;
+        packages.tzbtc.doHaddock = true;
 
       }] ++ pkgs.lib.optional static {
         packages.tzbtc = {
