@@ -15,7 +15,7 @@ rec {
   tzbtc = tzbtc-with-commit null;
 
   all-components = with tzbtc.components;
-    [ library ] ++ pkgs.lib.attrValues exes ++ pkgs.lib.attrValues tests;
+    [ library library.haddock ] ++ pkgs.lib.attrValues exes ++ pkgs.lib.attrValues tests;
 
   # nixpkgs has weeder 2, but we use weeder 1
   weeder-legacy = pkgs.haskellPackages.callHackageDirect {
