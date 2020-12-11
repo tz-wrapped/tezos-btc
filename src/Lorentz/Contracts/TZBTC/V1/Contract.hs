@@ -145,7 +145,7 @@ tzbtcDoc = fakeCoercing $ do
 tzbtcContractDesc :: DDescription
 tzbtcContractDesc = DDescription
   "This contract is implemented using Lorentz language.\n\
-  \Basically, this contract is [FA1.2](https://gitlab.com/serokell/morley/tzip/blob/master/A/FA1.2.md)\
+  \Basically, this contract is [FA1.2](https://gitlab.com/serokell/morley/tzip/-/blob/be56b0322363259af938e102ac84b0f488695872/Proposals/TZIP-0007/FA1.2.md)\
   \-compatible approvable ledger that maps user addresses to their token balances. \
   \The main idea of this token contract is to provide 1-to-1 correspondance with BTC.\n\
   \There are two special entities for this contract:\n\
