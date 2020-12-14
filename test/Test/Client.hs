@@ -149,14 +149,14 @@ test_addressParser = testGroup "Test parsing tezos-client output"
 
 burnFeeRoundTrip :: Positive Double -> Bool
 burnFeeRoundTrip d = let
-  inpString = showFFloat (Just 3) (getPositive d) ""
+  inpString = showFFloat (Just 6) (getPositive d) ""
   in case parseBurncapErrorFromOutput ("The operation will burn " <> (toText inpString)) of
     Right bc -> (toTezString $ toMuTez bc) == inpString
     Left _ -> False
 
 bakerFeeRoundTrip :: Positive Double -> Bool
 bakerFeeRoundTrip d = let
-  inpString = showFFloat (Just 3) (getPositive d) ""
+  inpString = showFFloat (Just 6) (getPositive d) ""
   in case parseSimulationResultFromOutput ("Fee to the baker: " <> (toText inpString) <> "\n") of
     Right sr -> (toTezString $ srComputedFees sr) == inpString
     Left _ -> False
