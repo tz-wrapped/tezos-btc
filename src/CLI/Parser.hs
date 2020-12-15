@@ -22,7 +22,7 @@ import Fmt (Buildable, pretty)
 import GHC.TypeLits (KnownSymbol, symbolVal)
 import Named (Name(..), arg)
 import Options.Applicative
-  (ReadM, command, help, hsubparser, info, long, metavar, progDesc, short, switch)
+  (ReadM, command, help, hsubparser, info, long, metavar, progDesc, switch)
 import qualified Options.Applicative as Opt
 
 import Lorentz.Contracts.Metadata
@@ -39,7 +39,6 @@ data CmdLnArgs
   | CmdPrintMultisigContract Bool Bool (Maybe FilePath)
   | CmdPrintDoc VersionArg (Maybe FilePath)
   | CmdParseParameter VersionArg Text
-  | CmdTestScenario VersionArg ("verbosity" :! Word) ("dryRun" :! Bool)
   | CmdMigrate ("output" :! Maybe FilePath) MigrationArgs
 
 data VersionArg
@@ -61,7 +60,7 @@ argParser :: Opt.Parser CmdLnArgs
 argParser = hsubparser $
   printCmd <> printMultisigCmd
   <> printInitialStorageCmd <> printDoc
-  <> parseParameterCmd <> testScenarioCmd <> migrateCmd
+  <> parseParameterCmd <> migrateCmd
   where
     singleLineSwitch = onelineOption
     printCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
@@ -104,15 +103,6 @@ argParser = hsubparser $
           "parseContractParameter"
           (CmdParseParameter <$> versionOption <*> Opt.strArgument mempty)
           "Parse contract parameter to Lorentz representation")
-    testScenarioCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
-    testScenarioCmd =
-      (mkCommandParser
-          "testScenario"
-          (CmdTestScenario
-             <$> versionOption
-             <*> (#verbosity <.!> genericLength <$> many verbositySwitch)
-             <*> (#dryRun <.!> dryRunSwitch))
-          "Do smoke tests")
     migrateCmd :: Opt.Mod Opt.CommandFields CmdLnArgs
     migrateCmd =
       mkCommandParser
@@ -164,14 +154,6 @@ argParser = hsubparser $
          metavar "NUMBER" <>
          Opt.value V1 <>
          Opt.showDefaultWith (\_ -> "1"))
-    verbositySwitch =
-      Opt.flag' ()
-                (short 'v' <>
-                 long "verbose" <>
-                 help "Increase verbosity (pass several times to increase further)")
-    dryRunSwitch =
-      switch (long "dry-run" <>
-              help "Don't run tests over a real network.")
 
 mkCommandParser
   :: String

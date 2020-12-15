@@ -29,11 +29,9 @@ library:
     - bytestring
     - co-log
     - containers
-    - cleveland
     - directory
     - hex-text
     - fmt
-    - lens
     - lorentz
     - morley
     - morley-ledgers
@@ -44,7 +42,6 @@ library:
     - named
     - optparse-applicative
     - megaparsec
-    - process
     - text
     - transformers
     - universum
@@ -103,6 +100,8 @@ tests:
     - morley-prelude
     - morley-upgradeable
     - mtl
+    - process
+    - tagged
     - tasty
     - tasty-hspec
     - tasty-hunit-compat

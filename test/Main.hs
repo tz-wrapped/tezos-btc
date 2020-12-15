@@ -6,8 +6,11 @@ module Main
   ( main
   ) where
 
-import Test.Tasty (defaultMain)
+import Test.Tasty (defaultMainWithIngredients)
+
+import Cleveland.Ingredients (ourIngredients)
+
 import Tree (tests)
 
 main :: IO ()
-main = tests >>= defaultMain
+main = tests >>= defaultMainWithIngredients ourIngredients
