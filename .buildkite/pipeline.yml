@@ -6,36 +6,37 @@ env:
 
 steps:
   - label: hlint
-    branches: "!autodoc/master"
+    if: &not_scheduled_autodoc
+      build.branch != "autodoc/master" && build.branch != "master" && build.source != "schedule"
     commands:
     - nix run -f ci.nix pkgs.hlint -c
         ./scripts/lint.sh
 
   - label: reuse lint
-    branches: "!autodoc/master"
+    if: *not_scheduled_autodoc
     commands:
     - nix run -f ci.nix pkgs.reuse -c
         reuse lint
 
   - label: check trailing whitespace
-    branches: "!autodoc/master"
+    if: *not_scheduled_autodoc
     commands:
     - .buildkite/check-trailing-whitespace.sh
 
   - label: crossref-verify
-    branches: "!autodoc/master"
+    if: *not_scheduled_autodoc
     commands:
     - nix run -f ci.nix crossref-verifier -c
         crossref-verify --mode local-only --config ./.crossref-verifier.yaml
     soft_fail: true  # TODO: remove
 
   - label: build
-    branches: "!autodoc/master"
+    if: *not_scheduled_autodoc
     commands:
     - nix-build ci.nix -A all-components
 
   - label: test
-    branches: "!autodoc/master"
+    if: *not_scheduled_autodoc
     env:
       TASTY_NETTEST_NODE_ENDPOINT: "http://localhost:8735"
       TASTY_NETTEST_IMPORT_SECRET_KEY: "unencrypted:edsk3D3Gx5q6mVL4jCAuFCoekWjM6hzrmSA3MCtDUnMAjxmxJ2rtes"
@@ -45,8 +46,22 @@ steps:
     - export TASTY_NETTEST_DATA_DIR="$(mktemp -d --tmpdir="$PWD")"
     - nix run -f ci.nix tezos-client tzbtc.components.exes.tzbtc-client -c ./result/bin/tzbtc-test --nettest-run-network
 
+  - label: scheduled delphinet test
+    if: build.source == "schedule"
+    # use another agent for long scheduled jobs
+    agents:
+      queue: "scheduled"
+    env:
+      TASTY_NETTEST_NODE_ENDPOINT: "http://delphi.testnet.tezos.serokell.team:8732"
+      TASTY_NETTEST_IMPORT_SECRET_KEY: "unencrypted:edsk3D3Gx5q6mVL4jCAuFCoekWjM6hzrmSA3MCtDUnMAjxmxJ2rtes"
+    commands: *run-test
+    retry:
+      automatic:
+        limit: 1
+    timeout_in_minutes: 150
+
   - label: weeder
-    branches: "!autodoc/master"
+    if: *not_scheduled_autodoc
     commands:
     - nix-build ci.nix -A weeder-script
       # weeder needs .cabal file:
@@ -54,7 +69,7 @@ steps:
     - ./result
 
   - label: bats
-    branches: "!autodoc/master"
+    if: *not_scheduled_autodoc
     commands:
     - nix run -f ci.nix pkgs.bats tzbtc.components.exes.tzbtc
         -c bats bats/tzbtc.bats
@@ -62,7 +77,7 @@ steps:
         -c bats bats/tzbtc-client.bats
 
   - label: contract-doc
-    branches: "!autodoc/master !master"
+    if: *not_scheduled_autodoc
     commands:
     - nix-build ci.nix -A contract-doc-dev
     - ln -s ./result/TZBTC-contract.md TZBTC-contract.md
@@ -71,7 +86,8 @@ steps:
 
   # for master branch we include commit info in the contract doc
   - label: contract-doc (master)
-    branches: master
+    if: &not_scheduled_master
+      build.branch == "master" && build.source != "schedule"
     commands:
     - nix-build ci.nix -A contract-doc-release
         --argstr sha "$(git rev-parse HEAD)"
@@ -81,7 +97,7 @@ steps:
       - TZBTC-contract.md
 
   - label: crossref-verify generated doc
-    branches: "!autodoc/master"
+    if: *not_scheduled_autodoc
     commands:
     - mkdir tmp
     - if [ "$BUILDKITE_BRANCH" = "master" ];
@@ -94,14 +110,14 @@ steps:
     soft_fail: true  # TODO: remove
 
   - label: autodoc upload
-    branches: master
+    if: *not_scheduled_master
     commands:
     - mkdir tmp
     - buildkite-agent artifact download TZBTC-contract.md tmp/ --step "contract-doc (master)"
     - ./scripts/ci/upload-autodoc.sh
 
   - label: packaging
-    branches: "!autodoc/master"
+    if: *not_scheduled_autodoc
     commands:
     - nix-build release.nix -A static -o tzbtc-static
     - nix-build release.nix -A deb -o tzbtc-client-deb
@@ -127,3 +143,7 @@ steps:
     - nix run -f ci.nix pkgs.git -c git fetch && git tag -f auto-release && git push --force --tags
     - nix run -f ci.nix gh -c gh release create --prerelease auto-release --title auto-release --notes ""
     - nix run -f ci.nix gh -c gh release upload auto-release assets/*
+
+notify:
+  - email: "tezos-alerts@serokell.io"
+    if: build.state == "failed" && build.source == "schedule"
