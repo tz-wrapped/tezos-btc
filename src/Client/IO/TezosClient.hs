@@ -222,7 +222,7 @@ simulateOrigination v config mbbc_ contract_ initst = do
   callTezosClient v (ccTezosClientExecutable config) args mbbc_ (parserToCallback parseSimulationResultFromOutput)
 
 toTezString :: TezosInt64 -> String
-toTezString x = formatScientific Fixed (Just 3) ((realToFrac x :: Scientific) / 10e6)
+toTezString x = formatScientific Fixed (Just 6) ((realToFrac x :: Scientific) / 10e6)
 
 getOperationHex
   :: ClientEnv -> ForgeOperation
