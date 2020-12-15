@@ -1,6 +1,9 @@
 # SPDX-FileCopyrightText: 2019 Bitcoin Suisse
 # SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
 
+env:
+  TEZOS_CLIENT_UNSAFE_DISABLE_DISCLAIMER: "Y"
+
 steps:
   - label: hlint
     branches: "!autodoc/master"
@@ -33,9 +36,14 @@ steps:
 
   - label: test
     branches: "!autodoc/master"
-    commands:
+    env:
+      TASTY_NETTEST_NODE_ENDPOINT: "http://localhost:8735"
+      TASTY_NETTEST_IMPORT_SECRET_KEY: "unencrypted:edsk3D3Gx5q6mVL4jCAuFCoekWjM6hzrmSA3MCtDUnMAjxmxJ2rtes"
+    commands: &run-test
     - nix-build ci.nix -A tzbtc.components.tests.tzbtc-test
-    - ./result/bin/tzbtc-test
+    # Emulated environment + 007 local-chain
+    - export TASTY_NETTEST_DATA_DIR="$(mktemp -d --tmpdir="$PWD")"
+    - nix run -f ci.nix tezos-client tzbtc.components.exes.tzbtc-client -c ./result/bin/tzbtc-test --nettest-run-network
 
   - label: weeder
     branches: "!autodoc/master"
