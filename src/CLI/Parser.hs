@@ -13,10 +13,13 @@ module CLI.Parser
   , addressOption
   , argParser
   , mkCommandParser
+  , biNamedParser
   , mTextOption
   , parseSingleTokenMetadata
   ) where
 
+import Fmt (Buildable, pretty)
+import GHC.TypeLits (KnownSymbol, symbolVal)
 import Named (Name(..), arg)
 import Options.Applicative
   (ReadM, command, help, hsubparser, info, long, metavar, progDesc, short, switch)
@@ -128,14 +131,14 @@ argParser = hsubparser $
           "Print migration scripts. When version is unspecified, v1 is used."
     migrateV1Parser =
       MigrateV1
-          <$> namedParser Nothing "Redeem address"
+          <$> biNamedParser Nothing "Redeem address"
           <*> fmap (#tokenMetadata .!) parseSingleTokenMetadata
     migrateV1Cmd :: Opt.Mod Opt.CommandFields MigrationArgs
     migrateV1Cmd =
       mkCommandParser
         "v1"
         (MigrateV1
-          <$> namedParser Nothing "Redeem address"
+          <$> biNamedParser Nothing "Redeem address"
           <*> fmap (#tokenMetadata .!) parseSingleTokenMetadata
         )
         "Migration from V0 to V1."
@@ -144,7 +147,7 @@ argParser = hsubparser $
       mkCommandParser
         "v2"
         (MigrateV2
-          <$> namedParser Nothing "Redeem address"
+          <$> biNamedParser Nothing "Redeem address"
           <*> fmap (#tokenMetadata .!) parseSingleTokenMetadata
         )
         "Migration from V0 to V2."
@@ -180,6 +183,25 @@ mkCommandParser commandName parser desc =
 
 addressArgument :: String -> Opt.Parser Address
 addressArgument hInfo = mkCLArgumentParser Nothing (#help .! hInfo)
+
+-- | For value named in camelCase, parse the respective CLI option
+-- if provided in camelCase (legacy) or in spinal-case.
+biNamedParser
+  :: forall name a. (Buildable a, HasCLReader a, KnownSymbol name)
+  => Maybe a -> String -> Opt.Parser (name :! a)
+biNamedParser defValue hInfo = asum
+  [ namedParser defValue hInfo
+  , Opt.option ((Name @name) <.!> getReader) $
+      mconcat
+      [ long name
+      , metavar (getMetavar @a)
+      , help (hInfo <> " " <> deprecationNote)
+      , maybeAddDefault pretty (Name @name <.!> defValue)
+      ]
+  ]
+  where
+    name = symbolVal (Proxy @name)
+    deprecationNote = "(this option is deprecated, use spinal-case form instead)"
 
 versionReadM :: ReadM VersionArg
 versionReadM = eitherReader $ \case
