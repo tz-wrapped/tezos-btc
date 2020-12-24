@@ -2,6 +2,9 @@
  -
  - SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
  -}
+
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 module Test.MultiSig (test_multisig) where
 
 import qualified Data.Set as Set
@@ -28,7 +31,9 @@ import Util.Named
 
 {-# ANN module ("HLint: ignore Reduce duplication" :: Text) #-}
 
-addSignature_ :: ByteString -> (PublicKey, Signature) -> Either String Package
+deriving stock instance Eq (TSignature a)
+
+addSignature_ :: ByteString -> (PublicKey, Sign) -> Either String Package
 addSignature_ e (pk, sig) = do
   f <- decodePackage e :: Either String Package
   addSignature f (pk, sig)
@@ -55,9 +60,9 @@ withMultiSigContract counter threshold masterPKList =
   withMultiSigContract_
     counter threshold masterPKList
 
-sign_ :: Ed25519.SecretKey -> Text -> Signature
+sign_ :: Ed25519.SecretKey -> Text -> Sign
 sign_ sk bs = case decodeHex (T.drop 2 bs) of
-  Just dbs -> SignatureEd25519 $ Ed25519.sign sk dbs
+  Just dbs -> TSignature . SignatureEd25519 $ Ed25519.sign sk dbs
   Nothing -> error "Error with making signatures"
 
 originateTzbtc

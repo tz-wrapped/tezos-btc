@@ -160,7 +160,7 @@ mainProgram = do
           pkg <- getPackageFromFile packageFilePath
           case pkg of
             Left err -> printTextLn err
-            Right package -> case addSignature package (pk, sign) of
+            Right package -> case addSignature package (pk, TSignature sign) of
               Right signedPackage -> writePackageToFile signedPackage packageFilePath
               Left err -> printStringLn err
         CmdSignPackage packageFilePath -> do
@@ -177,22 +177,34 @@ mainProgram = do
           case pkgs of
             Left err -> printTextLn err
             Right packages -> runMultisigContract packages
-        CmdDeployContract DeployContractOptions {..} -> do
-          ownerAlias <- case dcoOwner of
+        CmdDeployContract (arg #owner -> mOwner) deployOptions -> do
+          owner <- addrOrAliasToAddr =<< case mOwner of
             Just o -> pure o
             Nothing  -> ccUserAlias <$> throwLeft readConfig
-          [owner, redeem] <- mapM addrOrAliasToAddr [ownerAlias, dcoRedeem]
-          let
-            originationParams = V1DeployParameters
-              { v1Owner = owner
-              , v1MigrationParams = V1Parameters
-                { v1RedeemAddress = redeem
-                , v1TokenMetadata = dcoTokenMetadata
-                , v1Balances = mempty
-                }
-              }
+          let toDeployParamsV1 :: DeployContractOptionsV1 -> m V1DeployParameters
+              toDeployParamsV1 DeployContractOptionsV1{..} = do
+                redeem <- addrOrAliasToAddr dcoRedeem
+                return V1DeployParameters
+                    { v1Owner = owner
+                    , v1MigrationParams = V1Parameters
+                      { v1RedeemAddress = redeem
+                      , v1TokenMetadata = dcoTokenMetadata
+                      , v1Balances = mempty
+                      }
+                    }
+          let toDeployParamsV2 :: DeployContractOptionsV2 -> m V2DeployParameters
+              toDeployParamsV2 (DeployContractOptionsV2 optsV1) = do
+                V1DeployParameters{..} <- toDeployParamsV1 optsV1
+                return V2DeployParameters
+                  { v2Owner = v1Owner
+                  , v2MigrationParams = v1MigrationParams
+                  }
           mbFees <- aeFees <$> lookupEnv
-          deployTzbtcContract mbFees originationParams
+          case deployOptions of
+            DeployContractV1 opts ->
+              deployTzbtcContractV1 mbFees =<< toDeployParamsV1 opts
+            DeployContractV2 opts ->
+              deployTzbtcContractV2 mbFees =<< toDeployParamsV2 opts
         CmdDeployMultisigContract threshold keys' useCustomErrors -> do
           mbFees <- aeFees <$> lookupEnv
           deployMultisigContract mbFees ((Counter 0), (threshold, keys')) useCustomErrors

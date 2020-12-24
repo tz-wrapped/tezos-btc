@@ -31,7 +31,7 @@ import Client.IO ()
 import Client.Types
 import Lorentz.Constraints
 import Lorentz.Contracts.Multisig
-import Lorentz.Contracts.TZBTC (V1DeployParameters)
+import Lorentz.Contracts.TZBTC (V1DeployParameters, V2DeployParameters)
 
 import Util.AbstractIO
 
@@ -97,7 +97,8 @@ data Handlers m = Handlers
   , hGetFromBigMap :: Natural -> Text -> m (Either TzbtcClientError Expression)
   , hWaitForOperation :: Text -> m ()
   , hGetTezosClientConfig :: m (Either Text (FilePath, TezosClientConfig))
-  , hDeployTzbtcContract :: Maybe TezosInt64 -> V1DeployParameters -> m ()
+  , hDeployTzbtcContractV1 :: Maybe TezosInt64 -> V1DeployParameters -> m ()
+  , hDeployTzbtcContractV2 :: Maybe TezosInt64 -> V2DeployParameters -> m ()
   , hDeployMultisigContract :: Maybe TezosInt64 -> MSigStorage -> Bool -> m ()
 
   , hGetAddressAndPKForAlias :: Text -> m (Either TzbtcClientError (Address, PublicKey))
@@ -157,8 +158,11 @@ instance HasTezosRpc TestM where
   getFromBigMap n t = do
     fn <- getHandler hGetFromBigMap
     fn n t
-  deployTzbtcContract f op = do
-    fn <- getHandler hDeployTzbtcContract
+  deployTzbtcContractV1 f op = do
+    fn <- getHandler hDeployTzbtcContractV1
+    fn f op
+  deployTzbtcContractV2 f op = do
+    fn <- getHandler hDeployTzbtcContractV2
     fn f op
   getChainId name = do
     fn <- getHandler hGetChainId

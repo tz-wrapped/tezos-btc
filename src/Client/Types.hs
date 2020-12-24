@@ -13,6 +13,8 @@ module Client.Types
   , ConfirmationResult (..)
   , ConfigOverride (..)
   , DeployContractOptions (..)
+  , DeployContractOptionsV1 (..)
+  , DeployContractOptionsV2 (..)
   , EntrypointParam (..)
   , ForgeOperation (..)
   , InternalOperation (..)
@@ -49,7 +51,7 @@ import Util.Named
 
 import Lorentz.Contracts.Metadata
 import Lorentz.Contracts.Multisig
-import Lorentz.Contracts.TZBTC.Types
+import Lorentz.Contracts.TZBTC.Common.Types
 
 -- | Client argument with optional dry-run flag
 data ClientArgs =
@@ -90,14 +92,21 @@ data ClientArgsRaw
   | CmdAddSignature PublicKey Signature FilePath
   | CmdSignPackage FilePath
   | CmdCallMultisig (NonEmpty FilePath)
-  | CmdDeployContract !DeployContractOptions
+  | CmdDeployContract ("owner" :! Maybe AddrOrAlias) !DeployContractOptions
   | CmdDeployMultisigContract Threshold Keys Bool
   | CmdShowConfig
 
-data DeployContractOptions = DeployContractOptions
-  { dcoOwner :: !(Maybe AddrOrAlias)
-  , dcoRedeem :: !AddrOrAlias
+data DeployContractOptions
+  = DeployContractV1 DeployContractOptionsV1
+  | DeployContractV2 DeployContractOptionsV2
+
+data DeployContractOptionsV1 = DeployContractOptionsV1
+  { dcoRedeem :: !AddrOrAlias
   , dcoTokenMetadata :: !TokenMetadata
+  }
+
+data DeployContractOptionsV2 = DeployContractOptionsV2
+  { dcoV1 :: DeployContractOptionsV1
   }
 
 data ConfigOverride = ConfigOverride

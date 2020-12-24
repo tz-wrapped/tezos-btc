@@ -8,7 +8,8 @@ module Client.IO
   , HasStoreTemplateSubmap
   , addrOrAliasToAddr
   , createMultisigPackage
-  , deployTzbtcContract
+  , deployTzbtcContractV1
+  , deployTzbtcContractV2
   , getAllowance
   , getBalance
   , getFieldFromTzbtcUStore
@@ -37,7 +38,9 @@ import Util.Exception
 
 import Lorentz hiding (address, balance, chainId, cons, map)
 import Lorentz.Contracts.Multisig
-import Lorentz.UStore.Common
+import Lorentz.UStore
+import Lorentz.UStore.Types
+import Michelson.Text
 import Michelson.Untyped (InternalByteString(..))
 import Tezos.Address
 import Tezos.Core (parseChainId)
@@ -190,18 +193,12 @@ instance HasTezosRpc AppM where
     case r of
       Left err -> pure $ Left $ TzbtcServantError err
       Right rawVal -> pure $ Right rawVal
-  deployTzbtcContract mbFees dp = do
-    config@ClientConfig{..} <- throwLeft readConfig
-    v <- aeVerbose <$> lookupEnv
-    contractAddr <- liftIO $ IO.deployTzbtcContract v config mbFees dp
-    putTextLn $ "Contract was successfully deployed. Contract address: " <> formatAddress contractAddr
-    liftIO $ case ccContractAddress of
-      Just c -> putTextLn $ "Current contract address for alias 'tzbtc' in the tezos-client config is " <> formatAddress c <> "."
-      Nothing -> putTextLn "Right now there is no contract aliased as 'tzbtc' in tezos-client config."
-    res <- confirmAction "Would you like to add/replace alias 'tzbtc' with the newly deployed contract?"
-    case res of
-      Canceled -> pass
-      Confirmed -> rememberContractAs contractAddr "tzbtc"
+  deployTzbtcContractV1 mbFees dp =
+    performTzbtcDeployment $ \v config ->
+      IO.deployTzbtcContractV1 v config mbFees dp
+  deployTzbtcContractV2 mbFees dp =
+    performTzbtcDeployment $ \v config ->
+      IO.deployTzbtcContractV2 v config mbFees dp
   deployMultisigContract mbFees msigStorage useCustomErrors = do
     v <- aeVerbose <$> lookupEnv
     let (_, (Threshold thresholdValue, Keys keysList)) = msigStorage
@@ -315,7 +312,7 @@ signPackageForConfiguredUser pkg = do
       signRes <- signWithTezosClient (Right $ getBytesToSign pkg) ccUserAlias
       case signRes of
         Left err -> pure $ Left $ toString err
-        Right signature' -> pure $ addSignature pkg (pk, signature')
+        Right signature' -> pure $ addSignature pkg (pk, TSignature signature')
 
 getBalance :: (HasTezosRpc m) => Address -> m Natural
 getBalance addr = do
@@ -347,7 +344,7 @@ getFieldFromTzbtcUStore
   :: forall name t m. (HasTezosRpc m, HasStoreTemplateField t name)
   => m (Maybe t)
 getFieldFromTzbtcUStore =
-  getFromTzbtcUStore $ fieldNameToMText @name
+  getFromTzbtcUStore $ mkFieldMarkerUKeyL @UMarkerPlainField (fromLabel @name)
 
 -- | Get value assosiated with given key from given submap of
 -- TZBTC contract UStore.
@@ -355,7 +352,7 @@ getValueFromTzbtcUStoreSubmap
   :: forall name key value m. (HasTezosRpc m, HasStoreTemplateSubmap key value name)
   => key -> m (Maybe value)
 getValueFromTzbtcUStoreSubmap key =
-  getFromTzbtcUStore (fieldNameToMText @name , key)
+  getFromTzbtcUStore (symbolToMText @name , key)
 
 -- | Get value for given key from UStore.
 --
@@ -375,7 +372,8 @@ getFromTzbtcUStore key = do
   case ccContractAddress of
     Nothing -> throwM TzbtcContractConfigUnavailable
     Just contractAddr -> do
-      AlmostStorage{..} <- getTzbtcStorage @TZBTCv1 contractAddr
+      -- Exact version does not matter for such low-level operation
+      AlmostStorage{..} <- getTzbtcStorage @SomeTZBTCVersion contractAddr
       let scriptExpr = encodeBase58Check . valueToScriptExpr . lPackValue $ key
       fieldValueRaw <- getFromBigMap asBigMapId scriptExpr
       case fieldValueRaw of
@@ -386,10 +384,26 @@ getFromTzbtcUStore key = do
           _ -> throwM err
         Right veryRawVal -> do
           rawVal <- throwLeft $ pure $ exprToValue @ByteString veryRawVal
-          fmap Just . throwLeft . pure $ lUnpackValue rawVal
+          fmap Just . throwLeft . pure $ lUnpackValueRaw rawVal
 
 getTzbtcStorage
   :: forall ver m. (Typeable ver, HasTezosRpc m) => Address -> m (AlmostStorage ver)
 getTzbtcStorage contractAddr = do
   storageRaw <- getStorage $ formatAddress contractAddr
   throwLeft $ pure $ exprToValue @(AlmostStorage ver) storageRaw
+
+performTzbtcDeployment
+  :: (MonadIO m, MonadThrow m, HasTezosClient m, HasCmdLine m)
+  => (Bool -> ClientConfig -> IO Address) -> m ()
+performTzbtcDeployment deployAction = do
+  config@ClientConfig{..} <- throwLeft readConfig
+  v <- aeVerbose <$> lookupEnv
+  contractAddr <- liftIO $ deployAction v config
+  putTextLn $ "Contract was successfully deployed. Contract address: " <> formatAddress contractAddr
+  liftIO $ case ccContractAddress of
+    Just c -> putTextLn $ "Current contract address for alias 'tzbtc' in the tezos-client config is " <> formatAddress c <> "."
+    Nothing -> putTextLn "Right now there is no contract aliased as 'tzbtc' in tezos-client config."
+  res <- confirmAction "Would you like to add/replace alias 'tzbtc' with the newly deployed contract?"
+  case res of
+    Canceled -> pass
+    Confirmed -> rememberContractAs contractAddr "tzbtc"

@@ -3,8 +3,8 @@
 
 parameter (or (or (or (pair %getVersion (unit %viewParam)
                                         (contract %viewCallbackTo nat))
-                      (pair %getAllowance (pair %viewParam (address %owner)
-                                                           (address %spender))
+                      (pair %getAllowance (pair %viewParam (address :owner)
+                                                           (address :spender))
                                           (contract %viewCallbackTo nat)))
                   (or (pair %getBalance (address :owner %viewParam)
                                         (contract %viewCallbackTo nat))
@@ -70,8 +70,8 @@ parameter (or (or (or (pair %getVersion (unit %viewParam)
                                                                                                                                   bytes))))))))
                                                        (or
                                                            (pair %epwBeginUpgrade
-                                                                                  (nat %current)
-                                                                                  (nat %new))
+                                                                                  (nat :current)
+                                                                                  (nat :new))
                                                            (lambda :migrationscript %epwApplyMigration
                                                                                                        (big_map
                                                                                                                 bytes
@@ -100,11 +100,11 @@ parameter (or (or (or (pair %getVersion (unit %viewParam)
                                                                                  (address :to)
                                                                                  (nat :value)))
                                                            (pair %approve
-                                                                          (address %spender)
-                                                                          (nat %value)))))
+                                                                          (address :spender)
+                                                                          (nat :value)))))
                                                (or (or (or (pair %mint
-                                                                       (address %to)
-                                                                       (nat %value))
+                                                                       (address :to)
+                                                                       (nat :value))
                                                            (nat :value %burn))
                                                        (or
                                                            (address :operator %addOperator)

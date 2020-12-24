@@ -7,9 +7,9 @@
 --
 -- The lattest version of morley-ledgers is not compatible with V1 of our
 -- contract so we keep the old pieces of ManagedLedger contract here.
-module Lorentz.Contracts.OldManagedLedger
+module Lorentz.Contracts.TZBTC.V1.ManagedLedger
   ( module X
   ) where
 
-import Lorentz.Contracts.OldManagedLedger.Impl as X
-import Lorentz.Contracts.OldManagedLedger.Types as X
+import Lorentz.Contracts.TZBTC.V1.ManagedLedger.Impl as X
+import Lorentz.Contracts.TZBTC.V1.ManagedLedger.Types as X

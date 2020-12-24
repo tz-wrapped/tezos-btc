@@ -14,7 +14,7 @@ extra-deps:
     https://gitlab.com/morley-framework/morley.git
     # ^ CI cannot use ssh, so we use http clone here
   commit:
-    9c4583f67fc00738b6f2b6701ce56b4c79f3a55f  # master
+    8e6568b0f0839b0dd9c0e99a3a299be4627aece8 # morley-1.10
   subdirs:
     - code/morley-multisig
     - code/morley-client
@@ -24,7 +24,7 @@ extra-deps:
     https://gitlab.com/morley-framework/morley-ledgers.git
     # ^ CI cannot use ssh, so we use http clone here
   commit:
-    7f0cbca64ed57b072ee9befc4332cf6fcfa29e71 # master
+    1a1f1caab12e051d0c930c2f9bde4b5a0bca1d60 # master
   subdirs:
     - code/morley-ledgers
     - code/morley-ledgers-test
@@ -33,14 +33,14 @@ extra-deps:
     https://gitlab.com/morley-framework/morley-upgradeable.git
     # ^ CI cannot use ssh, so we use http clone here
   commit:
-    4af615e1a98cbd315aaab7ce100ad919812dcef3 # master
+    966bcb824d9933e12f96370f5140f89f18c1131f # master
 
 # Stable parts of morley available from Hackage
 - morley-prelude-0.3.0
 - tasty-hunit-compat-0.2
-- morley-1.7.1
-- lorentz-0.6.1
-- indigo-0.3.0
+- morley-1.10.0
+- lorentz-0.8.0
+- indigo-0.4
 
 # Required by morley
 - show-type-0.1.1@sha256:24f681a3481b3f9630e619d816054804ba1bd6cc05b5978ddd2cece8499ff2fa
@@ -51,3 +51,4 @@ extra-deps:
 - cryptonite-0.27
 - git: https://github.com/int-index/caps.git
   commit: c5d61837eb358989b581ed82b1e79158c4823b1b
+- uncaught-exception-0.1.0

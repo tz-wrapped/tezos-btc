@@ -23,24 +23,29 @@ module Lorentz.Contracts.TZBTC
   , OneShotUpgradeParameters
   , V1Parameters (..)
   , V1DeployParameters (..)
+  , V2.V2Parameters
+  , V2.V2DeployParameters (..)
   , tzbtcContract
   , fromFlatParameter
   , mkEmptyStorageV0
-  , migrationScripts
+  , migrationScriptsV1
+  , migrationScriptsV2
+  , migrationScriptsV2FromV1
   , toSafeParam
   , makeOneShotUpgradeParameters
-  , tzbtcContractRouter
-  , tzbtcDoc
+  , tzbtcContractRouterV1
+  , tzbtcContractRouterV2
   , defaultTZBTCMetadata
   ) where
 
 import Lorentz
 
 import Lorentz.Contracts.Metadata
-import Lorentz.Contracts.TZBTC.FlatParameter
+import Lorentz.Contracts.TZBTC.Common.FlatParameter
 import Lorentz.Contracts.TZBTC.Preprocess
-import Lorentz.Contracts.TZBTC.Types as Types
+import Lorentz.Contracts.TZBTC.Types
 import Lorentz.Contracts.TZBTC.V0
+import qualified Lorentz.Contracts.TZBTC.V2 as V2
 
 -- Implementation
 ----------------------------------------------------------------------------
@@ -52,9 +57,9 @@ toSafeParam _ = Nothing
 defaultTZBTCMetadata :: TokenMetadata
 defaultTZBTCMetadata =
   TokenMetadata
-    { token_id = 0
-    , symbol = [mt|"TZBTC"|]
-    , name = [mt|"Tezos BTC"|]
-    , decimals = 0
-    , extras = mempty
+    { tmTokenId = singleTokenTokenId
+    , tmSymbol = [mt|"TZBTC"|]
+    , tmName = [mt|"Tezos BTC"|]
+    , tmDecimals = 0
+    , tmExtras = mempty
     }
