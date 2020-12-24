@@ -3,7 +3,7 @@
  - SPDX-License-Identifier: LicenseRef-MIT-TQ
  -}
 
-module Lorentz.Contracts.OldManagedLedger.Doc
+module Lorentz.Contracts.TZBTC.V1.ManagedLedger.Doc
   ( ML.contractDoc
   , ML.transferDoc
   , ML.approveDoc

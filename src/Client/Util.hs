@@ -21,7 +21,7 @@ import Servant.Client.Core (ClientError)
 
 import Lorentz (Contract, compileLorentzContract)
 import Lorentz.Constraints
-import Lorentz.Pack (lPackValue, lUnpackValue)
+import Lorentz.Pack (lPackValueRaw, lUnpackValueRaw)
 import Michelson.Interpret.Pack (encodeValue', packNotedT')
 import Michelson.Interpret.Unpack (UnpackError)
 import Michelson.Typed (Notes)
@@ -37,7 +37,7 @@ nicePackedValueToExpression
   :: forall param.
      (NicePackedValue param)
   => param -> Expression
-nicePackedValueToExpression param = decodeExpression . BS.drop 1 $ lPackValue param
+nicePackedValueToExpression param = decodeExpression . BS.drop 1 $ lPackValueRaw param
 
 typeToExpression :: forall t. (SingI t) => Notes t -> Expression
 typeToExpression = decodeExpression . packNotedT'
@@ -87,7 +87,7 @@ exprToValue
   :: forall t. (NiceUnpackedValue t)
   => Expression -> Either UnpackError t
 exprToValue =
-  lUnpackValue . BS.cons 0x05 . encodeExpression
+  lUnpackValueRaw . BS.cons 0x05 . encodeExpression
 
 addExprPrefix :: ByteString -> ByteString
 addExprPrefix = (BS.pack [0x0D, 0x2C, 0x40, 0x1B] <>)
@@ -105,4 +105,4 @@ addExprPrefix = (BS.pack [0x0D, 0x2C, 0x40, 0x1B] <>)
 valueToScriptExpr
   :: forall t. (NicePackedValue t)
   => t -> ByteString
-valueToScriptExpr = addExprPrefix . blake2b . lPackValue
+valueToScriptExpr = addExprPrefix . blake2b . lPackValueRaw

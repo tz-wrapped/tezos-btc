@@ -5,7 +5,8 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Util.MultiSig
-  ( Package(..)
+  ( Sign
+  , Package(..)
   , MSigParameter
   , MSigParamMain
   , MSigPayload
@@ -24,7 +25,7 @@ where
 
 import Prelude hiding (drop, toStrict, (>>))
 
-import Data.Aeson (eitherDecodeStrict, encode)
+import Data.Aeson (FromJSON, ToJSON, eitherDecodeStrict, encode)
 import Data.Aeson.Casing (aesonPrefix, camelCase)
 import Data.Aeson.TH (deriveJSON)
 import Data.ByteString.Lazy as LBS (toStrict)
@@ -32,14 +33,15 @@ import Data.List (lookup)
 import Fmt (Buildable(..), Builder, blockListF, pretty, (|+))
 import Michelson.Interpret.Unpack
 import Text.Hex (decodeHex, encodeHex)
-import Tezos.Crypto
 import qualified Text.Show (show)
+import Tezos.Crypto
 
 import Client.Util (addTezosBytesPrefix)
 import Lorentz
-import Lorentz.Contracts.TZBTC as TZBTC
-import Lorentz.Contracts.TZBTC.Types as TZBTC
 import Lorentz.Contracts.Multisig
+import qualified Lorentz.Contracts.Multisig.Specialized.Types as Spec
+import Lorentz.Contracts.TZBTC as TZBTC
+import Lorentz.Contracts.TZBTC.Common.Types as TZBTC
 
 
 -- The workflow consists of first calling the `mkPackage` function with the
@@ -56,6 +58,11 @@ import Lorentz.Contracts.Multisig
 -- contract param.  This param, when used in a call to the multisig contract
 -- make it validate the signatures and forward the action to the main contract.
 
+-- | Our signature.
+type Sign =
+  TSignature $ Packed $
+    Spec.ToSign (SafeParameter SomeTZBTCVersion) (Parameter SomeTZBTCVersion)
+
 -- | The type that will represent the actual data that will be provide to the
 -- signers. Note that we are also collecting the public key associated with a
 -- signature. This is because the multisig expects the signatures to be
@@ -66,14 +73,14 @@ import Lorentz.Contracts.Multisig
 -- the unavailable ones with Nothings.
 data Package = Package
   { pkToSign :: !Text  -- ^ Hex encoded byte sequence that should be signed
-  , pkSignatures :: ![(PublicKey, Signature)] -- ^ Field to hold signatures and public keys as they are collected.
+  , pkSignatures :: ![(PublicKey, Sign)] -- ^ Field to hold signatures and public keys as they are collected.
   }
 
-instance Buildable (PublicKey, Signature) where
+instance Buildable (PublicKey, Sign) where
   build (pk, sig) =  ("Public key: " :: String)
                   |+ (formatPublicKey pk)
                   |+ ("\nSignature: " :: String)
-                  |+ (build $ formatSignature sig)
+                  |+ (build $ formatSignature $ unTSignature sig)
 
 instance Buildable Package where
   build p =
@@ -203,7 +210,7 @@ decodePackage = eitherDecodeStrict
 -- | Add signature to package.
 addSignature
   :: Package
-  -> (PublicKey, Signature)
+  -> (PublicKey, Sign)
   -> Either String Package
 addSignature package sig =
   if checkIntegrity package then let
@@ -228,7 +235,7 @@ mkMultiSigParam pks packages = do
   where
     mkParameter
       :: ToSign
-      -> [(PublicKey, Signature)]
+      -> [(PublicKey, Sign)]
       -> (TAddress MSigParameter, MSigParamMain)
     mkParameter ((_, address_), payload) sigs =
       -- There should be as may signatures in the submitted request
@@ -236,10 +243,13 @@ mkMultiSigParam pks packages = do
       -- be present, but they should be marked as absent using Nothing values [1].
       -- So we pad the list with Nothings to make up for missing signatures.
       (toTAddress address_, (payload, sortSigs sigs))
-    sortSigs :: [(PublicKey, Signature)] -> [Maybe Signature]
+    sortSigs :: [(PublicKey, Sign)] -> [Maybe Sign]
     sortSigs sigs = flip lookup sigs <$> pks
 
 encodeToSign :: ToSign -> Text
-encodeToSign ts = (encodeHex $ lPackValue ts)
+encodeToSign ts = (encodeHex . toBytes $ lPackValue ts)
 
 deriveJSON (aesonPrefix camelCase) ''Package
+
+deriving newtype instance ToJSON (TSignature a)
+deriving newtype instance FromJSON (TSignature a)

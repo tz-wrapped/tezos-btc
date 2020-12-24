@@ -1,9 +1,0 @@
-{
-    "contract_address": null,
-    "multisig_address": null,
-    "node_address": "localhost",
-    "node_port": 2990,
-    "node_use_https": false,
-    "tezos_client_executable": "tezos-client",
-    "user_alias": "bob"
-}

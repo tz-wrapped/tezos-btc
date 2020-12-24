@@ -4,7 +4,8 @@
  -}
 
 module Client.IO.TezosRpc
-  ( deployTzbtcContract
+  ( deployTzbtcContractV1
+  , deployTzbtcContractV2
   , getStorage
   , originateContract
   , runTransactions
@@ -29,7 +30,8 @@ import Client.IO.TezosClient as IO
 import Client.Types
 import Client.Util
 import Lorentz.Contracts.TZBTC
-import Lorentz.Contracts.TZBTC.Preprocess (upgradeParameters)
+import Lorentz.Contracts.TZBTC.Preprocess
+import qualified Lorentz.Contracts.TZBTC.V2 as V2
 
 -- | Datatype that contains various values required for
 -- chain operations.
@@ -254,23 +256,47 @@ originateContract v contract initialStorage config@ClientConfig{..} mbFees = do
           "Error during contract origination, expecting to \
           \originate exactly one contract."
 
-deployTzbtcContract :: Bool -> ClientConfig -> Maybe TezosInt64 -> V1DeployParameters -> IO Address
-deployTzbtcContract v config@ClientConfig{..} mbFees V1DeployParameters{..} = do
+deployTzbtcContractV0 :: Bool -> ClientConfig -> Maybe TezosInt64 -> Address -> IO Address
+deployTzbtcContractV0 v config@ClientConfig{..} mbFees owner = do
   putTextLn "Originate contract"
-  contractAddr <- throwLeft $
-    originateContract v tzbtcContract (mkEmptyStorageV0 v1Owner) config mbFees
+  throwLeft $ originateContract v tzbtcContract (mkEmptyStorageV0 owner) config mbFees
+
+upgradeTzbtcToV1 :: Bool -> ClientConfig -> Maybe TezosInt64 -> V1Parameters -> Address -> IO ()
+upgradeTzbtcToV1 v config@ClientConfig{..} mbFees migrationParams contractAddr = do
   let transactionsToTzbtc params amt = runTransactions v contractAddr params amt config mbFees
   putTextLn "Upgrade contract to V1"
-  throwClientErrorAfterRetry (10, delayFn) $ try $
+  throwClientErrorAfterRetry (10, delayAfterDeployment) $ try $
     -- We retry here because it was found that in some cases, the storage
     -- is unavailable for a short time since contract origination.
-    let param = Upgrade @TZBTCv0 $ upgradeParameters v1MigrationParams
+    let param = Upgrade @TZBTCv0 $ upgradeParametersV1 migrationParams
     in transactionsToTzbtc (DefaultEntrypoint . fromFlatParameter $ param) 0
+
+deployTzbtcContractV1 :: Bool -> ClientConfig -> Maybe TezosInt64 -> V1DeployParameters -> IO Address
+deployTzbtcContractV1 v config mbFees V1DeployParameters{..} = do
+  contractAddr <- deployTzbtcContractV0 v config mbFees v1Owner
+  upgradeTzbtcToV1 v config mbFees v1MigrationParams contractAddr
   pure contractAddr
-  where
-    delayFn = do
-      hPutStrLn stderr ("Upgrading failed, retrying after 10 seconds..." :: String)
-      threadDelay (Time @Second 10)
+
+upgradeTzbtcToV2 :: Bool -> ClientConfig -> Maybe TezosInt64 -> V2.V2Parameters -> Address -> IO ()
+upgradeTzbtcToV2 v config@ClientConfig{..} mbFees migrationParams contractAddr = do
+  let transactionsToTzbtc params amt = runTransactions v contractAddr params amt config mbFees
+  putTextLn "Upgrade contract to V2"
+  throwClientErrorAfterRetry (10, delayAfterDeployment) $ try $
+    -- We retry here because it was found that in some cases, the storage
+    -- is unavailable for a short time since contract origination.
+    let param = Upgrade @TZBTCv0 $ upgradeParametersV2 migrationParams
+    in transactionsToTzbtc (DefaultEntrypoint . fromFlatParameter $ param) 0
+
+deployTzbtcContractV2 :: Bool -> ClientConfig -> Maybe TezosInt64 -> V2.V2DeployParameters -> IO Address
+deployTzbtcContractV2 v config mbFees V2.V2DeployParameters{..} = do
+  contractAddr <- deployTzbtcContractV0 v config mbFees v2Owner
+  upgradeTzbtcToV2 v config mbFees v2MigrationParams contractAddr
+  pure contractAddr
+
+delayAfterDeployment :: IO ()
+delayAfterDeployment = do
+  hPutStrLn stderr ("Upgrading failed, retrying after 10 seconds..." :: String)
+  threadDelay (Time @Second 10)
 
 getStorage :: ClientConfig -> Text -> IO Expression
 getStorage config addr = do

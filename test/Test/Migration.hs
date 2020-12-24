@@ -2,6 +2,8 @@
  -
  - SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
  -}
+
+-- | General tests on migration machinery, not tied to any contract version.
 module Test.Migration
   ( test_ownerCheck
   , test_notMigratingStatus
@@ -15,7 +17,7 @@ import Util.Named
 
 import Lorentz
 import Lorentz.Contracts.TZBTC as TZBTC
-import Lorentz.Contracts.TZBTC.Preprocess (upgradeParameters)
+import Lorentz.Contracts.TZBTC.Preprocess
 import qualified Lorentz.Contracts.TZBTC.Types as TZBTCTypes
 import Lorentz.Contracts.TZBTC.V0 (StoreTemplateV0)
 import Lorentz.Contracts.Upgradeable.Common (UContractRouter, mkUContractRouter)
@@ -44,7 +46,7 @@ test_ownerCheck = testGroup "TZBTC contract migration endpoints test"
       integrationalTestExpectation $ do
         v0 <- originateContract
         err <- expectError . withSender bob $
-          lCallDef v0 $ fromFlatParameter $ EpwApplyMigration (checkedCoerce migrationScript)
+          lCallDef v0 $ fromFlatParameter $ EpwApplyMigration (checkedCoerce migrationScriptV1)
         lExpectCustomError_ #senderIsNotOwner err
 
   , testCase "Test call to `SetCode` endpoints are only available to owner" $
@@ -70,7 +72,7 @@ test_notMigratingStatus = testGroup "TZBTC contract migration status not active 
         -- Originate a V0 contract
         v0 <- originateContract
         err <- expectError . withSender ownerAddress $
-          lCallDef v0 $ fromFlatParameter $ EpwApplyMigration (checkedCoerce migrationScript)
+          lCallDef v0 $ fromFlatParameter $ EpwApplyMigration (checkedCoerce migrationScriptV1)
         lExpectCustomError_ #upgContractIsNotMigrating err
 
   ,  testCase "Test call to `EpwSetCode` that require a non-migrating state fails in migrating state" $
@@ -96,7 +98,7 @@ test_migratingStatus = testGroup "TZBTC contract migration status active check"
         v0 <- originateContract
         withSender ownerAddress $ lCallDef v0 $ fromFlatParameter $ EpwBeginUpgrade (#current .! 0, #new .! 1)
         err <- expectError . withSender ownerAddress $
-          lCallDef v0 $ fromFlatParameter $ Upgrade upgradeParams
+          lCallDef v0 $ fromFlatParameter $ Upgrade upgradeParamsV1
         lExpectCustomError_ #upgContractIsMigrating err
   , testCase "Test call to `Run` that require a non-migrating state fails in migrating state" $
       integrationalTestExpectation $ do
@@ -131,13 +133,13 @@ test_migratingVersion = testGroup "TZBTC contract migration version check"
         lExpectStorageUpdate @(Storage TZBTCv0) v0 checkVersion
   ]
 
-upgradeParams :: OneShotUpgradeParameters TZBTCv0
-upgradeParams = upgradeParameters v1Parameters
+upgradeParamsV1 :: OneShotUpgradeParameters TZBTCv0
+upgradeParamsV1 = upgradeParametersV1 v1Parameters
 
 -- Some constants
-migrationScript :: MigrationScript StoreTemplateV0 StoreTemplateV1
-migrationScript =
-  manualConcatMigrationScripts $ migrationScripts v1Parameters
+migrationScriptV1 :: MigrationScript StoreTemplateV0 StoreTemplateV1
+migrationScriptV1 =
+  manualConcatMigrationScripts $ migrationScriptsV1 v1Parameters
 
 emptyCode :: UContractRouter ver
 emptyCode = mkUContractRouter (Lorentz.drop # nil # pair)

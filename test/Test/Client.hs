@@ -31,11 +31,10 @@ import Client.Parser
   parseSimulationResultFromOutput, toMuTez)
 import Client.Types (SimulationResult(..))
 import Client.Util (nicePackedValueToExpression)
-import Lorentz.Contracts.TZBTC.Preprocess (upgradeParameters)
+import Lorentz.Contracts.TZBTC.Preprocess (upgradeParametersV1, upgradeParametersV2)
 import Lorentz.Contracts.TZBTC.Types
-import Lorentz.Contracts.TZBTC.V0 (TZBTCv0)
 
-import Test.TZBTC (dummyV1Parameters)
+import Test.TZBTC (dummyV1Parameters, dummyV2Parameters)
 
 (@??) :: (Show a, HasCallStack) => a -> (a -> Bool) -> Assertion
 (@??) val predicate =
@@ -53,17 +52,27 @@ test_nicePackedValueToExpression = testGroup "Test converting Parameter to Miche
   , testCase "RemoveOperator" $
     parameterRoundTrip (RemoveOperator (#operator .! genesisAddress1)) @?=
     Right (RemoveOperator (#operator .! genesisAddress1))
-  , testCase "Upgrade" $
-    optimizeUpgradeParams <$> valueRoundTrip upgradeParam @?=
-    Right upgradeParam
+  , testCase "Upgrade to V1" $
+    optimizeUpgradeParams <$> valueRoundTrip upgradeParamV1 @?=
+    Right upgradeParamV1
+  , testCase "Upgrade to V2" $
+    optimizeUpgradeParams <$> valueRoundTrip upgradeParamV2 @?=
+    Right upgradeParamV2
   ]
   where
-    upgradeParam =
+    upgradeParamV1 =
       let
         ownerAddr = genesisAddress1
         origParams = dummyV1Parameters ownerAddr mempty
       in
-        upgradeParameters origParams
+        upgradeParametersV1 origParams
+
+    upgradeParamV2 =
+      let
+        ownerAddr = genesisAddress1
+        origParams = dummyV2Parameters ownerAddr mempty
+      in
+        upgradeParametersV2 origParams
 
     optimizeUpgradeParams
       :: OneShotUpgradeParameters TZBTCv0

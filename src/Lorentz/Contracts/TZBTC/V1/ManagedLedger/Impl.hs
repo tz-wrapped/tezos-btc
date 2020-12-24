@@ -5,7 +5,7 @@
 {-# LANGUAGE RebindableSyntax #-}
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 
-module Lorentz.Contracts.OldManagedLedger.Impl
+module Lorentz.Contracts.TZBTC.V1.ManagedLedger.Impl
   ( transfer
   , debitFrom
   , creditTo
@@ -23,11 +23,12 @@ module Lorentz.Contracts.OldManagedLedger.Impl
 
 import Lorentz
 
-import Lorentz.Contracts.OldManagedLedger.Doc
-import Lorentz.Contracts.OldManagedLedger.Types
+import Lorentz.Contracts.ManagedLedger.Doc
 import Lorentz.Contracts.Spec.AbstractLedgerInterface ()
 import Lorentz.Contracts.Spec.ApprovableLedgerInterface ()
 import Lorentz.Contracts.Spec.ManagedLedgerInterface ()
+
+import Lorentz.Contracts.TZBTC.V1.ManagedLedger.Types
 
 ----------------------------------------------------------------------------
 -- Entrypoints

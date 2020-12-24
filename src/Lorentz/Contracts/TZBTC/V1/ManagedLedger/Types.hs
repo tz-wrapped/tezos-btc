@@ -5,13 +5,19 @@
 {-# LANGUAGE RebindableSyntax #-}
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 
-module Lorentz.Contracts.OldManagedLedger.Types
-    ( module Lorentz.Contracts.OldManagedLedger.Types
+module Lorentz.Contracts.TZBTC.V1.ManagedLedger.Types
+    ( module Lorentz.Contracts.TZBTC.V1.ManagedLedger.Types
+    , Common.GetAllowanceParams
+    , Common.TransferParams
+    , Common.ApproveParams
+    , Common.AllowanceParams
+    , Common.MintParams
     ) where
 
 import Lorentz
 
 import Lorentz.Contracts.Spec.AbstractLedgerInterface ()
+import qualified Lorentz.Contracts.TZBTC.Common.Types as Common
 
 type LedgerValue =
   ("balance" :! Natural, "approvals" :! Map Address Natural)
@@ -29,24 +35,13 @@ type StorageC store =
    ]
   )
 
-type TransferParams = ("from" :! Address, "to" :! Address, "value" :! Natural)
-type GetBalanceParams = ("owner" :! Address)
-
-type GetBalanceArg = View GetBalanceParams Natural
+type GetBalanceArg = View Common.GetBalanceParams Natural
 type GetTotalSupplyArg = View () Natural
 
-type ApproveParams = ("spender" :! Address, "value" :! Natural)
-type GetAllowanceParams = ("owner" :! Address, "spender" :! Address)
-type GetAllowanceArg = View GetAllowanceParams Natural
+type GetAllowanceArg = View Common.GetAllowanceParams Natural
 
 type ApproveCasParams =
   ("spender" :! Address, "value" :! Natural, "expected" :! Natural)
-
-type AllowanceParams =
-  ("owner" :! Address, "spender" :! Address, "value" :! Natural)
-
-type MintParams =
-  ("to" :! Address, "value" :! Natural)
 
 type BurnParams =
   ("from" :! Address, "value" :! Natural)

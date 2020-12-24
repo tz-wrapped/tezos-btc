@@ -39,7 +39,7 @@ import Util.Named
 
 import CLI.Parser
 import Client.Types
-import Lorentz.Contracts.TZBTC.Types
+import Lorentz.Contracts.TZBTC.Common.Types
 
 clientArgParser :: Opt.Parser ClientArgs
 clientArgParser =
@@ -289,15 +289,30 @@ clientArgRawParser = Opt.hsubparser $
       mkCommandParser
       "deployTzbtcContract"
       (CmdDeployContract
-        <$> deployContractOptions)
+        <$> (#owner <.!> mbAddrOrAliasOption "owner" "Address of the owner")
+        <*> deployContractOptions)
       "Deploy TZBTC contract to the chain"
       where
         deployContractOptions :: Opt.Parser DeployContractOptions
-        deployContractOptions = do
-          dcoOwner <- mbAddrOrAliasOption "owner" "Address of the owner"
+        deployContractOptions = asum
+          [ Opt.hsubparser $ mconcat
+            [ mkCommandParser "v1"
+                (DeployContractV1 <$> deployContractOptionsV1)
+                "Deploy V1 version of the contract."
+            , mkCommandParser "v2"
+                (DeployContractV2 <$> deployContractOptionsV2)
+                "Deploy V2 version of the contract."
+            ]
+          , DeployContractV1 <$> deployContractOptionsV1
+          ]
+        deployContractOptionsV1 :: Opt.Parser DeployContractOptionsV1
+        deployContractOptionsV1 = do
           dcoRedeem <- addrOrAliasOption "redeem" "Redeem address"
           dcoTokenMetadata <- parseSingleTokenMetadata
-          pure DeployContractOptions {..}
+          pure DeployContractOptionsV1 {..}
+        deployContractOptionsV2 :: Opt.Parser DeployContractOptionsV2
+        deployContractOptionsV2 =
+          DeployContractOptionsV2 <$> deployContractOptionsV1
 
     deployMultisigCmd :: Opt.Mod Opt.CommandFields ClientArgsRaw
     deployMultisigCmd =
