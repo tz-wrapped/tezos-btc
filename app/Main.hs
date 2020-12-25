@@ -21,17 +21,12 @@ import Lorentz hiding (not)
 import Paths_tzbtc (version)
 
 import CLI.Parser
-import Client.Env
-import Client.IO (mkInitEnv)
-import Client.Types (ClientConfig(..))
-import Client.Util
+import Client.IO ()
 import Lorentz.Contracts.Multisig
 import Lorentz.Contracts.TZBTC
-import Lorentz.Contracts.TZBTC.Test (TestUpgrade, smokeTests, testUpgradeToV1, testUpgradeToV2)
 import qualified Lorentz.Contracts.TZBTC.V0 as V0
 import qualified Lorentz.Contracts.TZBTC.V1 as V1
 import qualified Lorentz.Contracts.TZBTC.V2 as V2
-import Morley.Client.Init (MorleyClientConfig(..))
 import Util.AbstractIO
 import Util.Migration
 
@@ -56,7 +51,7 @@ main = do
         V1 -> V1.tzbtcDoc
         V2 -> V2.tzbtcDoc
       in maybe printTextLn writeFileUtf8 mbFilePath
-        (contractDocToMarkdown $ buildLorentzDocWithGitRev gitRev contractDoc)
+        (contractDocToMarkdown $ buildDoc . attachDocCommons gitRev $ contractDoc)
     CmdParseParameter ver t ->
       let parseAndPrint :: forall ver. (Typeable ver, _) => IO ()
           parseAndPrint =
@@ -66,20 +61,8 @@ main = do
         V0 -> parseAndPrint @V0.TZBTCv0
         V1 -> parseAndPrint @V1.TZBTCv1
         V2 -> parseAndPrint @V2.TZBTCv2
-    CmdTestScenario ver (arg #verbosity -> verbose) (arg #dryRun -> dryRun) -> do
-      env <- mkInitEnv
-      let
-        testUpgrade :: forall m. Monad m => TestUpgrade m
-        testUpgrade = case ver of
-          V0 -> mempty
-          V1 -> testUpgradeToV1
-          V2 -> testUpgradeToV2
-          -- We do not care much about V1 to V2 migrations for now
-      config <- runMaybeT $ do
-        guard (not dryRun)
-        tzbtcConfig <- lift . runAppM env $ throwLeft readConfig
-        return $ toMorleyClientConfig verbose tzbtcConfig
-      smokeTests config testUpgrade
+    CmdTestScenario _ver (arg #verbosity -> _verbose) (arg #dryRun -> _dryRun) -> do
+      error "Not implemented for now, will be reimplemented as a part of https://github.com/tz-wrapped/tezos-btc/issues/123"
     CmdMigrate (arg #output -> fp) migrateCmd ->
       maybe printTextLn writeFileUtf8 fp $
         case migrateCmd of
@@ -110,18 +93,6 @@ main = do
               (migrationScriptsV2FromV1 V2.V2ParametersFromV1)
 
   where
-    toMorleyClientConfig :: Word -> ClientConfig -> MorleyClientConfig
-    toMorleyClientConfig verbose ClientConfig {..} =
-      MorleyClientConfig
-        { mccAliasPrefix = Just "TZBTC_Smoke_tests"
-        , mccNodeAddress = Just ccNodeAddress
-        , mccNodePort = Just (fromIntegral ccNodePort)
-        , mccTezosClientPath = ccTezosClientExecutable
-        , mccMbTezosClientDataDir = Nothing
-        , mccNodeUseHttps = ccNodeUseHttps
-        , mccVerbosity = verbose
-        , mccSecretKey = Nothing
-        }
     multisigContract
       :: forall (e :: ErrorsKind).
         (Typeable e, ErrorHandler e)

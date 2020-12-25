@@ -82,5 +82,17 @@
         "type": "tarball",
         "url": "https://github.com/input-output-hk/stackage.nix/archive/6b70ecf4bf6b970f8a1b2bae80d7189e745cba64.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
+    "tezos-packaging": {
+        "branch": "v8.1-1",
+        "description": "Various form of distribution for tezos-related executables",
+        "homepage": "",
+        "owner": "serokell",
+        "repo": "tezos-packaging",
+        "rev": "8bd7371ed13640e66477991c095dd5d0ea9f9b27",
+        "sha256": "0rr8chy0zpwxnjknpqcrwh7yc16ghsk2dlmhvxfbm6y507g2k9d4",
+        "type": "tarball",
+        "url": "https://github.com/serokell/tezos-packaging/archive/8bd7371ed13640e66477991c095dd5d0ea9f9b27.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     }
 }
