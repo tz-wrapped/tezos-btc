@@ -10,6 +10,9 @@ Changes that affect Michelson code are tagged with `[CONTRACT]`.
 
 Unreleased
 ==========
+
+0.6.0
+==========
 * [#134](https://github.com/tz-wrapped/tezos-btc/pull/134)
   + `migrate` command of the executable now accepts version differently.
     Instead of
