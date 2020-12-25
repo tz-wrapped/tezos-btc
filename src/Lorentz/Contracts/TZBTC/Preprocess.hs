@@ -106,4 +106,4 @@ compilationOptions = defaultCompilationOptions
   }
 
 optimizationOptions :: OptimizerConf
-optimizationOptions = def { gotoValues = True }
+optimizationOptions = def { ocGotoValues = True }

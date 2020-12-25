@@ -17,10 +17,10 @@
         "homepage": "",
         "owner": "input-output-hk",
         "repo": "hackage.nix",
-        "rev": "b433d1a93c8f37fda9bebd239ba2c41af2c8553e",
-        "sha256": "0ya9vwisczi9y0pzb045hk5ghphl850s0askwafys446rlhnb0kj",
+        "rev": "7796c019978766d8c785d6469ca818c87411414a",
+        "sha256": "1ssspxrdq6jj056qkghdv7mak1q2za6x25h4fd9dfs9i91v92jlk",
         "type": "tarball",
-        "url": "https://github.com/input-output-hk/hackage.nix/archive/b433d1a93c8f37fda9bebd239ba2c41af2c8553e.tar.gz",
+        "url": "https://github.com/input-output-hk/hackage.nix/archive/7796c019978766d8c785d6469ca818c87411414a.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "haskell-nix-weeder": {
