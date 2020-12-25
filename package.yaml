@@ -46,6 +46,7 @@ library:
     - megaparsec
     - process
     - text
+    - transformers
     - universum
     - with-utf8
     - safe-exceptions
@@ -72,6 +73,8 @@ executables:
     dependencies:
       - morley-client
       - morley-prelude
+      - named
+      - optparse-applicative
       - tzbtc
 
 tests:
@@ -83,24 +86,25 @@ tests:
 
     dependencies:
     - bytestring
+    - co-log
+    - co-log-core
     - containers
     - cleveland
+    - fmt
     - hex-text
     - hspec
     - HUnit
-    - lens
     - lorentz
     - morley
+    - morley-client
     - morley-ledgers
     - morley-ledgers-test
     - morley-multisig
     - morley-prelude
     - morley-upgradeable
     - mtl
-    - optparse-applicative
     - tasty
     - tasty-hspec
-    - tasty-quickcheck
     - tasty-hunit-compat
     - text
     - tzbtc
