@@ -251,6 +251,20 @@ Run `stack test` and explore the tests.
 
 Contract documentation is located at [TZBTC-contract.md](https://github.com/tz-wrapped/tezos-btc/blob/autodoc/master/TZBTC-contract.md).
 
+## Security considerations and trust model [↑](#TZBTC)
+
+This contract has `approve` entrypoint, which should be used carefully, you can read more
+about the potential unsafety of this entrypoint in the [corresponding section](https://github.com/tz-wrapped/tezos-btc/blob/autodoc/master/TZBTC-contract.md#approve)
+in the contract documentation.
+
+Any `operator` can pause the contract, thus all users will be unable to transfer their tokens.
+Additionaly, `operator` is capable of minting and burning tokens.
+
+`owner` of the contract can upgrade the contract and thus can potentially change any information stored in the
+contract storage including the user's balances.
+
+You can read more about `operator` and `owner` abilities in the [contract documentation](https://github.com/tz-wrapped/tezos-btc/blob/autodoc/master/TZBTC-contract.md#tzbtc).
+
 ## Issue Tracker [↑](#TZBTC)
 
 If you want to create a new issue please do it on [GitHub](https://github.com/tz-wrapped/tezos-btc/issues/new).
