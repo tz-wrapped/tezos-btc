@@ -102,3 +102,20 @@ steps:
       - ./tzbtc-static/bin/tzbtc-client
       - ./tzbtc-client-deb/*
       - ./tzbtc-client-rpm/*
+
+  - label: create auto prerelease
+    branches: "master"
+    commands:
+    - mkdir assets
+    - buildkite-agent artifact download tzbtc-static/bin/tzbtc-client . --step packaging
+    - buildkite-agent artifact download tzbtc-client-deb/*.deb . --step packaging
+    - buildkite-agent artifact download tzbtc-client-rpm/*.rpm . --step packaging
+    - buildkite-agent artifact download TZBTC-contract.md assets/ --step "contract-doc (master)"
+    - cp tzbtc-static/bin/tzbtc-client assets/
+    - cp tzbtc-client-deb/*.deb assets/
+    - cp tzbtc-client-rpm/*.rpm assets/
+    # delete existing auto-release if present
+    - nix run -f ci.nix gh -c gh release delete auto-release --yes || true
+    - nix run -f ci.nix pkgs.git -c git fetch && git tag -f auto-release && git push --force --tags
+    - nix run -f ci.nix gh -c gh release create --prerelease auto-release --title auto-release --notes ""
+    - nix run -f ci.nix gh -c gh release upload auto-release assets/*
