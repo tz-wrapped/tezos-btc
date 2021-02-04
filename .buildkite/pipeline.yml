@@ -50,7 +50,7 @@ steps:
     commands:
     - nix run -f ci.nix pkgs.bats tzbtc.components.exes.tzbtc
         -c bats bats/tzbtc.bats
-    - nix run -f ci.nix pkgs.bats tzbtc.components.exes.tzbtc-client
+    - nix run -f ci.nix pkgs.bats tezos-client tzbtc.components.exes.tzbtc-client
         -c bats bats/tzbtc-client.bats
 
   - label: contract-doc

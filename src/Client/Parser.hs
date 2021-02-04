@@ -5,33 +5,26 @@
 {-# LANGUAGE ApplicativeDo #-}
 
 module Client.Parser
-  ( AddrOrAlias
-  , ClientArgs(..)
+  ( ClientArgs(..)
   , ClientArgsRaw(..)
   , DeployContractOptions (..)
-  , Parser
   , clientArgParser
-  , parseAddressFromOutput
-  , parseBurncapErrorFromOutput
   , parseContractAddressFromOutput
-  , parseSignatureFromOutput
-  , parseSimulationResultFromOutput
-  , toMuTez
-  , tzbtcClientAddressParser
   ) where
 
 import Data.Char (isAlpha, isDigit)
-import Data.Scientific (Scientific)
-import Fmt (Buildable, pretty)
+import Fmt (pretty)
 import Options.Applicative (help, long, metavar, option, short, str, switch)
 import qualified Options.Applicative as Opt
 import qualified Text.Megaparsec as P (Parsec, customFailure, many, parse, satisfy, skipManyTill)
-import Text.Megaparsec.Char (eol, newline, printChar, space)
-import Text.Megaparsec.Char.Lexer (lexeme, scientific, symbol)
+import Text.Megaparsec.Char (newline, printChar, space)
+import Text.Megaparsec.Char.Lexer (symbol)
 import Text.Megaparsec.Error (ParseErrorBundle, ShowErrorComponent(..))
 
 import Lorentz.Contracts.Multisig
-import Morley.Micheline (TezosInt64)
+import Morley.CLI (mutezOption)
+import Morley.Client.Parser (clientConfigParser)
+import Morley.Client.TezosClient.Types (AddressOrAlias(..))
 import Tezos.Address (Address, parseAddress)
 import Tezos.Crypto (PublicKey, Signature, parsePublicKey, parseSignature)
 import Util.CLI
@@ -44,26 +37,27 @@ import Lorentz.Contracts.TZBTC.Common.Types
 clientArgParser :: Opt.Parser ClientArgs
 clientArgParser =
   ClientArgs
-    <$> clientArgRawParser
+    <$> (clientConfigParser (pure Nothing))
+    <*> clientArgRawParser
     <*> (#userOverride <.!> userOption)
     <*> (#multisigOverride <.!> multisigOption)
     <*> (#contractOverride <.!> contractOverride)
     <*> (#fee <.!> explictFee)
-    <*> (#verbose <.!> verboseSwitch)
     <*> dryRunSwitch
   where
     multisigOption = mbAddrOrAliasOption "multisig-addr" "The multisig contract address/alias to use"
     contractOverride = mbAddrOrAliasOption "contract-addr" "The tzbtc contract address/alias to use"
     userOption = mbAddrOrAliasOption "user" "User to send operations as"
     explictFee =
-      optional (option (toMuTez <$> Opt.auto) (long "fee" <> short 'f' <> help feeHelpText))
-    feeHelpText = "Specify baker fee, in Tez, to pay for transactions"
+      optional $ mutezOption
+            Nothing
+            (#name .! "fee")
+            (#help .! "Fee that is going to be used for the transaction. \
+                      \By default fee will be computed automatically."
+            )
     dryRunSwitch =
       switch (long "dry-run" <>
               help "Dry run command to ensure correctness of the arguments")
-    verboseSwitch =
-      switch (long "verbose" <> short 'v' <>
-              help "Verbose logging.")
 
 clientArgRawParser :: Opt.Parser ClientArgsRaw
 clientArgRawParser = Opt.hsubparser $
@@ -331,32 +325,18 @@ clientArgRawParser = Opt.hsubparser $
                 \This flag will deploy the custom version of specialized multisig\n\
                 \contract with human-readable string errors.")
 
-    callbackParser :: Opt.Parser (Maybe AddrOrAlias)
+    callbackParser :: Opt.Parser (Maybe AddressOrAlias)
     callbackParser = mbAddrOrAliasOption "callback" "Callback address"
 
--- This wrapper is needed to override 'getMetavar' for 'AddrOrAlias'
--- because it is a type synonym for 'Text'. I think one day we will
--- be end up using @AddrOrAlias@ from @morley-nettest@.
-newtype AddrOrAliasWrapper =
-  AddrOrAliasWrapper
-    { unAddrOrAliasWrapper :: AddrOrAlias
-    } deriving newtype Buildable
-
-instance HasCLReader AddrOrAliasWrapper where
-  getReader = AddrOrAliasWrapper <$> getReader
-  getMetavar = "ADDRESS | ALIAS"
-
-addrOrAliasOption :: String -> String -> Opt.Parser AddrOrAlias
+addrOrAliasOption :: String -> String -> Opt.Parser AddressOrAlias
 addrOrAliasOption name hInfo =
-  unAddrOrAliasWrapper <$>
   mkCLOptionParser Nothing (#name .! name) (#help .! hInfo)
 
-mbAddrOrAliasOption :: String -> String -> Opt.Parser (Maybe AddrOrAlias)
+mbAddrOrAliasOption :: String -> String -> Opt.Parser (Maybe AddressOrAlias)
 mbAddrOrAliasOption = optional ... addrOrAliasOption
 
-addrOrAliasArg :: String -> Opt.Parser AddrOrAlias
-addrOrAliasArg hInfo =
-  unAddrOrAliasWrapper <$> mkCLArgumentParser Nothing (#help .! hInfo)
+addrOrAliasArg :: String -> Opt.Parser AddressOrAlias
+addrOrAliasArg hInfo = mkCLArgumentParser Nothing (#help .! hInfo)
 
 natOption :: String -> String -> Opt.Parser Natural
 natOption name hInfo = mkCLOptionParser Nothing (#name .! name) (#help .! hInfo)
@@ -389,7 +369,7 @@ namedFilePathOption name hInfo = option str $
 nonEmptyParser :: Opt.Parser a -> Opt.Parser (NonEmpty a)
 nonEmptyParser p = (:|) <$> p <*> many p
 
--- Tezos-client output parsers
+-- | Tezos-client output parsers
 data OutputParseError = OutputParseError Text Text
   deriving stock (Eq, Show, Ord)
 
@@ -403,36 +383,6 @@ isBase58Char :: Char -> Bool
 isBase58Char c =
   (isDigit c && c /= '0') || (isAlpha c && c /= 'O' && c /= 'I' && c /= 'l')
 
-tezosClientSignatureParser :: Parser Signature
-tezosClientSignatureParser = do
-  void $ symbol space "Signature:"
-  rawSignature <- P.many (P.satisfy isBase58Char)
-  case parseSignature (fromString rawSignature) of
-    Left err -> P.customFailure $ OutputParseError "signature" $ pretty err
-    Right sign -> return sign
-
-tezosClientAddressParser :: Parser (Address, PublicKey)
-tezosClientAddressParser = do
-  void $ symbol space "Hash:"
-  rawAddress <- fromString <$> P.many (P.satisfy isBase58Char)
-  void $ eol
-  void $ symbol space "Public Key:"
-  rawPublicKey <- fromString <$> P.many (P.satisfy isBase58Char)
-  case (parseAddress rawAddress, parsePublicKey rawPublicKey) of
-    (Right addr, Right pk) -> return (addr, pk)
-    (Left err, Right _) -> P.customFailure $ OutputParseError "address" $ pretty err
-    (Right _, Left err) -> P.customFailure $ OutputParseError "public key" $ pretty err
-    (Left err1, Left err2) -> P.customFailure $
-      OutputParseError "address and public key" $ pretty err1 <> "\n" <> pretty err2
-
-parseSignatureFromOutput
-  :: Text -> Either (ParseErrorBundle Text OutputParseError) Signature
-parseSignatureFromOutput output = P.parse tezosClientSignatureParser "" output
-
-parseAddressFromOutput
-  :: Text -> Either (ParseErrorBundle Text OutputParseError) (Address, PublicKey)
-parseAddressFromOutput output = P.parse tezosClientAddressParser "" output
-
 tzbtcClientAddressParser :: Parser Address
 tzbtcClientAddressParser = do
   P.skipManyTill (printChar <|> newline) $ do
@@ -445,30 +395,3 @@ tzbtcClientAddressParser = do
 parseContractAddressFromOutput
   :: Text -> Either (ParseErrorBundle Text OutputParseError) Address
 parseContractAddressFromOutput output = P.parse tzbtcClientAddressParser "" output
-
-parseSimulationResultFromOutput
-  :: Text -> Either (ParseErrorBundle Text OutputParseError) SimulationResult
-parseSimulationResultFromOutput output =
-  P.parse (SimulationResult <$> simulationResultParser) "" output
-
-parseBurncapErrorFromOutput
-  :: Text -> Either (ParseErrorBundle Text OutputParseError) Scientific
-parseBurncapErrorFromOutput output =
-  P.parse burnCapParser "" output
-
-burnCapParser :: Parser Scientific
-burnCapParser = do
-  P.skipManyTill (printChar <|> newline) $ do
-    void $ symbol space "The operation will burn"
-    P.skipManyTill printChar $ lexeme (space >> pass) scientific
-
-simulationResultParser :: Parser TezosInt64
-simulationResultParser = toMuTez <$> do
-  P.skipManyTill (printChar <|> newline) $ do
-    void $ symbol space "Fee to the baker: "
-    P.skipManyTill printChar $ lexeme (newline >> pass) scientific
-
-toMuTez :: Scientific -> TezosInt64
-toMuTez mt_ = fromInteger $ floor $ mt_ * 10e6
--- floor does not loose precision here since the fees
--- from simulation won't have more precision then 1 microtez

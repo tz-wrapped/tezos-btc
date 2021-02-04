@@ -134,7 +134,7 @@ migrateStorage v1p =
 tzbtcDoc :: Lambda () ()
 tzbtcDoc = fakeCoercing $ do
   doc licenseInfoDoc
-  contractName "TZBTC" $ do
+  docGroup (DName "TZBTC") $ do
     contractGeneralDefault
     doc tzbtcContractDesc
     doc $ DUpgradeability $ U.contractDoc <> "\n" <> additionalDeployNotes
