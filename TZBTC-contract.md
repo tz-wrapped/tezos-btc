@@ -6,7 +6,7 @@
 
 # TZBTC
 
-**Code revision:** [c2cd436](https://github.com/tz-wrapped/tezos-btc/commit/c2cd4362675a4cd31d8567b78de14238cfaf4aec) *(Wed Dec 30 13:49:23 2020 +0300)*
+**Code revision:** [7779941](https://github.com/tz-wrapped/tezos-btc/commit/7779941d60c74f9f73a7ca2e6c52586f2beda7af) *(Thu Feb 4 16:05:08 2021 +0300)*
 
 
 
@@ -131,8 +131,7 @@ Storage with not hardcoded structure, which allows upgrading the contract
 in place. UStore is capable of storing simple fields and multiple submaps.
 
 
-**Structure:** 
-[`BigMap`](#types-BigMap) [`ByteString`](#types-ByteString) [`ByteString`](#types-ByteString)
+**Structure:** [`BigMap`](#types-BigMap) [`ByteString`](#types-ByteString) [`ByteString`](#types-ByteString)
 
 **Final Michelson representation:** `big_map bytes bytes`
 
@@ -469,7 +468,7 @@ provided migration lambda.
 **Argument:** 
   + **In Haskell:** (***currentVersion*** : [`Version`](#types-Version), ***newVersion*** : [`Version`](#types-Version), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript) [`Store template V0`](#ustore-template-Store-template-V0) [`Some`](#ustore-template-Some), ***newCode*** : [`Maybe`](#types-Maybe) [`UContractRouter`](#types-UContractRouter), ***newPermCode*** : [`Maybe`](#types-Maybe) [`PermanentImpl`](#types-PermanentImpl))
   + **In Michelson:** `(pair (pair (nat :currentVersion) (nat :newVersion)) (pair (lambda :migrationScript (big_map bytes bytes) (big_map bytes bytes)) (pair (option :newCode (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))) (option :newPermCode (lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))))))`
-    + **Example:** <span id="example-id">`Pair (Pair 0 0) (Pair { PUSH string "lambda sample"; FAILWITH } (Pair (Some { PUSH string "lambda sample"; FAILWITH }) (Some { PUSH string "lambda sample"; FAILWITH })))`</span>
+    + **Example:** <span id="example-id">`Pair (Pair 0 0) (Pair { PUSH string "lambda sample";FAILWITH } (Pair (Some { PUSH string "lambda sample";FAILWITH }) (Some { PUSH string "lambda sample";FAILWITH })))`</span>
 
 <details>
   <summary><b>How to call this entrypoint</b></summary>
@@ -533,7 +532,7 @@ This entry point is used to apply a storage migration script as part of an upgra
 **Argument:** 
   + **In Haskell:** ***migrationscript*** : [`MigrationScript`](#types-MigrationScript) [`Store template V0`](#ustore-template-Store-template-V0) [`Some`](#ustore-template-Some)
   + **In Michelson:** `(lambda :migrationscript (big_map bytes bytes) (big_map bytes bytes))`
-    + **Example:** <span id="example-id">`{ PUSH string "lambda sample"; FAILWITH }`</span>
+    + **Example:** <span id="example-id">`{ PUSH string "lambda sample";FAILWITH }`</span>
 
 <details>
   <summary><b>How to call this entrypoint</b></summary>
@@ -563,7 +562,7 @@ This entry point is used to set the dispatching code that calls the packed entry
 **Argument:** 
   + **In Haskell:** ***contractcode*** : [`UContractRouter`](#types-UContractRouter)
   + **In Michelson:** `(lambda :contractcode (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))`
-    + **Example:** <span id="example-id">`{ PUSH string "lambda sample"; FAILWITH }`</span>
+    + **Example:** <span id="example-id">`{ PUSH string "lambda sample";FAILWITH }`</span>
 
 <details>
   <summary><b>How to call this entrypoint</b></summary>
@@ -1153,8 +1152,7 @@ Type which should never be constructed.
 
 If appears as part of entrypoint argument, this means that the entrypoint should never be called.
 
-**Structure:** 
-[`()`](#types-lparenrparen)
+**Structure:** [`()`](#types-lparenrparen)
 
 **Final Michelson representation:** `unit`
 
@@ -1217,8 +1215,7 @@ Option primitive.
 A code which updates storage in order to make it compliant with the new version of the contract.
 It is common to have a group of migration scripts because each of it is to be used in Tezos transaction and thus should fit into gas and operation size limits.
 
-**Structure:** 
-[`Code`](#types-Code-lparenextended-lambdarparen) **[**[`UStore`](#types-Upgradeable-storage) [`Some`](#ustore-template-Some)**]** **[**[`UStore`](#types-Upgradeable-storage) [`Some`](#ustore-template-Some)**]**
+**Structure:** [`Code`](#types-Code-lparenextended-lambdarparen) **[**[`UStore`](#types-Upgradeable-storage) [`Some`](#ustore-template-Some)**]** **[**[`UStore`](#types-Upgradeable-storage) [`Some`](#ustore-template-Some)**]**
 
 **Final Michelson representation:** `lambda (big_map bytes bytes) (big_map bytes bytes)`
 
@@ -1271,39 +1268,23 @@ Operation primitive.
 Parameter which does not have unsafe arguments, like raw `Contract p` values.
 
 **Structure:** *one of* 
-+ **Run**
-[`UParam`](#types-Upgradable-parameter)
-+ **Upgrade**
-(***currentVersion*** : [`Version`](#types-Version), ***newVersion*** : [`Version`](#types-Version), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript) [`Store template V0`](#ustore-template-Store-template-V0) [`Some`](#ustore-template-Some), ***newCode*** : [`Maybe`](#types-Maybe) [`UContractRouter`](#types-UContractRouter), ***newPermCode*** : [`Maybe`](#types-Maybe) [`PermanentImpl`](#types-PermanentImpl))
-+ **EpwBeginUpgrade**
-(***current*** : [`Version`](#types-Version), ***new*** : [`Version`](#types-Version))
-+ **EpwApplyMigration**
-(***migrationscript*** : [`MigrationScript`](#types-MigrationScript) [`Store template V0`](#ustore-template-Store-template-V0) [`Some`](#ustore-template-Some))
-+ **EpwSetCode**
-(***contractcode*** : [`UContractRouter`](#types-UContractRouter))
++ **Run**[`UParam`](#types-Upgradable-parameter)
++ **Upgrade**(***currentVersion*** : [`Version`](#types-Version), ***newVersion*** : [`Version`](#types-Version), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript) [`Store template V0`](#ustore-template-Store-template-V0) [`Some`](#ustore-template-Some), ***newCode*** : [`Maybe`](#types-Maybe) [`UContractRouter`](#types-UContractRouter), ***newPermCode*** : [`Maybe`](#types-Maybe) [`PermanentImpl`](#types-PermanentImpl))
++ **EpwBeginUpgrade**(***current*** : [`Version`](#types-Version), ***new*** : [`Version`](#types-Version))
++ **EpwApplyMigration**(***migrationscript*** : [`MigrationScript`](#types-MigrationScript) [`Store template V0`](#ustore-template-Store-template-V0) [`Some`](#ustore-template-Some))
++ **EpwSetCode**(***contractcode*** : [`UContractRouter`](#types-UContractRouter))
 + **EpwFinishUpgrade**()
-+ **Transfer**
-(***from*** : [`Address`](#types-Address), ***to*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
-+ **Approve**
-(***spender*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
-+ **Mint**
-(***to*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
-+ **Burn**
-(***value*** : [`Natural`](#types-Natural))
-+ **AddOperator**
-(***operator*** : [`Address`](#types-Address))
-+ **RemoveOperator**
-(***operator*** : [`Address`](#types-Address))
-+ **SetRedeemAddress**
-(***redeem*** : [`Address`](#types-Address))
-+ **Pause**
-[`()`](#types-lparenrparen)
-+ **Unpause**
-[`()`](#types-lparenrparen)
-+ **TransferOwnership**
-(***newOwner*** : [`Address`](#types-Address))
-+ **AcceptOwnership**
-[`()`](#types-lparenrparen)
++ **Transfer**(***from*** : [`Address`](#types-Address), ***to*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
++ **Approve**(***spender*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
++ **Mint**(***to*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
++ **Burn**(***value*** : [`Natural`](#types-Natural))
++ **AddOperator**(***operator*** : [`Address`](#types-Address))
++ **RemoveOperator**(***operator*** : [`Address`](#types-Address))
++ **SetRedeemAddress**(***redeem*** : [`Address`](#types-Address))
++ **Pause**[`()`](#types-lparenrparen)
++ **Unpause**[`()`](#types-lparenrparen)
++ **TransferOwnership**(***newOwner*** : [`Address`](#types-Address))
++ **AcceptOwnership**[`()`](#types-lparenrparen)
 
 
 **Final Michelson representation:** `or (or (or (or (pair string bytes) (pair (pair nat nat) (pair (lambda (big_map bytes bytes) (big_map bytes bytes)) (pair (option (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))) (option (lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))))))) (or (pair nat nat) (lambda (big_map bytes bytes) (big_map bytes bytes)))) (or (or (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))) unit) (or (pair address (pair address nat)) (pair address nat)))) (or (or (or (pair address nat) nat) (or address address)) (or (or address unit) (or unit (or address unit))))`
@@ -1318,8 +1299,7 @@ Parameter which does not have unsafe arguments, like raw `Contract p` values.
 
 Implementation of permanent entrypoints.
 
-**Structure:** 
-[`Code`](#types-Code-lparenextended-lambdarparen) **[**[`Empty`](#types-Empty)**,** [`UStore`](#types-Upgradeable-storage) [`Some`](#ustore-template-Some)**]** **[**([`List`](#types-List) [`Operation`](#types-Operation), [`UStore`](#types-Upgradeable-storage) [`Some`](#ustore-template-Some))**]**
+**Structure:** [`Code`](#types-Code-lparenextended-lambdarparen) **[**[`Empty`](#types-Empty)**,** [`UStore`](#types-Upgradeable-storage) [`Some`](#ustore-template-Some)**]** **[**([`List`](#types-List) [`Operation`](#types-Operation), [`UStore`](#types-Upgradeable-storage) [`Some`](#ustore-template-Some))**]**
 
 **Final Michelson representation:** `lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))`
 
@@ -1359,8 +1339,7 @@ This has to contain only ASCII characters with codes from [32; 126] range; addit
 
 Token identifier as defined by [TZIP-12](https://gitlab.com/tzip/tzip/-/blob/eb1da57684599a266334a73babd7ba82dbbbce66/proposals/tzip-12/tzip-12.md#general).
 
-**Structure:** 
-[`Natural`](#types-Natural)
+**Structure:** [`Natural`](#types-Natural)
 
 **Final Michelson representation:** `nat`
 
@@ -1393,8 +1372,7 @@ Contract's storage holding a big_map with all balances and the operators.
 
 Parameter dispatching logic, main purpose of this code is to pass control to an entrypoint carrying the main logic of the contract.
 
-**Structure:** 
-[`Code`](#types-Code-lparenextended-lambdarparen) **[**([`UParam`](#types-Upgradable-parameter), [`UStore`](#types-Upgradeable-storage) [`Some`](#ustore-template-Some))**]** **[**([`List`](#types-List) [`Operation`](#types-Operation), [`UStore`](#types-Upgradeable-storage) [`Some`](#ustore-template-Some))**]**
+**Structure:** [`Code`](#types-Code-lparenextended-lambdarparen) **[**([`UParam`](#types-Upgradable-parameter), [`UStore`](#types-Upgradeable-storage) [`Some`](#ustore-template-Some))**]** **[**([`List`](#types-List) [`Operation`](#types-Operation), [`UStore`](#types-Upgradeable-storage) [`Some`](#ustore-template-Some))**]**
 
 **Final Michelson representation:** `lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))`
 
@@ -1408,8 +1386,7 @@ Parameter dispatching logic, main purpose of this code is to pass control to an 
 
 This type encapsulates parameter for one of entry points. It keeps entry point name and corresponding argument serialized.
 
-**Structure:** 
-([`Text`](#types-Text), [`ByteString`](#types-ByteString))
+**Structure:** ([`Text`](#types-Text), [`ByteString`](#types-ByteString))
 
 **Final Michelson representation:** `pair string bytes`
 
@@ -1425,8 +1402,7 @@ Storage with not hardcoded structure, which allows upgrading the contract
 in place. UStore is capable of storing simple fields and multiple submaps.
 
 
-**Structure:** 
-[`BigMap`](#types-BigMap) [`ByteString`](#types-ByteString) [`ByteString`](#types-ByteString)
+**Structure:** [`BigMap`](#types-BigMap) [`ByteString`](#types-ByteString) [`ByteString`](#types-ByteString)
 
 **Final Michelson representation:** `big_map bytes bytes`
 
@@ -1440,8 +1416,7 @@ in place. UStore is capable of storing simple fields and multiple submaps.
 
 Contract version.
 
-**Structure:** 
-[`Natural`](#types-Natural)
+**Structure:** [`Natural`](#types-Natural)
 
 **Final Michelson representation:** `nat`
 
@@ -1456,11 +1431,11 @@ Contract version.
 `View a r` accepts an argument of type `a` and callback contract which accepts `r` and returns result via calling that contract.
 Read more in [A1 conventions document](https://gitlab.com/tzip/tzip/-/blob/c42e3f0f5e73669e84e615d69bee73281572eb0a/proposals/tzip-4/tzip-4.md#view-entrypoints).
 
-**Structure (example):** `View () Integer` = 
-[`()`](#types-lparenrparen)
-[`ContractRef`](#types-Contract) [`Integer`](#types-Integer)
+**Structure (example):** `View MText Integer` = 
+  * [`Text`](#types-Text)
+  * [`ContractRef`](#types-Contract) [`Integer`](#types-Integer)
 
-**Final Michelson representation (example):** `View () Integer` = `pair unit (contract int)`
+**Final Michelson representation (example):** `View MText Integer` = `pair string (contract int)`
 
 
 
