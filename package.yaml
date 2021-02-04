@@ -27,14 +27,11 @@ library:
     - aeson
     - aeson-casing
     - bytestring
-    - constraints
+    - co-log
     - containers
     - cleveland
     - directory
     - hex-text
-    - http-client
-    - http-client-tls
-    - http-types
     - fmt
     - lens
     - lorentz
@@ -48,18 +45,12 @@ library:
     - optparse-applicative
     - megaparsec
     - process
-    - scientific
-    - servant
-    - servant-client
-    - servant-client-core
-    - singletons
     - text
+    - transformers
     - universum
     - with-utf8
     - safe-exceptions
-    - vector
     - vinyl
-    - o-clock
 
 executables:
   tzbtc:
@@ -69,7 +60,6 @@ executables:
       - fmt
       - lorentz
       - morley
-      - morley-client
       - morley-multisig
       - morley-prelude
       - optparse-applicative
@@ -81,7 +71,10 @@ executables:
     source-dirs: client
 
     dependencies:
+      - morley-client
       - morley-prelude
+      - named
+      - optparse-applicative
       - tzbtc
 
 tests:
@@ -93,24 +86,25 @@ tests:
 
     dependencies:
     - bytestring
+    - co-log
+    - co-log-core
     - containers
     - cleveland
+    - fmt
     - hex-text
     - hspec
     - HUnit
-    - lens
     - lorentz
     - morley
+    - morley-client
     - morley-ledgers
     - morley-ledgers-test
     - morley-multisig
     - morley-prelude
     - morley-upgradeable
     - mtl
-    - optparse-applicative
     - tasty
     - tasty-hspec
-    - tasty-quickcheck
     - tasty-hunit-compat
     - text
     - tzbtc

@@ -27,7 +27,6 @@ module Test.TZBTC
   -- * Utilities
   , checkField
   , dummyV1Parameters
-  , dummyV2Parameters
   , originateTzbtcV1ContractRaw
   ) where
 
@@ -553,7 +552,7 @@ test_get_meta =
 test_documentation :: [TestTree]
 test_documentation =
   [ testGroup "V1" $
-      runDocTests testLorentzDoc (buildLorentzDoc V1.tzbtcDoc)
+      runDocTests testLorentzDoc V1.tzbtcDoc
   , testGroup "V2" $
-      runDocTests testLorentzDoc (buildLorentzDoc V2.tzbtcDoc)
+      runDocTests testLorentzDoc V2.tzbtcDoc
   ]

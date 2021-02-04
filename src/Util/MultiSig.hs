@@ -32,11 +32,11 @@ import Data.ByteString.Lazy as LBS (toStrict)
 import Data.List (lookup)
 import Fmt (Buildable(..), Builder, blockListF, pretty, (|+))
 import Michelson.Interpret.Unpack
-import Text.Hex (decodeHex, encodeHex)
+import Text.Hex (encodeHex)
 import qualified Text.Show (show)
 import Tezos.Crypto
+import Util.ByteString
 
-import Client.Util (addTezosBytesPrefix)
 import Lorentz
 import Lorentz.Contracts.Multisig
 import qualified Lorentz.Contracts.Multisig.Specialized.Types as Spec
@@ -72,7 +72,7 @@ type Sign =
 -- contract, and arrange the available signatures, in the same order, filling
 -- the unavailable ones with Nothings.
 data Package = Package
-  { pkToSign :: !Text  -- ^ Hex encoded byte sequence that should be signed
+  { pkToSign :: !HexJSONByteString  -- ^ Hex encoded byte sequence that should be signed
   , pkSignatures :: ![(PublicKey, Sign)] -- ^ Field to hold signatures and public keys as they are collected.
   }
 
@@ -97,17 +97,13 @@ fetchSrcParam
   :: Package
   -> Either UnpackageError (TZBTC.Parameter SomeTZBTCVersion)
 fetchSrcParam package =
-  case decodeHex $ pkToSign package of
-    Just hexDecoded ->
-      case fromVal @ToSign
-          <$> unpackValue' hexDecoded of
-        Right (_, (_, action)) ->
-          case action of
-            Operation (safeParameter, _) ->
-              Right (TZBTC.SafeEntrypoints safeParameter)
-            _ -> error "Unsupported multisig operation"
-        Left err -> Left $ UnpackFailure err
-    Nothing -> Left HexDecodingFailure
+  case fromVal @ToSign <$> unpackValue' (unHexJSONByteString $ pkToSign package) of
+    Right (_, (_, action)) ->
+      case action of
+        Operation (safeParameter, _) ->
+          Right (TZBTC.SafeEntrypoints safeParameter)
+        _ -> error "Unsupported multisig operation"
+    Left err -> Left $ UnpackFailure err
 
 checkIntegrity
   :: Package
@@ -138,7 +134,8 @@ mkPackage msigAddress chainId_ counter tzbtc param
         -- Wrap the parameter with multisig address and replay attack counter,
         -- forming a structure that the multi-sig contract will ultimately
         -- verify the included signatures against
-        pkToSign = encodeToSign $ ((chainId_, toAddress msigTAddr), (counter, msigParam))
+        pkToSign = HexJSONByteString $ toBytes $ lPackValue $
+                   ((chainId_, toAddress msigTAddr), (counter, msigParam))
       , pkSignatures = [] -- No signatures when creating package
       }
 
@@ -160,19 +157,18 @@ mergePackages (p :| ps) = maybeToRight PackageMergeFailure $
   foldM mergeSignatures p ps
 
 getBytesToSign :: Package -> Text
-getBytesToSign Package{..} = addTezosBytesPrefix pkToSign
+getBytesToSign Package{..} =
+  addTezosBytesPrefix $ encodeHex $ unHexJSONByteString pkToSign
+  where
+    addTezosBytesPrefix :: Text -> Text
+    addTezosBytesPrefix = ("0x" <>)
 
 -- | Extract the signable component from package. This is a structure
 -- with the packed parameter that represent the action, the multi-sig contract
 -- address, and the replay attack prevention counter.
 getToSign :: Package -> Either UnpackageError ToSign
-getToSign Package{..} =
-  case decodeHex pkToSign of
-    Just hexDecoded ->
-      case fromVal @ToSign <$> unpackValue' hexDecoded of
-        Right toSign -> Right toSign
-        Left err -> Left $ UnpackFailure err
-    Nothing -> Left HexDecodingFailure
+getToSign Package{..} = first UnpackFailure $
+  fromVal @ToSign <$> unpackValue' (unHexJSONByteString pkToSign)
 
 -- | Errors that can happen when package is de-serialized back to the multi-sig
 -- contract param
@@ -245,9 +241,6 @@ mkMultiSigParam pks packages = do
       (toTAddress address_, (payload, sortSigs sigs))
     sortSigs :: [(PublicKey, Sign)] -> [Maybe Sign]
     sortSigs sigs = flip lookup sigs <$> pks
-
-encodeToSign :: ToSign -> Text
-encodeToSign ts = (encodeHex . toBytes $ lPackValue ts)
 
 deriveJSON (aesonPrefix camelCase) ''Package
 

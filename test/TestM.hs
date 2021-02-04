@@ -17,21 +17,25 @@ module TestM
   , TestError(..)
   ) where
 
+import Colog.Core.Class (HasLog(..))
+import Colog.Message (Message)
 import qualified Data.Map as Map
-import Options.Applicative as Opt
 
-import Morley.Micheline (Expression, TezosInt64)
+import Michelson.Typed.Scope (PrintedValScope)
+import Morley.Client
+import Morley.Client.Logging (ClientLogAction)
+import Morley.Client.RPC
+import Morley.Client.TezosClient
+  (CalcOriginationFeeData, CalcTransferFeeData, TezosClientConfig)
+import Morley.Micheline
 import Tezos.Address
-import Tezos.Core (ChainId)
-import Tezos.Crypto
+import Tezos.Core
+import Tezos.Crypto (PublicKey, SecretKey, Signature)
+import Util.ByteString
 
 import Client.Env
-import Client.Error
 import Client.IO ()
 import Client.Types
-import Lorentz.Constraints
-import Lorentz.Contracts.Multisig
-import Lorentz.Contracts.TZBTC (V1DeployParameters, V2DeployParameters)
 
 import Util.AbstractIO
 
@@ -41,12 +45,8 @@ data Expectation
   | WritesFile FilePath (Maybe ByteString)
   | WritesFileUtf8 FilePath
   | ReadsFile
-  | ParseCmdLine
   | GetsUserConfirmation
-  | RunsTransaction
   | PrintByteString ByteString
-  | DeployTzbtcContract
-  | DeployMultisigContract
   | RememberContract Address Text
   | LooksupEnv
   deriving stock (Eq, Show, Ord)
@@ -83,36 +83,57 @@ data Handlers m = Handlers
   , hReadFile :: FilePath -> m ByteString
   , hDoesFileExist :: FilePath -> m Bool
 
-  , hParseCmdLine :: forall a. Opt.ParserInfo a -> m a
   , hPrintTextLn :: forall text. (Print text) => text -> m ()
   , hPrintStringLn :: String -> m ()
   , hPrintByteString :: ByteString -> m ()
   , hConfirmAction :: Text -> m ConfirmationResult
 
-  , hRunTransactions
-    :: forall param. (NicePackedValue param)
-    => Address  -> EntrypointParam param -> TezosInt64 -> Maybe TezosInt64 ->  m ()
-  , hGetStorage :: Text -> m Expression
-  , hGetCounter :: Text -> m TezosInt64
-  , hGetFromBigMap :: Natural -> Text -> m (Either TzbtcClientError Expression)
-  , hWaitForOperation :: Text -> m ()
-  , hGetTezosClientConfig :: m (Either Text (FilePath, TezosClientConfig))
-  , hDeployTzbtcContractV1 :: Maybe TezosInt64 -> V1DeployParameters -> m ()
-  , hDeployTzbtcContractV2 :: Maybe TezosInt64 -> V2DeployParameters -> m ()
-  , hDeployMultisigContract :: Maybe TezosInt64 -> MSigStorage -> Bool -> m ()
+  , hGetHeadBlock :: m Text
+  , hGetCounter :: Address -> m TezosInt64
+  , hGetBlockConstants :: Text -> m BlockConstants
+  , hGetProtocolParameters :: m ProtocolParameters
+  , hRunOperation :: RunOperation -> m RunOperationResult
+  , hPreApplyOperations :: [PreApplyOperation] -> m [RunOperationResult]
+  , hForgeOperation :: ForgeOperation -> m HexJSONByteString
+  , hInjectOperation :: HexJSONByteString -> m Text
+  , hGetContractScript :: Address -> m OriginationScript
+  , hGetContractBigMap :: Address -> GetBigMap -> m GetBigMapResult
+  , hGetBigMapValue :: Natural -> Text -> m Expression
+  , hGetBalance :: Address -> m Mutez
+  , hRunCode :: RunCode -> m RunCodeResult
+  , hGetChainId :: m ChainId
 
-  , hGetAddressAndPKForAlias :: Text -> m (Either TzbtcClientError (Address, PublicKey))
-  , hSignWithTezosClient :: Either ByteString Text -> Text -> m (Either Text Signature)
-  , hGetAddressForContract :: Text -> m (Either TzbtcClientError Address)
-  , hGetChainId :: Text -> m ChainId
-  , hRememberContract :: Address -> Text -> m ()
+  -- HasTezosClient
+  , hSignBytes :: AddressOrAlias -> ByteString -> m Signature
+  , hGenKey :: AliasHint -> m Address
+  , hGenFreshKey :: AliasHint -> m Address
+  , hRevealKey :: Alias -> m ()
+  , hWaitForOperation :: Text -> m ()
+  , hRememberContract :: Bool -> Address -> AliasHint -> m ()
+  , hImportKey :: Bool -> AliasHint -> SecretKey -> m ()
+  , hResolveAddressMaybe :: AddressOrAlias -> m (Maybe Address)
+  , hGetAlias :: AddressOrAlias -> m Alias
+  , hGetPublicKey :: AddressOrAlias -> m PublicKey
+  , hGetTezosClientConfig :: m TezosClientConfig
+  , hCalcTransferFee
+    :: forall t. PrintedValScope t => CalcTransferFeeData t -> m TezosMutez
+  , hCalcOriginationFee
+    :: forall cp st. PrintedValScope st => CalcOriginationFeeData cp st -> m TezosMutez
 
   , hLookupEnv :: m AppEnv
   , hWithLocal :: forall a. (AppEnv -> AppEnv) -> m a -> m a
+
+  , hLogAction :: ClientLogAction m
   }
 
 getHandler :: (Handlers TestM -> fn) -> TestM fn
 getHandler fn = (fn . unMyHandlers . fst) <$> ask
+
+instance HasLog (MyHandlers, AppEnv) Message TestM where
+  getLogAction = hLogAction . unMyHandlers . fst
+  setLogAction action' (MyHandlers handlers, env) =
+    (MyHandlers $ handlers { hLogAction = action' }, env)
+
 
 instance HasFilesystem TestM where
   writeFileUtf8 fp t = do
@@ -129,9 +150,6 @@ instance HasFilesystem TestM where
     fn fp
 
 instance HasCmdLine TestM where
-  parseCmdLine a = do
-    fn <- getHandler hParseCmdLine
-    fn a
   printTextLn m = do
     fn <- getHandler hPrintTextLn
     fn m
@@ -146,48 +164,87 @@ instance HasCmdLine TestM where
     fn i
 
 instance HasTezosRpc TestM where
-  runTransaction a b c f = do
-    fn <- getHandler hRunTransactions
-    fn a b c f
-  getStorage t = do
-    fn <- getHandler hGetStorage
-    fn t
-  getCounter t = do
-    fn <- getHandler hGetCounter
-    fn t
-  getFromBigMap n t = do
-    fn <- getHandler hGetFromBigMap
-    fn n t
-  deployTzbtcContractV1 f op = do
-    fn <- getHandler hDeployTzbtcContractV1
-    fn f op
-  deployTzbtcContractV2 f op = do
-    fn <- getHandler hDeployTzbtcContractV2
-    fn f op
-  getChainId name = do
-    fn <- getHandler hGetChainId
-    fn name
-  deployMultisigContract f storage useCustomErrors = do
-    fn <- getHandler hDeployMultisigContract
-    fn f storage useCustomErrors
+  getHeadBlock =
+    join $ getHandler hGetHeadBlock
+  getCounter addr = do
+    h <- getHandler hGetCounter
+    h addr
+  getBlockConstants block = do
+    h <- getHandler hGetBlockConstants
+    h block
+  getProtocolParameters =
+    join $ getHandler hGetProtocolParameters
+  runOperation op = do
+    h <- getHandler hRunOperation
+    h op
+  preApplyOperations ops = do
+    h <- getHandler hPreApplyOperations
+    h ops
+  forgeOperation op = do
+    h <- getHandler hForgeOperation
+    h op
+  injectOperation op = do
+    h <- getHandler hInjectOperation
+    h op
+  getContractScript addr = do
+    h <- getHandler hGetContractScript
+    h addr
+  getContractStorage addr = do
+    h <- getHandler hGetContractScript
+    osStorage <$> h addr
+  getContractBigMap addr getBigMap = do
+    h <- getHandler hGetContractBigMap
+    h addr getBigMap
+  getBigMapValue bigMapId scriptExpr = do
+    h <- getHandler hGetBigMapValue
+    h bigMapId scriptExpr
+  getBalance addr = do
+    h <- getHandler hGetBalance
+    h addr
+  runCode r = do
+    h <- getHandler hRunCode
+    h r
+  getChainId = join (getHandler hGetChainId)
 
 instance HasTezosClient TestM where
-  getAddressAndPKForAlias a = do
-    fn <- getHandler hGetAddressAndPKForAlias
-    fn a
-  signWithTezosClient a alias = do
-    fn <- getHandler hSignWithTezosClient
-    fn a alias
-  waitForOperation t = do
-    fn <- getHandler hWaitForOperation
-    fn t
-  getTezosClientConfig = join $ getHandler hGetTezosClientConfig
-  getAddressForContract c = do
-    fn <- getHandler hGetAddressForContract
-    fn c
-  rememberContractAs c a = do
-    fn <- getHandler hRememberContract
-    fn c a
+  signBytes alias op = do
+    h <- getHandler hSignBytes
+    h alias op
+  genKey alias = do
+    h <- getHandler hGenKey
+    h alias
+  genFreshKey alias = do
+    h <- getHandler hGenFreshKey
+    h alias
+  revealKey alias = do
+    h <- getHandler hRevealKey
+    h alias
+  waitForOperation op = do
+    h <- getHandler hWaitForOperation
+    h op
+  rememberContract replaceExisting addr alias = do
+    h <- getHandler hRememberContract
+    h replaceExisting addr alias
+  importKey replaceExisting alias key = do
+    h <- getHandler hImportKey
+    h replaceExisting alias key
+  resolveAddressMaybe addr = do
+    h <- getHandler hResolveAddressMaybe
+    h addr
+  getAlias originator = do
+    h <- getHandler hGetAlias
+    h originator
+  getPublicKey a = do
+    h <- getHandler hGetPublicKey
+    h a
+  getTezosClientConfig =
+    join $ getHandler hGetTezosClientConfig
+  calcTransferFee transferData = do
+    h <- getHandler hCalcTransferFee
+    h transferData
+  calcOriginationFee origData = do
+    h <- getHandler hCalcOriginationFee
+    h origData
 
 instance HasEnv TestM where
   lookupEnv = do

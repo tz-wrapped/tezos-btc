@@ -37,7 +37,7 @@ setup () {
 
 @test "invoking tzbtc 'printInitialStorage' command" {
   result="$($tzbtc printInitialStorage --owner-address tz1f1S7V2hZJ3mhj47djb5j1saek8c2yB2Cx)"
-  [ "$result" == 'Pair { Elt 0x0501000000056f776e6572 0x050a000000160000d476acd953eb55d38c398c85c3f53e19b62b167a } (Pair { CDR; NIL operation; PAIR } (Pair 0 False))' ]
+  [ "$result" == 'Pair { Elt 0x0501000000056f776e6572 0x050a000000160000d476acd953eb55d38c398c85c3f53e19b62b167a } (Pair { CDR;NIL operation;PAIR } (Pair 0 False))' ]
 }
 
 @test "invoking 'parseContractParameter' command to parse burn parameter" {
@@ -45,8 +45,4 @@ setup () {
   exec_command="$tzbtc parseContractParameter '${raw_parameter}'"
   result=$(eval $exec_command)
   [ "$result" == 'Burn, value = 100500' ]
-}
-
-@test "invoking smoke tests" {
-  $tzbtc testScenario --dry-run
 }
