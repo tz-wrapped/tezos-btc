@@ -107,3 +107,4 @@ instance HasTezosClient AppM where
   getTezosClientConfig = morleyClientMToAppM ... getTezosClientConfig
   calcTransferFee = morleyClientMToAppM ... calcTransferFee
   calcOriginationFee = morleyClientMToAppM ... calcOriginationFee
+  getKeyPassword = morleyClientMToAppM ... getKeyPassword

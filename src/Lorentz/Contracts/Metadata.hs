@@ -14,7 +14,35 @@ module Lorentz.Contracts.Metadata
 
 import Lorentz
 
-import Lorentz.Contracts.Spec.FA2Interface (TokenId, TokenMetadata(..), theTokenId)
+import Fmt (Buildable(..), (+|), (|+))
+
+import Lorentz.Contracts.Spec.FA2Interface (TokenId, theTokenId)
+
+data TokenMetadata = TokenMetadata
+  { tmTokenId :: TokenId
+  , tmSymbol :: MText
+  , tmName :: MText
+  , tmDecimals :: Natural
+  , tmExtras :: Map MText MText
+  }
+  deriving stock (Eq, Show)
+
+$(customGeneric "TokenMetadata" rightComb)
+
+deriving anyclass instance IsoValue TokenMetadata
+
+instance HasAnnotation TokenMetadata where
+  annOptions = defaultAnnOptions { fieldAnnModifier = dropPrefixThen toSnake }
+
+instance Buildable TokenMetadata where
+  build TokenMetadata {..} =
+    "token_id:" +| tmTokenId |+ ", symbol:" +| tmSymbol |+ ", name:" +|
+    tmName |+ ", decimals:" +| tmDecimals |+ "."
+
+instance TypeHasDoc TokenMetadata where
+  typeDocMdDescription =
+    "Various token metadata information."
+  typeDocHaskellRep = homomorphicTypeDocHaskellRep
 
 -- | The `TokenId` of a token in a single-token contract is @0@
 singleTokenTokenId :: TokenId
