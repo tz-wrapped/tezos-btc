@@ -61,8 +61,6 @@ main = do
         V0 -> parseAndPrint @V0.TZBTCv0
         V1 -> parseAndPrint @V1.TZBTCv1
         V2 -> parseAndPrint @V2.TZBTCv2
-    CmdTestScenario _ver (arg #verbosity -> _verbose) (arg #dryRun -> _dryRun) -> do
-      error "Not implemented for now, will be reimplemented as a part of https://github.com/tz-wrapped/tezos-btc/issues/123"
     CmdMigrate (arg #output -> fp) migrateCmd ->
       maybe printTextLn writeFileUtf8 fp $
         case migrateCmd of

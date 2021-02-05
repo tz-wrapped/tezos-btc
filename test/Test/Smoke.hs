@@ -1,21 +1,18 @@
-{- SPDX-FileCopyrightText: 2019 Bitcoin Suisse
+{- SPDX-FileCopyrightText: 2021 Bitcoin Suisse
  -
  - SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
  -}
-module Lorentz.Contracts.TZBTC.Test
-  ( smokeTests
-
-  , TestUpgrade
-  , noTestUpgrade
-  , testUpgradeToV1
-  , testUpgradeToV2
+module Test.Smoke
+  ( test_smokeTests
   ) where
 
-import Control.Lens ((<>~), _Just)
+import Data.Tagged (Tagged(Tagged))
 import Data.Typeable (cast)
 import System.Environment (setEnv)
 import System.Exit (ExitCode(..))
 import System.Process (readProcessWithExitCode)
+import Test.Tasty (TestName, TestTree, testGroup)
+import Test.Tasty.Providers (testPassed, IsTest(..), singleTest)
 
 import Lorentz (TAddress, TrustEpName(..), View(..), arg, mkView, toMutez)
 import Lorentz.Contracts.Metadata
@@ -24,11 +21,12 @@ import Lorentz.Test (contractConsumer)
 import Lorentz.UStore.Migration
 import Michelson.Typed.Haskell.Value
 import Michelson.Untyped.Entrypoints
-import Morley.Client.Init (MorleyClientConfig, mccAliasPrefixL, mkMorleyClientEnv)
 import qualified Morley.Client.TezosClient as TezosClient
 import Morley.Nettest
-import Morley.Nettest.Abstract
 import qualified Morley.Nettest.Client as TezosClient
+import Morley.Nettest.Abstract
+import Morley.Nettest.Tasty.Options (nettestOptions)
+import Morley.Nettest.Tasty
 import Tezos.Address
 import Util.Named
 
@@ -36,28 +34,30 @@ import Client.Parser (parseContractAddressFromOutput)
 import Lorentz.Contracts.TZBTC
 import qualified Lorentz.Contracts.TZBTC.V1.Types as TZBTCTypes
 
--- Prerequisites:
--- 1. `tezos-client` program should be available or configured via env variable
---    just like required for `tzbtc-client` config.
--- 2. `tezos-client` alias `nettest` should exist with some balance.
-smokeTests
-  :: Maybe MorleyClientConfig
-  -> (forall m. Monad m => TestUpgrade m)
-  -> IO ()
-smokeTests mconfig upg = do
-  -- TODO [#134]: enable
-  -- runNettestViaIntegrational $ simpleScenario upg
-  whenJust mconfig $ \config ->
-    sequence_
-    [ do
-        let config' = config & mccAliasPrefixL . _Just <>~ "_tezos_client"
-        env <- mkMorleyClientEnv config'
-        runNettestClient (NettestEnv env Nothing) $ simpleScenario upg
-    , do
-        let config' = config & mccAliasPrefixL . _Just <>~ "_tzbtc_client"
-        env <- mkMorleyClientEnv config'
-        runNettestTzbtcClient env $ simpleScenario noTestUpgrade
-    ]
+test_smokeTests :: TestTree
+test_smokeTests = testGroup "Smoke tests for tzbtc contract"
+  [ nettestScenario "Smoke test V1" $ simpleScenario testUpgradeToV1
+  , nettestScenario "Smoke test V2" $ simpleScenario testUpgradeToV2
+  , nettestScenarioOnNetworkViaTzbtcClient "Smote test V1 deployed by tzbtc-client" $
+    simpleScenario noTestUpgrade
+  ]
+
+newtype RunOnNetworkViaTzbtcClient = RunOnNetworkViaTzbtcClient (NettestScenario IO)
+
+instance IsTest RunOnNetworkViaTzbtcClient where
+  run opts (RunOnNetworkViaTzbtcClient scenario) _ =
+    case tastyEnvFromOpts opts of
+      Nothing -> pure testSkipped
+      Just tastyEnv ->
+        useNettestEnv tastyEnv $ \nettestEnv ->
+          (runNettestTzbtcClient nettestEnv scenario $> testPassed "")
+  testOptions = Tagged nettestOptions
+
+-- | Helper to run nettest scenario only on real network, because there is no
+-- sense in running scenarios, that test @tzbtc-client@ on emulated environment
+nettestScenarioOnNetworkViaTzbtcClient :: TestName -> NettestScenario IO -> TestTree
+nettestScenarioOnNetworkViaTzbtcClient testName scenario =
+  testGroup testName [singleTest "On network" (RunOnNetworkViaTzbtcClient scenario)]
 
 dummyV1Parameters :: Address -> TokenMetadata -> Map Address Natural -> V1Parameters
 dummyV1Parameters redeem tokenMetadata balances = V1Parameters
@@ -330,12 +330,12 @@ newAddress' alias = do
   prefixedAlias <- getAlias (AddressResolved addr)
   return (AddressAlias prefixedAlias, addr)
 
-runNettestTzbtcClient :: MorleyClientEnv -> NettestScenario IO -> IO ()
+runNettestTzbtcClient :: NettestEnv -> NettestScenario IO -> IO ()
 runNettestTzbtcClient env scenario = do
   scenario $ nettestImplTzbtcClient env
 
-nettestImplTzbtcClient :: MorleyClientEnv -> NettestImpl IO
-nettestImplTzbtcClient env = NettestImpl
+nettestImplTzbtcClient :: NettestEnv -> NettestImpl IO
+nettestImplTzbtcClient (NettestEnv env _) = NettestImpl
   { niOriginateUntyped = tzbtcClientOriginate
   , niTransferBatch = \_sender -> \case
       [td] -> tzbtcClientTransfer td
@@ -344,11 +344,15 @@ nettestImplTzbtcClient env = NettestImpl
   }
   where
     impl@NettestImpl {..} = TezosClient.nettestImplClient env
+    tezosClientEnv = mceTezosClient env
+    tzbtcClientEnvArgs =
+      [ "-E", TezosClient.toCmdArg $ tceEndpointUrl tezosClientEnv
+      ] <> (maybe [] (\dataDir -> ["-d", dataDir]) $ tceMbTezosClientDataDir tezosClientEnv)
 
     tzbtcClientOriginate :: UntypedOriginateData -> IO Address
     tzbtcClientOriginate od@(UntypedOriginateData {..}) =
       if TezosClient.unAliasHint uodName == "TZBTCContract" then do
-        output <- callTzbtcClient
+        output <- callTzbtcClient $ tzbtcClientEnvArgs <>
           [ "deployTzbtcContract"
           , "--owner", TezosClient.toCmdArg uodFrom
           , "--redeem", TezosClient.toCmdArg uodFrom
@@ -450,9 +454,9 @@ nettestImplTzbtcClient env = NettestImpl
       where
         callTzbtc :: [String] -> IO ()
         callTzbtc args = void $ callTzbtcClient $
-          args <> ["--user", TezosClient.toCmdArg tdFrom
-                  , "--contract-addr", TezosClient.toCmdArg tdTo
-                  ]
+          tzbtcClientEnvArgs <> args <> ["--user", TezosClient.toCmdArg tdFrom
+                                        , "--contract-addr", TezosClient.toCmdArg tdTo
+                                        ]
 
 -- | Write something to stderr.
 putErrLn :: Print a => a -> IO ()
