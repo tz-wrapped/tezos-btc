@@ -117,7 +117,7 @@ steps:
     - ./scripts/ci/upload-autodoc.sh
 
   - label: packaging
-    if: *not_scheduled_autodoc
+    if: build.branch != "autodoc/master" && build.source != "schedule"
     commands:
     - nix-build release.nix -A static -o tzbtc-static
     - nix-build release.nix -A deb -o tzbtc-client-deb
