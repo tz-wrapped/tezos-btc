@@ -156,7 +156,7 @@ steps:
       - ./tzbtc-client-rpm/*
 
   - label: create auto prerelease
-    branches: "master"
+    if: build.branch == "master" && build.source != "schedule"
     commands:
     - mkdir assets
     - buildkite-agent artifact download tzbtc-static/bin/tzbtc-client . --step packaging
