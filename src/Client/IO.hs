@@ -187,7 +187,8 @@ signPackageForConfiguredUser pkg = do
   case confirmationResult of
     Canceled -> pure $ Left $ "Package signing was canceled"
     Confirmed -> do
-      signature' <- signBytes (AddressResolved userAddr) $ unHexJSONByteString $ pkToSign pkg
+      mbPassword <- getKeyPassword (AddressResolved userAddr)
+      signature' <- signBytes (AddressResolved userAddr) mbPassword $ unHexJSONByteString $ pkToSign pkg
       pure $ addSignature pkg (pk, TSignature signature')
 
 getBalance

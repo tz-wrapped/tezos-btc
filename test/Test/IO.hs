@@ -73,10 +73,10 @@ defaultHandlers = Handlers
   , hRunCode = \_ -> unavailable "runCode"
   , hGetChainId = pure $ testChainId
 
-  , hSignBytes = \_ _ -> unavailable "signBytes"
+  , hSignBytes = \_ _ _ -> unavailable "signBytes"
   , hGenKey = \_ -> unavailable "genKey"
   , hGenFreshKey = \_ -> unavailable "genFreshKey"
-  , hRevealKey = \_ -> unavailable "revealKey"
+  , hRevealKey = \_ _ -> unavailable "revealKey"
   , hWaitForOperation = \_ -> unavailable "waitForOperation"
   , hRememberContract = \_ c (AliasHint a) -> meetExpectation (RememberContract c a)
   , hImportKey = \_ _ _ -> unavailable "importKey"
@@ -86,6 +86,7 @@ defaultHandlers = Handlers
   , hGetTezosClientConfig = unavailable "getTezosClientConfig"
   , hCalcTransferFee = \_ -> unavailable "calcTransferFee"
   , hCalcOriginationFee = \_ -> unavailable "calcOriginationFee"
+  , hGetKeyPassword = \_ -> unavailable "getKeyPassword"
 
   , hLookupEnv = do
       meetExpectation LooksupEnv;
@@ -296,7 +297,7 @@ multisigSigningTestHandlers =
           throwM $ TestError ("Unexpected address " ++ pretty addr)
         AddressAlias (Alias "tzbtc-user") -> pure johnAddressPK
         AddressAlias (Alias alias) -> throwM $ TestError ("Unexpected alias " ++ toString alias)
-    , hSignBytes = \_ _ ->
+    , hSignBytes = \_ _ _ ->
        pure $ unTSignature multisigSignPackageTestSignature
     , hResolveAddressMaybe = \case
         AddressResolved addr -> pure $ Just addr
@@ -305,6 +306,7 @@ multisigSigningTestHandlers =
           "tzbtc-multisig" -> pure $ Just multiSigAddress
           "tzbtc-user" -> pure $ Just johnAddress
           _ -> pure $ Nothing
+    , hGetKeyPassword = \_ -> pure Nothing
     }
     where
       checkSignature_ bs = case decodePackage bs of
