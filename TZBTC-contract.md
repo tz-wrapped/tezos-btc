@@ -6,7 +6,7 @@
 
 # TZBTC
 
-**Code revision:** [d1913bf](https://github.com/tz-wrapped/tezos-btc/commit/d1913bfd1de5c751d0e6069b9a3c6f5af7748078) *(Fri Feb 5 13:34:21 2021 +0100)*
+**Code revision:** [ae42aef](https://github.com/tz-wrapped/tezos-btc/commit/ae42aef20a7d3188539414269f5b615f0359c6c4) *(Wed Feb 10 10:21:42 2021 +0300)*
 
 
 
@@ -1337,7 +1337,7 @@ This has to contain only ASCII characters with codes from [32; 126] range; addit
 
 ### `TokenId`
 
-Token identifier as defined by [TZIP-12](https://gitlab.com/tzip/tzip/-/blob/eb1da57684599a266334a73babd7ba82dbbbce66/proposals/tzip-12/tzip-12.md#general).
+Token identifier as defined by [TZIP-12](https://gitlab.com/tzip/tzip/-/blob/1f83a3671cdff3ab4517bfa9ee5a57fc5276d4ff/proposals/tzip-12/tzip-12.md#general).
 
 **Structure:** [`Natural`](#types-Natural)
 
@@ -1351,7 +1351,7 @@ Token identifier as defined by [TZIP-12](https://gitlab.com/tzip/tzip/-/blob/eb1
 
 ### `TokenMetadata`
 
-Contract's storage holding a big_map with all balances and the operators.
+Various token metadata information.
 
 **Structure:** 
   * ***tmTokenId*** :[`TokenId`](#types-TokenId)
