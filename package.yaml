@@ -92,6 +92,7 @@ tests:
     - hspec
     - HUnit
     - lorentz
+    - memory
     - morley
     - morley-client
     - morley-ledgers

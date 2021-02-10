@@ -19,6 +19,7 @@ module TestM
 
 import Colog.Core.Class (HasLog(..))
 import Colog.Message (Message)
+import Data.ByteArray (ScrubbedBytes)
 import qualified Data.Map as Map
 
 import Michelson.Typed.Scope (PrintedValScope)
@@ -100,14 +101,14 @@ data Handlers m = Handlers
   , hGetContractBigMap :: Address -> GetBigMap -> m GetBigMapResult
   , hGetBigMapValue :: Natural -> Text -> m Expression
   , hGetBalance :: Address -> m Mutez
-  , hRunCode :: RunCode -> m RunCodeResult
+  , hRunCode :: Either RunCodeOld RunCode -> m RunCodeResult
   , hGetChainId :: m ChainId
 
   -- HasTezosClient
-  , hSignBytes :: AddressOrAlias -> ByteString -> m Signature
+  , hSignBytes :: AddressOrAlias -> Maybe ScrubbedBytes -> ByteString -> m Signature
   , hGenKey :: AliasHint -> m Address
   , hGenFreshKey :: AliasHint -> m Address
-  , hRevealKey :: Alias -> m ()
+  , hRevealKey :: Alias -> Maybe ScrubbedBytes -> m ()
   , hWaitForOperation :: Text -> m ()
   , hRememberContract :: Bool -> Address -> AliasHint -> m ()
   , hImportKey :: Bool -> AliasHint -> SecretKey -> m ()
@@ -119,6 +120,7 @@ data Handlers m = Handlers
     :: forall t. PrintedValScope t => CalcTransferFeeData t -> m TezosMutez
   , hCalcOriginationFee
     :: forall cp st. PrintedValScope st => CalcOriginationFeeData cp st -> m TezosMutez
+  , hGetKeyPassword :: AddressOrAlias -> m (Maybe ScrubbedBytes)
 
   , hLookupEnv :: m AppEnv
   , hWithLocal :: forall a. (AppEnv -> AppEnv) -> m a -> m a
@@ -207,18 +209,18 @@ instance HasTezosRpc TestM where
   getChainId = join (getHandler hGetChainId)
 
 instance HasTezosClient TestM where
-  signBytes alias op = do
+  signBytes alias mbPassword op = do
     h <- getHandler hSignBytes
-    h alias op
+    h alias mbPassword op
   genKey alias = do
     h <- getHandler hGenKey
     h alias
   genFreshKey alias = do
     h <- getHandler hGenFreshKey
     h alias
-  revealKey alias = do
+  revealKey alias mbPassword = do
     h <- getHandler hRevealKey
-    h alias
+    h alias mbPassword
   waitForOperation op = do
     h <- getHandler hWaitForOperation
     h op
@@ -245,6 +247,9 @@ instance HasTezosClient TestM where
   calcOriginationFee origData = do
     h <- getHandler hCalcOriginationFee
     h origData
+  getKeyPassword addr = do
+    h <- getHandler hGetKeyPassword
+    h addr
 
 instance HasEnv TestM where
   lookupEnv = do
