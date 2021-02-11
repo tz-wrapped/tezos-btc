@@ -54,7 +54,7 @@ steps:
     - nix-build ci.nix -A tzbtc.components.tests.tzbtc-test
     - export TASTY_NETTEST_DATA_DIR="$(mktemp -d --tmpdir="$$PWD")"
     - nix run -f ci.nix tezos-client tzbtc.components.exes.tzbtc-client -c ./result/bin/tzbtc-test
-      --nettest-run-network
+      --nettest-run-network --pattern '\$1 == "On network" || \$NF == "On network" || \$0 ~ /.On network./'
 
   - label: test-local-chain-008
     if: *not_scheduled_autodoc
