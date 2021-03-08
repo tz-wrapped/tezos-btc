@@ -21,7 +21,7 @@ with rec {
     modules =
       [{
         packages.tzbtc = {
-          package.ghcOptions = with pkgs.lib; concatStringsSep " " (concatLists [
+          ghcOptions = with pkgs.lib; concatLists [
             # error on warning
             [ "-Werror" ]
 
@@ -30,7 +30,7 @@ with rec {
 
             # output *.dump-hi files (required for weeder)
             (optionals (!release) [ "-ddump-to-file" "-ddump-hi" ])
-          ]);
+          ];
 
           # collect all *.dump-hi files (required for weeder)
           postInstall = if release then "" else weeder-hacks.collect-dump-hi-files;
