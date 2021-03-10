@@ -174,7 +174,7 @@ initialSupply = 500
 -- auto derivied entrypoints of the contract. They should match or else the
 -- test fails. If the tzbtc parameter has to be changed, then this test should
 -- be fixed by editing the `tzbtc-parameter-entrypoints-ref.tz` file.
-entrypointsRef :: IO (Map EpName U.Type)
+entrypointsRef :: IO (Map EpName U.Ty)
 entrypointsRef = mkEntrypointsMap <$> tzbtcParameterType
   where
     tzbtcParameterType :: IO U.ParameterType
