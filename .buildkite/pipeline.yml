@@ -148,10 +148,10 @@ steps:
     - cp tzbtc-client-deb/*.deb assets/
     - cp tzbtc-client-rpm/*.rpm assets/
     # delete existing auto-release if present
-    - nix run -f ci.nix gh -c gh release delete auto-release --yes || true
+    - nix run -f ci.nix pkgs.gitAndTools.gh -c gh release delete auto-release --yes || true
     - nix run -f ci.nix pkgs.git -c git fetch && git tag -f auto-release && git push --force --tags
-    - nix run -f ci.nix gh -c gh release create --prerelease auto-release --title auto-release --notes ""
-    - nix run -f ci.nix gh -c gh release upload auto-release assets/*
+    - nix run -f ci.nix pkgs.gitAndTools.gh -c gh release create --prerelease auto-release --title auto-release --notes ""
+    - nix run -f ci.nix pkgs.gitAndTools.gh -c gh release upload auto-release assets/*
 
 notify:
   - email: "tezos-alerts@serokell.io"
