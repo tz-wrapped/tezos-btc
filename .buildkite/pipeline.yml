@@ -58,9 +58,6 @@ steps:
 
   - label: scheduled edonet test
     if: build.source == "schedule"
-    # use another agent for long scheduled jobs
-    agents:
-      queue: "scheduled"
     env:
       TASTY_NETTEST_NODE_ENDPOINT: "http://edo.testnet.tezos.serokell.team:8732"
     commands: *run-nettest
