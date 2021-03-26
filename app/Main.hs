@@ -97,10 +97,9 @@ main = do
       => Contract MSigParameter MSigStorage
     multisigContract = tzbtcMultisigContract @e
     printContract
-      :: ( NiceParameterFull parameter
-         , NiceStorage storage
-         , HasFilesystem m
-         , HasCmdLine m)
+      :: ( HasFilesystem m
+         , HasCmdLine m
+         )
       => Bool
       -> Maybe FilePath
       -> Contract parameter storage

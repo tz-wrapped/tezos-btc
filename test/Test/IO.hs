@@ -28,7 +28,6 @@ import Lorentz.Contracts.Multisig
 import qualified Lorentz.Contracts.TZBTC as TZBTC
 import qualified Lorentz.Contracts.TZBTC.Types as TZBTCTypes
 import Michelson.Typed.Haskell.Value (toVal)
-import Morley.Client.RPC.Types (OriginationScript(..))
 import Morley.Client.TezosClient.Types (AddressOrAlias(..), Alias(..), AliasHint(..))
 import Morley.Micheline
 import TestM
@@ -60,15 +59,18 @@ defaultHandlers = Handlers
 
   , hGetHeadBlock = unavailable "getHeadBlock"
   , hGetCounter = \_ -> unavailable "getCounter"
+  , hGetBlockHeader = \_ -> unavailable "getBlockHeader"
   , hGetBlockConstants = \_ -> unavailable "getBlockConstants"
+  , hGetBlockOperations = \_ -> unavailable "getBlockOperations"
   , hGetProtocolParameters = unavailable "getProtocolParameters"
   , hRunOperation = \_ -> unavailable "runOperation"
   , hPreApplyOperations = \_ -> unavailable "preApplyOperations"
   , hForgeOperation = \_ -> unavailable "forgeOperation"
   , hInjectOperation = \_ -> unavailable "injectOperation"
   , hGetContractScript = \_ -> unavailable "getContractScript"
+  , hGetContractStorageAtBlock = \_ _ -> unavailable "getContractStorageAtBlock"
   , hGetContractBigMap = \_ _ -> unavailable "getContractBigMap"
-  , hGetBigMapValue = \_ _ -> unavailable "getBigMapValue"
+  , hGetBigMapValueAtBlock = \_ _ _ -> unavailable "getBigMapValue"
   , hGetBalance = \_ -> unavailable "getBalance"
   , hRunCode = \_ -> unavailable "runCode"
   , hGetChainId = pure $ testChainId
@@ -84,7 +86,7 @@ defaultHandlers = Handlers
   , hGetAlias = \_ -> unavailable "getAlias"
   , hGetPublicKey = \_ -> unavailable "getPublicKey"
   , hGetTezosClientConfig = unavailable "getTezosClientConfig"
-  , hCalcTransferFee = \_ -> unavailable "calcTransferFee"
+  , hCalcTransferFee = \_ _ _ _ -> unavailable "calcTransferFee"
   , hCalcOriginationFee = \_ -> unavailable "calcOriginationFee"
   , hGetKeyPassword = \_ -> unavailable "getKeyPassword"
 
@@ -177,9 +179,8 @@ multiSigCreationTestHandlers =
           "tzbtc" -> pure $ Just contractAddress
           "tzbtc-multisig" -> pure $ Just multiSigAddress
           _ -> pure $ Nothing
-    , hGetContractScript = \x -> if x == multiSigAddress
-      then pure $ OriginationScript
-           (toExpression . toVal $ mkStorage 14 3 []) (toExpression . toVal $ mkStorage 14 3 [])
+    , hGetContractStorageAtBlock = \_ x -> if x == multiSigAddress
+      then pure $ toExpression . toVal $ mkStorage 14 3 []
       else throwM $ TestError "Unexpected contract address"
     , hWriteFile = \fp bs -> do
         packageOk <- checkPackage bs
@@ -232,9 +233,8 @@ multiSigCreationWithMSigOverrideTestHandlers =
           "tzbtc" -> pure $ Just contractAddress
           "tzbtc-multisig-override" -> pure $ Just multiSigOverrideAddress
           _ -> pure $ Nothing
-    , hGetContractScript = \x -> if x == multiSigOverrideAddress
-      then pure $ OriginationScript
-           (toExpression . toVal $ mkStorage 14 3 []) (toExpression . toVal $ mkStorage 14 3 [])
+    , hGetContractStorageAtBlock = \_ x -> if x == multiSigOverrideAddress
+      then pure $ toExpression . toVal $ mkStorage 14 3 []
       else throwM $ TestError "Unexpected contract address"
     , hWriteFile = \fp bs -> do
         packageOk <- checkPackage bs

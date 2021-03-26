@@ -89,7 +89,6 @@ tests:
     - cleveland
     - fmt
     - hex-text
-    - hspec
     - HUnit
     - lorentz
     - memory
@@ -104,7 +103,6 @@ tests:
     - process
     - tagged
     - tasty
-    - tasty-hspec
     - tasty-hunit-compat
     - text
     - tzbtc

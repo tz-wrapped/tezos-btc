@@ -42,24 +42,27 @@ import Lorentz.Contracts.TZBTC.Common.Types hiding (AddOperator, RemoveOperator)
 import qualified Lorentz.Contracts.TZBTC.V1.ManagedLedger as ManagedLedger
 import Lorentz.Contracts.TZBTC.V1.Types
 
-type StorageC store = StorageContains store
-  [ "owner" := Address
-  , "paused" := Bool
-  , "totalSupply" := Natural
-  , "totalMinted" := Natural
-  , "totalBurned" := Natural
-  , "operators" := Set Address
-  , "redeemAddress" := Address
-  , "tokenMetadata" := TokenMetadata
-  , "newOwner" := Maybe Address
-  , "ledger" := Address ~> LedgerValue
-  ]
+type StorageC store =
+  ( StorageContains store
+    [ "owner" := Address
+    , "paused" := Bool
+    , "totalSupply" := Natural
+    , "totalMinted" := Natural
+    , "totalBurned" := Natural
+    , "operators" := Set Address
+    , "redeemAddress" := Address
+    , "tokenMetadata" := TokenMetadata
+    , "newOwner" := Maybe Address
+    , "ledger" := Address ~> LedgerValue
+    ]
+  , Dupable store
+  )
 
 -- | A view entrypoint that has no arguments and returns a single
 -- value from the storage as is.
 getSingleField
   :: forall store label val.
-    (StoreHasField store label val, NiceParameter val)
+    (StoreHasField store label val, NiceParameter val, Dupable store)
   => Label label -> Markdown -> Entrypoint (View () val) store
 getSingleField label entrypointDocDesc = do
   doc $ DDescription $ "This view returns " <> entrypointDocDesc <> "."
@@ -191,8 +194,7 @@ data OperatorAction = AddOperatorAction | RemoveOperatorAction
 
 -- | Adds or remove an operator.
 addRemoveOperator
-  :: forall store.
-      StorageC store
+  :: forall store. StorageC store
   => OperatorAction -> Entrypoint OperatorParams store
 addRemoveOperator ar = do
   dip authorizeOwner
@@ -311,7 +313,7 @@ authorizeNewOwner = do
 
 -- | Check that the sender is an operator
 authorizeOperator
-  :: StorageContains store '["operators" := Set Address]
+  :: (StorageContains store '["operators" := Set Address], Dupable store)
   => store : s :-> store : s
 authorizeOperator = do
   doc $ DRequireRole "operator"

@@ -76,7 +76,7 @@ data Package = Package
   , pkSignatures :: ![(PublicKey, Sign)] -- ^ Field to hold signatures and public keys as they are collected.
   }
 
-instance Buildable (PublicKey, Sign) where
+instance {-# OVERLAPS #-} Buildable (PublicKey, Sign) where
   build (pk, sig) =  ("Public key: " :: String)
                   |+ (formatPublicKey pk)
                   |+ ("\nSignature: " :: String)

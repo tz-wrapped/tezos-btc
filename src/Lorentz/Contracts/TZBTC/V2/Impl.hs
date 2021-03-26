@@ -37,19 +37,22 @@ import Lorentz.Contracts.TZBTC.Common.Types hiding (AddOperator, RemoveOperator)
 import qualified Lorentz.Contracts.TZBTC.V1.Impl as V1
 import Lorentz.Contracts.TZBTC.V2.Types
 
-type StorageC store = StorageContains store
-  [ "owner" := Address
-  , "paused" := Bool
-  , "totalSupply" := Natural
-  , "totalMinted" := Natural
-  , "totalBurned" := Natural
-  , "operators" := Set Address
-  , "redeemAddress" := Address
-  , "tokenMetadata" := TokenMetadata
-  , "newOwner" := Maybe Address
-  , "ledger" := Address ~> LedgerValue
-  , "approvals" := GetAllowanceParams ~> Natural
-  ]
+type StorageC store =
+  ( StorageContains store
+    [ "owner" := Address
+    , "paused" := Bool
+    , "totalSupply" := Natural
+    , "totalMinted" := Natural
+    , "totalBurned" := Natural
+    , "operators" := Set Address
+    , "redeemAddress" := Address
+    , "tokenMetadata" := TokenMetadata
+    , "newOwner" := Maybe Address
+    , "ledger" := Address ~> LedgerValue
+    , "approvals" := GetAllowanceParams ~> Natural
+    ]
+  , Dupable store
+  )
 
 -- | Burn the specified amount of tokens from redeem address. Since it
 -- is not possible to burn from any other address, this entry point does

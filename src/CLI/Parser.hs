@@ -12,7 +12,6 @@ module CLI.Parser
   , addressArgument
   , addressOption
   , argParser
-  , mkCommandParser
   , biNamedParser
   , mTextOption
   , parseSingleTokenMetadata
@@ -21,8 +20,7 @@ module CLI.Parser
 import Fmt (Buildable, pretty)
 import GHC.TypeLits (KnownSymbol, symbolVal)
 import Named (Name(..), arg)
-import Options.Applicative
-  (ReadM, command, help, hsubparser, info, long, metavar, progDesc, switch)
+import Options.Applicative (ReadM, help, hsubparser, long, metavar, switch)
 import qualified Options.Applicative as Opt
 
 import Lorentz.Contracts.Metadata
@@ -154,14 +152,6 @@ argParser = hsubparser $
          metavar "NUMBER" <>
          Opt.value V1 <>
          Opt.showDefaultWith (\_ -> "1"))
-
-mkCommandParser
-  :: String
-  -> Opt.Parser a
-  -> String
-  -> Opt.Mod Opt.CommandFields a
-mkCommandParser commandName parser desc =
-  command commandName $ info parser $ progDesc desc
 
 addressArgument :: String -> Opt.Parser Address
 addressArgument hInfo = mkCLArgumentParser Nothing (#help .! hInfo)

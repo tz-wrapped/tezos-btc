@@ -216,7 +216,7 @@ tzbtcContractRaw = do
         safeEntrypoints
     )
 
-executeRun :: Entrypoint (VerParam ver) (Storage ver)
+executeRun :: Typeable ver => Entrypoint (VerParam ver) (Storage ver)
 executeRun = do
   dip $ do
     ensureNotMigrating
@@ -235,6 +235,7 @@ callUEp
   :: forall ep ver interface.
      ( interface ~ VerInterface ver
      , NicePackedValue (LookupEntrypoint ep interface)
+     , Typeable ver
      )
   => Label ep
   -> Entrypoint (LookupEntrypoint ep interface) (Storage ver)
@@ -252,7 +253,7 @@ callUSafeViewEP
      ( interface ~ VerInterface ver
      , LookupEntrypoint ep interface ~ (SafeView vi vo)
      , NicePackedValue vi
-     , Typeable vo
+     , Typeable vo, Typeable ver
      )
   => Label ep
   -> Entrypoint (View vi vo) (Storage ver)
@@ -265,7 +266,7 @@ callUSafeViewEP epName = do
   callUEp epName
 
 ensureMaster
-  :: (HasUField "owner" Address (VerUStoreTemplate ver))
+  :: (HasUField "owner" Address (VerUStoreTemplate ver), Typeable ver)
   => '[Storage ver] :-> '[Storage ver]
 ensureMaster = do
   getField #dataMap;
@@ -273,12 +274,12 @@ ensureMaster = do
   sender; eq
   if_ (nop) (failCustom_ #senderIsNotOwner)
 
-ensureNotMigrating :: '[Storage ver] :-> '[Storage ver]
+ensureNotMigrating :: Typeable ver => '[Storage ver] :-> '[Storage ver]
 ensureNotMigrating = do
   getField #fields; toField #migrating
   if_ (failCustom_ #upgContractIsMigrating) (nop)
 
-checkVersion :: forall ver. '["current" :! Version, Storage ver] :-> '[Storage ver]
+checkVersion :: forall ver. Typeable ver => '["current" :! Version, Storage ver] :-> '[Storage ver]
 checkVersion = do
   fromNamed #current; toNamed #expectedCurrent
   dip (getField #fields >> toField #currentVersion >> toNamed #actualCurrent)
@@ -286,7 +287,7 @@ checkVersion = do
   then nop
   else do pair; failCustom #upgVersionMismatch
 
-updateVersion :: forall ver. '["new" :! Version, Storage ver] :-> '[Storage ver]
+updateVersion :: forall ver. Typeable ver => '["new" :! Version, Storage ver] :-> '[Storage ver]
 updateVersion = do
   fromNamed #new
   dip $ getField #fields
@@ -294,7 +295,7 @@ updateVersion = do
 
 
 applyMigration
-  :: '[MigrationScriptFrom store, Storage ver] :-> '[Storage ver]
+  :: Typeable ver => '[MigrationScriptFrom store, Storage ver] :-> '[Storage ver]
 applyMigration = do
   coerceUnwrap
   dip $ getField #dataMap
@@ -303,21 +304,21 @@ applyMigration = do
   exec
   setField #dataMap
 
-migrateCode :: '[SomeUContractRouter, Storage ver] :-> '[Storage ver]
+migrateCode :: Typeable ver => '[SomeUContractRouter, Storage ver] :-> '[Storage ver]
 migrateCode = do
   dip (getField #fields)
   checkedCoerce_
   setField #contractRouter
   setField #fields
 
-setMigrating :: Bool -> '[Storage ver] :-> '[Storage ver]
+setMigrating :: Typeable ver => Bool -> '[Storage ver] :-> '[Storage ver]
 setMigrating newState = do
   getField #fields
   push newState
   setField #migrating
   setField #fields
 
-ensureMigrating :: '[Storage ver] :-> '[Storage ver]
+ensureMigrating :: Typeable ver => '[Storage ver] :-> '[Storage ver]
 ensureMigrating = do
   getField #fields; toField #migrating
   if_ (nop) (failCustom_ #upgContractIsNotMigrating)
