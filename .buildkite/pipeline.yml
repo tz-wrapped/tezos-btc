@@ -11,6 +11,7 @@ env:
 
 steps:
   - label: hlint
+    key: hlint
     if: &not_scheduled_autodoc
       build.branch != "autodoc/master" && build.branch != "master" && build.source != "schedule"
     commands:
@@ -33,21 +34,25 @@ steps:
     commands:
     - nix run -f ci.nix crossref-verifier -c
         crossref-verify --mode local-only --config ./.crossref-verifier.yaml
-    soft_fail: true  # TODO: remove
+    soft_fail: true # TODO: remove
 
   - label: build
+    key: build
     if: *not_scheduled_autodoc
+    depends_on: hlint
     commands:
     - nix-build ci.nix -A all-components
 
   - label: test
     if: *not_scheduled_autodoc
+    depends_on: build
     commands:
     - nix-build ci.nix -A tzbtc.components.tests.tzbtc-test
     - ./result/bin/tzbtc-test --nettest-no-run-network
 
   - label: test-local-chain-008
     if: *not_scheduled_autodoc
+    depends_on: build
     env:
       TASTY_NETTEST_NODE_ENDPOINT: "http://localhost:8733"
     commands: &run-nettest
@@ -58,6 +63,7 @@ steps:
 
   - label: scheduled edonet test
     if: build.source == "schedule"
+    depends_on: build
     env:
       TASTY_NETTEST_NODE_ENDPOINT: "http://edo.testnet.tezos.serokell.team:8732"
     commands: *run-nettest
@@ -68,6 +74,7 @@ steps:
 
   - label: weeder
     if: *not_scheduled_autodoc
+    depends_on: build
     commands:
     - nix-build ci.nix -A weeder-script
       # weeder needs .cabal file:
@@ -76,6 +83,7 @@ steps:
 
   - label: bats
     if: *not_scheduled_autodoc
+    depends_on: build
     commands:
     - nix run -f ci.nix pkgs.bats tzbtc.components.exes.tzbtc
         -c bats bats/tzbtc.bats
@@ -83,7 +91,9 @@ steps:
         -c bats bats/tzbtc-client.bats
 
   - label: contract-doc
+    key: contract-doc
     if: *not_scheduled_autodoc
+    depends_on: build
     commands:
     - nix-build ci.nix -A contract-doc-dev
     - ln -s ./result/TZBTC-contract.md TZBTC-contract.md
@@ -92,8 +102,10 @@ steps:
 
   # for master branch we include commit info in the contract doc
   - label: contract-doc (master)
+    key: contract-doc-master
     if: &not_scheduled_master
       build.branch == "master" && build.source != "schedule"
+    depends_on: build
     commands:
     - nix-build ci.nix -A contract-doc-release
         --argstr sha "$(git rev-parse HEAD)"
@@ -103,7 +115,11 @@ steps:
       - TZBTC-contract.md
 
   - label: crossref-verify generated doc
+    key: crossref-verify-generated
     if: *not_scheduled_autodoc
+    depends_on:
+      - contract-doc
+      - contract-doc-master
     commands:
     - mkdir tmp
     - if [ "$BUILDKITE_BRANCH" = "master" ];
@@ -113,16 +129,20 @@ steps:
     - buildkite-agent artifact download TZBTC-contract.md tmp/ --step "$$CONTRACT_DOC_STEP"
     - nix run -f ci.nix crossref-verifier -c
         crossref-verify --mode local-only --config ./.crossref-verifier.yaml --root tmp
-    soft_fail: true  # TODO: remove
+    soft_fail: true # TODO: remove
 
   - label: autodoc upload
     if: *not_scheduled_master
+    depends_on: crossref-verify-generated
     commands:
     - mkdir tmp
     - buildkite-agent artifact download TZBTC-contract.md tmp/ --step "contract-doc (master)"
     - ./scripts/ci/upload-autodoc.sh
 
+  - wait
+
   - label: packaging
+    key: packaging
     if: build.branch != "autodoc/master" && build.source != "schedule"
     commands:
     - nix-build release.nix -A static -o tzbtc-static
@@ -135,6 +155,7 @@ steps:
 
   - label: create auto prerelease
     if: build.branch == "master" && build.source != "schedule"
+    depends_on: packaging
     commands:
     - mkdir assets
     - buildkite-agent artifact download tzbtc-static/bin/tzbtc-client . --step packaging
