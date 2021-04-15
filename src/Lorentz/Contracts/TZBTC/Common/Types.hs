@@ -3,6 +3,10 @@
  - SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
  -}
 {-# OPTIONS_GHC -Wno-orphans #-}
+
+-- TODO: Replace 'Empty' with 'Never' from morley
+{-# OPTIONS_GHC -Wno-deprecations #-}
+
 module Lorentz.Contracts.TZBTC.Common.Types
   ( AcceptOwnershipParams
   , BurnParams

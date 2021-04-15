@@ -313,21 +313,23 @@ runNettestTzbtcClient env scenario = do
   scenario $ nettestImplTzbtcClient env
 
 nettestImplTzbtcClient :: NettestEnv -> NettestImpl IO
-nettestImplTzbtcClient (NettestEnv env _) = NettestImpl
-  { niOriginateUntyped = tzbtcClientOriginate
-  , niTransferBatchFrom = \sender -> \case
-      [td] -> tzbtcClientTransfer sender td
-      _ -> error "Batch transfers are not supported"
-  , ..
+nettestImplTzbtcClient (NettestEnv env _) = impl
+  { niOpsImpl = \sender -> NettestOpsImpl
+    { noiRunOperationBatch = \case
+      [op] -> case op of
+        OriginateOp oud -> tzbtcClientOriginate sender oud
+        TransferOp td -> tzbtcClientTransfer sender td >> pure [TransferResult]
+      _ -> error "Batch operations are not supported"
+    }
   }
   where
-    impl@NettestImpl {..} = TezosClient.nettestImplClient env
+    impl = (TezosClient.nettestImplClient env)
     tezosClientEnv = mceTezosClient env
     tzbtcClientEnvArgs =
       [ "-E", TezosClient.toCmdArg $ tceEndpointUrl tezosClientEnv
       ] <> (maybe [] (\dataDir -> ["-d", dataDir]) $ tceMbTezosClientDataDir tezosClientEnv)
 
-    tzbtcClientOriginate :: Sender -> UntypedOriginateData -> IO Address
+    tzbtcClientOriginate :: Sender -> UntypedOriginateData -> IO [BaseOperationResult]
     tzbtcClientOriginate sender od@(UntypedOriginateData {..}) =
       if TezosClient.unAliasHint uodName == "TZBTCContract" then do
         let senderAddr = unSender sender
@@ -338,9 +340,9 @@ nettestImplTzbtcClient (NettestEnv env _) = NettestImpl
           , "--user", TezosClient.toCmdArg senderAddr
           ]
         case parseContractAddressFromOutput output of
-          Right a -> pure a
+          Right a -> pure [OriginateResult a]
           Left err -> throwM $ TezosClient.UnexpectedClientFailure 1 "" (show err)
-      else niOriginateUntyped sender od
+      else (noiRunOperationBatch (niOpsImpl impl sender)) [OriginateOp od]
 
     tzbtcClientTransfer :: Sender -> TransferData -> IO ()
     tzbtcClientTransfer sender td@(TransferData {..}) =
@@ -427,10 +429,11 @@ nettestImplTzbtcClient (NettestEnv env _) = NettestImpl
             TZBTCTypes.TransferOwnership (arg #newOwner -> newOwnerAddress) ->
               callTzbtc [ "transferOwnership" , toString $ formatAddress newOwnerAddress ]
             TZBTCTypes.AcceptOwnership _ -> callTzbtc $ [ "acceptOwnership" ]
-            _ -> niTransfer impl sender td
-          _ -> niTransfer impl sender td
-        Nothing -> niTransfer impl sender td
+            _ -> callMorleyClient
+          _ -> callMorleyClient
+        Nothing -> callMorleyClient
       where
+        callMorleyClient = (noiRunOperationBatch (niOpsImpl impl sender)) [TransferOp td] >> pass
         callTzbtc :: [String] -> IO ()
         callTzbtc args = void $ callTzbtcClient $
           tzbtcClientEnvArgs <> args <> ["--user", TezosClient.toCmdArg (unSender sender)

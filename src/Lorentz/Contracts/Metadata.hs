@@ -55,7 +55,7 @@ singleTokenResolveMetadata ::
 singleTokenResolveMetadata = do
   map $ do
     push singleTokenTokenId
-    assertEq $ CustomError #invalidSingleTokenId
+    assertEq $ CustomError #invalidSingleTokenId (errorTagToMText #invalidSingleTokenId, ())
     dup
   dip drop
 

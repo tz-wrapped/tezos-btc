@@ -63,7 +63,7 @@ getSingleField
   => Label label -> Markdown -> Entrypoint (View () val) store
 getSingleField label entrypointDocDesc = do
   doc $ DDescription $ "This view returns " <> entrypointDocDesc <> "."
-  view_ $ do drop @(); stToField label
+  view_ $ do drop @(); stToField $ fieldNameFromLabel label
 
 getTotalMinted
   :: forall store. StorageC store => Entrypoint (View () Natural) store
@@ -316,7 +316,9 @@ authorizeOperator
 authorizeOperator = do
   doc $ DRequireRole "operator"
   stGetField #operators; sender; mem;
-  assert (CustomError #senderIsNotOperator)
+  assert (CustomError #senderIsNotOperator
+          (errorTagToMText #senderIsNotOperator, ())
+         )
 
 -- | Finish with an empty list of operations
 finishNoOp :: '[st] :-> (ContractOut st)

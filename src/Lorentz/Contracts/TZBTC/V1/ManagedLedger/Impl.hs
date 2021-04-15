@@ -93,7 +93,7 @@ approveCAS = do
       , fieldCtor $ getFieldNamed #spender
       )
 
-    dip $ duupX @2 @store
+    dip $ duupX @2
     allowance; toNamed #actual
     dip $ toFieldNamed #expected
     stackType @'["actual" :! Natural, "expected" :! Natural, store]
