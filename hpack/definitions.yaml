@@ -71,6 +71,9 @@ _definitions:
         - -Wno-missing-local-signatures
         - -Wno-monomorphism-restriction
         - -Wno-implicit-prelude
+        - -Wno-unused-packages
+        - -Wno-prepositive-qualified-module
+        - -Wno-missing-safe-haskell-mode
 
   _utils:
     # Additional options, they will be merged with the ones above when both

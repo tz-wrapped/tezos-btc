@@ -77,7 +77,7 @@ instance {-# OVERLAPPING #-}
       ( mapStoreSubmapOpsKey (fromNamed #owner) $
           zoomStoreSubmapOps #ledger nonDefIso nonDefIso ustoreSubmapOps storeFieldOpsADT
       )
-      ( mapStoreSubmapOpsKey (fromNamed #spender) storeSubmapOps )
+      ( mapStoreSubmapOpsKey (fromNamed #spender) (storeSubmapOpsReferTo this storeSubmapOps) )
 
 -- | The data required to upgrade contract storage from V1 to V2.
 data V2ParametersFromV1 = V2ParametersFromV1
