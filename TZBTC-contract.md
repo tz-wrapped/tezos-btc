@@ -6,7 +6,7 @@
 
 # TZBTC
 
-**Code revision:** [56fe312](https://github.com/tz-wrapped/tezos-btc/commit/56fe3129594ad673f68b218e4d4d88630584fe75) *(Thu Apr 1 21:14:07 2021 +0200)*
+**Code revision:** [18703c1](https://github.com/tz-wrapped/tezos-btc/commit/18703c14f6e043ac31a61032347e539b368caeba) *(Thu Apr 15 11:20:26 2021 +0300)*
 
 
 
@@ -155,7 +155,7 @@ This entry point is used to get contract version.
 
 **Argument:** 
   + **In Haskell:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Version`](#types-Version)
-  + **In Michelson:** `(pair (unit %viewParam) (contract %viewCallbackTo nat))`
+  + **In Michelson:** `(pair unit (contract nat))`
     + **Example:** <span id="example-id">`Pair Unit "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <details>
@@ -180,7 +180,7 @@ Returns the approval value between two given addresses.
 
 **Argument:** 
   + **In Haskell:** [`View`](#types-View) (***owner*** : [`Address`](#types-Address), ***spender*** : [`Address`](#types-Address)) [`Natural`](#types-Natural)
-  + **In Michelson:** `(pair (pair %viewParam (address :owner) (address :spender)) (contract %viewCallbackTo nat))`
+  + **In Michelson:** `(pair (pair address address) (contract nat))`
     + **Example:** <span id="example-id">`Pair (Pair "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB" "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB") "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <details>
@@ -208,7 +208,7 @@ Returns the balance of the address in the ledger.
 
 **Argument:** 
   + **In Haskell:** [`View`](#types-View) (***owner*** : [`Address`](#types-Address)) [`Natural`](#types-Natural)
-  + **In Michelson:** `(pair (address :owner %viewParam) (contract %viewCallbackTo nat))`
+  + **In Michelson:** `(pair address (contract nat))`
     + **Example:** <span id="example-id">`Pair "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB" "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <details>
@@ -236,7 +236,7 @@ Returns total number of tokens.
 
 **Argument:** 
   + **In Haskell:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
-  + **In Michelson:** `(pair (unit %viewParam) (contract %viewCallbackTo nat))`
+  + **In Michelson:** `(pair unit (contract nat))`
     + **Example:** <span id="example-id">`Pair Unit "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <details>
@@ -264,7 +264,7 @@ This view returns the total number of minted tokens.
 
 **Argument:** 
   + **In Haskell:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
-  + **In Michelson:** `(pair (unit %viewParam) (contract %viewCallbackTo nat))`
+  + **In Michelson:** `(pair unit (contract nat))`
     + **Example:** <span id="example-id">`Pair Unit "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <details>
@@ -292,7 +292,7 @@ This view returns the total number of burned tokens.
 
 **Argument:** 
   + **In Haskell:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
-  + **In Michelson:** `(pair (unit %viewParam) (contract %viewCallbackTo nat))`
+  + **In Michelson:** `(pair unit (contract nat))`
     + **Example:** <span id="example-id">`Pair Unit "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <details>
@@ -320,7 +320,7 @@ This view returns the current contract owner.
 
 **Argument:** 
   + **In Haskell:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Address`](#types-Address)
-  + **In Michelson:** `(pair (unit %viewParam) (contract %viewCallbackTo address))`
+  + **In Michelson:** `(pair unit (contract address))`
     + **Example:** <span id="example-id">`Pair Unit "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <details>
@@ -348,7 +348,7 @@ This view returns the redeem address.
 
 **Argument:** 
   + **In Haskell:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Address`](#types-Address)
-  + **In Michelson:** `(pair (unit %viewParam) (contract %viewCallbackTo address))`
+  + **In Michelson:** `(pair unit (contract address))`
     + **Example:** <span id="example-id">`Pair Unit "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <details>
@@ -376,7 +376,7 @@ This view returns the token metadata.
 
 **Argument:** 
   + **In Haskell:** [`View`](#types-View) ([`List`](#types-List) [`TokenId`](#types-TokenId)) ([`List`](#types-List) [`TokenMetadata`](#types-TokenMetadata))
-  + **In Michelson:** `(pair (list %viewParam nat) (contract %viewCallbackTo (list (pair (nat %token_id) (pair (string %symbol) (pair (string %name) (pair (nat %decimals) (map %extras string string))))))))`
+  + **In Michelson:** `(pair (list nat) (contract (list (pair nat (pair string (pair string (pair nat (map string string))))))))`
     + **Example:** <span id="example-id">`Pair { 0 } "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <details>
@@ -406,7 +406,7 @@ This entry point is used to call the safe entrypoints of the contract. Entrypoin
 
 **Argument:** 
   + **In Haskell:** [`Parameter.SafeParameter`](#types-Parameter.SafeParameter)
-  + **In Michelson:** `(or (or (or (or (pair string bytes) (pair (pair (nat :currentVersion) (nat :newVersion)) (pair (lambda :migrationScript (big_map bytes bytes) (big_map bytes bytes)) (pair (option :newCode (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))) (option :newPermCode (lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))))))) (or (pair (nat :current) (nat :new)) (lambda :migrationscript (big_map bytes bytes) (big_map bytes bytes)))) (or (or (lambda :contractcode (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))) unit) (or (pair (address :from) (pair (address :to) (nat :value))) (pair (address :spender) (nat :value))))) (or (or (or (pair (address :to) (nat :value)) (nat :value)) (or (address :operator) (address :operator))) (or (or (address :redeem) unit) (or unit (or (address :newOwner) unit)))))`
+  + **In Michelson:** `(or (or (or (or (pair string bytes) (pair (pair nat nat) (pair (lambda (big_map bytes bytes) (big_map bytes bytes)) (pair (option (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))) (option (lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))))))) (or (pair nat nat) (lambda (big_map bytes bytes) (big_map bytes bytes)))) (or (or (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))) unit) (or (pair address (pair address nat)) (pair address nat)))) (or (or (or (pair address nat) nat) (or address address)) (or (or address unit) (or unit (or address unit)))))`
     + **Example:** <span id="example-id">`Left (Left (Left (Left (Pair "hello" 0x0a))))`</span>
 
 <details>
@@ -467,7 +467,7 @@ provided migration lambda.
 
 **Argument:** 
   + **In Haskell:** (***currentVersion*** : [`Version`](#types-Version), ***newVersion*** : [`Version`](#types-Version), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript) [`Store template V0`](#ustore-template-Store-template-V0) [`Some`](#ustore-template-Some), ***newCode*** : [`Maybe`](#types-Maybe) [`UContractRouter`](#types-UContractRouter), ***newPermCode*** : [`Maybe`](#types-Maybe) [`PermanentImpl`](#types-PermanentImpl))
-  + **In Michelson:** `(pair (pair (nat :currentVersion) (nat :newVersion)) (pair (lambda :migrationScript (big_map bytes bytes) (big_map bytes bytes)) (pair (option :newCode (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))) (option :newPermCode (lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))))))`
+  + **In Michelson:** `(pair (pair nat nat) (pair (lambda (big_map bytes bytes) (big_map bytes bytes)) (pair (option (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))) (option (lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))))))`
     + **Example:** <span id="example-id">`Pair (Pair 0 0) (Pair { PUSH string "lambda sample";FAILWITH } (Pair (Some { PUSH string "lambda sample";FAILWITH }) (Some { PUSH string "lambda sample";FAILWITH })))`</span>
 
 <details>
@@ -499,7 +499,7 @@ This entry point is used to start an entrypoint wise upgrade of the contract.
 
 **Argument:** 
   + **In Haskell:** (***current*** : [`Version`](#types-Version), ***new*** : [`Version`](#types-Version))
-  + **In Michelson:** `(pair (nat :current) (nat :new))`
+  + **In Michelson:** `(pair nat nat)`
     + **Example:** <span id="example-id">`Pair 0 0`</span>
 
 <details>
@@ -531,7 +531,7 @@ This entry point is used to apply a storage migration script as part of an upgra
 
 **Argument:** 
   + **In Haskell:** ***migrationscript*** : [`MigrationScript`](#types-MigrationScript) [`Store template V0`](#ustore-template-Store-template-V0) [`Some`](#ustore-template-Some)
-  + **In Michelson:** `(lambda :migrationscript (big_map bytes bytes) (big_map bytes bytes))`
+  + **In Michelson:** `(lambda (big_map bytes bytes) (big_map bytes bytes))`
     + **Example:** <span id="example-id">`{ PUSH string "lambda sample";FAILWITH }`</span>
 
 <details>
@@ -561,7 +561,7 @@ This entry point is used to set the dispatching code that calls the packed entry
 
 **Argument:** 
   + **In Haskell:** ***contractcode*** : [`UContractRouter`](#types-UContractRouter)
-  + **In Michelson:** `(lambda :contractcode (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))`
+  + **In Michelson:** `(lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))`
     + **Example:** <span id="example-id">`{ PUSH string "lambda sample";FAILWITH }`</span>
 
 <details>
@@ -626,7 +626,7 @@ In this case current number of tokens that sender is allowed to withdraw from th
 
 **Argument:** 
   + **In Haskell:** (***from*** : [`Address`](#types-Address), ***to*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
-  + **In Michelson:** `(pair (address :from) (pair (address :to) (nat :value)))`
+  + **In Michelson:** `(pair address (pair address nat))`
     + **Example:** <span id="example-id">`Pair "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB" (Pair "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB" 0)`</span>
 
 <details>
@@ -685,7 +685,7 @@ safely change the allowance for `X` to `K` token must:
 
 **Argument:** 
   + **In Haskell:** (***spender*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
-  + **In Michelson:** `(pair (address :spender) (nat :value))`
+  + **In Michelson:** `(pair address nat)`
     + **Example:** <span id="example-id">`Pair "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB" 0`</span>
 
 <details>
@@ -719,7 +719,7 @@ This entry point is used mint new tokes for an account.
 
 **Argument:** 
   + **In Haskell:** (***to*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
-  + **In Michelson:** `(pair (address :to) (nat :value))`
+  + **In Michelson:** `(pair address nat)`
     + **Example:** <span id="example-id">`Pair "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB" 0`</span>
 
 <details>
@@ -751,7 +751,7 @@ Burn some tokens from the `redeem` address.
 
 **Argument:** 
   + **In Haskell:** ***value*** : [`Natural`](#types-Natural)
-  + **In Michelson:** `(nat :value)`
+  + **In Michelson:** `nat`
     + **Example:** <span id="example-id">`0`</span>
 
 <details>
@@ -785,7 +785,7 @@ This entry point is used to add a new operator.
 
 **Argument:** 
   + **In Haskell:** ***operator*** : [`Address`](#types-Address)
-  + **In Michelson:** `(address :operator)`
+  + **In Michelson:** `address`
     + **Example:** <span id="example-id">`"KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <details>
@@ -817,7 +817,7 @@ This entry point is used to remove an operator.
 
 **Argument:** 
   + **In Haskell:** ***operator*** : [`Address`](#types-Address)
-  + **In Michelson:** `(address :operator)`
+  + **In Michelson:** `address`
     + **Example:** <span id="example-id">`"KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <details>
@@ -849,7 +849,7 @@ This entry point is used to set the redeem address.
 
 **Argument:** 
   + **In Haskell:** ***redeem*** : [`Address`](#types-Address)
-  + **In Michelson:** `(address :redeem)`
+  + **In Michelson:** `address`
     + **Example:** <span id="example-id">`"KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <details>
@@ -945,7 +945,7 @@ This entry point is used to transfer ownership to a new owner.
 
 **Argument:** 
   + **In Haskell:** ***newOwner*** : [`Address`](#types-Address)
-  + **In Michelson:** `(address :newOwner)`
+  + **In Michelson:** `address`
     + **Example:** <span id="example-id">`"KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <details>
@@ -1454,9 +1454,8 @@ properties are checked unless the opposite is specified. I.e., if for a
 given entrypoint call two different errors may take place, the one which
 appears in the list first will be thrown.
 
-Most of the errors are represented according to the same
-`(error tag, error argument)` pattern. See the list of errors below
-for details.
+The errors are represented either as a string `error tag` or a pair `(error tag, error argument)`.
+See the list of errors below for details.
 
 We distinquish several error classes:
 + **Action exception**: given action cannot be performed with
@@ -1492,7 +1491,7 @@ We distinquish several error classes:
 
 **Class:** Internal
 
-**Fires if:** Some internal error occured.
+**Fires if:** Some internal error occurred.
 
 **Representation:** Textual error message, see [`Text`](#types-Text).
 
@@ -1502,11 +1501,13 @@ We distinquish several error classes:
 
 ### `InvalidSingleTokenId`
 
-**Class:** -
+**Class:** Bad argument
 
 **Fires if:** The only valid token id is 0
 
-**Representation:** `("InvalidSingleTokenId", ())`.
+**Representation:** `(InvalidSingleTokenId, <error argument>)`
+
+Provided error argument will be of type ([`Text`](#types-Text), [`()`](#types-lparenrparen)).
 
 <a name="errors-NotEnoughAllowance"></a>
 
@@ -1518,9 +1519,9 @@ We distinquish several error classes:
 
 **Fires if:** Not enough funds allowance to perform the operation.
 
-**Representation:** `("NotEnoughAllowance", <error argument>)`.
+**Representation:** `(NotEnoughAllowance, <error argument>)`
 
-Provided error argument will be of type (***required*** : [`Natural`](#types-Natural), ***present*** : [`Natural`](#types-Natural)).
+Provided error argument will be of type ([`Text`](#types-Text), (***required*** : [`Natural`](#types-Natural), ***present*** : [`Natural`](#types-Natural))).
 
 <a name="errors-NotEnoughBalance"></a>
 
@@ -1532,9 +1533,9 @@ Provided error argument will be of type (***required*** : [`Natural`](#types-Nat
 
 **Fires if:** Not enough funds to perform the operation.
 
-**Representation:** `("NotEnoughBalance", <error argument>)`.
+**Representation:** `(NotEnoughBalance, <error argument>)`
 
-Provided error argument will be of type (***required*** : [`Natural`](#types-Natural), ***present*** : [`Natural`](#types-Natural)).
+Provided error argument will be of type ([`Text`](#types-Text), (***required*** : [`Natural`](#types-Natural), ***present*** : [`Natural`](#types-Natural))).
 
 <a name="errors-NotInTransferOwnershipMode"></a>
 
@@ -1546,7 +1547,9 @@ Provided error argument will be of type (***required*** : [`Natural`](#types-Nat
 
 **Fires if:** Cannot accept ownership before transfer process has been initiated by calling transferOwnership entrypoint
 
-**Representation:** `("NotInTransferOwnershipMode", ())`.
+**Representation:** `(NotInTransferOwnershipMode, <error argument>)`
+
+Provided error argument will be of type ([`Text`](#types-Text), [`()`](#types-lparenrparen)).
 
 <a name="errors-SenderIsNotNewOwner"></a>
 
@@ -1558,7 +1561,9 @@ Provided error argument will be of type (***required*** : [`Natural`](#types-Nat
 
 **Fires if:** Cannot accept ownership because the sender address is different from the address passed to the transferOwnership entrypoint previously
 
-**Representation:** `("SenderIsNotNewOwner", ())`.
+**Representation:** `(SenderIsNotNewOwner, <error argument>)`
+
+Provided error argument will be of type ([`Text`](#types-Text), [`()`](#types-lparenrparen)).
 
 <a name="errors-SenderIsNotOperator"></a>
 
@@ -1566,11 +1571,13 @@ Provided error argument will be of type (***required*** : [`Natural`](#types-Nat
 
 ### `SenderIsNotOperator`
 
-**Class:** -
+**Class:** Bad argument
 
 **Fires if:** Sender has to be an operator to call this entrypoint
 
-**Representation:** `("SenderIsNotOperator", ())`.
+**Representation:** `(SenderIsNotOperator, <error argument>)`
+
+Provided error argument will be of type ([`Text`](#types-Text), [`()`](#types-lparenrparen)).
 
 <a name="errors-SenderIsNotOwner"></a>
 
@@ -1582,7 +1589,9 @@ Provided error argument will be of type (***required*** : [`Natural`](#types-Nat
 
 **Fires if:** Sender has to be an owner to call this entrypoint
 
-**Representation:** `("SenderIsNotOwner", ())`.
+**Representation:** `(SenderIsNotOwner, <error argument>)`
+
+Provided error argument will be of type ([`Text`](#types-Text), [`()`](#types-lparenrparen)).
 
 <a name="errors-TokenOperationsArePaused"></a>
 
@@ -1594,7 +1603,9 @@ Provided error argument will be of type (***required*** : [`Natural`](#types-Nat
 
 **Fires if:** Token functionality (`transfer` and similar entrypoints) is suspended.
 
-**Representation:** `("TokenOperationsArePaused", ())`.
+**Representation:** `(TokenOperationsArePaused, <error argument>)`
+
+Provided error argument will be of type ([`Text`](#types-Text), [`()`](#types-lparenrparen)).
 
 <a name="errors-UnsafeAllowanceChange"></a>
 
@@ -1606,9 +1617,9 @@ Provided error argument will be of type (***required*** : [`Natural`](#types-Nat
 
 **Fires if:** Allowance change from non-zero value to non-zero value is performed. This contract does not allow such an update, see the [corresponding attack vector](https://docs.google.com/document/d/1YLPtQxZu1UAvO9cZ1O2RPXBbT0mooh4DYKjA_jp-RLM) for explanation.
 
-**Representation:** `("UnsafeAllowanceChange", <error argument>)`.
+**Representation:** `(UnsafeAllowanceChange, <error argument>)`
 
-Provided error argument will be of type [`Natural`](#types-Natural) and stand for the previous value of approval.
+Provided error argument will be of type ([`Text`](#types-Text), [`Natural`](#types-Natural)) and stand for the previous value of approval.
 
 <a name="errors-UpgContractIsMigrating"></a>
 
@@ -1620,7 +1631,9 @@ Provided error argument will be of type [`Natural`](#types-Natural) and stand fo
 
 **Fires if:** An operation was requested when contract is in a state of migration
 
-**Representation:** `("UpgContractIsMigrating", ())`.
+**Representation:** `(UpgContractIsMigrating, <error argument>)`
+
+Provided error argument will be of type ([`Text`](#types-Text), [`()`](#types-lparenrparen)).
 
 <a name="errors-UpgContractIsNotMigrating"></a>
 
@@ -1632,7 +1645,9 @@ Provided error argument will be of type [`Natural`](#types-Natural) and stand fo
 
 **Fires if:** An migration related operation was requested when contract is not in a state of migration
 
-**Representation:** `("UpgContractIsNotMigrating", ())`.
+**Representation:** `(UpgContractIsNotMigrating, <error argument>)`
+
+Provided error argument will be of type ([`Text`](#types-Text), [`()`](#types-lparenrparen)).
 
 <a name="errors-UpgVersionMismatch"></a>
 
@@ -1644,9 +1659,9 @@ Provided error argument will be of type [`Natural`](#types-Natural) and stand fo
 
 **Fires if:** Current contract version differs from the one passed in the upgrade.
 
-**Representation:** `("UpgVersionMismatch", <error argument>)`.
+**Representation:** `(UpgVersionMismatch, <error argument>)`
 
-Provided error argument will be of type (***expectedCurrent*** : [`Version`](#types-Version), ***actualCurrent*** : [`Version`](#types-Version)).
+Provided error argument will be of type ([`Text`](#types-Text), (***expectedCurrent*** : [`Version`](#types-Version), ***actualCurrent*** : [`Version`](#types-Version))).
 
 <a name="section-Used-upgradeable-storage-formats"></a>
 
