@@ -50,34 +50,16 @@ steps:
     - nix-build ci.nix -A tzbtc.components.tests.tzbtc-test
     - ./result/bin/tzbtc-test --nettest-no-run-network
 
-  - label: test-local-chain-008
-    if: *not_scheduled_autodoc
-    depends_on: build
-    env:
-      TASTY_NETTEST_NODE_ENDPOINT: "http://localhost:8733"
-    commands: &run-nettest
-    - nix-build ci.nix -A tzbtc.components.tests.tzbtc-test
-    - export TASTY_NETTEST_DATA_DIR="$(mktemp -d --tmpdir="$$PWD")"
-    - nix run -f ci.nix tezos-client tzbtc.components.exes.tzbtc-client -c ./result/bin/tzbtc-test
-      --nettest-run-network --pattern '\$1 == "On network" || \$NF == "On network" || \$0 ~ /.On network./'
-
   - label: test-local-chain-009
     if: *not_scheduled_autodoc
     depends_on: build
     env:
       TASTY_NETTEST_NODE_ENDPOINT: "http://localhost:8734"
-    commands: *run-nettest
-
-  - label: scheduled edonet test
-    if: build.source == "schedule"
-    depends_on: build
-    env:
-      TASTY_NETTEST_NODE_ENDPOINT: "http://edo.testnet.tezos.serokell.team:8732"
-    commands: *run-nettest
-    retry: &retry
-      automatic:
-        limit: 1
-    timeout_in_minutes: 150
+    commands: &run-nettest
+    - nix-build ci.nix -A tzbtc.components.tests.tzbtc-test
+    - export TASTY_NETTEST_DATA_DIR="$(mktemp -d --tmpdir="$$PWD")"
+    - nix run -f ci.nix tezos-client tzbtc.components.exes.tzbtc-client -c ./result/bin/tzbtc-test
+      --nettest-run-network --pattern '\$1 == "On network" || \$NF == "On network" || \$0 ~ /.On network./'
 
   - label: scheduled florencenet test
     if: build.source == "schedule"
@@ -85,7 +67,9 @@ steps:
     env:
       TASTY_NETTEST_NODE_ENDPOINT: "http://florence.testnet.tezos.serokell.team:8732"
     commands: *run-nettest
-    retry: *retry
+    retry: &retry
+      automatic:
+        limit: 1
     timeout_in_minutes: 150
 
   - label: weeder
