@@ -10,6 +10,9 @@ Changes that affect Michelson code are tagged with `[CONTRACT]`.
 
 Unreleased
 ==========
+
+0.7.0
+==========
 * [#137](https://github.com/tz-wrapped/tezos-btc/pull/141)
   + `tzbtc-client` is reimplemented to use code from the [`morley-client`](https://gitlab.com/morley-framework/morley/-/tree/master/code/morley-client).
 
