@@ -4,6 +4,10 @@
  -}
 module Test.Smoke
   ( test_smokeTests
+
+  , TestUpgrade(..)
+  , testUpgradeToV1
+  , testUpgradeToV2
   ) where
 
 import Data.Tagged (Tagged(Tagged))
@@ -36,10 +40,10 @@ import qualified Lorentz.Contracts.TZBTC.V1.Types as TZBTCTypes
 
 test_smokeTests :: TestTree
 test_smokeTests = testGroup "Smoke tests for tzbtc contract"
-  [ nettestScenario "Smoke test V1" $ simpleScenario testUpgradeToV1
-  , nettestScenario "Smoke test V2" $ simpleScenario testUpgradeToV2
+  [ nettestScenarioCaps "Smoke test V1" $ simpleScenario testUpgradeToV1
+  , nettestScenarioCaps "Smoke test V2" $ simpleScenario testUpgradeToV2
   , nettestScenarioOnNetworkViaTzbtcClient "Smote test V1 deployed by tzbtc-client" $
-    simpleScenario noTestUpgrade
+    uncapsNettest $ simpleScenario noTestUpgrade
   ]
 
 newtype RunOnNetworkViaTzbtcClient = RunOnNetworkViaTzbtcClient (NettestScenario IO)
@@ -72,8 +76,10 @@ dummyV2Parameters = dummyV1Parameters
 newtype TestUpgrade m = TestUpgrade
   { unTestUpgrade
       :: Address  --- ^ Admin's address
+      -> Address --- ^ Redeem address
+      -> Map Address Natural --- ^ Initial balances
       -> TAddress (Parameter TZBTCv0)
-      -> NettestT m ()
+      -> m ()
   }
 
 instance Applicative m => Semigroup (TestUpgrade m) where
@@ -81,15 +87,15 @@ instance Applicative m => Semigroup (TestUpgrade m) where
     TestUpgrade $ \a b -> f1 a b *> f2 a b
 
 instance Applicative m => Monoid (TestUpgrade m) where
-  mempty = TestUpgrade $ \_ _ -> pass
+  mempty = TestUpgrade $ \_ _ _ _ -> pass
 
-noTestUpgrade :: Monad m => TestUpgrade m
-noTestUpgrade = TestUpgrade $ \_ _ -> pass
+noTestUpgrade :: MonadNettest caps base m => TestUpgrade m
+noTestUpgrade = TestUpgrade $ \_ _ _ _ -> pass
 
-testUpgradeToV1 :: Monad m => TestUpgrade m
-testUpgradeToV1 = TestUpgrade $ \admin tzbtc -> do
+testUpgradeToV1 :: MonadNettest caps base m => TestUpgrade m
+testUpgradeToV1 = TestUpgrade $ \admin redeem balances tzbtc -> do
   let
-    opTZBTC = dummyV1Parameters admin defaultTZBTCMetadata mempty
+    opTZBTC = dummyV1Parameters redeem defaultTZBTCMetadata balances
     upgradeParams :: OneShotUpgradeParameters TZBTCv0
     upgradeParams = makeOneShotUpgradeParameters @TZBTCv0 EpwUpgradeParameters
       { upMigrationScripts =
@@ -103,10 +109,10 @@ testUpgradeToV1 = TestUpgrade $ \admin tzbtc -> do
     (TrustEpName DefEpName)
     (fromFlatParameter $ Upgrade upgradeParams :: Parameter TZBTCv0)
 
-testUpgradeToV2 :: Monad m => TestUpgrade m
-testUpgradeToV2 = TestUpgrade $ \admin tzbtc -> do
+testUpgradeToV2 :: MonadNettest caps base m => TestUpgrade m
+testUpgradeToV2 = TestUpgrade $ \admin redeem balances tzbtc -> do
   let
-    opTZBTC = dummyV2Parameters admin defaultTZBTCMetadata mempty
+    opTZBTC = dummyV2Parameters redeem defaultTZBTCMetadata balances
     upgradeParams :: OneShotUpgradeParameters TZBTCv0
     upgradeParams = makeOneShotUpgradeParameters @TZBTCv0 EpwUpgradeParameters
       { upMigrationScripts =
@@ -120,8 +126,10 @@ testUpgradeToV2 = TestUpgrade $ \admin tzbtc -> do
     (TrustEpName DefEpName)
     (fromFlatParameter $ Upgrade upgradeParams :: Parameter TZBTCv0)
 
-simpleScenario :: TestUpgrade m -> NettestScenario m
-simpleScenario upg = uncapsNettest $ do
+simpleScenario
+  :: MonadNettest caps base m
+  => TestUpgrade m -> m ()
+simpleScenario upg = do
   admin <- resolveNettestAddress -- Fetch address for alias `nettest`.
 
   -- Originate and upgrade
@@ -137,7 +145,7 @@ simpleScenario upg = uncapsNettest $ do
   tokenMetadatasView <- originateSimple "[TokenMetadata] view" [] (contractConsumer @[TokenMetadata])
 
   -- Run upgrade
-  unTestUpgrade upg admin tzbtc
+  unTestUpgrade upg admin admin mempty tzbtc
 
   let
     fromFlatParameterV1  :: FlatParameter SomeTZBTCVersion -> Parameter SomeTZBTCVersion

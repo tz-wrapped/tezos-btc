@@ -89,7 +89,6 @@ tests:
     - cleveland
     - fmt
     - hex-text
-    - hspec
     - HUnit
     - lorentz
     - memory

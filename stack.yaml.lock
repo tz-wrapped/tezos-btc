@@ -37,10 +37,10 @@ packages:
     pantry-tree:
       size: 3508
       sha256: c5821cbe972988d59f9a1c53327ddaf6ce3668cf36ef126b6db8a98e5cbc16c1
-    commit: 6cf38a65f7d544c1d55c07b87cbfe98df1b6b20a
+    commit: ef4dc069f46a07485446fe0346417484b33af86c
   original:
     git: https://gitlab.com/morley-framework/morley-multisig.git
-    commit: 6cf38a65f7d544c1d55c07b87cbfe98df1b6b20a
+    commit: ef4dc069f46a07485446fe0346417484b33af86c
 - completed:
     subdir: code/morley-ledgers
     name: morley-ledgers
