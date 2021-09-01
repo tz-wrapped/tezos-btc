@@ -82,7 +82,7 @@ v1Impl = recFromTuple
       coerceUnwrap
       unpair
       dip $ do
-        contractCallingUnsafe DefEpName
+        unsafeContractCalling DefEpName
         if IsSome then nop else failCustom_ #unexpectedContractType
       pair
       wrapView

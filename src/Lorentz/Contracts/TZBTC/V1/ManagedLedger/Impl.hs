@@ -35,7 +35,7 @@ import Lorentz.Contracts.TZBTC.V1.ManagedLedger.Types
 ----------------------------------------------------------------------------
 
 transfer
-  :: forall store. (LedgerC store, StoreHasField store "paused" Bool)
+  :: forall store. (LedgerC store, StoreHasField store "paused" Bool, Dupable store)
   => Entrypoint TransferParams store
 transfer = do
   doc $ DDescription transferDoc
@@ -61,7 +61,7 @@ transfer = do
 
 -- | Implementation of @approve@ entrypoint.
 approve
-  :: forall store. (LedgerC store, StoreHasField store "paused" Bool)
+  :: forall store. (LedgerC store, StoreHasField store "paused" Bool, Dupable store)
   => Entrypoint ApproveParams store
 approve = do
   doc $ DDescription approveDoc
@@ -80,7 +80,7 @@ approve = do
 -- | Implementation of @approveCAS@ entrypoint. It adds an additional
 -- check to @approve@: current allowance must match the expected one.
 approveCAS
-  :: forall store. (LedgerC store, StoreHasField store "paused" Bool)
+  :: forall store. (LedgerC store, StoreHasField store "paused" Bool, Dupable store)
   => Entrypoint ApproveCasParams store
 approveCAS = do
   doc $ DDescription approveCASDoc
@@ -113,19 +113,19 @@ approveCAS = do
   nil; pair
 
 getAllowance
-  :: LedgerC store
+  :: (LedgerC store, Dupable store)
   => Entrypoint GetAllowanceArg store
 getAllowance = do
   doc $ DDescription getAllowanceDoc
   view_ allowance
 
-getBalance :: LedgerC store => Entrypoint GetBalanceArg store
+getBalance :: (LedgerC store, Dupable store) => Entrypoint GetBalanceArg store
 getBalance = view_ $ do
   doc $ DDescription getBalanceDoc
   fromNamed #owner; stGet #ledger
   ifSome (toField #balance) (push 0)
 
-getTotalSupply :: LedgerC store => Entrypoint GetTotalSupplyArg store
+getTotalSupply :: (LedgerC store, Dupable store) => Entrypoint GetTotalSupplyArg store
 getTotalSupply = do
   doc $ DDescription getTotalSupplyDoc
   view_ (do drop @(); stToField #totalSupply)
@@ -178,7 +178,7 @@ authorizeAdmin = do
   if_ nop (failCustom_ #senderIsNotAdmin)
 
 addTotalSupply
-  :: StoreHasField store "totalSupply" Natural
+  :: (StoreHasField store "totalSupply" Natural, Dupable store)
   => Integer : store : s :-> store : s
 addTotalSupply = do
   dip $ stGetField #totalSupply
@@ -188,7 +188,7 @@ addTotalSupply = do
 debitFrom
   :: forall param store.
      ( param `HasFieldsOfType` ["from" := Address, "value" := Natural]
-     , LedgerC store
+     , LedgerC store, Dupable store, Dupable param
      )
   => '[param, store] :-> '[param, store]
 debitFrom = do
@@ -221,7 +221,7 @@ debitFrom = do
 
 creditTo
   :: ( param `HasFieldsOfType` ["to" := Address, "value" := Natural]
-     , LedgerC store
+     , LedgerC store, Dupable store, Dupable param
      )
   => '[param, store] :-> '[param, store]
 creditTo = do
@@ -259,12 +259,12 @@ emptyLedgerValue =
 nonEmptyLedgerValue :: LedgerValue : s :-> Maybe LedgerValue : s
 nonEmptyLedgerValue = do
   getField #balance; int
-  if IsNotZero
+  if Not IsZero
   then some
   else do
     getField #approvals
     size; int
-    if IsNotZero
+    if Not IsZero
     then some
     else drop >> none
 
@@ -277,7 +277,7 @@ approveParamsToAllowanceParams = do
 
 allowance
   :: ( param `HasFieldsOfType` ["owner" := Address, "spender" := Address]
-     , LedgerC store
+     , LedgerC store, Dupable param
      )
   => param ': store ': s :-> Natural ': s
 allowance = do
@@ -288,7 +288,7 @@ allowance = do
 
 setAllowance
   :: forall store s.
-     LedgerC store
+     (LedgerC store, Dupable store)
   => (AllowanceParams ': store ': s) :-> (store ': s)
 setAllowance = do
   dip (dup @store); swap;
@@ -304,7 +304,7 @@ setAllowance = do
   stInsert #ledger
 
 consumeAllowance
-  :: forall store s. (LedgerC store)
+  :: forall store s. (LedgerC store, Dupable store)
   => (TransferParams ': store ': s) :-> (store ': s)
 consumeAllowance = do
   dup
@@ -335,7 +335,7 @@ consumeAllowance = do
   setAllowance
 
 ensureNotPaused
-  :: StoreHasField store "paused" Bool
+  :: (StoreHasField store "paused" Bool, Dupable store)
   => store : s :-> store : s
 ensureNotPaused = do
   doc $ DTokenNotPausedOnly
