@@ -6,7 +6,7 @@
 
 # TZBTC
 
-**Code revision:** [5b6d533](https://github.com/tz-wrapped/tezos-btc/commit/5b6d53329b55a346f982c99147729e6e0271a2a3) *(Wed Jun 30 15:35:00 2021 +0300)*
+**Code revision:** [3f27da0](https://github.com/tz-wrapped/tezos-btc/commit/3f27da0bbccae4d5418690c3edfa5e03f85403f7) *(Fri Sep 17 09:24:24 2021 +0300)*
 
 
 
@@ -376,7 +376,7 @@ This view returns the token metadata.
 
 **Argument:** 
   + **In Haskell:** [`View`](#types-View) ([`List`](#types-List) [`TokenId`](#types-TokenId)) ([`List`](#types-List) [`TokenMetadata`](#types-TokenMetadata))
-  + **In Michelson:** `(pair (list nat) (contract (list (pair nat (pair string (pair string (pair nat (map string string))))))))`
+  + **In Michelson:** `(pair (list nat) (contract (list (pair nat string string nat (map string string)))))`
     + **Example:** <span id="example-id">`Pair { 0 } "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <details>
@@ -406,7 +406,7 @@ This entry point is used to call the safe entrypoints of the contract. Entrypoin
 
 **Argument:** 
   + **In Haskell:** [`Parameter.SafeParameter`](#types-Parameter.SafeParameter)
-  + **In Michelson:** `(or (or (or (or (pair string bytes) (pair (pair nat nat) (pair (lambda (big_map bytes bytes) (big_map bytes bytes)) (pair (option (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))) (option (lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))))))) (or (pair nat nat) (lambda (big_map bytes bytes) (big_map bytes bytes)))) (or (or (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))) unit) (or (pair address (pair address nat)) (pair address nat)))) (or (or (or (pair address nat) nat) (or address address)) (or (or address unit) (or unit (or address unit)))))`
+  + **In Michelson:** `(or (or (or (or (pair string bytes) (pair (pair nat nat) (lambda (big_map bytes bytes) (big_map bytes bytes)) (option (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))) (option (lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))))) (or (pair nat nat) (lambda (big_map bytes bytes) (big_map bytes bytes)))) (or (or (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))) unit) (or (pair address address nat) (pair address nat)))) (or (or (or (pair address nat) nat) (or address address)) (or (or address unit) (or unit (or address unit)))))`
     + **Example:** <span id="example-id">`Left (Left (Left (Left (Pair "hello" 0x0a))))`</span>
 
 <details>
@@ -467,8 +467,8 @@ provided migration lambda.
 
 **Argument:** 
   + **In Haskell:** (***currentVersion*** : [`Version`](#types-Version), ***newVersion*** : [`Version`](#types-Version), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript) [`Store template V0`](#ustore-template-Store-template-V0) [`Some`](#ustore-template-Some), ***newCode*** : [`Maybe`](#types-Maybe) [`UContractRouter`](#types-UContractRouter), ***newPermCode*** : [`Maybe`](#types-Maybe) [`PermanentImpl`](#types-PermanentImpl))
-  + **In Michelson:** `(pair (pair nat nat) (pair (lambda (big_map bytes bytes) (big_map bytes bytes)) (pair (option (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))) (option (lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))))))`
-    + **Example:** <span id="example-id">`Pair (Pair 0 0) (Pair { PUSH string "lambda sample";FAILWITH } (Pair (Some { PUSH string "lambda sample";FAILWITH }) (Some { PUSH string "lambda sample";FAILWITH })))`</span>
+  + **In Michelson:** `(pair (pair nat nat) (lambda (big_map bytes bytes) (big_map bytes bytes)) (option (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))) (option (lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))))`
+    + **Example:** <span id="example-id">`{ Pair 0 0; { PUSH string "lambda sample";FAILWITH }; Some { PUSH string "lambda sample";FAILWITH }; Some { PUSH string "lambda sample";FAILWITH } }`</span>
 
 <details>
   <summary><b>How to call this entrypoint</b></summary>
@@ -626,8 +626,8 @@ In this case current number of tokens that sender is allowed to withdraw from th
 
 **Argument:** 
   + **In Haskell:** (***from*** : [`Address`](#types-Address), ***to*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
-  + **In Michelson:** `(pair address (pair address nat))`
-    + **Example:** <span id="example-id">`Pair "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB" (Pair "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB" 0)`</span>
+  + **In Michelson:** `(pair address address nat)`
+    + **Example:** <span id="example-id">`{ "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"; "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"; 0 }`</span>
 
 <details>
   <summary><b>How to call this entrypoint</b></summary>
@@ -1047,7 +1047,7 @@ Pair primitive.
 
 Tuple of size 3.
 
-**Final Michelson representation (example):** `(Integer,Natural,MText)` = `pair int (pair nat string)`
+**Final Michelson representation (example):** `(Integer,Natural,MText)` = `pair int nat string`
 
 
 
@@ -1059,7 +1059,7 @@ Tuple of size 3.
 
 Tuple of size 5.
 
-**Final Michelson representation (example):** `((),(),(),(),())` = `pair (pair unit unit) (pair unit (pair unit unit))`
+**Final Michelson representation (example):** `((),(),(),(),())` = `pair (pair unit unit) unit unit unit`
 
 
 
@@ -1126,7 +1126,7 @@ Bytes primitive.
 
 When both `i` and `o` are of length 1, this primitive corresponds to the Michelson lambda. In more complex cases code is surrounded with `pair`and `unpair` instructions until fits into mentioned restriction.
 
-**Final Michelson representation (example):** `Code [Integer, Natural, MText, ()] [ByteString]` = `lambda (pair int (pair nat (pair string unit))) bytes`
+**Final Michelson representation (example):** `Code [Integer, Natural, MText, ()] [ByteString]` = `lambda (pair int nat string unit) bytes`
 
 
 
@@ -1287,7 +1287,7 @@ Parameter which does not have unsafe arguments, like raw `Contract p` values.
 + **AcceptOwnership**[`()`](#types-lparenrparen)
 
 
-**Final Michelson representation:** `or (or (or (or (pair string bytes) (pair (pair nat nat) (pair (lambda (big_map bytes bytes) (big_map bytes bytes)) (pair (option (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))) (option (lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))))))) (or (pair nat nat) (lambda (big_map bytes bytes) (big_map bytes bytes)))) (or (or (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))) unit) (or (pair address (pair address nat)) (pair address nat)))) (or (or (or (pair address nat) nat) (or address address)) (or (or address unit) (or unit (or address unit))))`
+**Final Michelson representation:** `or (or (or (or (pair string bytes) (pair (pair nat nat) (lambda (big_map bytes bytes) (big_map bytes bytes)) (option (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))) (option (lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))))) (or (pair nat nat) (lambda (big_map bytes bytes) (big_map bytes bytes)))) (or (or (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))) unit) (or (pair address address nat) (pair address nat)))) (or (or (or (pair address nat) nat) (or address address)) (or (or address unit) (or unit (or address unit))))`
 
 
 
@@ -1360,7 +1360,7 @@ Various token metadata information.
   * ***tmDecimals*** :[`Natural`](#types-Natural)
   * ***tmExtras*** :[`Map`](#types-Map) [`Text`](#types-Text) [`Text`](#types-Text)
 
-**Final Michelson representation:** `pair nat (pair string (pair string (pair nat (map string string))))`
+**Final Michelson representation:** `pair nat string string nat (map string string)`
 
 
 
