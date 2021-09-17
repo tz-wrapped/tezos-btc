@@ -91,17 +91,20 @@ data Handlers m = Handlers
 
   , hGetHeadBlock :: m Text
   , hGetCounter :: Address -> m TezosInt64
-  , hGetBlockConstants :: Text -> m BlockConstants
+  , hGetBlockHeader :: BlockId -> m BlockHeader
+  , hGetBlockConstants :: BlockId -> m BlockConstants
+  , hGetBlockOperations :: BlockId -> m [[BlockOperation]]
   , hGetProtocolParameters :: m ProtocolParameters
   , hRunOperation :: RunOperation -> m RunOperationResult
   , hPreApplyOperations :: [PreApplyOperation] -> m [RunOperationResult]
   , hForgeOperation :: ForgeOperation -> m HexJSONByteString
-  , hInjectOperation :: HexJSONByteString -> m Text
+  , hInjectOperation :: HexJSONByteString -> m OperationHash
   , hGetContractScript :: Address -> m OriginationScript
+  , hGetContractStorageAtBlock :: BlockId -> Address -> m Expression
   , hGetContractBigMap :: Address -> GetBigMap -> m GetBigMapResult
-  , hGetBigMapValue :: Natural -> Text -> m Expression
+  , hGetBigMapValueAtBlock :: BlockId -> Natural -> Text -> m Expression
   , hGetBalance :: Address -> m Mutez
-  , hRunCode :: Either RunCodeOld RunCode -> m RunCodeResult
+  , hRunCode :: RunCode -> m RunCodeResult
   , hGetChainId :: m ChainId
 
   -- HasTezosClient
@@ -109,7 +112,7 @@ data Handlers m = Handlers
   , hGenKey :: AliasHint -> m Address
   , hGenFreshKey :: AliasHint -> m Address
   , hRevealKey :: Alias -> Maybe ScrubbedBytes -> m ()
-  , hWaitForOperation :: Text -> m ()
+  , hWaitForOperation :: OperationHash -> m ()
   , hRememberContract :: Bool -> Address -> AliasHint -> m ()
   , hImportKey :: Bool -> AliasHint -> SecretKey -> m ()
   , hResolveAddressMaybe :: AddressOrAlias -> m (Maybe Address)
@@ -117,7 +120,7 @@ data Handlers m = Handlers
   , hGetPublicKey :: AddressOrAlias -> m PublicKey
   , hGetTezosClientConfig :: m TezosClientConfig
   , hCalcTransferFee
-    :: forall t. PrintedValScope t => CalcTransferFeeData t -> m TezosMutez
+    :: AddressOrAlias -> Maybe ScrubbedBytes -> TezosInt64 -> [CalcTransferFeeData] -> m [TezosMutez]
   , hCalcOriginationFee
     :: forall cp st. PrintedValScope st => CalcOriginationFeeData cp st -> m TezosMutez
   , hGetKeyPassword :: AddressOrAlias -> m (Maybe ScrubbedBytes)
@@ -171,8 +174,14 @@ instance HasTezosRpc TestM where
   getCounter addr = do
     h <- getHandler hGetCounter
     h addr
+  getBlockHeader block = do
+    h <- getHandler hGetBlockHeader
+    h block
   getBlockConstants block = do
     h <- getHandler hGetBlockConstants
+    h block
+  getBlockOperations block = do
+    h <- getHandler hGetBlockOperations
     h block
   getProtocolParameters =
     join $ getHandler hGetProtocolParameters
@@ -191,15 +200,15 @@ instance HasTezosRpc TestM where
   getContractScript addr = do
     h <- getHandler hGetContractScript
     h addr
-  getContractStorage addr = do
-    h <- getHandler hGetContractScript
-    osStorage <$> h addr
+  getContractStorageAtBlock block addr = do
+    h <- getHandler hGetContractStorageAtBlock
+    h block addr
   getContractBigMap addr getBigMap = do
     h <- getHandler hGetContractBigMap
     h addr getBigMap
-  getBigMapValue bigMapId scriptExpr = do
-    h <- getHandler hGetBigMapValue
-    h bigMapId scriptExpr
+  getBigMapValueAtBlock block bigMapId scriptExpr = do
+    h <- getHandler hGetBigMapValueAtBlock
+    h block bigMapId scriptExpr
   getBalance addr = do
     h <- getHandler hGetBalance
     h addr
@@ -241,9 +250,9 @@ instance HasTezosClient TestM where
     h a
   getTezosClientConfig =
     join $ getHandler hGetTezosClientConfig
-  calcTransferFee transferData = do
+  calcTransferFee sender mbPassword fee transferData = do
     h <- getHandler hCalcTransferFee
-    h transferData
+    h sender mbPassword fee transferData
   calcOriginationFee origData = do
     h <- getHandler hCalcOriginationFee
     h origData

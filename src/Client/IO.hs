@@ -40,7 +40,7 @@ import Michelson.Untyped (EpName(..))
 import Morley.Client.Action (lTransfer, lOriginateContract)
 import Morley.Client.Logging (WithClientLog)
 import Morley.Client.RPC.Class hiding (getBalance)
-import Morley.Client.RPC.Getters (BigMapId(..), readBigMapValueMaybe)
+import Morley.Client.RPC.Getters (getContractStorage, readBigMapValueMaybe)
 import Morley.Client.TezosClient.Class
 import Morley.Client.TezosClient.Types
   (AddressOrAlias(..), Alias(..), AliasHint(..))
@@ -141,7 +141,7 @@ runMultisigContract packages = do
   (_, (_, (Keys keys'))) <- getMultisigStorage multisigAddr
   (_, multisigParam) <- throwLeft $ pure $ mkMultiSigParam keys' packages
   mbFees <- aeFees <$> lookupEnv
-  void $ lTransfer from multisigAddr (unsafeMkMutez 0) (EpNameUnsafe "mainParameter") multisigParam mbFees
+  void $ lTransfer from multisigAddr (unsafeMkMutez 0) (UnsafeEpName "mainParameter") multisigParam mbFees
 
 getMultisigStorage
   :: (MonadThrow m, HasTezosRpc m)
@@ -311,7 +311,7 @@ deployTzbtcContractV1 V1DeployParameters{..} = performTzbtcDeployment $ do
   mbFee <- aeFees <$> lookupEnv
   contractAddr <- originateTzbtcContract tzbtcUser v1Owner
   void $ lTransfer tzbtcUser contractAddr (unsafeMkMutez 0)
-    (EpNameUnsafe "upgrade") (upgradeParametersV1 v1MigrationParams) mbFee
+    (UnsafeEpName"upgrade") (upgradeParametersV1 v1MigrationParams) mbFee
   pure contractAddr
 
 deployTzbtcContractV2
@@ -322,7 +322,7 @@ deployTzbtcContractV2 V2DeployParameters{..} = performTzbtcDeployment $ do
   mbFee <- aeFees <$> lookupEnv
   contractAddr <- originateTzbtcContract tzbtcUser v2Owner
   void $ lTransfer tzbtcUser contractAddr (unsafeMkMutez 0)
-    (EpNameUnsafe "upgrade") (upgradeParametersV2 v2MigrationParams) mbFee
+    (UnsafeEpName "upgrade") (upgradeParametersV2 v2MigrationParams) mbFee
   pure contractAddr
 
 deployMultisigContract

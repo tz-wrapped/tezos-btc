@@ -14,7 +14,7 @@ extra-deps:
     https://gitlab.com/morley-framework/morley.git
     # ^ CI cannot use ssh, so we use http clone here
   commit:
-    295bdad3f75d76e780ec0b64b5e2e3d8d8f41441 # morley-1.14.0
+    a726d42f89f83aa794f381b5332a542b634ba057 # morley-1.15.1
   subdirs:
     - code/cleveland
     - code/morley-client
@@ -23,13 +23,13 @@ extra-deps:
     https://gitlab.com/morley-framework/morley-multisig.git
     # ^ CI cannot use ssh, so we use http clone here
   commit:
-    ef4dc069f46a07485446fe0346417484b33af86c # master
+    c2e041a8ab7ace0807e3c605e4bf60065cd6c9f1 # master
 
 - git:
     https://gitlab.com/morley-framework/morley-ledgers.git
     # ^ CI cannot use ssh, so we use http clone here
   commit:
-    8e1ec4c161ee9c22e03c74dccb579634ced6165c # master
+    2c9c23d50b5cef62d71572573ea760a01b44d7cf # master
   subdirs:
     - code/morley-ledgers
     - code/morley-ledgers-test
@@ -38,19 +38,19 @@ extra-deps:
     https://gitlab.com/morley-framework/morley-upgradeable.git
     # ^ CI cannot use ssh, so we use http clone here
   commit:
-    202ca74c708e2137f2c4e1adff527180d58edc14 # v0.3
+    04ba4f962a5d4ab6580eaf8a08a4bab0259e4469 # master
 
 - git:
     https://gitlab.com/morley-framework/indigo.git
   commit:
-    1177ddb1390610c76b8a735c1fda2eacb2cbef6b # master
+    3812248243e58ed7eae4579c777751fbe32f897a # master
   subdirs:
     - .
 
 # Stable parts of morley available from Hackage
-- morley-1.14.0
-- morley-prelude-0.4.0
-- lorentz-0.11.0
+- morley-1.15.1
+- morley-prelude-0.4.2
+- lorentz-0.12.1
 - tasty-hunit-compat-0.2
 
 # Required by morley
@@ -61,6 +61,8 @@ extra-deps:
 - generic-data-0.8.3.0
 - neat-interpolation-0.3.2.6
 - megaparsec-8.0.0
+- tasty-1.4.1
+- tasty-ant-xml-1.1.8
 - git: https://github.com/serokell/base-noprelude.git
   commit: 87df0899801dcdffd08ef7c3efd3c63e67e623c2
 - git: https://github.com/serokell/galois-field.git

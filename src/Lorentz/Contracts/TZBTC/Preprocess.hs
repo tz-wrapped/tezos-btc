@@ -35,11 +35,7 @@ import Lorentz.UStore.Migration
 
 -- | Full V0 contract info.
 tzbtcContract :: Contract (V1.Parameter V0.TZBTCv0) V0.UStoreV0
-tzbtcContract = Contract
-  { cCode = V0.tzbtcContractRaw
-  , cDisableInitialCast = False
-  , cCompilationOptions = compilationOptions
-  }
+tzbtcContract = mkContractWith compilationOptions V0.tzbtcContractRaw
 
 -- | Preprocessed version of contract router for V1.
 tzbtcContractRouterV1 :: UContractRouter V1.TZBTCv1

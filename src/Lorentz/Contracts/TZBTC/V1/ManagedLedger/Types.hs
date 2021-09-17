@@ -33,6 +33,7 @@ type StorageC store =
    [ "admin" := Address
    , "paused" := Bool
    ]
+  , Dupable store
   )
 
 type GetBalanceArg = View Common.GetBalanceParams Natural

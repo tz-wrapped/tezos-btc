@@ -13,11 +13,23 @@ with rec {
     then pkgs.pkgsCross.musl64.haskell-nix
     else pkgs.haskell-nix;
 
+  projectSrc = haskell-nix.haskellLib.cleanGit {
+    name = "tezos-btc";
+    src = ./.;
+  };
+
+  # haskell.nix does not support 'include' in package.yaml, we have to generate .cabal ourselves
+  cabalFile = pkgs.runCommand "tzbtc.cabal" {} ''
+    ${pkgs.haskellPackages.hpack}/bin/hpack ${projectSrc} - > $out
+  '';
+
   hs-pkgs = haskell-nix.stackProject {
-    src = haskell-nix.haskellLib.cleanGit {
-      name = "tezos-btc";
-      src = ./.;
-    };
+    # project src with .cabal file added
+    src = pkgs.runCommand "src-with-cabal" {} ''
+      cp -r --no-preserve=mode ${projectSrc} $out
+      cp ${cabalFile} $out/tzbtc.cabal
+    '';
+    ignorePackageYaml = true;
     modules =
       [{
         packages.tzbtc = {
