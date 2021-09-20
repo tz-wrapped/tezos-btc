@@ -65,7 +65,7 @@ steps:
     if: build.source == "schedule"
     depends_on: build
     env:
-      TASTY_NETTEST_NODE_ENDPOINT: "http://granada.testnet.tezos.serokell.team:8732"
+      TASTY_NETTEST_NODE_ENDPOINT: "https://granada.testnet.tezos.serokell.team"
     commands: *run-nettest
     retry:
       automatic:
