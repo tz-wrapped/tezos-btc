@@ -70,7 +70,7 @@ steps:
     retry:
       automatic:
         limit: 1
-    timeout_in_minutes: 180
+    timeout_in_minutes: 240
 
   - label: weeder
     if: *not_scheduled_autodoc
