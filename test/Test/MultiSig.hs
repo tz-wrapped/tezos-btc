@@ -15,9 +15,9 @@ import Test.Tasty.HUnit (testCase)
 
 import Lorentz hiding (assert, chainId)
 import Lorentz.Contracts.Multisig
-import Lorentz.Contracts.Test.ManagedLedger (OriginationParams(..))
 import Lorentz.Contracts.TZBTC as TZBTC
 import qualified Lorentz.Contracts.TZBTC.Types as TZBTCTypes (SafeParameter(..))
+import Lorentz.Contracts.Test.ManagedLedger (OriginationParams(..))
 import Lorentz.Test.Integrational (genesisAddress3, genesisAddress5)
 import Morley.Nettest
 import Morley.Nettest.Tasty
@@ -69,7 +69,7 @@ sign_ sk bs = case decodeHex (T.drop 2 bs) of
 
 test_multisig :: TestTree
 test_multisig = testGroup "TZBTC contract multi-sig functionality test"
-  [ nettestScenarioOnEmulatorCaps "Test call to multisig to add an operator works" $ do
+  [ nettestScenarioCaps "Test call to multisig to add an operator works" $ do
       -- Originate multisig with threshold 2 and a master pk list of
       -- three public keys
       withMultiSigContract 0 2 masterPKList $ \msig -> do
@@ -94,8 +94,8 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
             MSig.mkMultiSigParam masterPKList ((alicePackage) :| [carlosPackage])
         -- Finally call the multisig contract
         call msig (Call @"MainParameter") mparam
-        st <- getFullStorage tzbtc
-        assert (checkField (getOperators @TZBTCv1) (Set.member operatorAddress) st)
+        st <- getStorage tzbtc
+        checkField (getOperators @TZBTCv1) (Set.member operatorAddress) st
           "New operator not found"
 
   , nettestScenarioCaps "Test call to multisig to add an operator fails with one signature less" $ do
@@ -175,7 +175,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         -- Now call again with the same param, this should fail.
         expectCustomError_ #counterDoesntMatch $
           call msaddr (Call @"MainParameter") mparam
-  , nettestScenarioOnEmulatorCaps "Test signed bundle created for one msig contract does not work on other" $ do
+  , nettestScenarioCaps "Test signed bundle created for one msig contract does not work on other" $ do
       -- Originate multisig with threshold 2 and a master pk list of
       -- three public keys
       withMultiSigContract 0 2 masterPKList $ \msig -> do
@@ -207,8 +207,8 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         -- Call the actual contract with the bundle. Should work as
         -- expected.
         call msaddr (Call @"MainParameter") mparam
-        st <- getFullStorage tzbtc
-        assert (checkField (getOperators @TZBTCv1) (Set.member operatorAddress) st)
+        st <- getStorage tzbtc
+        checkField (getOperators @TZBTCv1) (Set.member operatorAddress) st
           "New operator not found"
 
         -- Call the clone with the bundle created for the real multisig
