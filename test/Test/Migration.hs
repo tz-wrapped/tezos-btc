@@ -29,6 +29,7 @@ import Morley.Nettest
 import Morley.Nettest.Tasty
 import Tezos.Address (Address, ta)
 
+import qualified Test.AsRPC as RPC
 import Test.TZBTC (dummyV1Parameters)
 
 {-# ANN module ("HLint: ignore Reduce duplication" :: Text) #-}
@@ -112,15 +113,14 @@ test_migratingStatus = testGroup "TZBTC contract migration status active check"
 -- Test that migration bumps version
 test_migratingVersion :: TestTree
 test_migratingVersion = testGroup "TZBTC contract migration version check"
-  -- TODO: use nettestScenarioCaps once cleveland dependency is updated
-  [ nettestScenarioOnEmulatorCaps "Test EpwFinishUpgrade bumps version" $ do
+  [ nettestScenarioCaps "Test EpwFinishUpgrade bumps version" $ do
       admin <- newAddress "admin"
       v0 <- originateSimple "tzbtc" (mkEmptyStorageV0 admin) tzbtcContract
       withSender admin $ do
         call v0 CallDefault $ fromFlatParameter $ EpwBeginUpgrade (#current .! 0, #new .! 1)
         call v0 CallDefault $ fromFlatParameter EpwFinishUpgrade
-      storage <- getFullStorage v0
-      assert ((TZBTCTypes.currentVersion . TZBTCTypes.fields) storage == 1)
+      storage <- getStorage v0
+      assert ((TZBTCTypes.currentVersion . RPC.fields) storage == 1)
         "Version was not updated"
   ]
 

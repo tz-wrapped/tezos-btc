@@ -5,7 +5,7 @@
 
 -- We have to test some deprecated behaviour.
 -- For V1 this is fine, for V2 this will be fixed.
-{-# OPTIONS_GHC -Wno-deprecations #-}
+{-# OPTIONS_GHC -Wno-deprecations -Wno-orphans #-}
 
 module Test.TZBTC
   ( test_interface
@@ -34,30 +34,38 @@ module Test.TZBTC
 import qualified Data.Map as M
 import qualified Data.Set as Set
 import qualified Data.Text.IO.Utf8 as Utf8
+import Data.Typeable (typeRep)
+import Fmt (Buildable(..), Builder, (+|), (+||), (|+), (||+))
 import Test.HUnit (assertFailure)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase)
 
-import Lorentz hiding (assert)
-import Lorentz.Contracts.Metadata
+import Lorentz
+  (Address, BigMapId, Contract(cMichelsonContract), Empty, EpName, IsoValue(..), Value, mkView)
+import Lorentz.Contracts.Metadata (singleTokenTokenId)
 import qualified Lorentz.Contracts.Spec.ApprovableLedgerInterface as AL
 import qualified Lorentz.Contracts.Test.ApprovableLedger as AL
 import Lorentz.Contracts.Test.ManagedLedger (OriginationParams(..), originateManagedLedger)
 import qualified Lorentz.Contracts.Test.ManagedLedger as ML
+import Lorentz.Contracts.Upgradeable.Client (UStoreElemRef(..))
 import Lorentz.Contracts.Upgradeable.Common
-  (EpwUpgradeParameters(..), KnownContractVersion, VerPermanent, VerUStoreTemplate, emptyPermanentImpl)
-import Lorentz.Test
-  (contractConsumer, expectContractEntrypoints, runDocTests, testLorentzDoc)
-import Lorentz.UStore
-import Lorentz.UStore.Migration
+  (EpwUpgradeParameters(..), KnownContractVersion, VerPermanent, VerUStoreTemplate,
+  emptyPermanentImpl)
+import Lorentz.Test (contractConsumer, expectContractEntrypoints, runDocTests, testLorentzDoc)
+import Lorentz.UStore (DecomposeUStoreTW, KnownUStoreMarker(mkFieldMarkerUKey), UStoreTraversable)
+import Lorentz.UStore.Migration (manualConcatMigrationScripts)
+import Lorentz.UStore.Types (UMarkerPlainField, UStoreSubmapKeyT)
+import Michelson.Interpret.Pack (packValue')
+import Michelson.Interpret.Unpack (unpackValue')
 import Michelson.Runtime (parseExpandContract)
 import Michelson.Test.Unit (matchContractEntrypoints, mkEntrypointsMap)
-import Michelson.Typed.Convert (convertContract)
-import Morley.Nettest
-import Morley.Nettest.Tasty
+import Michelson.Typed
+  (SomeConstrainedValue(SomeConstrainedValue), UnpackedValScope, Value'(VPair), convertContract)
 import qualified Michelson.Untyped as U
+import Morley.Nettest
+import Morley.Nettest.Tasty (nettestScenarioCaps)
 import Tezos.Address (ta)
-import Util.Named
+import Util.Named ((.!))
 
 import Lorentz.Contracts.TZBTC
 import Lorentz.Contracts.TZBTC.Common.Types (Operators)
@@ -65,42 +73,64 @@ import qualified Lorentz.Contracts.TZBTC.V1 as V1
 import qualified Lorentz.Contracts.TZBTC.V2 as V2
 import Test.Smoke (TestUpgrade(..), testUpgradeToV1, testUpgradeToV2)
 
+import Test.AsRPC (StorageRPC)
+import qualified Test.AsRPC as RPC
+
 {-# ANN module ("HLint: ignore Reduce duplication" :: Text) #-}
+
+instance Buildable ByteString where
+  build = show
+
+-- This function is mostly copied from morley-upgradeable
+-- Lorentz.Contracts.Upgradeable.Client.readContractUStore, but it accepts 'BigMapId' instead
+-- of a contract address, and is adapted to run inside 'MonadNettest'.
+readUStore
+  :: forall v m caps base.
+     (UnpackedValScope v, Typeable v, MonadNettest caps base m)
+  => BigMapId ByteString ByteString -> UStoreElemRef -> m (Value v)
+readUStore bmId ref = do
+  let ukey = refToKey ref
+  uval <- getBigMapValue bmId ukey
+  unpackValue' uval
+    & either (const (throwUnpackFailed uval)) pure
+  where
+    throwUnpackFailed uval =
+      failure $ "UStore value unpack failed" +| uval |+ " :: " +|| typeRep (Proxy @v) ||+ ""
+
+    refToKey :: UStoreElemRef -> ByteString
+    refToKey = \case
+      UrField field ->
+        mkFieldMarkerUKey @UMarkerPlainField field
+      UrSubmap field (SomeConstrainedValue key) ->
+        packValue' @(UStoreSubmapKeyT _) $ VPair (toVal field, key)
+
+newtype TUStoreElemRef t = TUStoreElemRef UStoreElemRef
 
 class KnownContractVersion ver => TestTZBTCVersion ver where
   checkField
-    :: ( Generic (VerUStoreTemplate ver)
-       , UStoreTraversable DecomposeUStoreTW (VerUStoreTemplate ver)
+    :: ( MonadNettest caps base m
+       , UnpackedValScope (ToT v)
+       , Typeable (ToT v)
+       , IsoValue v
        )
-    => (VerUStoreTemplate ver -> UStoreField a)
-    -> (a -> Bool)
-    -> (Storage ver -> Bool)
-  checkField ef cf = checkStorage_ (\st -> cf $ unUStoreField $ ef st)
+    => TUStoreElemRef v
+    -> (v -> Bool)
+    -> StorageRPC ver
+    -> Builder
+    -> m ()
+  checkField (TUStoreElemRef k) fn st msg = do
+    val <- readUStore (RPC.dataMap st) k
+    unless (fn (fromVal val)) $ failure msg
 
-  checkStorage_
-    :: ( Generic (VerUStoreTemplate ver)
-       , UStoreTraversable DecomposeUStoreTW (VerUStoreTemplate ver)
-       )
-    => (VerUStoreTemplate ver -> Bool)
-    -> Storage ver -> Bool
-  checkStorage_ fn st =
-    case ustoreDecomposeFull $ dataMap st of
-      Right template -> fn template
-      Left _ -> False
+  getOperators :: TUStoreElemRef Operators
+  getNewOwner :: TUStoreElemRef (Maybe Address)
+  getPaused :: TUStoreElemRef Bool
+  getOperators = TUStoreElemRef $ UrField "operators"
+  getNewOwner = TUStoreElemRef $ UrField "newOwner"
+  getPaused = TUStoreElemRef $ UrField "paused"
 
-  getOperators :: VerUStoreTemplate ver -> UStoreField Operators
-  getNewOwner :: VerUStoreTemplate ver -> UStoreField (Maybe Address)
-  getPaused :: VerUStoreTemplate ver -> UStoreField Bool
-
-instance TestTZBTCVersion TZBTCv1 where
-  getOperators = operators . stCustom
-  getNewOwner = newOwner . stCustom
-  getPaused = paused . stCustom
-
-instance TestTZBTCVersion V2.TZBTCv2 where
-  getOperators = V2.operators . stCustom
-  getNewOwner = V2.newOwner . stCustom
-  getPaused = V2.paused . stCustom
+instance TestTZBTCVersion TZBTCv1
+instance TestTZBTCVersion V2.TZBTCv2
 
 type TestableTZBTCVersion ver =
   ( TestTZBTCVersion ver, Generic (VerUStoreTemplate ver), Typeable ver
@@ -203,18 +233,6 @@ testContract name testSuite =
     , nettestScenarioCaps "V2 contract" $ testSuite originateTzbtcV2Contract Proxy
     ]
 
-testContractEmulated
-  :: String
-  -> ( forall m caps base ver. (MonadEmulated caps base m, TestableTZBTCVersion ver)
-       => (Address -> m (ContractHandler (Parameter ver) (Storage ver))) -> Proxy ver -> m ()
-     )
-  -> TestTree
-testContractEmulated name testSuite =
-  testGroup name $
-    [ nettestScenarioOnEmulatorCaps "V1 contract" $ testSuite originateTzbtcV1Contract Proxy
-    , nettestScenarioOnEmulatorCaps "V2 contract" $ testSuite originateTzbtcV2Contract Proxy
-    ]
-
 test_interface :: TestTree
 test_interface = testGroup "TZBTC consistency test"
   [ testCase
@@ -243,7 +261,7 @@ test_addOperator = testGroup "TZBTC contract `addOperator` test"
         withSender bob $
           expectCustomError_ #senderIsNotOwner $ call c CallDefault $
           fromFlatParameter $ AddOperator (#operator .! operator)
-  , testContractEmulated
+  , testContract
       "Call to `addOperator` from owner adds operator to the set." $
       \originateContract (_ :: Proxy ver) -> do
         admin <- newAddress "admin"
@@ -251,8 +269,8 @@ test_addOperator = testGroup "TZBTC contract `addOperator` test"
         operator <- newAddress auto
         withSender admin $
           call c CallDefault $ fromFlatParameter $ AddOperator (#operator .! operator)
-        st <- getFullStorage c
-        assert (checkField (getOperators @ver) (Set.member operator) st)
+        st <- getStorage c
+        checkField (getOperators @ver) (Set.member operator) st
           "New operator not found"
   ]
 
@@ -269,19 +287,19 @@ test_removeOperator = testGroup "TZBTC contract `addOperator` test"
           expectCustomError_ #senderIsNotOwner $
           call c CallDefault $ fromFlatParameter $ RemoveOperator (#operator .! operator)
 
-  , testContractEmulated
+  , testContract
       "Call to `removeOperator` from owner removes operator from the set." $
       \originateContract (_ :: Proxy ver) -> do
         admin <- newAddress "admin"
         c <- originateContract admin
         operator <- newAddress auto
         withSender admin $ call c CallDefault $ fromFlatParameter $ AddOperator (#operator .! operator)
-        st1 <- getFullStorage c
-        assert (checkField (getOperators @ver) (Set.member operator) st1)
+        st1 <- getStorage c
+        checkField (getOperators @ver) (Set.member operator) st1
           "New operator not found"
         withSender admin $ call c CallDefault $ fromFlatParameter $ RemoveOperator (#operator .! operator)
-        st2 <- getFullStorage c
-        assert (checkField (getOperators @ver) (Prelude.not . Set.member operator) st2)
+        st2 <- getStorage c
+        checkField (getOperators @ver) (Prelude.not . Set.member operator) st2
           "Unexpectedly found operator"
   ]
 
@@ -296,7 +314,7 @@ test_transferOwnership = testGroup "TZBTC contract `transferOwnership` test"
         replaceAddress <- newAddress "replaceAddress"
         withSender bob $ expectCustomError_ #senderIsNotOwner $
           call c CallDefault $ fromFlatParameter $ TransferOwnership (#newOwner .! replaceAddress)
-  , testContractEmulated
+  , testContract
       "Call to `transferOwnership` from owner address gets denied with `senderIsNotOwner` error." $
       \originateContract (_ :: Proxy ver) -> do
         admin <- newAddress "admin"
@@ -304,8 +322,8 @@ test_transferOwnership = testGroup "TZBTC contract `transferOwnership` test"
         replaceAddress <- newAddress auto
         withSender admin $
           call c CallDefault $ fromFlatParameter $ TransferOwnership (#newOwner .! replaceAddress)
-        st <- getFullStorage c
-        assert (checkField (getNewOwner @ver) (== Just replaceAddress) st)
+        st <- getStorage c
+        checkField (getNewOwner @ver) (== Just replaceAddress) st
           "Expected `newOwner` not found"
   ]
 
@@ -546,7 +564,7 @@ test_pause = testGroup "TZBTC contract `pause` test"
         c <- originateContract admin
         withSender admin $ expectCustomError_ #senderIsNotOperator $
           call c CallDefault $ fromFlatParameter $ Pause ()
-  , testContractEmulated
+  , testContract
       "Call to `pause` from operator sets the paused status" $
       \originateContract (_ :: Proxy ver) -> do
         admin <- newAddress "admin"
@@ -559,8 +577,8 @@ test_pause = testGroup "TZBTC contract `pause` test"
         withSender operator $
           call c CallDefault $ fromFlatParameter $ Pause ()
 
-        st <- getFullStorage c
-        assert (checkField (getPaused @ver) id st) "Unexpected Paused status"
+        st <- getStorage c
+        checkField (getPaused @ver) id st "Unexpected Paused status"
   ]
 
 test_unpause :: TestTree
@@ -583,7 +601,7 @@ test_unpause = testGroup "TZBTC contract `unpause` test"
         withSender admin $ call c CallDefault $ fromFlatParameter $ AddOperator (#operator .! operator)
         withSender operator $ expectCustomError_ #senderIsNotOwner $
           call c CallDefault $ fromFlatParameter $ Unpause ()
-  , testContractEmulated
+  , testContract
       "Call to `unpause` from owner unsets the paused status" $
       \originateContract (_ :: Proxy ver) -> do
         admin <- newAddress "admin"
@@ -593,15 +611,15 @@ test_unpause = testGroup "TZBTC contract `unpause` test"
         withSender admin $ call c CallDefault $ fromFlatParameter $ AddOperator (#operator .! operator)
         -- Pause the contract
         withSender operator $ call c CallDefault $ fromFlatParameter $ Pause ()
-        st1 <- getFullStorage c
+        st1 <- getStorage c
 
-        assert (checkField (getPaused @ver) id st1) "Unexpected Paused status"
+        checkField (getPaused @ver) id st1 "Unexpected Paused status"
 
         -- Call unpause
         withSender admin $ call c CallDefault $ fromFlatParameter $ Unpause ()
-        st2 <- getFullStorage c
+        st2 <- getStorage c
 
-        assert (checkField (getPaused @ver) Prelude.not st2) "Unexpected Paused status"
+        checkField (getPaused @ver) Prelude.not st2 "Unexpected Paused status"
   ]
 
 test_bookkeeping :: TestTree
@@ -640,13 +658,13 @@ test_bookkeeping = testGroup "TZBTC contract bookkeeping views test"
 
 test_get_meta :: TestTree
 test_get_meta =
-  testContractEmulated "Can get TZBTC metadata" $
+  testContract "Can get TZBTC metadata" $
     \originateContract _ -> do
       admin <- newAddress "admin"
       v1 <- originateContract admin
       consumer <- originateSimple "consumer" [] contractConsumer
       call v1 CallDefault $ fromFlatParameter $ GetTokenMetadata (mkView [singleTokenTokenId] consumer)
-      consumerStorage <- getFullStorage consumer
+      consumerStorage <- getStorage consumer
       assert (consumerStorage == [[defaultTZBTCMetadata]]) "Unexpected metadata"
 
 test_documentation :: [TestTree]
