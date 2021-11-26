@@ -61,11 +61,29 @@ steps:
     - nix run -f ci.nix tezos-client tzbtc.components.exes.tzbtc-client -c ./result/bin/tzbtc-test
       --nettest-mode=only-network
 
+  - label: test-local-chain-011
+    if: *not_scheduled_autodoc
+    depends_on: build
+    env:
+      TASTY_NETTEST_NODE_ENDPOINT: "http://localhost:8734"
+    commands: *run-nettest
+
   - label: scheduled granadanet test
     if: build.source == "schedule"
     depends_on: build
     env:
       TASTY_NETTEST_NODE_ENDPOINT: "https://granada.testnet.tezos.serokell.team"
+    commands: *run-nettest
+    retry:
+      automatic:
+        limit: 1
+    timeout_in_minutes: 240
+
+  - label: scheduled hangzhounet test
+    if: build.source == "schedule"
+    depends_on: build
+    env:
+      TASTY_NETTEST_NODE_ENDPOINT: "https://hangzhou.testnet.tezos.serokell.team"
     commands: *run-nettest
     retry:
       automatic:
