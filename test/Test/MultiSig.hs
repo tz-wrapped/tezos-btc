@@ -18,7 +18,6 @@ import Lorentz.Contracts.Multisig
 import Lorentz.Contracts.TZBTC as TZBTC
 import qualified Lorentz.Contracts.TZBTC.Types as TZBTCTypes (SafeParameter(..))
 import Lorentz.Contracts.Test.ManagedLedger (OriginationParams(..))
-import Lorentz.Test.Integrational (genesisAddress3, genesisAddress5)
 import Morley.Nettest
 import Morley.Nettest.Tasty
 import Test.TZBTC (TestTZBTCVersion(..), coerceContractHandler, originateTzbtcV1ContractRaw)
@@ -76,6 +75,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         -- Originate main contract with owner set to multisig
         tzbtc <- originateTzbtc msig
         testChainId <- getChainId
+        operatorAddress <- newFreshAddress "operator"
         let
           -- Make the multi-sig call that adds an operator
           tzbtcParam = TZBTCTypes.AddOperator (#operator .! operatorAddress)
@@ -105,6 +105,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         -- Originate main contract with owner set to multisig
         tzbtc <- originateTzbtc msig
         testChainId <- getChainId
+        operatorAddress <- newFreshAddress "operator"
         -- Make the multi-sig call that adds an operator
         let
           tzbtcParam = TZBTCTypes.AddOperator (#operator .! operatorAddress)
@@ -128,6 +129,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         -- Originate main contract with owner set to multisig
         tzbtc <- originateTzbtc msig
         testChainId <- getChainId
+        operatorAddress <- newFreshAddress "operator"
         -- Make the multi-sig call that adds an operator
         let
           tzbtcParam = TZBTCTypes.AddOperator (#operator .! operatorAddress)
@@ -154,6 +156,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         -- Originate main contract with owner set to multisig
         tzbtc <- originateTzbtc msig
         testChainId <- getChainId
+        operatorAddress <- newFreshAddress "operator"
         -- Make the multi-sig call that adds an operator
         let
           tzbtcParam = TZBTCTypes.AddOperator (#operator .! operatorAddress)
@@ -185,6 +188,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         -- Originate main contract with owner set to multisig
         tzbtc <- originateTzbtc msig
         testChainId <- getChainId
+        operatorAddress <- newFreshAddress "operator"
         -- Make the multi-sig call that adds an operator
         let
           tzbtcParam = TZBTCTypes.AddOperator (#operator .! operatorAddress)
@@ -221,6 +225,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
                 unsafeParseAddress "KT19rTTBPeG1JAvrECgoQ8LJj1mJrN7gsdaH"
         tzbtc = TAddress @(TZBTC.Parameter SomeTZBTCVersion) $
                 unsafeParseAddress "KT1XXJWcjrwfcPL4n3vjmwCBsvkazDt8scYY"
+        operatorAddress = [ta|tz1fdBQ4jHa2xVNHte8pVFHvCokidE4MvDxm|]
 
         tzbtcParam = TZBTCTypes.AddOperator (#operator .! operatorAddress)
         package = MSig.mkPackage @(TAddress MSigParameter) msig dummyChainId 0 (toTAddress tzbtc) tzbtcParam
@@ -256,8 +261,6 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
 
   where
     fromRight_ er e = fromRight (error er) e
-    operatorAddress :: Address
-    operatorAddress = genesisAddress5
 
     aliceSK = Ed25519.detSecretKey "aa"
     bobSK = Ed25519.detSecretKey "bbb"
@@ -276,7 +279,8 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
     originateTzbtc msig = do
       admin <- newAddress auto
       chainId <- getChainId
-      tzbtc <- originateTzbtcV1ContractRaw genesisAddress3 $ OriginationParams
+      redeem <- newFreshAddress "redeem"
+      tzbtc <- originateTzbtcV1ContractRaw redeem $ OriginationParams
         { opAdmin = admin
         , opBalances = mempty
         }
