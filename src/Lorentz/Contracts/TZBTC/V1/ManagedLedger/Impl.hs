@@ -145,7 +145,7 @@ setAdministrator = do
   stSetField #admin
   nil; pair;
 
-getAdministrator :: StorageC store => Entrypoint (View () Address) store
+getAdministrator :: StorageC store => Entrypoint (View_ () Address) store
 getAdministrator = do
   doc $ DDescription getAdministratorDoc
   view_ (do drop @(); stToField #admin)

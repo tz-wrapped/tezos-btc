@@ -18,7 +18,7 @@ import qualified Lorentz.Contracts.TZBTC.V0 as V0
 import qualified Lorentz.Contracts.TZBTC.V1 as V1
 import qualified Lorentz.Contracts.TZBTC.V2 as V2
 import Lorentz.Contracts.Upgradeable.Common (UContractRouter, coerceUContractRouter)
-import Util.Named
+import Morley.Util.Named
 
 makeMigrationParamsV1
   :: UContractRouter V1.TZBTCv1
@@ -27,7 +27,7 @@ makeMigrationParamsV1
 makeMigrationParamsV1 contractCode scripts =
   LT.intercalate "\n" $
     printLorentzValue @(Parameter TZBTCv0) True <$>
-      [ fromFlatParameter $ EpwBeginUpgrade (#current .! 0, #new .! 1)
+      [ fromFlatParameter $ EpwBeginUpgrade (#current :! 0, #new :! 1)
       , fromFlatParameter $ EpwSetCode $ coerceUContractRouter contractCode
       ] ++ (fromFlatParameter . EpwApplyMigration . checkedCoerce <$> scripts)
         ++ [fromFlatParameter EpwFinishUpgrade]
@@ -39,7 +39,7 @@ makeMigrationParamsV2
 makeMigrationParamsV2 contractCode scripts =
   LT.intercalate "\n" $
     printLorentzValue @(Parameter TZBTCv0) True <$>
-      [ fromFlatParameter $ EpwBeginUpgrade (#current .! 0, #new .! 2)
+      [ fromFlatParameter $ EpwBeginUpgrade (#current :! 0, #new :! 2)
       , fromFlatParameter $ EpwSetCode $ coerceUContractRouter contractCode
       ] ++ (fromFlatParameter . EpwApplyMigration . checkedCoerce <$> scripts)
         ++ [fromFlatParameter EpwFinishUpgrade]
@@ -50,7 +50,7 @@ makeMigrationParamsV2FromV1
 makeMigrationParamsV2FromV1 scripts =
   LT.intercalate "\n" $
     printLorentzValue @(Parameter TZBTCv1) True <$>
-      [ fromFlatParameter $ EpwBeginUpgrade (#current .! 1, #new .! 2)
+      [ fromFlatParameter $ EpwBeginUpgrade (#current :! 1, #new :! 2)
         -- No need to migrate contract code
         -- TODO: cover code equality with test
       ] ++ (fromFlatParameter . EpwApplyMigration . checkedCoerce <$> scripts)

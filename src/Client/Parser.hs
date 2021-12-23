@@ -25,10 +25,10 @@ import Lorentz.Contracts.Multisig
 import Morley.CLI (mutezOption)
 import Morley.Client.Parser (clientConfigParser)
 import Morley.Client.TezosClient.Types (AddressOrAlias(..))
-import Tezos.Address (Address, parseAddress)
-import Tezos.Crypto (PublicKey, Signature, parsePublicKey, parseSignature)
-import Util.CLI
-import Util.Named
+import Morley.Tezos.Address (Address, parseAddress)
+import Morley.Tezos.Crypto (PublicKey, Signature, parsePublicKey, parseSignature)
+import Morley.Util.CLI
+import Morley.Util.Named
 
 import CLI.Parser
 import Client.Types
@@ -39,10 +39,10 @@ clientArgParser =
   ClientArgs
     <$> (clientConfigParser (pure Nothing))
     <*> clientArgRawParser
-    <*> (#userOverride <.!> userOption)
-    <*> (#multisigOverride <.!> multisigOption)
-    <*> (#contractOverride <.!> contractOverride)
-    <*> (#fee <.!> explictFee)
+    <*> (#userOverride <:!> userOption)
+    <*> (#multisigOverride <:!> multisigOption)
+    <*> (#contractOverride <:!> contractOverride)
+    <*> (#fee <:!> explictFee)
     <*> dryRunSwitch
   where
     multisigOption = mbAddrOrAliasOption "multisig-addr" "The multisig contract address/alias to use"
@@ -51,8 +51,8 @@ clientArgParser =
     explictFee =
       optional $ mutezOption
             Nothing
-            (#name .! "fee")
-            (#help .! "Fee that is going to be used for the transaction. \
+            (#name :! "fee")
+            (#help :! "Fee that is going to be used for the transaction. \
                       \By default fee will be computed automatically."
             )
     dryRunSwitch =
@@ -283,7 +283,7 @@ clientArgRawParser = Opt.hsubparser $
       mkCommandParser
       "deployTzbtcContract"
       (CmdDeployContract
-        <$> (#owner <.!> mbAddrOrAliasOption "owner" "Address of the owner")
+        <$> (#owner <:!> mbAddrOrAliasOption "owner" "Address of the owner")
         <*> deployContractOptions)
       "Deploy TZBTC contract to the chain"
       where
@@ -330,16 +330,16 @@ clientArgRawParser = Opt.hsubparser $
 
 addrOrAliasOption :: String -> String -> Opt.Parser AddressOrAlias
 addrOrAliasOption name hInfo =
-  mkCLOptionParser Nothing (#name .! name) (#help .! hInfo)
+  mkCLOptionParser Nothing (#name :! name) (#help :! hInfo)
 
 mbAddrOrAliasOption :: String -> String -> Opt.Parser (Maybe AddressOrAlias)
 mbAddrOrAliasOption = optional ... addrOrAliasOption
 
 addrOrAliasArg :: String -> Opt.Parser AddressOrAlias
-addrOrAliasArg hInfo = mkCLArgumentParser Nothing (#help .! hInfo)
+addrOrAliasArg hInfo = mkCLArgumentParser Nothing (#help :! hInfo)
 
 natOption :: String -> String -> Opt.Parser Natural
-natOption name hInfo = mkCLOptionParser Nothing (#name .! name) (#help .! hInfo)
+natOption name hInfo = mkCLOptionParser Nothing (#name :! name) (#help :! hInfo)
 
 burnParamsParser :: Opt.Parser BurnParams
 burnParamsParser = namedParser Nothing "Amount to burn"

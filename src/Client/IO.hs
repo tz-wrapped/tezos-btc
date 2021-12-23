@@ -34,21 +34,22 @@ import Lorentz hiding (address, balance, chainId, cons, map)
 import Lorentz.Contracts.Multisig
 import Lorentz.UStore
 import Lorentz.UStore.Types
-import Michelson.Text
-import Michelson.Typed (UnpackedValScope)
-import Michelson.Untyped (EpName(..))
-import Morley.Client.Action (lTransfer, lOriginateContract)
+import Morley.Client.Action (lOriginateContract, lTransfer)
 import Morley.Client.Logging (WithClientLog)
-import Morley.Client.RPC.Class hiding (getBalance)
+import Morley.Client.RPC.Class
 import Morley.Client.RPC.Getters (getContractStorage, readBigMapValueMaybe)
 import Morley.Client.TezosClient.Class
 import Morley.Client.TezosClient.Types
-  (AddressOrAlias(..), Alias(..), AliasHint(..))
+  (AddressOrAlias(..), AliasOrAliasHint(..), mkAlias, mkAliasHint)
 import Morley.Micheline
-import Tezos.Address
-import Tezos.Core (unsafeMkMutez)
-import Util.ByteString (HexJSONByteString(..))
-import Util.Exception (throwLeft)
+import Morley.Michelson.Text
+import Morley.Michelson.Typed (UnpackedValScope)
+import Morley.Michelson.Untyped (EpName(..))
+import Morley.Tezos.Address
+import Morley.Tezos.Core (unsafeMkMutez)
+import Morley.Util.ByteString (HexJSONByteString(..))
+import Morley.Util.Exception (throwLeft)
+import Morley.Util.Named
 
 import Client.Env
 import Client.Error
@@ -101,7 +102,7 @@ getTzbtcSpecificAddress
   => Text -> (ConfigOverride -> Maybe AddressOrAlias) -> m Address
 getTzbtcSpecificAddress defaultAlias getFromOverride = do
   tzbtcOverrides <- aeConfigOverride <$> lookupEnv
-  let alias = fromMaybe (AddressAlias $ Alias defaultAlias) $
+  let alias = fromMaybe (AddressAlias $ mkAlias defaultAlias) $
         getFromOverride tzbtcOverrides
   addressOrAliasToAddr alias
 
@@ -187,7 +188,7 @@ signPackageForConfiguredUser pkg = do
   case confirmationResult of
     Canceled -> pure $ Left $ "Package signing was canceled"
     Confirmed -> do
-      mbPassword <- getKeyPassword (AddressResolved userAddr)
+      mbPassword <- getKeyPassword userAddr
       signature' <- signBytes (AddressResolved userAddr) mbPassword $ unHexJSONByteString $ pkToSign pkg
       pure $ addSignature pkg (pk, TSignature signature')
 
@@ -198,7 +199,7 @@ getBalance addr = do
   mbLedgerValue <- getValueFromTzbtcUStoreSubmap @"ledger" addr
   case mbLedgerValue of
     Nothing -> pure 0
-    Just ledgerValue -> pure $ arg #balance . fst $ ledgerValue
+    Just (N balance, N _approvals) -> pure balance
 
 getAllowance
   :: (HasTezosRpc m, HasTezosClient m, HasEnv m)
@@ -207,7 +208,7 @@ getAllowance owner spender = do
   mbLedgerValue <- getValueFromTzbtcUStoreSubmap @"ledger" owner
   case mbLedgerValue of
     Nothing -> pure 0
-    Just ledgerValue -> let approvals = arg #approvals . snd $ ledgerValue in
+    Just (N _balance, N approvals) ->
       pure $ maybe 0 id $ Map.lookup spender approvals
 
 type HasStoreTemplateField t name =
@@ -280,7 +281,7 @@ performTzbtcDeployment deployAction = do
   contractAddr <- deployAction
   printTextLn $ "Contract was successfully deployed. Contract address: " <> formatAddress contractAddr
   let contractAlias = "tzbtc"
-  mbTzbtcAddress <- resolveAddressMaybe (AddressAlias $ Alias contractAlias)
+  mbTzbtcAddress <- resolveAddressMaybe (AddressAlias $ mkAlias contractAlias)
   printTextLn $ case mbTzbtcAddress of
     Just c ->
       "Current contract address for alias '" <> contractAlias <>
@@ -293,7 +294,7 @@ performTzbtcDeployment deployAction = do
     "' with the newly deployed contract?"
   case res of
     Canceled -> pass
-    Confirmed -> rememberContract True contractAddr $ AliasHint $ contractAlias
+    Confirmed -> rememberContract True contractAddr $ AnAliasHint $ mkAliasHint $ contractAlias
 
 originateTzbtcContract
   :: (HasTezosClient m, HasTezosRpc m, HasEnv m, WithClientLog env m)
@@ -331,7 +332,7 @@ deployMultisigContract
 deployMultisigContract msigStorage useCustomErrors = do
   let (_, (Threshold thresholdValue, Keys keysList)) = msigStorage
   when (thresholdValue == 0) $ throwM TzbtcMultisigZeroThreshold
-  when (thresholdValue > fromIntegral (length keysList)) $
+  when (thresholdValue > fromIntegralOverflowing @Int @Natural (length keysList)) $
     throwM TzbtcMultisigThresholdLargerThanKeys
   let msigToOriginate = if useCustomErrors
         then tzbtcMultisigContract @'CustomErrors
@@ -342,7 +343,7 @@ deployMultisigContract msigStorage useCustomErrors = do
     msigToOriginate msigStorage mbFee
   printTextLn $ "Contract was successfully deployed. Contract address: " <> formatAddress msigAddr
   let contractAlias = "tzbtc-multisig"
-  mbMsigAddress <- resolveAddressMaybe (AddressAlias $ Alias contractAlias)
+  mbMsigAddress <- resolveAddressMaybe (AddressAlias $ mkAlias contractAlias)
   printTextLn $ case mbMsigAddress of
     Just c ->
       "Current contract address for alias '" <> contractAlias <>
@@ -355,4 +356,4 @@ deployMultisigContract msigStorage useCustomErrors = do
     "' with the newly deployed contract?"
   case res of
     Canceled -> pass
-    Confirmed -> rememberContract True msigAddr $ AliasHint contractAlias
+    Confirmed -> rememberContract True msigAddr $ AnAliasHint $ mkAliasHint contractAlias

@@ -11,8 +11,8 @@ module Client.Crypto
 import Fmt (pretty)
 import Text.Hex (encodeHex)
 
-import Michelson.Untyped (InternalByteString(..))
-import Tezos.Crypto (Signature, parseSignature, signatureToBytes)
+import Morley.Michelson.Untyped (InternalByteString(..))
+import Morley.Tezos.Crypto (Signature, parseSignature, signatureToBytes)
 
 formatByteString :: InternalByteString -> Text
 formatByteString (InternalByteString bs) = encodeHex bs

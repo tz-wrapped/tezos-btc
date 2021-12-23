@@ -22,8 +22,8 @@ import Prelude hiding (drop, swap, (>>))
 import Lorentz
 import Lorentz.Contracts.Upgradeable.Common hiding (Parameter(..), Storage)
 import Lorentz.UStore
-import Michelson.Text
-import Util.Markdown (md)
+import Morley.Michelson.Text
+import Morley.Util.Markdown (md)
 
 import Lorentz.Contracts.TZBTC.Common.Types
 import qualified Lorentz.Contracts.TZBTC.V1.Impl as Impl
@@ -244,7 +244,7 @@ callUEp epName = do
   push (labelToMText epName)
   pair
   stackType @'[(MText, ByteString), Storage _]
-  coerceWrap
+  unsafeCoerceWrap
   stackType @'[UParam interface, Storage _]
   executeRun
 
@@ -256,9 +256,9 @@ callUSafeViewEP
      , Typeable vo, Typeable ver
      )
   => Label ep
-  -> Entrypoint (View vi vo) (Storage ver)
+  -> Entrypoint (View_ vi vo) (Storage ver)
 callUSafeViewEP epName = do
-  unwrapView
+  unwrapView_
   unpair
   dip address
   pair
