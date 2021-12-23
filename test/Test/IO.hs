@@ -18,7 +18,6 @@ import Test.HUnit (Assertion, assertFailure)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase)
 import Text.Hex (decodeHex)
-import Util.Named
 
 import Client.Env
 import Client.Main (mainProgram)
@@ -27,14 +26,16 @@ import Lorentz (TSignature(..), toTAddress)
 import Lorentz.Contracts.Multisig
 import qualified Lorentz.Contracts.TZBTC as TZBTC
 import qualified Lorentz.Contracts.TZBTC.Types as TZBTCTypes
-import Michelson.Typed.Haskell.Value (toVal)
-import Morley.Client.TezosClient.Types (AddressOrAlias(..), Alias(..), AliasHint(..))
+import Morley.Client.TezosClient.Types
+  (AddressOrAlias(..), Alias(..), AliasHint(..), AliasOrAliasHint(..), mkAlias)
 import Morley.Micheline
+import Morley.Michelson.Typed.Haskell.Value (toVal)
+import Morley.Tezos.Address
+import Morley.Tezos.Core (ChainId, dummyChainId)
+import Morley.Tezos.Crypto
+import qualified Morley.Tezos.Crypto.Ed25519 as Ed25519
+import Morley.Util.Named
 import TestM
-import Tezos.Address
-import Tezos.Core (ChainId, dummyChainId)
-import Tezos.Crypto
-import qualified Tezos.Crypto.Ed25519 as Ed25519
 import Util.MultiSig
 
 {-# ANN module ("HLint: ignore Reduce duplication" :: Text) #-}
@@ -74,13 +75,18 @@ defaultHandlers = Handlers
   , hGetBalance = \_ -> unavailable "getBalance"
   , hRunCode = \_ -> unavailable "runCode"
   , hGetChainId = pure $ testChainId
+  , hGetBigMapValuesAtBlock = \_ _ _ _ -> unavailable "hGetBigMapValuesAtBlock"
+  , hGetManagerKeyAtBlock = \_ _ -> unavailable "hGetManagerKeyAtBlock"
+  , hGetDelegateAtBlock = \_ _ -> unavailable "hGetDelegateAtBlock"
 
   , hSignBytes = \_ _ _ -> unavailable "signBytes"
   , hGenKey = \_ -> unavailable "genKey"
   , hGenFreshKey = \_ -> unavailable "genFreshKey"
   , hRevealKey = \_ _ -> unavailable "revealKey"
   , hWaitForOperation = \_ -> unavailable "waitForOperation"
-  , hRememberContract = \_ c (AliasHint a) -> meetExpectation (RememberContract c a)
+  , hRememberContract = \_ c a -> meetExpectation $ RememberContract c $ case a of
+      AnAlias x -> unsafeGetAliasText x
+      AnAliasHint x -> unsafeGetAliasHintText x
   , hImportKey = \_ _ _ -> unavailable "importKey"
   , hResolveAddressMaybe = \_ -> unavailable "resolveAddressMaybe"
   , hGetAlias = \_ -> unavailable "getAlias"
@@ -89,6 +95,7 @@ defaultHandlers = Handlers
   , hCalcTransferFee = \_ _ _ _ -> unavailable "calcTransferFee"
   , hCalcOriginationFee = \_ -> unavailable "calcOriginationFee"
   , hGetKeyPassword = \_ -> unavailable "getKeyPassword"
+  , hRegisterDelegate = \_ _ -> unavailable "hRegisterDelegate"
 
   , hLookupEnv = do
       meetExpectation LooksupEnv;
@@ -175,7 +182,7 @@ multiSigCreationTestHandlers =
     , hGetTezosClientConfig = throwM $ TestError "Unexpected tezos-client get config call"
     , hResolveAddressMaybe = \case
         AddressResolved addr -> pure $ Just addr
-        AddressAlias (Alias a) -> case a of
+        AddressAlias a -> case unsafeGetAliasText a of
           "tzbtc" -> pure $ Just contractAddress
           "tzbtc-multisig" -> pure $ Just multiSigAddress
           _ -> pure $ Nothing
@@ -201,7 +208,7 @@ multiSigCreationTestHandlers =
             toSignOk <- checkToSign package
             pure $ toSignOk &&
               (param == (TZBTC.fromFlatParameter $ TZBTC.AddOperator
-                (#operator .! operatorAddress1)))
+                (#operator :! operatorAddress1)))
           _ -> throwM $ TestError "Fetching parameter failed"
         _ -> throwM $ TestError "Decoding package failed"
 
@@ -229,7 +236,7 @@ multiSigCreationWithMSigOverrideTestHandlers =
     , hGetTezosClientConfig = throwM $ TestError "Unexpected tezos-client get config call"
     , hResolveAddressMaybe = \case
         AddressResolved addr -> pure $ Just addr
-        AddressAlias (Alias a) -> case a of
+        AddressAlias a -> case unsafeGetAliasText a of
           "tzbtc" -> pure $ Just contractAddress
           "tzbtc-multisig-override" -> pure $ Just multiSigOverrideAddress
           _ -> pure $ Nothing
@@ -255,7 +262,7 @@ multiSigCreationWithMSigOverrideTestHandlers =
             toSignOk <- checkToSign package
             pure $ toSignOk &&
               (param == (TZBTC.fromFlatParameter $ TZBTC.AddOperator
-                (#operator .! operatorAddress1)))
+                (#operator :! operatorAddress1)))
           _ -> throwM $ TestError "Fetching parameter failed"
         _ -> throwM $ TestError "Decoding package failed"
 
@@ -273,7 +280,7 @@ test_createMultisigPackageWithMSigOverride = testGroup "Create multisig package 
   where
     mockArgs = CmdAddOperator (AddressResolved operatorAddress1) (Just multiSigFilePath)
     envWithOverride = emptyEnv { aeConfigOverride = emptyConfigOverride
-                                 { coTzbtcMultisig = Just $ AddressAlias $ Alias "tzbtc-multisig-override" }
+                                 { coTzbtcMultisig = Just $ AddressAlias $ mkAlias "tzbtc-multisig-override" }
                                }
 
 ---- Test Signing of multisig package
@@ -295,13 +302,14 @@ multisigSigningTestHandlers =
     , hGetPublicKey = \case
         AddressResolved addr -> if addr == johnAddress then pure $ johnAddressPK else
           throwM $ TestError ("Unexpected address " ++ pretty addr)
-        AddressAlias (Alias "tzbtc-user") -> pure johnAddressPK
-        AddressAlias (Alias alias) -> throwM $ TestError ("Unexpected alias " ++ toString alias)
+        AddressAlias a | unsafeGetAliasText a == "tzbtc-user" -> pure johnAddressPK
+        AddressAlias alias -> throwM $
+          TestError ("Unexpected alias " ++ toString (unsafeGetAliasText alias))
     , hSignBytes = \_ _ _ ->
        pure $ unTSignature multisigSignPackageTestSignature
     , hResolveAddressMaybe = \case
         AddressResolved addr -> pure $ Just addr
-        AddressAlias (Alias a) -> case a of
+        AddressAlias a -> case unsafeGetAliasText a of
           "tzbtc" -> pure $ Just contractAddress
           "tzbtc-multisig" -> pure $ Just multiSigAddress
           "tzbtc-user" -> pure $ Just johnAddress
@@ -323,7 +331,7 @@ multisigSignPackageTestPackage = mkPackage
   testChainId
   14
   (toTAddress @(TZBTC.Parameter TZBTC.SomeTZBTCVersion) contractAddress)
-  (TZBTCTypes.AddOperator (#operator .! operatorAddress1))
+  (TZBTCTypes.AddOperator (#operator :! operatorAddress1))
 
 multisigSignPackageTestSignature :: Sign
 multisigSignPackageTestSignature =

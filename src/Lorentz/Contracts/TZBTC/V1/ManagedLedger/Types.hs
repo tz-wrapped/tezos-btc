@@ -36,10 +36,10 @@ type StorageC store =
   , Dupable store
   )
 
-type GetBalanceArg = View Common.GetBalanceParams Natural
-type GetTotalSupplyArg = View () Natural
+type GetBalanceArg = View_ Common.GetBalanceParams Natural
+type GetTotalSupplyArg = View_ () Natural
 
-type GetAllowanceArg = View Common.GetAllowanceParams Natural
+type GetAllowanceArg = View_ Common.GetAllowanceParams Natural
 
 type ApproveCasParams =
   ("spender" :! Address, "value" :! Natural, "expected" :! Natural)

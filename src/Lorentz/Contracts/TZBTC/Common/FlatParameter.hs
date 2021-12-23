@@ -15,7 +15,7 @@ import Prelude hiding (drop, swap, (>>))
 import Lorentz
 import Lorentz.Contracts.Metadata
 import Lorentz.Contracts.Upgradeable.Common hiding (Parameter(..), Storage, mkEmptyStorage)
-import Util.Named
+import Morley.Util.Named
 
 import Lorentz.Contracts.TZBTC.Common.Types
   (AcceptOwnershipParams, ApproveParams, BurnParams, GetAllowanceParams, GetBalanceParams,
@@ -33,15 +33,15 @@ data FlatParameter (ver :: VersionKind)
   | EpwSetCode SomeUContractRouter
   | EpwFinishUpgrade
   -- TZBTC Entrypoints
-  | GetVersion (View () Version)
-  | GetAllowance        !(View GetAllowanceParams Natural)
-  | GetBalance          !(View GetBalanceParams Natural)
-  | GetTotalSupply      !(View () Natural)
-  | GetTotalMinted      !(View () Natural)
-  | GetTotalBurned      !(View () Natural)
-  | GetOwner            !(View () Address)
-  | GetRedeemAddress    !(View () Address)
-  | GetTokenMetadata    !(View [TokenId] [TokenMetadata])
+  | GetVersion (View_ () Version)
+  | GetAllowance        !(View_ GetAllowanceParams Natural)
+  | GetBalance          !(View_ GetBalanceParams Natural)
+  | GetTotalSupply      !(View_ () Natural)
+  | GetTotalMinted      !(View_ () Natural)
+  | GetTotalBurned      !(View_ () Natural)
+  | GetOwner            !(View_ () Address)
+  | GetRedeemAddress    !(View_ () Address)
+  | GetTokenMetadata    !(View_ [TokenId] [TokenMetadata])
   | Transfer            !TransferParams
   | Approve             !ApproveParams
   | Mint                !MintParams
@@ -59,8 +59,8 @@ fromFlatParameter = \case
   Run a -> wrapInSafe $ TZBTC.Run a
   Upgrade a -> wrapInSafe $ TZBTC.Upgrade a
   EpwBeginUpgrade a -> wrapInSafe $ TZBTC.EpwBeginUpgrade a
-  EpwApplyMigration a -> wrapInSafe $ TZBTC.EpwApplyMigration (#migrationscript .! a)
-  EpwSetCode a -> wrapInSafe $ TZBTC.EpwSetCode (#contractcode .! a)
+  EpwApplyMigration a -> wrapInSafe $ TZBTC.EpwApplyMigration (#migrationscript :! a)
+  EpwSetCode a -> wrapInSafe $ TZBTC.EpwSetCode (#contractcode :! a)
   EpwFinishUpgrade -> wrapInSafe $ TZBTC.EpwFinishUpgrade
   -- TZBTC Entrypoints
   Transfer a -> wrapInSafe $ TZBTC.Transfer a

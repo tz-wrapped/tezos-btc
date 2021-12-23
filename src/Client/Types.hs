@@ -13,12 +13,12 @@ module Client.Types
   , DeployContractOptionsV2 (..)
   ) where
 
-import Michelson.Typed (IsoValue)
 import Morley.Client (MorleyClientConfig)
 import Morley.Client.TezosClient.Types (AddressOrAlias(..))
-import Tezos.Core (Mutez)
-import Tezos.Crypto (PublicKey, Signature)
-import Util.Named
+import Morley.Michelson.Typed (IsoValue)
+import Morley.Tezos.Core (Mutez)
+import Morley.Tezos.Crypto (PublicKey, Signature)
+import Morley.Util.Named
 
 import Lorentz.Contracts.Metadata
 import Lorentz.Contracts.Multisig

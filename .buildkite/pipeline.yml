@@ -32,8 +32,8 @@ steps:
   - label: crossref-verify
     if: *not_scheduled_autodoc
     commands:
-    - nix run -f ci.nix crossref-verifier -c
-        crossref-verify --mode local-only --config ./.crossref-verifier.yaml
+    - nix run -f ci.nix xrefcheck -c
+        xrefcheck --mode local-only --config ./.crossref-verifier.yaml
     soft_fail: true # TODO: remove
 
   - label: build
@@ -127,8 +127,8 @@ steps:
       else CONTRACT_DOC_STEP="contract-doc";
       fi
     - buildkite-agent artifact download TZBTC-contract.md tmp/ --step "$$CONTRACT_DOC_STEP"
-    - nix run -f ci.nix crossref-verifier -c
-        crossref-verify --mode local-only --config ./.crossref-verifier.yaml --root tmp
+    - nix run -f ci.nix xrefcheck -c
+        xrefcheck --mode local-only --config ./.crossref-verifier.yaml --root tmp
     soft_fail: true # TODO: remove
 
   - label: autodoc upload

@@ -32,8 +32,8 @@ import Lorentz.Contracts.Upgradeable.Common (KnownContractVersion(..), VersionKi
 import Lorentz.Contracts.Upgradeable.EntrypointWise
 import Lorentz.UStore
 import Lorentz.UStore.Instances
-import Util.Instances ()
-import Util.Markdown (md)
+import Morley.Util.Instances ()
+import Morley.Util.Markdown (md)
 
 -- | Template for the wrapped UStore which will hold the upgradeable code
 -- and fields.

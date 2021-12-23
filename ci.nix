@@ -7,7 +7,7 @@ rec {
     sourcesOverride = { hackage = sources."hackage.nix"; stackage = sources."stackage.nix"; };
   };
   pkgs = import sources.nixpkgs haskellNix.nixpkgsArgs;
-  crossref-verifier = import sources.crossref-verifier;
+  xrefcheck = import sources.xrefcheck;
   weeder-hacks = import sources.haskell-nix-weeder { inherit pkgs; };
   tezos-client = (import "${sources.tezos-packaging}/nix/build/pkgs.nix" {}).ocamlPackages.tezos-client;
 

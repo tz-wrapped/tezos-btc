@@ -26,8 +26,8 @@ import Lorentz.Contracts.Upgradeable.EntrypointWise
 import Lorentz.UStore
 import Lorentz.UStore.Doc (DUStoreTemplate(..))
 import Lorentz.UStore.Migration
-import qualified Michelson.Typed as T
-import Util.TypeTuple.Class
+import qualified Morley.Michelson.Typed as T
+import Morley.Util.TypeTuple.Class
 
 import Lorentz.Contracts.TZBTC.Common.Doc
 import Lorentz.Contracts.TZBTC.V0 (StoreTemplateV0)
@@ -68,10 +68,10 @@ v2Impl = recFromTuple
     callPart part = unpair # part # pair
 
     -- We convert an entry point from storage, that has an input of
-    -- `SafeView` to an entry point that can accept a `View`.
+    -- `SafeView` to an entry point that can accept a `View_`.
     toSafeView
       :: forall a b. (NiceParameter b)
-      => Entrypoint (View a b) (UStore StoreTemplateV2)
+      => Entrypoint (View_ a b) (UStore StoreTemplateV2)
       -> Entrypoint (SafeView a b) (UStore StoreTemplateV2)
     toSafeView ep = do
       coerceUnwrap
@@ -80,7 +80,7 @@ v2Impl = recFromTuple
         unsafeContractCalling DefEpName
         if IsSome then nop else failCustom_ #unexpectedContractType
       pair
-      wrapView
+      wrapView_
       ep
 
     -- Helper operator which is essentially the same as `/==>` but

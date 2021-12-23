@@ -13,11 +13,11 @@ module Client.Env
 
 import Colog (HasLog(..), LogAction(..), Message)
 
-import Morley.Client.App (MorleyClientEnv, MorleyClientM, runMorleyClientM)
+import Morley.Client (MorleyClientEnv, MorleyClientM, runMorleyClientM)
 import Morley.Client.Env (MorleyClientEnv'(..))
 import Morley.Client.RPC.Class
 import Morley.Client.TezosClient.Class
-import Tezos.Core (Mutez)
+import Morley.Tezos.Core (Mutez)
 
 import Client.Types
 
@@ -77,23 +77,26 @@ emptyConfigOverride :: ConfigOverride
 emptyConfigOverride  = ConfigOverride Nothing Nothing Nothing
 
 instance HasTezosRpc AppM where
-  getHeadBlock = morleyClientMToAppM getHeadBlock
-  getCounter = morleyClientMToAppM ... getCounter
+  getBlockHash = morleyClientMToAppM ... getBlockHash
+  getCounterAtBlock = morleyClientMToAppM ... getCounterAtBlock
   getBlockHeader = morleyClientMToAppM ... getBlockHeader
   getBlockConstants = morleyClientMToAppM ... getBlockConstants
   getBlockOperations = morleyClientMToAppM ... getBlockOperations
-  getProtocolParameters = morleyClientMToAppM getProtocolParameters
-  runOperation = morleyClientMToAppM ... runOperation
-  preApplyOperations = morleyClientMToAppM ... preApplyOperations
-  forgeOperation = morleyClientMToAppM ... forgeOperation
+  getProtocolParametersAtBlock = morleyClientMToAppM ... getProtocolParametersAtBlock
+  runOperationAtBlock = morleyClientMToAppM ... runOperationAtBlock
+  preApplyOperationsAtBlock = morleyClientMToAppM ... preApplyOperationsAtBlock
+  forgeOperationAtBlock = morleyClientMToAppM ... forgeOperationAtBlock
   injectOperation = morleyClientMToAppM ... injectOperation
-  getContractScript = morleyClientMToAppM ... getContractScript
+  getContractScriptAtBlock = morleyClientMToAppM ... getContractScriptAtBlock
   getContractStorageAtBlock = morleyClientMToAppM ... getContractStorageAtBlock
-  getContractBigMap = morleyClientMToAppM ... getContractBigMap
+  getContractBigMapAtBlock = morleyClientMToAppM ... getContractBigMapAtBlock
   getBigMapValueAtBlock = morleyClientMToAppM ... getBigMapValueAtBlock
-  getBalance = morleyClientMToAppM ... getBalance
-  runCode = morleyClientMToAppM ... runCode
-  getChainId = morleyClientMToAppM getChainId
+  getBigMapValuesAtBlock = morleyClientMToAppM ... getBigMapValuesAtBlock
+  getBalanceAtBlock = morleyClientMToAppM ... getBalanceAtBlock
+  getDelegateAtBlock = morleyClientMToAppM ... getDelegateAtBlock
+  runCodeAtBlock = morleyClientMToAppM ... runCodeAtBlock
+  getChainId = morleyClientMToAppM ... getChainId
+  getManagerKeyAtBlock = morleyClientMToAppM ... getManagerKeyAtBlock
 
 instance HasTezosClient AppM where
   signBytes = morleyClientMToAppM ... signBytes
@@ -110,3 +113,4 @@ instance HasTezosClient AppM where
   calcTransferFee = morleyClientMToAppM ... calcTransferFee
   calcOriginationFee = morleyClientMToAppM ... calcOriginationFee
   getKeyPassword = morleyClientMToAppM ... getKeyPassword
+  registerDelegate = morleyClientMToAppM ... registerDelegate
