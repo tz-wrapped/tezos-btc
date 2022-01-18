@@ -5,7 +5,7 @@ env:
   TEZOS_CLIENT_UNSAFE_DISABLE_DISCLAIMER: "Y"
   # Note that testnet moneybag can run out of tz. If this happened, someone should transfer it some
   # more tz, its address: tz1Vona7MnADxXVFugpHohxSTFmah5Aj5xBM
-  TASTY_NETTEST_IMPORT_SECRET_KEY: "unencrypted:edsk3D3Gx5q6mVL4jCAuFCoekWjM6hzrmSA3MCtDUnMAjxmxJ2rtes"
+  TASTY_CLEVELAND_MONEYBAG_SECRET_KEY: "unencrypted:edsk3D3Gx5q6mVL4jCAuFCoekWjM6hzrmSA3MCtDUnMAjxmxJ2rtes"
   # this key is defined in local-chain bootstrap accounts list in
   # https://github.com/serokell/aquarius-infra/blob/master/servers/albali/chain.nix
 
@@ -48,24 +48,24 @@ steps:
     depends_on: build
     commands:
     - nix-build ci.nix -A tzbtc.components.tests.tzbtc-test
-    - ./result/bin/tzbtc-test --nettest-mode=disable-network
+    - ./result/bin/tzbtc-test --cleveland-mode=disable-network
 
   - label: test-local-chain-011
     if: *not_scheduled_autodoc
     depends_on: build
     env:
-      TASTY_NETTEST_NODE_ENDPOINT: "http://localhost:8734"
+      TASTY_CLEVELAND_NODE_ENDPOINT: "http://localhost:8734"
     commands: &run-nettest
     - nix-build ci.nix -A tzbtc.components.tests.tzbtc-test
-    - export TASTY_NETTEST_DATA_DIR="$(mktemp -d --tmpdir="$$PWD")"
+    - export TASTY_CLEVELAND_DATA_DIR="$(mktemp -d --tmpdir="$$PWD")"
     - nix run -f ci.nix tezos-client tzbtc.components.exes.tzbtc-client -c ./result/bin/tzbtc-test
-      --nettest-mode=only-network
+      --cleveland-mode=only-network
 
   - label: scheduled hangzhounet test
     if: build.source == "schedule"
     depends_on: build
     env:
-      TASTY_NETTEST_NODE_ENDPOINT: "https://hangzhou.testnet.tezos.serokell.team"
+      TASTY_CLEVELAND_NODE_ENDPOINT: "https://hangzhou.testnet.tezos.serokell.team"
     commands: *run-nettest
     retry:
       automatic:
