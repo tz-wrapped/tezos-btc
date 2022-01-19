@@ -6,7 +6,7 @@
 
 # TZBTC
 
-**Code revision:** [77d8d4f](https://github.com/tz-wrapped/tezos-btc/commit/77d8d4ff8f7f29e5d49e5c7d3d77d6cebaacffe1) *(Tue Dec 21 18:35:58 2021 +0100)*
+**Code revision:** [c03c38a](https://github.com/tz-wrapped/tezos-btc/commit/c03c38adfb640b3ed3a91da90edf90bd40b55d70) *(Wed Jan 19 16:56:25 2022 +0100)*
 
 
 
@@ -154,7 +154,7 @@ Also they have a special calling routing, see the respective subsection in every
 This entry point is used to get contract version.
 
 **Argument:** 
-  + **In Haskell:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Version`](#types-Version)
+  + **In Haskell:** [`View_`](#types-View) [`()`](#types-lparenrparen) [`Version`](#types-Version)
   + **In Michelson:** `(pair unit (contract nat))`
     + **Example:** <span id="example-id">`Pair Unit "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
@@ -179,7 +179,7 @@ This entry point is used to get contract version.
 Returns the approval value between two given addresses.
 
 **Argument:** 
-  + **In Haskell:** [`View`](#types-View) (***owner*** : [`Address`](#types-Address), ***spender*** : [`Address`](#types-Address)) [`Natural`](#types-Natural)
+  + **In Haskell:** [`View_`](#types-View) (***owner*** : [`Address`](#types-Address), ***spender*** : [`Address`](#types-Address)) [`Natural`](#types-Natural)
   + **In Michelson:** `(pair (pair address address) (contract nat))`
     + **Example:** <span id="example-id">`Pair (Pair "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB" "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB") "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
@@ -207,7 +207,7 @@ Returns the approval value between two given addresses.
 Returns the balance of the address in the ledger.
 
 **Argument:** 
-  + **In Haskell:** [`View`](#types-View) (***owner*** : [`Address`](#types-Address)) [`Natural`](#types-Natural)
+  + **In Haskell:** [`View_`](#types-View) (***owner*** : [`Address`](#types-Address)) [`Natural`](#types-Natural)
   + **In Michelson:** `(pair address (contract nat))`
     + **Example:** <span id="example-id">`Pair "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB" "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
@@ -235,7 +235,7 @@ Returns the balance of the address in the ledger.
 Returns total number of tokens.
 
 **Argument:** 
-  + **In Haskell:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
+  + **In Haskell:** [`View_`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
   + **In Michelson:** `(pair unit (contract nat))`
     + **Example:** <span id="example-id">`Pair Unit "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
@@ -263,7 +263,7 @@ Returns total number of tokens.
 This view returns the total number of minted tokens.
 
 **Argument:** 
-  + **In Haskell:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
+  + **In Haskell:** [`View_`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
   + **In Michelson:** `(pair unit (contract nat))`
     + **Example:** <span id="example-id">`Pair Unit "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
@@ -291,7 +291,7 @@ This view returns the total number of minted tokens.
 This view returns the total number of burned tokens.
 
 **Argument:** 
-  + **In Haskell:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
+  + **In Haskell:** [`View_`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
   + **In Michelson:** `(pair unit (contract nat))`
     + **Example:** <span id="example-id">`Pair Unit "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
@@ -319,7 +319,7 @@ This view returns the total number of burned tokens.
 This view returns the current contract owner.
 
 **Argument:** 
-  + **In Haskell:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Address`](#types-Address)
+  + **In Haskell:** [`View_`](#types-View) [`()`](#types-lparenrparen) [`Address`](#types-Address)
   + **In Michelson:** `(pair unit (contract address))`
     + **Example:** <span id="example-id">`Pair Unit "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
@@ -347,7 +347,7 @@ This view returns the current contract owner.
 This view returns the redeem address.
 
 **Argument:** 
-  + **In Haskell:** [`View`](#types-View) [`()`](#types-lparenrparen) [`Address`](#types-Address)
+  + **In Haskell:** [`View_`](#types-View) [`()`](#types-lparenrparen) [`Address`](#types-Address)
   + **In Michelson:** `(pair unit (contract address))`
     + **Example:** <span id="example-id">`Pair Unit "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
@@ -375,7 +375,7 @@ This view returns the redeem address.
 This view returns the token metadata.
 
 **Argument:** 
-  + **In Haskell:** [`View`](#types-View) ([`List`](#types-List) [`TokenId`](#types-TokenId)) ([`List`](#types-List) [`TokenMetadata`](#types-TokenMetadata))
+  + **In Haskell:** [`View_`](#types-View) ([`List`](#types-List) [`TokenId`](#types-TokenId)) ([`List`](#types-List) [`TokenMetadata`](#types-TokenMetadata))
   + **In Michelson:** `(pair (list nat) (contract (list (pair nat string string nat (map string string)))))`
     + **Example:** <span id="example-id">`Pair { 0 } "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
@@ -1431,11 +1431,11 @@ Contract version.
 `View a r` accepts an argument of type `a` and callback contract which accepts `r` and returns result via calling that contract.
 Read more in [A1 conventions document](https://gitlab.com/tzip/tzip/-/blob/c42e3f0f5e73669e84e615d69bee73281572eb0a/proposals/tzip-4/tzip-4.md#view-entrypoints).
 
-**Structure (example):** `View MText Integer` = 
+**Structure (example):** `View_ MText Integer` = 
   * [`Text`](#types-Text)
   * [`ContractRef`](#types-Contract) [`Integer`](#types-Integer)
 
-**Final Michelson representation (example):** `View MText Integer` = `pair string (contract int)`
+**Final Michelson representation (example):** `View_ MText Integer` = `pair string (contract int)`
 
 
 
