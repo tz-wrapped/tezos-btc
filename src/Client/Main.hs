@@ -12,13 +12,13 @@ import Fmt (Buildable, pretty)
 import Lorentz hiding (address, balance, chainId, cons, map)
 import Lorentz.Contracts.Metadata
 import Lorentz.Contracts.Multisig
-import Michelson.Typed (UnpackedValScope)
 import Morley.Client.Logging (WithClientLog)
-import Morley.Client.RPC.Class hiding (getBalance)
+import Morley.Client.RPC.Class
 import Morley.Client.TezosClient.Class
 import Morley.Client.TezosClient.Types (AddressOrAlias(..))
-import Util.Named
-import Util.TypeLits
+import Morley.Michelson.Typed (UnpackedValScope)
+import Morley.Util.Named
+import Morley.Util.TypeLits
 
 import Client.Env
 import Client.IO
@@ -42,7 +42,7 @@ mainProgram cmd = case cmd of
   CmdMint to' value mbMultisig -> do
     to <- addressOrAliasToAddr to'
     runMultisigTzbtcContract mbMultisig $
-      fromFlatParameter $ Mint (#to .! to, #value .! value)
+      fromFlatParameter $ Mint (#to :! to, #value :! value)
   CmdBurn burnParams mbMultisig ->
     runMultisigTzbtcContract mbMultisig $
       fromFlatParameter $ Burn burnParams
@@ -50,11 +50,11 @@ mainProgram cmd = case cmd of
     from <- addressOrAliasToAddr from'
     to <- addressOrAliasToAddr to'
     runTzbtcContract $
-      fromFlatParameter $ Transfer (#from .! from, #to .! to, #value .! value)
+      fromFlatParameter $ Transfer (#from :! from, #to :! to, #value :! value)
   CmdApprove spender' value -> do
     spender <- addressOrAliasToAddr spender'
     runTzbtcContract $
-      fromFlatParameter $ Approve (#spender .! spender, #value .! value)
+      fromFlatParameter $ Approve (#spender :! spender, #value :! value)
   CmdGetAllowance (owner', spender') mbCallback' ->
     case mbCallback' of
       Just callback' -> do
@@ -62,7 +62,7 @@ mainProgram cmd = case cmd of
         spender <- addressOrAliasToAddr spender'
         callback <- addressOrAliasToAddr callback'
         runTzbtcContract $ fromFlatParameter $ GetAllowance $
-          mkView (#owner .! owner, #spender .! spender)
+          mkView_ (#owner :! owner, #spender :! spender)
                   (toTAddress callback)
       Nothing -> do
         owner <- addressOrAliasToAddr owner'
@@ -76,7 +76,7 @@ mainProgram cmd = case cmd of
         callback <- addressOrAliasToAddr callback'
         runTzbtcContract $
           fromFlatParameter $ GetBalance $
-            mkView (#owner .! owner) (toTAddress callback)
+            mkView_ (#owner :! owner) (toTAddress callback)
       Nothing -> do
         owner <- addressOrAliasToAddr owner'
         balance <- getBalance owner
@@ -84,11 +84,11 @@ mainProgram cmd = case cmd of
   CmdAddOperator operator' mbMultisig -> do
     operator <- addressOrAliasToAddr operator'
     runMultisigTzbtcContract mbMultisig $
-      fromFlatParameter $ AddOperator (#operator .! operator)
+      fromFlatParameter $ AddOperator (#operator :! operator)
   CmdRemoveOperator operator' mbMultisig -> do
     operator <- addressOrAliasToAddr operator'
     runMultisigTzbtcContract mbMultisig $
-      fromFlatParameter $ RemoveOperator (#operator .! operator)
+      fromFlatParameter $ RemoveOperator (#operator :! operator)
   CmdPause mbMultisig -> runMultisigTzbtcContract mbMultisig $
     fromFlatParameter $ Pause ()
   CmdUnpause mbMultisig -> runMultisigTzbtcContract mbMultisig $
@@ -96,11 +96,11 @@ mainProgram cmd = case cmd of
   CmdSetRedeemAddress redeem' mbMultisig -> do
     redeem <- addressOrAliasToAddr redeem'
     runMultisigTzbtcContract mbMultisig $
-      fromFlatParameter $ SetRedeemAddress (#redeem .! redeem)
+      fromFlatParameter $ SetRedeemAddress (#redeem :! redeem)
   CmdTransferOwnership newOwner' mbMultisig -> do
     newOwner <- addressOrAliasToAddr newOwner'
     runMultisigTzbtcContract mbMultisig $
-      fromFlatParameter $ TransferOwnership (#newOwner .! newOwner)
+      fromFlatParameter $ TransferOwnership (#newOwner :! newOwner)
   CmdAcceptOwnership p mbMultisig -> do
     runMultisigTzbtcContract mbMultisig $
       fromFlatParameter $ AcceptOwnership p
@@ -119,8 +119,8 @@ mainProgram cmd = case cmd of
         runTzbtcContract $
           fromFlatParameter $
           GetTokenMetadata $
-          View [singleTokenTokenId] $
-          callingDefTAddress $
+          View_ [singleTokenTokenId] $
+          callingDefAddress $
           toTAddress @[TokenMetadata] callback''
       Nothing -> do
         printFieldFromStorage #tokenMetadata "Token metadata"
@@ -159,7 +159,7 @@ mainProgram cmd = case cmd of
     case pkgs of
       Left err -> printTextLn err
       Right packages -> runMultisigContract packages
-  CmdDeployContract (arg #owner -> mOwner) deployOptions -> do
+  CmdDeployContract (N mOwner) deployOptions -> do
     owner <- maybe getTzbtcUserAddress addressOrAliasToAddr mOwner
     let toDeployParamsV1 :: DeployContractOptionsV1 -> m V1DeployParameters
         toDeployParamsV1 DeployContractOptionsV1{..} = do
@@ -195,7 +195,7 @@ mainProgram cmd = case cmd of
       case mbMultisig of
         Just fp -> case toSafeParam param of
           Just subParam -> createMultisigPackage fp subParam
-          _ -> printStringLn "Unable to call multisig for View entrypoints"
+          _ -> printStringLn "Unable to call multisig for View_ entrypoints"
         Nothing -> runTzbtcContract param
     printFieldFromStorage
       :: forall t name. (HasStoreTemplateField t name, Buildable t, UnpackedValScope (ToT t))
@@ -212,12 +212,12 @@ mainProgram cmd = case cmd of
       , NiceParameterFull a, NoExplicitDefaultEntrypoint a
       , UnpackedValScope (ToT a)
       ) =>
-      Label name -> Text -> (View () a -> FlatParameter SomeTZBTCVersion) ->
+      Label name -> Text -> (View_ () a -> FlatParameter SomeTZBTCVersion) ->
       Maybe AddressOrAlias -> m ()
     simpleGetter label descr mkFlatParam = \case
       Just callback' -> do
         callback <- addressOrAliasToAddr callback'
         runTzbtcContract $
-          fromFlatParameter $ mkFlatParam $ View () (callingDefTAddress $ toTAddress @a callback)
+          fromFlatParameter $ mkFlatParam $ View_ () (callingDefAddress $ toTAddress @a callback)
       Nothing -> do
         printFieldFromStorage @a label descr

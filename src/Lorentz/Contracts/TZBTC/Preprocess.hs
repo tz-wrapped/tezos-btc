@@ -22,7 +22,7 @@ module Lorentz.Contracts.TZBTC.Preprocess
 
 import Lorentz
 
-import Michelson.Optimizer (OptimizerConf(..))
+import Morley.Michelson.Optimizer (OptimizerConf(..))
 
 import Lorentz.Contracts.TZBTC.Types (OneShotUpgradeParameters)
 import qualified Lorentz.Contracts.TZBTC.V0 as V0
@@ -34,7 +34,7 @@ import Lorentz.Contracts.Upgradeable.Common.Interface
 import Lorentz.UStore.Migration
 
 -- | Full V0 contract info.
-tzbtcContract :: Contract (V1.Parameter V0.TZBTCv0) V0.UStoreV0
+tzbtcContract :: Contract (V1.Parameter V0.TZBTCv0) V0.UStoreV0 ()
 tzbtcContract = mkContractWith compilationOptions V0.tzbtcContractRaw
 
 -- | Preprocessed version of contract router for V1.

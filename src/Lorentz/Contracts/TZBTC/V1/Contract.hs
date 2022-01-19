@@ -31,9 +31,9 @@ import Lorentz.Contracts.Upgradeable.EntrypointWise
 import Lorentz.UStore
 import Lorentz.UStore.Doc (DUStoreTemplate(..))
 import Lorentz.UStore.Haskell
-import qualified Michelson.Typed as T
-import Util.Named
-import Util.TypeTuple.Class
+import qualified Morley.Michelson.Typed as T
+import Morley.Util.Named
+import Morley.Util.TypeTuple.Class
 
 import Lorentz.Contracts.TZBTC.Common.Doc
 import Lorentz.Contracts.TZBTC.V0 (StoreTemplateV0)
@@ -73,10 +73,10 @@ v1Impl = recFromTuple
     callPart part = unpair # part # pair
 
     -- We convert an entry point from storage, that has an input of
-    -- `SafeView` to an entry point that can accept a `View`.
+    -- `SafeView` to an entry point that can accept a `View_`.
     toSafeView
       :: forall a b. (NiceParameter b)
-      => Entrypoint (View a b) (UStore StoreTemplateV1)
+      => Entrypoint (View_ a b) (UStore StoreTemplateV1)
       -> Entrypoint (SafeView a b) (UStore StoreTemplateV1)
     toSafeView ep = do
       coerceUnwrap
@@ -85,7 +85,7 @@ v1Impl = recFromTuple
         unsafeContractCalling DefEpName
         if IsSome then nop else failCustom_ #unexpectedContractType
       pair
-      wrapView
+      wrapView_
       ep
 
     -- Helper operator which is essentially the same as `/==>` but
@@ -121,7 +121,7 @@ originationParamsToStoreTemplate V1Parameters {..} = let
     , ledger = UStoreSubMap $ toLedgerValue <$> v1Balances
     }
   where
-    toLedgerValue i = (#balance .! i, #approvals .! mempty)
+    toLedgerValue i = (#balance :! i, #approvals :! mempty)
 
 migrateStorage :: V1Parameters -> MigrationScript StoreTemplateV0 StoreTemplateV1
 migrateStorage v1p =
