@@ -36,6 +36,7 @@ module Lorentz.Contracts.TZBTC.Common.Types
   ) where
 
 import Fmt (Buildable(..), (+|), (|+))
+import Named (arg)
 
 import Lorentz
 import Lorentz.Contracts.Metadata
@@ -48,7 +49,7 @@ import Lorentz.Contracts.Upgradeable.Common
 import qualified Lorentz.Contracts.Upgradeable.Common as Upgradeable
 import Lorentz.UStore
 import Lorentz.UStore.Migration (SomeUTemplate)
-import Util.Instances ()
+import Morley.Util.Instances ()
 
 type BurnParams = ("value" :! Natural)
 type OperatorParams = ("operator" :! Address)
@@ -116,16 +117,16 @@ instance ( Typeable ver
 
 -- | The actual parameter of the main TZBTC contract.
 data Parameter (ver :: VersionKind)
-  = GetVersion (View () Version)
+  = GetVersion (View_ () Version)
   -- TZBTC Entrypoints
-  | GetAllowance        !(View ManagedLedger.GetAllowanceParams Natural)
-  | GetBalance          !(View GetBalanceParams Natural)
-  | GetTotalSupply      !(View () Natural)
-  | GetTotalMinted      !(View () Natural)
-  | GetTotalBurned      !(View () Natural)
-  | GetOwner            !(View () Address)
-  | GetRedeemAddress    !(View () Address)
-  | GetTokenMetadata    !(View [TokenId] [TokenMetadata])
+  | GetAllowance        !(View_ ManagedLedger.GetAllowanceParams Natural)
+  | GetBalance          !(View_ GetBalanceParams Natural)
+  | GetTotalSupply      !(View_ () Natural)
+  | GetTotalMinted      !(View_ () Natural)
+  | GetTotalBurned      !(View_ () Natural)
+  | GetOwner            !(View_ () Address)
+  | GetRedeemAddress    !(View_ () Address)
+  | GetTokenMetadata    !(View_ [TokenId] [TokenMetadata])
   | SafeEntrypoints !(SafeParameter ver)
   deriving stock (Eq, Generic, Show)
 
@@ -145,9 +146,9 @@ instance (VerPermanent ver ~ Empty) => ParameterHasEntrypoints (SafeParameter ve
 
 instance Buildable (Parameter ver) where
   build = \case
-    GetAllowance (View (arg #owner -> owner, arg #spender -> spender) _) ->
+    GetAllowance (View_ (arg #owner -> owner, arg #spender -> spender) _) ->
       "Get allowance for " +| owner |+ " from " +| spender |+ ""
-    GetBalance (View addr _) ->
+    GetBalance (View_ addr _) ->
       "Get balance for " +| addr |+ ""
     GetTotalSupply _ ->
       "Get total supply"
@@ -276,14 +277,12 @@ instance KnownContractVersion SomeTZBTCVersion where
   contractVersion _ = 999
 
 -- | A safe view to act as argument to the inner stored procedures that
--- accept a callback contract. The main entrypoint will recieve a `View`
+-- accept a callback contract. The main entrypoint will receive a `View_`
 -- in its arguments, and convert the view to a `SafeView` before calling
 -- the stored view entry point
 newtype SafeView i o = SafeView { unSafeView :: (i, Address) }
    deriving stock (Generic, Show)
-   deriving anyclass IsoValue
-
-instance Wrappable (SafeView i o)
+   deriving anyclass (IsoValue, Wrappable, Unwrappable)
 
 -- | Type of instruction which implements a part of TZBTC Protocol.
 type TZBTCPartInstr param store =

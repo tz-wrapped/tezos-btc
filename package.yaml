@@ -59,6 +59,7 @@ executables:
       - morley
       - morley-multisig
       - morley-prelude
+      - named
       - optparse-applicative
       - safe-exceptions
       - tzbtc
@@ -100,6 +101,7 @@ tests:
     - morley-prelude
     - morley-upgradeable
     - mtl
+    - named
     - process
     - tagged
     - tasty

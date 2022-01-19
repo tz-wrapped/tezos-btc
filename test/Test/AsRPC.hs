@@ -10,8 +10,8 @@ module Test.AsRPC (StorageRPC(..)) where
 import Lorentz.Contracts.Metadata (TokenMetadata)
 import Lorentz.Contracts.TZBTC.V0 (Storage)
 import Lorentz.Contracts.TZBTC.V1.Types (StorageFields)
-import Michelson.Typed.Haskell.Value (BigMapId, IsoValue)
-import Morley.Nettest (AsRPC)
+import Morley.Michelson.Typed.Haskell.Value (BigMapId, IsoValue)
+import Test.Cleveland (AsRPC)
 
 data StorageRPC ver = StorageRPC
   { dataMap :: BigMapId ByteString ByteString

@@ -12,7 +12,6 @@ module Test.Migration
   ) where
 
 import Test.Tasty (TestTree, testGroup)
-import Util.Named
 
 import qualified Lorentz as L
 import Lorentz.Base ((#))
@@ -25,9 +24,9 @@ import Lorentz.Contracts.Upgradeable.Common (UContractRouter, mkUContractRouter)
 import Lorentz.Instr as Lorentz (drop, nil, pair)
 import Lorentz.UParam (mkUParam)
 import Lorentz.UStore.Migration
-import Morley.Nettest
-import Morley.Nettest.Tasty
-import Tezos.Address (Address, ta)
+import Morley.Tezos.Address (Address, ta)
+import Morley.Util.Named
+import Test.Cleveland
 
 import qualified Test.AsRPC as RPC
 import Test.TZBTC (dummyV1Parameters)
@@ -38,25 +37,25 @@ import Test.TZBTC (dummyV1Parameters)
 -- Test that all administrative endpoints can only be called as owner
 test_ownerCheck :: TestTree
 test_ownerCheck = testGroup "TZBTC contract migration endpoints test"
-  [ nettestScenarioCaps "Test call to administrative endpoints are only available to owner" $ do
+  [ testScenario "Test call to administrative endpoints are only available to owner" $ scenario $ do
       admin <- newAddress "admin"
       bob <- newAddress "bob"
       v0 <- originateSimple "tzbtc" (mkEmptyStorageV0 admin) tzbtcContract
       expectCustomError_ #senderIsNotOwner $ withSender bob $
-        call v0 CallDefault $ fromFlatParameter $ EpwBeginUpgrade (#current .! 0, #new .! 1)
-  , nettestScenarioCaps "Test call to `ApplyMigration` endpoints are only available to owner" $ do
+        call v0 CallDefault $ fromFlatParameter $ EpwBeginUpgrade (#current :! 0, #new :! 1)
+  , testScenario "Test call to `ApplyMigration` endpoints are only available to owner" $ scenario $ do
       admin <- newAddress "admin"
       bob <- newAddress "bob"
       v0 <- originateSimple "tzbtc" (mkEmptyStorageV0 admin) tzbtcContract
       expectCustomError_ #senderIsNotOwner $ withSender bob $
         call v0 CallDefault $ fromFlatParameter $ EpwApplyMigration (checkedCoerce migrationScriptV1)
-  , nettestScenarioCaps "Test call to `SetCode` endpoints are only available to owner" $ do
+  , testScenario "Test call to `SetCode` endpoints are only available to owner" $ scenario $ do
       admin <- newAddress "admin"
       bob <- newAddress "bob"
       v0 <- originateSimple "tzbtc" (mkEmptyStorageV0 admin) tzbtcContract
       expectCustomError_ #senderIsNotOwner $ withSender bob $
         call v0 CallDefault $ fromFlatParameter $ EpwSetCode emptyCode
-  , nettestScenarioCaps "Test call to `EpwFinishUpgrade` endpoints are only available to owner" $ do
+  , testScenario "Test call to `EpwFinishUpgrade` endpoints are only available to owner" $ scenario $ do
       admin <- newAddress "admin"
       bob <- newAddress "bob"
       v0 <- originateSimple "tzbtc" (mkEmptyStorageV0 admin) tzbtcContract
@@ -67,17 +66,17 @@ test_ownerCheck = testGroup "TZBTC contract migration endpoints test"
 -- Test that migration entrypoints check a not migrating status
 test_notMigratingStatus :: TestTree
 test_notMigratingStatus = testGroup "TZBTC contract migration status not active check"
-  [ nettestScenarioCaps "Test call to `ApplyMigration` that require a migrating state fails in non migrating state" $ do
+  [ testScenario "Test call to `ApplyMigration` that require a migrating state fails in non migrating state" $ scenario $ do
       admin <- newAddress "admin"
       v0 <- originateSimple "tzbtc" (mkEmptyStorageV0 admin) tzbtcContract
       expectCustomError_ #upgContractIsNotMigrating $ withSender admin $
         call v0 CallDefault $ fromFlatParameter $ EpwApplyMigration (checkedCoerce migrationScriptV1)
-  , nettestScenarioCaps "Test call to `EpwSetCode` that require a non-migrating state fails in migrating state" $ do
+  , testScenario "Test call to `EpwSetCode` that require a non-migrating state fails in migrating state" $ scenario $ do
       admin <- newAddress "admin"
       v0 <- originateSimple "tzbtc" (mkEmptyStorageV0 admin) tzbtcContract
       expectCustomError_ #upgContractIsNotMigrating $ withSender admin $
         call v0 CallDefault $ fromFlatParameter $ EpwSetCode emptyCode
-  , nettestScenarioCaps "Test call to `EpwFinishUpgrade` that require a non-migrating state fails in migrating state" $ do
+  , testScenario "Test call to `EpwFinishUpgrade` that require a non-migrating state fails in migrating state" $ scenario $ do
       admin <- newAddress "admin"
       v0 <- originateSimple "tzbtc" (mkEmptyStorageV0 admin) tzbtcContract
       expectCustomError_ #upgContractIsNotMigrating $ withSender admin $
@@ -87,37 +86,37 @@ test_notMigratingStatus = testGroup "TZBTC contract migration status not active 
 -- Test that other entrypoints respect migrating status and fail
 test_migratingStatus :: TestTree
 test_migratingStatus = testGroup "TZBTC contract migration status active check"
-  [ nettestScenarioCaps "Test call to `Upgrade` that require a non-migrating state fails in migrating state" $ do
+  [ testScenario "Test call to `Upgrade` that require a non-migrating state fails in migrating state" $ scenario $ do
       admin <- newAddress "admin"
       v0 <- originateSimple "tzbtc" (mkEmptyStorageV0 admin) tzbtcContract
       withSender admin $ do
-        call v0 CallDefault $ fromFlatParameter $ EpwBeginUpgrade (#current .! 0, #new .! 1)
+        call v0 CallDefault $ fromFlatParameter $ EpwBeginUpgrade (#current :! 0, #new :! 1)
         expectCustomError_ #upgContractIsMigrating $
           call v0 CallDefault $ fromFlatParameter $ Upgrade upgradeParamsV1
-  , nettestScenarioCaps "Test call to `Run` that require a non-migrating state fails in migrating state" $ do
+  , testScenario "Test call to `Run` that require a non-migrating state fails in migrating state" $ scenario $ do
       admin <- newAddress "admin"
       v0 <- originateSimple "tzbtc" (mkEmptyStorageV0 admin) tzbtcContract
       withSender admin $ do
-        call v0 CallDefault $ fromFlatParameter $ EpwBeginUpgrade (#current .! 0, #new .! 1)
+        call v0 CallDefault $ fromFlatParameter $ EpwBeginUpgrade (#current :! 0, #new :! 1)
         expectCustomError_ #upgContractIsMigrating $
-          call v0 CallDefault $ fromFlatParameter $ Run $ mkUParam #callBurn (#value .! 100)
-  , nettestScenarioCaps "Test call to `Burn` that require a non-migrating state fails in migrating state" $ do
+          call v0 CallDefault $ fromFlatParameter $ Run $ mkUParam #callBurn (#value :! 100)
+  , testScenario "Test call to `Burn` that require a non-migrating state fails in migrating state" $ scenario $ do
       admin <- newAddress "admin"
       v0 <- originateSimple "tzbtc" (mkEmptyStorageV0 admin) tzbtcContract
       withSender admin $ do
-        call v0 CallDefault $ fromFlatParameter $ EpwBeginUpgrade (#current .! 0, #new .! 1)
+        call v0 CallDefault $ fromFlatParameter $ EpwBeginUpgrade (#current :! 0, #new :! 1)
         expectCustomError_ #upgContractIsMigrating $
-          call v0 CallDefault $ fromFlatParameter $ Burn (#value .! 100)
+          call v0 CallDefault $ fromFlatParameter $ Burn (#value :! 100)
   ]
 
 -- Test that migration bumps version
 test_migratingVersion :: TestTree
 test_migratingVersion = testGroup "TZBTC contract migration version check"
-  [ nettestScenarioCaps "Test EpwFinishUpgrade bumps version" $ do
+  [ testScenario "Test EpwFinishUpgrade bumps version" $ scenario $ do
       admin <- newAddress "admin"
       v0 <- originateSimple "tzbtc" (mkEmptyStorageV0 admin) tzbtcContract
       withSender admin $ do
-        call v0 CallDefault $ fromFlatParameter $ EpwBeginUpgrade (#current .! 0, #new .! 1)
+        call v0 CallDefault $ fromFlatParameter $ EpwBeginUpgrade (#current :! 0, #new :! 1)
         call v0 CallDefault $ fromFlatParameter EpwFinishUpgrade
       storage <- getStorage v0
       assert ((TZBTCTypes.currentVersion . RPC.fields) storage == 1)

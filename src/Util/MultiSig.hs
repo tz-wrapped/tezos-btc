@@ -31,11 +31,11 @@ import Data.Aeson.TH (deriveJSON)
 import Data.ByteString.Lazy as LBS (toStrict)
 import Data.List (lookup)
 import Fmt (Buildable(..), Builder, blockListF, pretty, (|+))
-import Michelson.Interpret.Unpack
+import Morley.Michelson.Interpret.Unpack
+import Morley.Tezos.Crypto
+import Morley.Util.ByteString
 import Text.Hex (encodeHex)
 import qualified Text.Show (show)
-import Tezos.Crypto
-import Util.ByteString
 
 import Lorentz
 import Lorentz.Contracts.Multisig
@@ -119,15 +119,15 @@ getOpDescription p = case fetchSrcParam p of
 
 -- | Make the `Package` value from input parameters.
 mkPackage
-  :: forall msigAddr. (ToTAddress MSigParameter msigAddr)
+  :: forall msigAddr. (ToTAddress MSigParameter () msigAddr)
   => msigAddr
   -> ChainId
   -> Counter
-  -> TAddress (TZBTC.Parameter SomeTZBTCVersion)
+  -> TAddress (TZBTC.Parameter SomeTZBTCVersion) ()
   -> TZBTC.SafeParameter SomeTZBTCVersion -> Package
 mkPackage msigAddress chainId_ counter tzbtc param
   = let msigParam = Operation (param, tzbtc)
-        msigTAddr = (toTAddress @MSigParameter) msigAddress
+        msigTAddr = (toTAddress @MSigParameter @()) msigAddress
     -- Create the package for required action
     in Package
       {
@@ -183,7 +183,7 @@ instance Buildable UnpackageError where
     HexDecodingFailure -> "Error decoding hex encoded string"
     PackageMergeFailure -> "Provied packages had different action/enviroments"
     UnpackFailure err -> build err
-    UnexpectedParameterWithView -> "Unexpected parameter with View in package"
+    UnexpectedParameterWithView -> "Unexpected parameter with View_ in package"
 
 instance Show UnpackageError where
   show = pretty
@@ -223,7 +223,7 @@ addSignature package sig =
 mkMultiSigParam
   :: [PublicKey]
   -> NonEmpty Package
-  -> Either UnpackageError ((TAddress MSigParameter), MSigParamMain)
+  -> Either UnpackageError ((TAddress MSigParameter ()), MSigParamMain)
 mkMultiSigParam pks packages = do
   package <- mergePackages packages
   toSign <- getToSign package
@@ -232,7 +232,7 @@ mkMultiSigParam pks packages = do
     mkParameter
       :: ToSign
       -> [(PublicKey, Sign)]
-      -> (TAddress MSigParameter, MSigParamMain)
+      -> (TAddress MSigParameter (), MSigParamMain)
     mkParameter ((_, address_), payload) sigs =
       -- There should be as may signatures in the submitted request
       -- as there are keys in the contract's storage. Not all keys should

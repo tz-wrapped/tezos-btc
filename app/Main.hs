@@ -13,6 +13,7 @@ module Main
 import Control.Exception.Safe (throwString)
 import Data.Version (showVersion)
 import Fmt (pretty)
+import Named (arg)
 import Options.Applicative
   (execParser, footerDoc, fullDesc, header, help, helper, info, infoOption, long, progDesc)
 import Options.Applicative.Help.Pretty (Doc, linebreak)
@@ -27,6 +28,7 @@ import Lorentz.Contracts.TZBTC
 import qualified Lorentz.Contracts.TZBTC.V0 as V0
 import qualified Lorentz.Contracts.TZBTC.V1 as V1
 import qualified Lorentz.Contracts.TZBTC.V2 as V2
+import Morley.Michelson.Parser.Types
 import Util.AbstractIO
 import Util.Migration
 
@@ -56,7 +58,7 @@ main = do
       let parseAndPrint :: forall ver. (Typeable ver, _) => IO ()
           parseAndPrint =
             either (throwString . pretty) (printStringLn . pretty) $
-            parseLorentzValue @(Parameter ver) t
+            parseLorentzValue @(Parameter ver) MSUnspecified t
       in case ver of
         V0 -> parseAndPrint @V0.TZBTCv0
         V1 -> parseAndPrint @V1.TZBTCv1
@@ -94,7 +96,7 @@ main = do
     multisigContract
       :: forall (e :: ErrorsKind).
         (Typeable e, ErrorHandler e)
-      => Contract MSigParameter MSigStorage
+      => Contract MSigParameter MSigStorage ()
     multisigContract = tzbtcMultisigContract @e
     printContract
       :: ( HasFilesystem m
@@ -102,7 +104,7 @@ main = do
          )
       => Bool
       -> Maybe FilePath
-      -> Contract parameter storage
+      -> Contract parameter storage ()
       -> m ()
     printContract singleLine mbFilePath c =
       maybe printTextLn writeFileUtf8 mbFilePath $

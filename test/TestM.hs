@@ -22,17 +22,16 @@ import Colog.Message (Message)
 import Data.ByteArray (ScrubbedBytes)
 import qualified Data.Map as Map
 
-import Michelson.Typed.Scope (PrintedValScope)
 import Morley.Client
 import Morley.Client.Logging (ClientLogAction)
 import Morley.Client.RPC
-import Morley.Client.TezosClient
-  (CalcOriginationFeeData, CalcTransferFeeData, TezosClientConfig)
+import Morley.Client.TezosClient (CalcOriginationFeeData, CalcTransferFeeData, TezosClientConfig)
 import Morley.Micheline
-import Tezos.Address
-import Tezos.Core
-import Tezos.Crypto (PublicKey, SecretKey, Signature)
-import Util.ByteString
+import Morley.Michelson.Typed.Scope (UntypedValScope)
+import Morley.Tezos.Address
+import Morley.Tezos.Core
+import Morley.Tezos.Crypto (KeyHash, PublicKey, SecretKey, Signature)
+import Morley.Util.ByteString
 
 import Client.Env
 import Client.IO ()
@@ -106,15 +105,18 @@ data Handlers m = Handlers
   , hGetBalance :: Address -> m Mutez
   , hRunCode :: RunCode -> m RunCodeResult
   , hGetChainId :: m ChainId
+  , hGetBigMapValuesAtBlock  :: BlockId -> Natural -> Maybe Natural -> Maybe Natural -> m Expression
+  , hGetManagerKeyAtBlock :: BlockId -> Address -> m (Maybe PublicKey)
+  , hGetDelegateAtBlock :: BlockId -> Address -> m (Maybe KeyHash)
 
   -- HasTezosClient
   , hSignBytes :: AddressOrAlias -> Maybe ScrubbedBytes -> ByteString -> m Signature
-  , hGenKey :: AliasHint -> m Address
-  , hGenFreshKey :: AliasHint -> m Address
+  , hGenKey :: AliasOrAliasHint -> m Address
+  , hGenFreshKey :: AliasOrAliasHint -> m Address
   , hRevealKey :: Alias -> Maybe ScrubbedBytes -> m ()
   , hWaitForOperation :: OperationHash -> m ()
-  , hRememberContract :: Bool -> Address -> AliasHint -> m ()
-  , hImportKey :: Bool -> AliasHint -> SecretKey -> m ()
+  , hRememberContract :: Bool -> Address -> AliasOrAliasHint -> m ()
+  , hImportKey :: Bool -> AliasOrAliasHint -> SecretKey -> m ()
   , hResolveAddressMaybe :: AddressOrAlias -> m (Maybe Address)
   , hGetAlias :: AddressOrAlias -> m Alias
   , hGetPublicKey :: AddressOrAlias -> m PublicKey
@@ -122,8 +124,9 @@ data Handlers m = Handlers
   , hCalcTransferFee
     :: AddressOrAlias -> Maybe ScrubbedBytes -> TezosInt64 -> [CalcTransferFeeData] -> m [TezosMutez]
   , hCalcOriginationFee
-    :: forall cp st. PrintedValScope st => CalcOriginationFeeData cp st -> m TezosMutez
-  , hGetKeyPassword :: AddressOrAlias -> m (Maybe ScrubbedBytes)
+    :: forall cp st. UntypedValScope st => CalcOriginationFeeData cp st -> m TezosMutez
+  , hGetKeyPassword :: Address -> m (Maybe ScrubbedBytes)
+  , hRegisterDelegate :: AliasOrAliasHint -> Maybe ScrubbedBytes -> m ()
 
   , hLookupEnv :: m AppEnv
   , hWithLocal :: forall a. (AppEnv -> AppEnv) -> m a -> m a
@@ -169,9 +172,9 @@ instance HasCmdLine TestM where
     fn i
 
 instance HasTezosRpc TestM where
-  getHeadBlock =
+  getBlockHash _blk = do
     join $ getHandler hGetHeadBlock
-  getCounter addr = do
+  getCounterAtBlock _blk addr = do
     h <- getHandler hGetCounter
     h addr
   getBlockHeader block = do
@@ -183,39 +186,48 @@ instance HasTezosRpc TestM where
   getBlockOperations block = do
     h <- getHandler hGetBlockOperations
     h block
-  getProtocolParameters =
+  getProtocolParametersAtBlock _blk = do
     join $ getHandler hGetProtocolParameters
-  runOperation op = do
+  runOperationAtBlock _blk op = do
     h <- getHandler hRunOperation
     h op
-  preApplyOperations ops = do
+  preApplyOperationsAtBlock _blk ops = do
     h <- getHandler hPreApplyOperations
     h ops
-  forgeOperation op = do
+  forgeOperationAtBlock _blk op = do
     h <- getHandler hForgeOperation
     h op
   injectOperation op = do
     h <- getHandler hInjectOperation
     h op
-  getContractScript addr = do
+  getContractScriptAtBlock _blk addr = do
     h <- getHandler hGetContractScript
     h addr
   getContractStorageAtBlock block addr = do
     h <- getHandler hGetContractStorageAtBlock
     h block addr
-  getContractBigMap addr getBigMap = do
+  getContractBigMapAtBlock _blk addr getBigMap = do
     h <- getHandler hGetContractBigMap
     h addr getBigMap
   getBigMapValueAtBlock block bigMapId scriptExpr = do
     h <- getHandler hGetBigMapValueAtBlock
     h block bigMapId scriptExpr
-  getBalance addr = do
+  getBalanceAtBlock _blk addr = do
     h <- getHandler hGetBalance
     h addr
-  runCode r = do
+  runCodeAtBlock _blk r = do
     h <- getHandler hRunCode
     h r
   getChainId = join (getHandler hGetChainId)
+  getBigMapValuesAtBlock blockId bigMapId mbOffset mbLength = do
+    h <- getHandler hGetBigMapValuesAtBlock
+    h blockId bigMapId mbOffset mbLength
+  getDelegateAtBlock block addr = do
+    h <- getHandler hGetDelegateAtBlock
+    h block addr
+  getManagerKeyAtBlock block addr = do
+    h <- getHandler hGetManagerKeyAtBlock
+    h block addr
 
 instance HasTezosClient TestM where
   signBytes alias mbPassword op = do
@@ -259,6 +271,9 @@ instance HasTezosClient TestM where
   getKeyPassword addr = do
     h <- getHandler hGetKeyPassword
     h addr
+  registerDelegate kh pw = do
+    h <- getHandler hRegisterDelegate
+    h kh pw
 
 instance HasEnv TestM where
   lookupEnv = do
