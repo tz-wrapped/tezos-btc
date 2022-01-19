@@ -317,13 +317,14 @@ runNettestTzbtcClient env scenario' = do
 
 nettestImplTzbtcClient :: MorleyClientEnv -> Sender -> ClevelandOpsImpl ClientM
 nettestImplTzbtcClient env sender =
-  (networkOpsImpl env sender) { coiRunOperationBatch = runOperationBatch }
-  where
-    runOperationBatch = \case
+  impl { coiRunOperationBatch = \case
       [op] -> case op of
         OriginateOp oud -> tzbtcClientOriginate oud
         TransferOp td -> tzbtcClientTransfer td >> pure [TransferResult]
       _ -> error "Batch operations are not supported"
+    }
+  where
+    impl = networkOpsImpl env sender
 
     tezosClientEnv = mceTezosClient env
     tzbtcClientEnvArgs =
@@ -343,7 +344,7 @@ nettestImplTzbtcClient env sender =
         case parseContractAddressFromOutput output of
           Right a -> pure [OriginateResult a]
           Left err -> throwM $ TezosClient.UnexpectedClientFailure 1 "" (show err)
-      else runOperationBatch [OriginateOp od]
+      else coiRunOperationBatch impl [OriginateOp od]
 
     tzbtcClientTransfer :: TransferData -> ClientM ()
     tzbtcClientTransfer td@(TransferData {..}) = do
@@ -434,7 +435,7 @@ nettestImplTzbtcClient env sender =
           _ -> callMorleyClient
         Nothing -> callMorleyClient
       where
-        callMorleyClient = runOperationBatch [TransferOp td] >> pass
+        callMorleyClient = coiRunOperationBatch impl [TransferOp td] >> pass
         callTzbtc :: [String] -> ClientM ()
         callTzbtc args = void $ liftIO $ callTzbtcClient $
           tzbtcClientEnvArgs <> args <> ["--user", TezosClient.toCmdArg (unSender sender)
