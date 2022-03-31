@@ -3,6 +3,7 @@
  - SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
  -}
 
+{-# OPTIONS_GHC -Wno-orphans #-}
 {-# LANGUAGE DeriveAnyClass #-}
 
 module Test.AsRPC (StorageRPC(..)) where
@@ -11,7 +12,7 @@ import Lorentz.Contracts.Metadata (TokenMetadata)
 import Lorentz.Contracts.TZBTC.V0 (Storage)
 import Lorentz.Contracts.TZBTC.V1.Types (StorageFields)
 import Morley.Michelson.Typed.Haskell.Value (BigMapId, IsoValue)
-import Test.Cleveland (AsRPC)
+import Test.Cleveland (HasRPCRepr(..))
 
 data StorageRPC ver = StorageRPC
   { dataMap :: BigMapId ByteString ByteString
@@ -19,5 +20,7 @@ data StorageRPC ver = StorageRPC
   } deriving stock (Generic, Show)
     deriving anyclass (IsoValue)
 
-type instance AsRPC (Storage ver) = StorageRPC ver
-type instance AsRPC TokenMetadata = TokenMetadata
+instance HasRPCRepr (Storage ver) where
+  type AsRPC (Storage ver) = StorageRPC ver
+instance HasRPCRepr TokenMetadata where
+  type AsRPC TokenMetadata = TokenMetadata

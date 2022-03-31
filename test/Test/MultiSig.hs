@@ -220,10 +220,9 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
 
   , testCase "Test mkMultiSigParam function arranges the signatures in the order of public keys" $ do
       let
-        msig  = TAddress @MSigParameter $
-                unsafeParseAddress "KT19rTTBPeG1JAvrECgoQ8LJj1mJrN7gsdaH"
-        tzbtc = TAddress @(TZBTC.Parameter SomeTZBTCVersion) $
-                unsafeParseAddress "KT1XXJWcjrwfcPL4n3vjmwCBsvkazDt8scYY"
+        msig  = TAddress @MSigParameter [ta|KT19rTTBPeG1JAvrECgoQ8LJj1mJrN7gsdaH|]
+        tzbtc = TAddress @(TZBTC.Parameter SomeTZBTCVersion)
+          [ta|KT1XXJWcjrwfcPL4n3vjmwCBsvkazDt8scYY|]
         operatorAddress = [ta|tz1fdBQ4jHa2xVNHte8pVFHvCokidE4MvDxm|]
 
         tzbtcParam = TZBTCTypes.AddOperator (#operator :! operatorAddress)

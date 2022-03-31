@@ -10,16 +10,17 @@ module Test.Smoke
   , testUpgradeToV2
   ) where
 
+import qualified Debug (show)
+
 import Data.Set as Set
 import Data.Tagged (Tagged(Tagged))
-import Named (arg)
 import System.Environment (setEnv)
 import System.Exit (ExitCode(..))
 import System.Process (readProcessWithExitCode)
 import Test.Tasty (TestName, TestTree, testGroup)
 import Test.Tasty.Providers (IsTest(..), singleTest, testPassed)
 
-import Lorentz (TrustEpName(..), View_(..), mkView_, toAddress, toMutez)
+import Lorentz (TrustEpName(..), View_(..), mkView_, toAddress)
 import Lorentz.Contracts.Metadata
 import Lorentz.Contracts.Upgradeable.Common (EpwUpgradeParameters(..), emptyPermanentImpl)
 import Lorentz.UStore.Migration
@@ -28,6 +29,7 @@ import qualified Morley.Client.TezosClient as TezosClient
 import Morley.Michelson.Typed.Haskell.Value
 import Morley.Michelson.Untyped.Entrypoints
 import Morley.Tezos.Address
+import Morley.Tezos.Core
 import Morley.Util.Named
 import Morley.Util.Sing (castSing)
 import Test.Cleveland
@@ -106,7 +108,7 @@ testUpgradeToV1 = TestUpgrade $ \admin redeem balances tzbtc -> do
       , upNewCode = tzbtcContractRouterV1
       , upNewPermCode = emptyPermanentImpl
       }
-  transferMoney admin $ toMutez 50 * 1000000 -- 50 XTZ
+  transferMoney admin [tz|50|] -- 50 XTZ
   withSender admin $ call
     tzbtc
     (TrustEpName DefEpName)
@@ -124,7 +126,7 @@ testUpgradeToV2 = TestUpgrade $ \admin redeem balances tzbtc -> do
       , upNewCode = tzbtcContractRouterV2
       , upNewPermCode = emptyPermanentImpl
       }
-  transferMoney admin $ toMutez 50 * 1000000 -- 50 XTZ
+  transferMoney admin [tz|50|] -- 50 XTZ
   withSender admin $ call
     tzbtc
     (TrustEpName DefEpName)
@@ -136,7 +138,7 @@ simpleScenario
 simpleScenario upg = do
   -- admin <- resolveNettestAddress -- Fetch address for alias `nettest`.
   admin <- newAddress "admin"
-  transferMoney admin $ toMutez 15 * 1000000
+  transferMoney admin [tz|15|]
   -- Originate and upgrade
   -- sender is made an admin in the tzbtc-client based implementation
   tzbtc <- withSender admin $ originateSimple "TZBTCContract" (mkEmptyStorageV0 admin) tzbtcContract
@@ -343,7 +345,7 @@ nettestImplTzbtcClient env sender =
           ]
         case parseContractAddressFromOutput output of
           Right a -> pure [OriginateResult a]
-          Left err -> throwM $ TezosClient.UnexpectedClientFailure 1 "" (show err)
+          Left err -> throwM $ TezosClient.UnexpectedClientFailure 1 "" (Debug.show err)
       else coiRunOperationBatch impl [OriginateOp od]
 
     tzbtcClientTransfer :: TransferData -> ClientM ()

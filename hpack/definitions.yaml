@@ -17,8 +17,8 @@ _definitions:
         homepage:            https://tzbtc.io/
 
     - &default-extensions
-        - ApplicativeDo
         - AllowAmbiguousTypes
+        - ApplicativeDo
         - BangPatterns
         - ConstraintKinds
         - DataKinds
@@ -33,6 +33,7 @@ _definitions:
         - FlexibleInstances
         - GADTs
         - GeneralizedNewtypeDeriving
+        - ImportQualifiedPost
         - LambdaCase
         - MultiParamTypeClasses
         - MultiWayIf

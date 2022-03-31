@@ -35,7 +35,7 @@ import qualified Data.Map as M
 import qualified Data.Set as Set
 import qualified Data.Text.IO.Utf8 as Utf8
 import Data.Typeable (typeRep)
-import Fmt (Buildable(..), Builder, (+|), (+||), (|+), (||+))
+import Fmt (Builder, pretty, (+|), (|+))
 import Test.Tasty (TestTree, testGroup)
 
 import Lorentz
@@ -59,12 +59,13 @@ import Morley.Michelson.Runtime (parseExpandContract)
 import Morley.Michelson.Typed
   (SomeConstrainedValue(SomeConstrainedValue), UnpackedValScope, Value'(VPair), convertContract)
 import qualified Morley.Michelson.Untyped as U
+import Morley.Michelson.Untyped.Entrypoints (mkEntrypointsMap)
 import Morley.Tezos.Address (ta)
 import Morley.Util.Named (pattern (:!))
 import Test.Cleveland
 import Test.Cleveland.Lorentz
   (contractConsumer, runDocTests, testContractCoversEntrypointsT, testLorentzDoc)
-import Test.Cleveland.Michelson.Unit (mkEntrypointsMap, testContractCoversEntrypoints)
+import Test.Cleveland.Michelson.Entrypoints (testContractCoversEntrypoints)
 
 import Lorentz.Contracts.TZBTC
 import Lorentz.Contracts.TZBTC.Common.Types (Operators)
@@ -76,9 +77,6 @@ import Test.AsRPC (StorageRPC)
 import qualified Test.AsRPC as RPC
 
 {-# ANN module ("HLint: ignore Reduce duplication" :: Text) #-}
-
-instance Buildable ByteString where
-  build = show
 
 -- This function is mostly copied from morley-upgradeable
 -- Lorentz.Contracts.Upgradeable.Client.readContractUStore, but it accepts 'BigMapId' instead
@@ -94,7 +92,7 @@ readUStore bmId ref = do
     & either (const (throwUnpackFailed uval)) pure
   where
     throwUnpackFailed uval =
-      failure $ "UStore value unpack failed" +| uval |+ " :: " +|| typeRep (Proxy @v) ||+ ""
+      failure $ "UStore value unpack failed" +| uval |+ " :: " +| show @Builder (typeRep (Proxy @v)) |+ ""
 
     refToKey :: UStoreElemRef -> ByteString
     refToKey = \case
@@ -216,7 +214,7 @@ entrypointsRef = mkEntrypointsMap <$> tzbtcParameterType
       code <- Utf8.readFile "./test/resources/tzbtc-parameter-entrypoints-ref.mtz"
       case parseExpandContract MSUnspecified code of
         Right c -> pure $ U.contractParameter c
-        Left e -> error ("Error in parsing reference contract paramter:" <> show e)
+        Left e -> error ("Error in parsing reference contract paramter:" <> pretty e)
 
 -- Tests
 

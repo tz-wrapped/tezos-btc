@@ -46,7 +46,6 @@ import Morley.Michelson.Text
 import Morley.Michelson.Typed (UnpackedValScope)
 import Morley.Michelson.Untyped (EpName(..))
 import Morley.Tezos.Address
-import Morley.Tezos.Core (unsafeMkMutez)
 import Morley.Util.ByteString (HexJSONByteString(..))
 import Morley.Util.Exception (throwLeft)
 import Morley.Util.Named
@@ -129,7 +128,7 @@ runTzbtcContract param = do
   from <- getTzbtcUserAddress
   to <- getTzbtcContractAddress
   mbFee <- aeFees <$> lookupEnv
-  void $ lTransfer from to (unsafeMkMutez 0) DefEpName param mbFee
+  void $ lTransfer from to zeroMutez DefEpName param mbFee
 
 runMultisigContract
   :: forall m env.
@@ -142,7 +141,7 @@ runMultisigContract packages = do
   (_, (_, (Keys keys'))) <- getMultisigStorage multisigAddr
   (_, multisigParam) <- throwLeft $ pure $ mkMultiSigParam keys' packages
   mbFees <- aeFees <$> lookupEnv
-  void $ lTransfer from multisigAddr (unsafeMkMutez 0) (UnsafeEpName "mainParameter") multisigParam mbFees
+  void $ lTransfer from multisigAddr zeroMutez (UnsafeEpName "mainParameter") multisigParam mbFees
 
 getMultisigStorage
   :: (MonadThrow m, HasTezosRpc m)
@@ -199,7 +198,7 @@ getBalance addr = do
   mbLedgerValue <- getValueFromTzbtcUStoreSubmap @"ledger" addr
   case mbLedgerValue of
     Nothing -> pure 0
-    Just (N balance, N _approvals) -> pure balance
+    Just (arg #balance -> balance, _) -> pure balance
 
 getAllowance
   :: (HasTezosRpc m, HasTezosClient m, HasEnv m)
@@ -208,7 +207,7 @@ getAllowance owner spender = do
   mbLedgerValue <- getValueFromTzbtcUStoreSubmap @"ledger" owner
   case mbLedgerValue of
     Nothing -> pure 0
-    Just (N _balance, N approvals) ->
+    Just (_, arg #approvals -> approvals) ->
       pure $ maybe 0 id $ Map.lookup spender approvals
 
 type HasStoreTemplateField t name =
@@ -301,7 +300,7 @@ originateTzbtcContract
   => Address -> Address -> m Address
 originateTzbtcContract originator owner = do
   mbFee <- aeFees <$> lookupEnv
-  snd <$> lOriginateContract False "" (AddressResolved originator) (unsafeMkMutez 0)
+  snd <$> lOriginateContract False "" (AddressResolved originator) zeroMutez
     tzbtcContract (mkEmptyStorageV0 owner) mbFee
 
 deployTzbtcContractV1
@@ -311,7 +310,7 @@ deployTzbtcContractV1 V1DeployParameters{..} = performTzbtcDeployment $ do
   tzbtcUser <- getTzbtcUserAddress
   mbFee <- aeFees <$> lookupEnv
   contractAddr <- originateTzbtcContract tzbtcUser v1Owner
-  void $ lTransfer tzbtcUser contractAddr (unsafeMkMutez 0)
+  void $ lTransfer tzbtcUser contractAddr zeroMutez
     (UnsafeEpName"upgrade") (upgradeParametersV1 v1MigrationParams) mbFee
   pure contractAddr
 
@@ -322,7 +321,7 @@ deployTzbtcContractV2 V2DeployParameters{..} = performTzbtcDeployment $ do
   tzbtcUser <- getTzbtcUserAddress
   mbFee <- aeFees <$> lookupEnv
   contractAddr <- originateTzbtcContract tzbtcUser v2Owner
-  void $ lTransfer tzbtcUser contractAddr (unsafeMkMutez 0)
+  void $ lTransfer tzbtcUser contractAddr zeroMutez
     (UnsafeEpName "upgrade") (upgradeParametersV2 v2MigrationParams) mbFee
   pure contractAddr
 
@@ -339,7 +338,7 @@ deployMultisigContract msigStorage useCustomErrors = do
         else tzbtcMultisigContract @'BaseErrors
   tzbtcUser <- getTzbtcUserAddress
   mbFee <- aeFees <$> lookupEnv
-  msigAddr <- snd <$> lOriginateContract False "" (AddressResolved tzbtcUser) (unsafeMkMutez 0)
+  msigAddr <- snd <$> lOriginateContract False "" (AddressResolved tzbtcUser) zeroMutez
     msigToOriginate msigStorage mbFee
   printTextLn $ "Contract was successfully deployed. Contract address: " <> formatAddress msigAddr
   let contractAlias = "tzbtc-multisig"

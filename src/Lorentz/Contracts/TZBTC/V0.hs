@@ -216,7 +216,8 @@ tzbtcContractRaw = do
         safeEntrypoints
     )
 
-executeRun :: Typeable ver => Entrypoint (VerParam ver) (Storage ver)
+executeRun :: (Typeable ver, Typeable (VerUStoreTemplate ver))
+           => Entrypoint (VerParam ver) (Storage ver)
 executeRun = do
   dip $ do
     ensureNotMigrating
@@ -236,6 +237,7 @@ callUEp
      ( interface ~ VerInterface ver
      , NicePackedValue (LookupEntrypoint ep interface)
      , Typeable ver
+     , Typeable (VerUStoreTemplate ver)
      )
   => Label ep
   -> Entrypoint (LookupEntrypoint ep interface) (Storage ver)
@@ -254,6 +256,7 @@ callUSafeViewEP
      , LookupEntrypoint ep interface ~ (SafeView vi vo)
      , NicePackedValue vi
      , Typeable vo, Typeable ver
+     , Typeable (VerUStoreTemplate ver)
      )
   => Label ep
   -> Entrypoint (View_ vi vo) (Storage ver)
@@ -266,7 +269,10 @@ callUSafeViewEP epName = do
   callUEp epName
 
 ensureMaster
-  :: (HasUField "owner" Address (VerUStoreTemplate ver), Typeable ver)
+  :: ( HasUField "owner" Address (VerUStoreTemplate ver)
+     , Typeable ver
+     , Typeable (VerUStoreTemplate ver)
+     )
   => '[Storage ver] :-> '[Storage ver]
 ensureMaster = do
   getField #dataMap;
@@ -295,7 +301,8 @@ updateVersion = do
 
 
 applyMigration
-  :: Typeable ver => '[MigrationScriptFrom store, Storage ver] :-> '[Storage ver]
+  :: (Typeable ver, Typeable (VerUStoreTemplate ver))
+  => '[MigrationScriptFrom store, Storage ver] :-> '[Storage ver]
 applyMigration = do
   coerceUnwrap
   dip $ getField #dataMap
