@@ -10,7 +10,7 @@ module Test.Smoke
   , testUpgradeToV2
   ) where
 
-import qualified Debug (show)
+import Debug qualified (show)
 
 import Data.Set as Set
 import Data.Tagged (Tagged(Tagged))
@@ -25,7 +25,7 @@ import Lorentz.Contracts.Metadata
 import Lorentz.Contracts.Upgradeable.Common (EpwUpgradeParameters(..), emptyPermanentImpl)
 import Lorentz.UStore.Migration
 import Morley.Client (disableAlphanetWarning)
-import qualified Morley.Client.TezosClient as TezosClient
+import Morley.Client.TezosClient qualified as TezosClient
 import Morley.Michelson.Typed.Haskell.Value
 import Morley.Michelson.Untyped.Entrypoints
 import Morley.Tezos.Address
@@ -42,7 +42,7 @@ import Test.Cleveland.Tasty.Internal.Options (clevelandOptions)
 
 import Client.Parser (parseContractAddressFromOutput)
 import Lorentz.Contracts.TZBTC
-import qualified Lorentz.Contracts.TZBTC.V1.Types as TZBTCTypes
+import Lorentz.Contracts.TZBTC.V1.Types qualified as TZBTCTypes
 
 test_smokeTests :: TestTree
 test_smokeTests = testGroup "Smoke tests for tzbtc contract"

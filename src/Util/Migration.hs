@@ -14,9 +14,9 @@ import Lorentz
 import Lorentz.UStore
 
 import Lorentz.Contracts.TZBTC
-import qualified Lorentz.Contracts.TZBTC.V0 as V0
-import qualified Lorentz.Contracts.TZBTC.V1 as V1
-import qualified Lorentz.Contracts.TZBTC.V2 as V2
+import Lorentz.Contracts.TZBTC.V0 qualified as V0
+import Lorentz.Contracts.TZBTC.V1 qualified as V1
+import Lorentz.Contracts.TZBTC.V2 qualified as V2
 import Lorentz.Contracts.Upgradeable.Common (UContractRouter, coerceUContractRouter)
 import Morley.Util.Named
 

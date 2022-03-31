@@ -30,11 +30,11 @@ module Lorentz.Contracts.TZBTC.V2.Impl
   ) where
 
 import Lorentz
-import qualified Lorentz.Contracts.ManagedLedger.Impl as ManagedLedger
+import Lorentz.Contracts.ManagedLedger.Impl qualified as ManagedLedger
 import Lorentz.Contracts.Metadata
-import qualified Lorentz.Contracts.Spec.ManagedLedgerInterface as ManagedLedger
+import Lorentz.Contracts.Spec.ManagedLedgerInterface qualified as ManagedLedger
 import Lorentz.Contracts.TZBTC.Common.Types hiding (AddOperator, RemoveOperator)
-import qualified Lorentz.Contracts.TZBTC.V1.Impl as V1
+import Lorentz.Contracts.TZBTC.V1.Impl qualified as V1
 import Lorentz.Contracts.TZBTC.V2.Types
 
 type StorageC store =

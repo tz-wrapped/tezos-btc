@@ -26,7 +26,7 @@ import Morley.Michelson.Text
 import Morley.Util.Markdown (md)
 
 import Lorentz.Contracts.TZBTC.Common.Types
-import qualified Lorentz.Contracts.TZBTC.V1.Impl as Impl
+import Lorentz.Contracts.TZBTC.V1.Impl qualified as Impl
 import Lorentz.Contracts.TZBTC.V1.Types
 
 -- | Template for the wrapped UStore which will hold the owner address

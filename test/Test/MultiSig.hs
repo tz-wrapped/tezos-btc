@@ -7,8 +7,8 @@
 
 module Test.MultiSig (test_multisig) where
 
-import qualified Data.Set as Set
-import qualified Data.Text as T (drop)
+import Data.Set qualified as Set
+import Data.Text qualified as T (drop)
 import Test.HUnit (assertEqual)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase)
@@ -16,12 +16,12 @@ import Test.Tasty.HUnit (testCase)
 import Lorentz hiding (assert, chainId)
 import Lorentz.Contracts.Multisig
 import Lorentz.Contracts.TZBTC as TZBTC
-import qualified Lorentz.Contracts.TZBTC.Types as TZBTCTypes (SafeParameter(..))
+import Lorentz.Contracts.TZBTC.Types qualified as TZBTCTypes (SafeParameter(..))
 import Lorentz.Contracts.Test.ManagedLedger (OriginationParams(..))
 import Morley.Tezos.Address
 import Morley.Tezos.Core (dummyChainId)
 import Morley.Tezos.Crypto
-import qualified Morley.Tezos.Crypto.Ed25519 as Ed25519
+import Morley.Tezos.Crypto.Ed25519 qualified as Ed25519
 import Morley.Util.Named
 import Test.Cleveland
 import Test.TZBTC (TestTZBTCVersion(..), coerceContractHandler, originateTzbtcV1ContractRaw)

@@ -24,11 +24,11 @@ module Client.IO
   , writePackageToFile
   ) where
 
-import qualified Data.ByteString as BS (readFile, writeFile)
-import qualified Data.ByteString.Char8 as BSC (putStrLn)
-import qualified Data.Map as Map
+import Data.ByteString qualified as BS (readFile, writeFile)
+import Data.ByteString.Char8 qualified as BSC (putStrLn)
+import Data.Map qualified as Map
 import Fmt (pretty)
-import qualified System.Directory as Directory (doesFileExist)
+import System.Directory qualified as Directory (doesFileExist)
 
 import Lorentz hiding (address, balance, chainId, cons, map)
 import Lorentz.Contracts.Multisig
@@ -52,9 +52,9 @@ import Morley.Util.Named
 
 import Client.Env
 import Client.Error
-import qualified Client.IO.CmdLine as IO
+import Client.IO.CmdLine qualified as IO
 import Client.Types
-import qualified Data.Text.Lazy.IO.Utf8 as Utf8
+import Data.Text.Lazy.IO.Utf8 qualified as Utf8
 import Lorentz.Contracts.TZBTC
 import Lorentz.Contracts.TZBTC.Preprocess
 import Util.AbstractIO

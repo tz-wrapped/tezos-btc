@@ -26,7 +26,7 @@ import Lorentz
 import Lorentz.Contracts.Multisig.Generic (ErrorHandler, ErrorsKind(..), Keys(..))
 import Lorentz.Contracts.Multisig.Specialized as SM
 import Lorentz.Contracts.TZBTC hiding (Parameter, Storage)
-import qualified Lorentz.Contracts.TZBTC as TZBTC
+import Lorentz.Contracts.TZBTC qualified as TZBTC
 
 type Version = SomeTZBTCVersion
 

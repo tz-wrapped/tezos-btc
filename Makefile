@@ -22,7 +22,7 @@ haddock:
 haddock-no-deps:
 	$(MAKE_PACKAGE) haddock-no-deps
 stylish:
-	$(MAKE_PACKAGE) stylish
+	find app/ src/ test/ -name '*.hs' -exec stylish-haskell -i '{}' \;
 lint:
 	$(MAKE_PACKAGE) lint
 clean:

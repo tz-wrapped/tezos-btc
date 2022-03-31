@@ -7,7 +7,7 @@ module Client.Main
   , runAppM
   ) where
 
-import qualified Debug (show)
+import Debug qualified (show)
 
 import Fmt (Buildable, pretty)
 

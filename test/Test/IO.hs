@@ -11,10 +11,10 @@ module Test.IO
   , test_multisigSignPackage
   ) where
 
-import qualified Debug (show)
+import Debug qualified (show)
 
-import qualified Data.Map as Map
-import qualified Data.Text as T
+import Data.Map qualified as Map
+import Data.Text qualified as T
 import Fmt (pretty)
 import Test.HUnit (Assertion, assertFailure)
 import Test.Tasty (TestTree, testGroup)
@@ -26,8 +26,8 @@ import Client.Main (mainProgram)
 import Client.Types
 import Lorentz (TSignature(..), toTAddress)
 import Lorentz.Contracts.Multisig
-import qualified Lorentz.Contracts.TZBTC as TZBTC
-import qualified Lorentz.Contracts.TZBTC.Types as TZBTCTypes
+import Lorentz.Contracts.TZBTC qualified as TZBTC
+import Lorentz.Contracts.TZBTC.Types qualified as TZBTCTypes
 import Morley.Client.TezosClient.Types
   (AddressOrAlias(..), Alias(..), AliasHint(..), AliasOrAliasHint(..), mkAlias)
 import Morley.Micheline
@@ -35,7 +35,7 @@ import Morley.Michelson.Typed.Haskell.Value (toVal)
 import Morley.Tezos.Address
 import Morley.Tezos.Core (ChainId, dummyChainId)
 import Morley.Tezos.Crypto
-import qualified Morley.Tezos.Crypto.Ed25519 as Ed25519
+import Morley.Tezos.Crypto.Ed25519 qualified as Ed25519
 import Morley.Util.Named
 import TestM
 import Util.MultiSig

@@ -20,7 +20,7 @@ module CLI.Parser
 import Fmt (Buildable, pretty)
 import GHC.TypeLits (KnownSymbol, symbolVal)
 import Options.Applicative (ReadM, help, hsubparser, long, metavar, switch)
-import qualified Options.Applicative as Opt
+import Options.Applicative qualified as Opt
 
 import Lorentz.Contracts.Metadata
 import Morley.CLI

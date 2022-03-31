@@ -20,7 +20,7 @@ import Morley.Util.Named
 import Lorentz.Contracts.TZBTC.Common.Types
   (AcceptOwnershipParams, ApproveParams, BurnParams, GetAllowanceParams, GetBalanceParams,
   MintParams, OperatorParams, SetRedeemAddressParams, TransferOwnershipParams, TransferParams)
-import qualified Lorentz.Contracts.TZBTC.Common.Types as TZBTC
+import Lorentz.Contracts.TZBTC.Common.Types qualified as TZBTC
 
 -- | This is a type that is meant to hide details of how the actual parameter
 -- is structured, so that consumers of the contract are spared of any changes

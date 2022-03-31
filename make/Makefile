@@ -49,9 +49,6 @@ haddock:
 haddock-no-deps:
 	stack haddock $(STACK_DEV_OPTIONS) $(PACKAGE) --no-haddock-deps
 
-stylish:
-	stylish-haskell -i `find src -iname '*.hs'`
-
 lint:
 	cd .. && scripts/lint.sh
 
