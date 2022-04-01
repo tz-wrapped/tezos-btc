@@ -40,13 +40,13 @@ import Named (arg)
 
 import Lorentz
 import Lorentz.Contracts.Metadata
-import qualified Lorentz.Contracts.Spec.AbstractLedgerInterface as ManagedLedger
-import qualified Lorentz.Contracts.Spec.ApprovableLedgerInterface as ManagedLedger
-import qualified Lorentz.Contracts.Spec.ManagedLedgerInterface as ManagedLedger
+import Lorentz.Contracts.Spec.AbstractLedgerInterface qualified as ManagedLedger
+import Lorentz.Contracts.Spec.ApprovableLedgerInterface qualified as ManagedLedger
+import Lorentz.Contracts.Spec.ManagedLedgerInterface qualified as ManagedLedger
 import Lorentz.Contracts.Upgradeable.Common
   (KnownContractVersion(..), MigrationScriptFrom, OneShotUpgradeParameters, PermanentImpl,
   SomeUContractRouter, UContractRouter(..), VerParam, VerUStore, Version, VersionKind)
-import qualified Lorentz.Contracts.Upgradeable.Common as Upgradeable
+import Lorentz.Contracts.Upgradeable.Common qualified as Upgradeable
 import Lorentz.UStore
 import Lorentz.UStore.Migration (SomeUTemplate)
 import Morley.Util.Instances ()

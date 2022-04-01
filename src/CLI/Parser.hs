@@ -19,9 +19,8 @@ module CLI.Parser
 
 import Fmt (Buildable, pretty)
 import GHC.TypeLits (KnownSymbol, symbolVal)
-import Named (arg)
 import Options.Applicative (ReadM, help, hsubparser, long, metavar, switch)
-import qualified Options.Applicative as Opt
+import Options.Applicative qualified as Opt
 
 import Lorentz.Contracts.Metadata
 import Morley.CLI
@@ -163,12 +162,12 @@ biNamedParser
   => Maybe a -> String -> Opt.Parser (name :! a)
 biNamedParser defValue hInfo = asum
   [ namedParser defValue hInfo
-  , Opt.option ((Name @name) <:!> getReader) $
+  , Opt.option (fromLabel @name <:!> getReader) $
       mconcat
       [ long name
       , metavar (getMetavar @a)
       , help (hInfo <> " " <> deprecationNote)
-      , maybeAddDefault pretty (Name @name <:!> defValue)
+      , maybeAddDefault pretty (fromLabel @name <:!> defValue)
       ]
   ]
   where
@@ -180,22 +179,20 @@ versionReadM = eitherReader $ \case
   "0" -> pure V0
   "1" -> pure V1
   "2" -> pure V2
-  other -> Left $ "Unknown version identifier " <> show other
+  other -> Left $ "Unknown version identifier " <> pretty other
 
 -- | Parse `TokenMetadata` for a single token, with no extras
 parseSingleTokenMetadata :: Opt.Parser TokenMetadata
 parseSingleTokenMetadata = do
-  tmTokenId <-
-    pure singleTokenTokenId
+  let tmTokenId = singleTokenTokenId
+      tmExtras = mempty
   tmSymbol <-
-    arg (Name @"token-symbol") <$> namedParser (Just [mt|TZBTC|])
+    arg (fromLabel @"token-symbol") <$> namedParser (Just [mt|TZBTC|])
       "Token symbol, as described in TZIP-12."
   tmName <-
-    arg (Name @"token-name") <$> namedParser (Just [mt|Tezos BTC|])
+    arg (fromLabel @"token-name") <$> namedParser (Just [mt|Tezos BTC|])
       "Token name, as in TZIP-12."
   tmDecimals <-
-    arg (Name @"token-decimals") <$> namedParser (Just 0)
+    arg (fromLabel @"token-decimals") <$> namedParser (Just 0)
       "Number of decimals token uses, as in TZIP-12."
-  tmExtras <-
-    pure mempty
   return TokenMetadata{..}

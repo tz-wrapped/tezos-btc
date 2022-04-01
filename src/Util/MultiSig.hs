@@ -35,11 +35,11 @@ import Morley.Michelson.Interpret.Unpack
 import Morley.Tezos.Crypto
 import Morley.Util.ByteString
 import Text.Hex (encodeHex)
-import qualified Text.Show (show)
+import Text.Show qualified (show)
 
 import Lorentz
 import Lorentz.Contracts.Multisig
-import qualified Lorentz.Contracts.Multisig.Specialized.Types as Spec
+import Lorentz.Contracts.Multisig.Specialized.Types qualified as Spec
 import Lorentz.Contracts.TZBTC as TZBTC
 import Lorentz.Contracts.TZBTC.Common.Types as TZBTC
 

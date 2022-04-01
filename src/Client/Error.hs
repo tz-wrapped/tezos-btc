@@ -7,7 +7,7 @@ module Client.Error
   ) where
 
 import Fmt (Buildable(..), pretty, (+|), (|+))
-import qualified Text.Show (show)
+import Text.Show qualified (show)
 
 data TzbtcClientError
   = TzbtcUnknownAliasError Text

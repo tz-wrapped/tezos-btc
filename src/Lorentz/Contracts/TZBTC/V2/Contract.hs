@@ -26,14 +26,14 @@ import Lorentz.Contracts.Upgradeable.EntrypointWise
 import Lorentz.UStore
 import Lorentz.UStore.Doc (DUStoreTemplate(..))
 import Lorentz.UStore.Migration
-import qualified Morley.Michelson.Typed as T
+import Morley.Michelson.Typed qualified as T
 import Morley.Util.TypeTuple.Class
 
 import Lorentz.Contracts.TZBTC.Common.Doc
 import Lorentz.Contracts.TZBTC.V0 (StoreTemplateV0)
-import qualified Lorentz.Contracts.TZBTC.V0 as V0
-import qualified Lorentz.Contracts.TZBTC.V1.Contract as V1
-import qualified Lorentz.Contracts.TZBTC.V2.Impl as TZBTC
+import Lorentz.Contracts.TZBTC.V0 qualified as V0
+import Lorentz.Contracts.TZBTC.V1.Contract qualified as V1
+import Lorentz.Contracts.TZBTC.V2.Impl qualified as TZBTC
 import Lorentz.Contracts.TZBTC.V2.Types
 
 v2Impl :: Rec (EpwCaseClause StoreTemplateV2) Interface

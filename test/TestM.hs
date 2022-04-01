@@ -20,7 +20,7 @@ module TestM
 import Colog.Core.Class (HasLog(..))
 import Colog.Message (Message)
 import Data.ByteArray (ScrubbedBytes)
-import qualified Data.Map as Map
+import Data.Map qualified as Map
 
 import Morley.Client
 import Morley.Client.Logging (ClientLogAction)

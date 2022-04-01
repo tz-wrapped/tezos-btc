@@ -25,9 +25,9 @@ import Lorentz
 import Morley.Michelson.Optimizer (OptimizerConf(..))
 
 import Lorentz.Contracts.TZBTC.Types (OneShotUpgradeParameters)
-import qualified Lorentz.Contracts.TZBTC.V0 as V0
-import qualified Lorentz.Contracts.TZBTC.V1 as V1
-import qualified Lorentz.Contracts.TZBTC.V2 as V2
+import Lorentz.Contracts.TZBTC.V0 qualified as V0
+import Lorentz.Contracts.TZBTC.V1 qualified as V1
+import Lorentz.Contracts.TZBTC.V2 qualified as V2
 import Lorentz.Contracts.Upgradeable.Common.Base
 import Lorentz.Contracts.Upgradeable.Common.Interface
   (EpwUpgradeParameters(..), makeOneShotUpgradeParameters)

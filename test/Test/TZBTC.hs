@@ -31,20 +31,20 @@ module Test.TZBTC
   , originateTzbtcV1ContractRaw
   ) where
 
-import qualified Data.Map as M
-import qualified Data.Set as Set
-import qualified Data.Text.IO.Utf8 as Utf8
+import Data.Map qualified as M
+import Data.Set qualified as Set
+import Data.Text.IO.Utf8 qualified as Utf8
 import Data.Typeable (typeRep)
-import Fmt (Buildable(..), Builder, (+|), (+||), (|+), (||+))
+import Fmt (Builder, pretty, (+|), (|+))
 import Test.Tasty (TestTree, testGroup)
 
 import Lorentz
   (Address, BigMapId, Contract(cMichelsonContract), Empty, EpName, IsoValue(..), Value, mkView_)
 import Lorentz.Contracts.Metadata (singleTokenTokenId)
-import qualified Lorentz.Contracts.Spec.ApprovableLedgerInterface as AL
-import qualified Lorentz.Contracts.Test.ApprovableLedger as AL
+import Lorentz.Contracts.Spec.ApprovableLedgerInterface qualified as AL
+import Lorentz.Contracts.Test.ApprovableLedger qualified as AL
 import Lorentz.Contracts.Test.ManagedLedger (OriginationParams(..), originateManagedLedger)
-import qualified Lorentz.Contracts.Test.ManagedLedger as ML
+import Lorentz.Contracts.Test.ManagedLedger qualified as ML
 import Lorentz.Contracts.Upgradeable.Client (UStoreElemRef(..))
 import Lorentz.Contracts.Upgradeable.Common
   (EpwUpgradeParameters(..), KnownContractVersion, VerPermanent, VerUStoreTemplate,
@@ -58,27 +58,25 @@ import Morley.Michelson.Parser.Types (MichelsonSource(..))
 import Morley.Michelson.Runtime (parseExpandContract)
 import Morley.Michelson.Typed
   (SomeConstrainedValue(SomeConstrainedValue), UnpackedValScope, Value'(VPair), convertContract)
-import qualified Morley.Michelson.Untyped as U
+import Morley.Michelson.Untyped qualified as U
+import Morley.Michelson.Untyped.Entrypoints (mkEntrypointsMap)
 import Morley.Tezos.Address (ta)
 import Morley.Util.Named (pattern (:!))
 import Test.Cleveland
 import Test.Cleveland.Lorentz
   (contractConsumer, runDocTests, testContractCoversEntrypointsT, testLorentzDoc)
-import Test.Cleveland.Michelson.Unit (mkEntrypointsMap, testContractCoversEntrypoints)
+import Test.Cleveland.Michelson.Entrypoints (testContractCoversEntrypoints)
 
 import Lorentz.Contracts.TZBTC
 import Lorentz.Contracts.TZBTC.Common.Types (Operators)
-import qualified Lorentz.Contracts.TZBTC.V1 as V1
-import qualified Lorentz.Contracts.TZBTC.V2 as V2
+import Lorentz.Contracts.TZBTC.V1 qualified as V1
+import Lorentz.Contracts.TZBTC.V2 qualified as V2
 import Test.Smoke (TestUpgrade(..), testUpgradeToV1, testUpgradeToV2)
 
 import Test.AsRPC (StorageRPC)
-import qualified Test.AsRPC as RPC
+import Test.AsRPC qualified as RPC
 
 {-# ANN module ("HLint: ignore Reduce duplication" :: Text) #-}
-
-instance Buildable ByteString where
-  build = show
 
 -- This function is mostly copied from morley-upgradeable
 -- Lorentz.Contracts.Upgradeable.Client.readContractUStore, but it accepts 'BigMapId' instead
@@ -94,7 +92,7 @@ readUStore bmId ref = do
     & either (const (throwUnpackFailed uval)) pure
   where
     throwUnpackFailed uval =
-      failure $ "UStore value unpack failed" +| uval |+ " :: " +|| typeRep (Proxy @v) ||+ ""
+      failure $ "UStore value unpack failed" +| uval |+ " :: " +| show @Builder (typeRep (Proxy @v)) |+ ""
 
     refToKey :: UStoreElemRef -> ByteString
     refToKey = \case
@@ -216,7 +214,7 @@ entrypointsRef = mkEntrypointsMap <$> tzbtcParameterType
       code <- Utf8.readFile "./test/resources/tzbtc-parameter-entrypoints-ref.mtz"
       case parseExpandContract MSUnspecified code of
         Right c -> pure $ U.contractParameter c
-        Left e -> error ("Error in parsing reference contract paramter:" <> show e)
+        Left e -> error ("Error in parsing reference contract paramter:" <> pretty e)
 
 -- Tests
 

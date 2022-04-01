@@ -17,7 +17,7 @@ module Lorentz.Contracts.TZBTC.V1.ManagedLedger.Types
 import Lorentz
 
 import Lorentz.Contracts.Spec.AbstractLedgerInterface ()
-import qualified Lorentz.Contracts.TZBTC.Common.Types as Common
+import Lorentz.Contracts.TZBTC.Common.Types qualified as Common
 
 type LedgerValue =
   ("balance" :! Natural, "approvals" :! Map Address Natural)

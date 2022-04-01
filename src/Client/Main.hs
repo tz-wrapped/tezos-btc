@@ -7,6 +7,8 @@ module Client.Main
   , runAppM
   ) where
 
+import Debug qualified (show)
+
 import Fmt (Buildable, pretty)
 
 import Lorentz hiding (address, balance, chainId, cons, map)
@@ -159,7 +161,7 @@ mainProgram cmd = case cmd of
     case pkgs of
       Left err -> printTextLn err
       Right packages -> runMultisigContract packages
-  CmdDeployContract (N mOwner) deployOptions -> do
+  CmdDeployContract (arg #owner -> mOwner) deployOptions -> do
     owner <- maybe getTzbtcUserAddress addressOrAliasToAddr mOwner
     let toDeployParamsV1 :: DeployContractOptionsV1 -> m V1DeployParameters
         toDeployParamsV1 DeployContractOptionsV1{..} = do
@@ -188,7 +190,7 @@ mainProgram cmd = case cmd of
     deployMultisigContract ((Counter 0), (threshold, keys')) useCustomErrors
   CmdShowConfig -> do
     config <- getTezosClientConfig
-    printStringLn $ show config
+    printStringLn $ Debug.show config
   where
     runMultisigTzbtcContract :: Maybe FilePath -> Parameter SomeTZBTCVersion -> m ()
     runMultisigTzbtcContract mbMultisig param =
