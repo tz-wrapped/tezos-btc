@@ -45,7 +45,7 @@ import Lorentz.Contracts.TZBTC.Common.FlatParameter
 import Lorentz.Contracts.TZBTC.Preprocess
 import Lorentz.Contracts.TZBTC.Types
 import Lorentz.Contracts.TZBTC.V0
-import qualified Lorentz.Contracts.TZBTC.V2 as V2
+import Lorentz.Contracts.TZBTC.V2 qualified as V2
 
 -- Implementation
 ----------------------------------------------------------------------------

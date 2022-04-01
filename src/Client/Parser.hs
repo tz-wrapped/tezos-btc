@@ -15,8 +15,8 @@ module Client.Parser
 import Data.Char (isAlpha, isDigit)
 import Fmt (pretty)
 import Options.Applicative (help, long, metavar, option, short, str, switch)
-import qualified Options.Applicative as Opt
-import qualified Text.Megaparsec as P (Parsec, customFailure, many, parse, satisfy, skipManyTill)
+import Options.Applicative qualified as Opt
+import Text.Megaparsec qualified as P (Parsec, customFailure, many, parse, satisfy, skipManyTill)
 import Text.Megaparsec.Char (newline, printChar, space)
 import Text.Megaparsec.Char.Lexer (symbol)
 import Text.Megaparsec.Error (ParseErrorBundle, ShowErrorComponent(..))

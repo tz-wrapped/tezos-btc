@@ -39,7 +39,7 @@ import Morley.Util.Markdown (mdTicked)
 import Lorentz
 import Lorentz.Contracts.Metadata
 import Lorentz.Contracts.TZBTC.Common.Types hiding (AddOperator, RemoveOperator)
-import qualified Lorentz.Contracts.TZBTC.V1.ManagedLedger as ManagedLedger
+import Lorentz.Contracts.TZBTC.V1.ManagedLedger qualified as ManagedLedger
 import Lorentz.Contracts.TZBTC.V1.Types
 
 type StorageC store =

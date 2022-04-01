@@ -22,7 +22,7 @@ where
 
 import Prelude hiding (drop, (>>))
 
-import qualified Data.Map as M
+import Data.Map qualified as M
 
 import Lorentz
 import Lorentz.Contracts.Upgradeable.Common.Base
@@ -31,14 +31,14 @@ import Lorentz.Contracts.Upgradeable.EntrypointWise
 import Lorentz.UStore
 import Lorentz.UStore.Doc (DUStoreTemplate(..))
 import Lorentz.UStore.Haskell
-import qualified Morley.Michelson.Typed as T
+import Morley.Michelson.Typed qualified as T
 import Morley.Util.Named
 import Morley.Util.TypeTuple.Class
 
 import Lorentz.Contracts.TZBTC.Common.Doc
 import Lorentz.Contracts.TZBTC.V0 (StoreTemplateV0)
-import qualified Lorentz.Contracts.TZBTC.V0 as V0
-import qualified Lorentz.Contracts.TZBTC.V1.Impl as TZBTC
+import Lorentz.Contracts.TZBTC.V0 qualified as V0
+import Lorentz.Contracts.TZBTC.V1.Impl qualified as TZBTC
 import Lorentz.Contracts.TZBTC.V1.Types
 
 v1Impl :: Rec (EpwCaseClause StoreTemplateV1) Interface

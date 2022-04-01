@@ -27,7 +27,7 @@ import Lorentz
 import Lorentz.Contracts.ManagedLedger (LedgerValue)
 import Lorentz.Contracts.Metadata
 import Lorentz.Contracts.TZBTC.Common.Types
-import qualified Lorentz.Contracts.TZBTC.V1.Types as V1
+import Lorentz.Contracts.TZBTC.V1.Types qualified as V1
 import Lorentz.Contracts.Upgradeable.Common (KnownContractVersion(..), VersionKind)
 import Lorentz.Contracts.Upgradeable.EntrypointWise
 import Lorentz.UStore

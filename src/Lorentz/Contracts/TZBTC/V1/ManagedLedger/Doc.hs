@@ -21,4 +21,4 @@ module Lorentz.Contracts.TZBTC.V1.ManagedLedger.Doc
   , ML.DRequireRole (..)
   ) where
 
-import qualified Lorentz.Contracts.ManagedLedger.Doc as ML
+import Lorentz.Contracts.ManagedLedger.Doc qualified as ML

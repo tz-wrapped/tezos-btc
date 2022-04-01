@@ -11,8 +11,10 @@ module Test.IO
   , test_multisigSignPackage
   ) where
 
-import qualified Data.Map as Map
-import qualified Data.Text as T
+import Debug qualified (show)
+
+import Data.Map qualified as Map
+import Data.Text qualified as T
 import Fmt (pretty)
 import Test.HUnit (Assertion, assertFailure)
 import Test.Tasty (TestTree, testGroup)
@@ -24,8 +26,8 @@ import Client.Main (mainProgram)
 import Client.Types
 import Lorentz (TSignature(..), toTAddress)
 import Lorentz.Contracts.Multisig
-import qualified Lorentz.Contracts.TZBTC as TZBTC
-import qualified Lorentz.Contracts.TZBTC.Types as TZBTCTypes
+import Lorentz.Contracts.TZBTC qualified as TZBTC
+import Lorentz.Contracts.TZBTC.Types qualified as TZBTCTypes
 import Morley.Client.TezosClient.Types
   (AddressOrAlias(..), Alias(..), AliasHint(..), AliasOrAliasHint(..), mkAlias)
 import Morley.Micheline
@@ -33,7 +35,7 @@ import Morley.Michelson.Typed.Haskell.Value (toVal)
 import Morley.Tezos.Address
 import Morley.Tezos.Core (ChainId, dummyChainId)
 import Morley.Tezos.Crypto
-import qualified Morley.Tezos.Crypto.Ed25519 as Ed25519
+import Morley.Tezos.Crypto.Ed25519 qualified as Ed25519
 import Morley.Util.Named
 import TestM
 import Util.MultiSig
@@ -124,7 +126,7 @@ meetExpectation s = do
   m <- get
   case Map.lookup s m of
     Just es -> put $ Map.insert s (es { exOccurCount = exOccurCount es + 1 }) m
-    Nothing  -> throwM $ TestError $ "Unset expectation:" ++ show s
+    Nothing  -> throwM $ TestError $ "Unset expectation:" ++ Debug.show s
 
 -- | Check if all the expectation have been met.
 checkExpectations :: (MonadThrow m, MonadState ST m) =>  m ()
@@ -132,7 +134,7 @@ checkExpectations = do
   m <- get
   let filtered = (Map.filter flFn m)
   if Map.null filtered  then pass else throwM $
-    TestError $ "Test expectation was not met" ++ show (Map.assocs filtered)
+    TestError $ "Test expectation was not met" ++ Debug.show (Map.assocs filtered)
   where
     flFn :: ExpectationStatus -> Bool
     flFn es = case exExpectCount es of
@@ -146,21 +148,17 @@ johnAddress = mkKeyAddress johnAddressPK
 johnAddressPK = PublicKeyEd25519 . Ed25519.toPublic $ johnSecretKey
 johnSecretKey = Ed25519.detSecretKey "john"
 
-contractAddressRaw :: IsString s => s
-contractAddressRaw = "KT1HmhmNcZKmm2NsuyahdXAaHQwYfWfdrBxi"
-contractAddress = unsafeParseAddress contractAddressRaw
+contractAddress :: Address
+contractAddress = [ta|KT1HmhmNcZKmm2NsuyahdXAaHQwYfWfdrBxi|]
 
-multiSigAddressRaw :: IsString s => s
-multiSigAddressRaw = "KT1MLCp7v3NiY9xeLe4XyPoS4AEgfXT7X5PX"
-multiSigAddress = unsafeParseAddress multiSigAddressRaw
+multiSigAddress :: Address
+multiSigAddress = [ta|KT1MLCp7v3NiY9xeLe4XyPoS4AEgfXT7X5PX|]
 
-multiSigAddressOverrideRaw :: IsString s => s
-multiSigAddressOverrideRaw = "KT1MwaBC3G3cUa3PfjJ1StFkSuBLbRuoReRK"
-multiSigOverrideAddress = unsafeParseAddress multiSigAddressOverrideRaw
+multiSigOverrideAddress :: Address
+multiSigOverrideAddress = [ta|KT1MwaBC3G3cUa3PfjJ1StFkSuBLbRuoReRK|]
 
-operatorAddress1Raw :: IsString s => s
-operatorAddress1Raw = "tz1cLwfiFZWA4ZgDdxKiMgxACvGZbTJ2tiQQ"
-operatorAddress1 = unsafeParseAddress operatorAddress1Raw
+operatorAddress1 :: Address
+operatorAddress1 = [ta|tz1cLwfiFZWA4ZgDdxKiMgxACvGZbTJ2tiQQ|]
 
 multiSigFilePath = "/home/user/multisig_package"
 

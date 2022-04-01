@@ -13,12 +13,12 @@ module Test.Migration
 
 import Test.Tasty (TestTree, testGroup)
 
-import qualified Lorentz as L
+import Lorentz qualified as L
 import Lorentz.Base ((#))
 import Lorentz.Coercions (checkedCoerce)
 import Lorentz.Contracts.TZBTC as TZBTC
 import Lorentz.Contracts.TZBTC.Preprocess
-import qualified Lorentz.Contracts.TZBTC.Types as TZBTCTypes
+import Lorentz.Contracts.TZBTC.Types qualified as TZBTCTypes
 import Lorentz.Contracts.TZBTC.V0 (StoreTemplateV0)
 import Lorentz.Contracts.Upgradeable.Common (UContractRouter, mkUContractRouter)
 import Lorentz.Instr as Lorentz (drop, nil, pair)
@@ -28,7 +28,7 @@ import Morley.Tezos.Address (Address, ta)
 import Morley.Util.Named
 import Test.Cleveland
 
-import qualified Test.AsRPC as RPC
+import Test.AsRPC qualified as RPC
 import Test.TZBTC (dummyV1Parameters)
 
 {-# ANN module ("HLint: ignore Reduce duplication" :: Text) #-}
