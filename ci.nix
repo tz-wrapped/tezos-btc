@@ -8,8 +8,9 @@ rec {
   };
   pkgs = import sources.nixpkgs haskellNix.nixpkgsArgs;
   xrefcheck = import sources.xrefcheck;
-  weeder-hacks = import sources.haskell-nix-weeder { inherit pkgs; };
-  tezos-client = (import "${sources.tezos-packaging}/nix/build/pkgs.nix" {}).ocamlPackages.tezos-client;
+  morley-infra = import sources.morley-infra;
+
+  inherit (morley-infra) tezos-client weeder-hacks;
 
   tzbtc-with-commit = commitInfo: import ./tzbtc.nix { inherit pkgs weeder-hacks commitInfo; };
   tzbtc-release = import ./tzbtc.nix { inherit pkgs weeder-hacks; release = true; };
@@ -18,16 +19,8 @@ rec {
   all-components = with tzbtc.components;
     [ library library.haddock ] ++ pkgs.lib.attrValues exes ++ pkgs.lib.attrValues tests;
 
-  # nixpkgs has weeder 2, but we use weeder 1
-  weeder-legacy = pkgs.haskellPackages.callHackageDirect {
-    pkg = "weeder";
-    ver = "1.0.9";
-    sha256 = "0gfvhw7n8g2274k74g8gnv1y19alr1yig618capiyaix6i9wnmpa";
-  } {};
-
   # a derivation which generates a script for running weeder
-  weeder-script = weeder-hacks.weeder-script {
-    weeder = weeder-legacy;
+  weeder-script = morley-infra.weeder-script {
     hs-pkgs = { tzbtc = tzbtc; };
     local-packages = [
       { name = "tzbtc"; subdirectory = "."; }
