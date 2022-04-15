@@ -10,29 +10,24 @@ packages:
 - .
 
 extra-deps:
-- git:
-    https://gitlab.com/morley-framework/morley.git
-    # ^ CI cannot use ssh, so we use http clone here
-  commit:
-    146da727ff486c46b0ec9f392d955f07d797848e # master
-  subdirs:
-    - code/cleveland
-    - code/lorentz
-    - code/morley
-    - code/morley-client
-    - code/morley-prelude
+# Stable versions available on Hackage
+- cleveland-0.1.1
+- morley-1.16.3
+- morley-client-0.1.1
+- morley-prelude-0.5.1
+- lorentz-0.13.3
 
 - git:
     https://gitlab.com/morley-framework/morley-multisig.git
     # ^ CI cannot use ssh, so we use http clone here
   commit:
-    b56c2c69eabe9b31075414f393ccad84e766f6fc # master
+    75085fd676cc44c9aa59efbebd1ea1bdb3a4bbff # master
 
 - git:
     https://gitlab.com/morley-framework/morley-ledgers.git
     # ^ CI cannot use ssh, so we use http clone here
   commit:
-    b39a971f42bb113a5b3e23c9145253e27ad6e049 # master
+    81ce02e733b6c33e4d4fe8034e65d95f03a5f0a7 # master
   subdirs:
     - code/morley-ledgers
     - code/morley-ledgers-test
@@ -41,12 +36,12 @@ extra-deps:
     https://gitlab.com/morley-framework/morley-upgradeable.git
     # ^ CI cannot use ssh, so we use http clone here
   commit:
-    0550b5dde3ed1ac2cac6ce53a0e24b077f501a1b # master
+    d4508936e5a4263af446b2b7c20f078561b04ac3 # master
 
 - git:
     https://gitlab.com/morley-framework/indigo.git
   commit:
-    e879e5f282afb8d25d72d8ba132f22d3d9e628a1 # master
+    8074d3c6a03d6e79b7ddb48b323bca72bf6c2767 # master
   subdirs:
     - .
 

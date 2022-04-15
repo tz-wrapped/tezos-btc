@@ -24,7 +24,7 @@ import Lorentz (TrustEpName(..), View_(..), mkView_, toAddress)
 import Lorentz.Contracts.Metadata
 import Lorentz.Contracts.Upgradeable.Common (EpwUpgradeParameters(..), emptyPermanentImpl)
 import Lorentz.UStore.Migration
-import Morley.Client (disableAlphanetWarning)
+import Morley.Client (OperationInfo(..), Result, disableAlphanetWarning)
 import Morley.Client.TezosClient qualified as TezosClient
 import Morley.Michelson.Typed.Haskell.Value
 import Morley.Michelson.Untyped.Entrypoints
@@ -321,8 +321,9 @@ nettestImplTzbtcClient :: MorleyClientEnv -> Sender -> ClevelandOpsImpl ClientM
 nettestImplTzbtcClient env sender =
   impl { coiRunOperationBatch = \case
       [op] -> case op of
-        OriginateOp oud -> tzbtcClientOriginate oud
-        TransferOp td -> tzbtcClientTransfer td >> pure [TransferResult]
+        OpOriginate oud -> tzbtcClientOriginate oud
+        OpTransfer td -> tzbtcClientTransfer td >> pure [OpTransfer ()]
+        OpReveal _ -> error "Reveal operation is not supported"
       _ -> error "Batch operations are not supported"
     }
   where
@@ -333,7 +334,7 @@ nettestImplTzbtcClient env sender =
       [ "-E", TezosClient.toCmdArg $ tceEndpointUrl tezosClientEnv
       ] <> (maybe [] (\dataDir -> ["-d", dataDir]) $ tceMbTezosClientDataDir tezosClientEnv)
 
-    tzbtcClientOriginate :: UntypedOriginateData -> ClientM [BaseOperationResult]
+    tzbtcClientOriginate :: UntypedOriginateData -> ClientM [OperationInfo Result]
     tzbtcClientOriginate od@(UntypedOriginateData {..}) =
       if TezosClient.unsafeGetAliasHintText uodName == "TZBTCContract" then do
         let senderAddr = unSender sender
@@ -344,9 +345,9 @@ nettestImplTzbtcClient env sender =
           , "--user", TezosClient.toCmdArg senderAddr
           ]
         case parseContractAddressFromOutput output of
-          Right a -> pure [OriginateResult a]
+          Right a -> pure [OpOriginate a]
           Left err -> throwM $ TezosClient.UnexpectedClientFailure 1 "" (Debug.show err)
-      else coiRunOperationBatch impl [OriginateOp od]
+      else coiRunOperationBatch impl [OpOriginate od]
 
     tzbtcClientTransfer :: TransferData -> ClientM ()
     tzbtcClientTransfer td@(TransferData {..}) = do
@@ -437,7 +438,7 @@ nettestImplTzbtcClient env sender =
           _ -> callMorleyClient
         Nothing -> callMorleyClient
       where
-        callMorleyClient = coiRunOperationBatch impl [TransferOp td] >> pass
+        callMorleyClient = coiRunOperationBatch impl [OpTransfer td] >> pass
         callTzbtc :: [String] -> ClientM ()
         callTzbtc args = void $ liftIO $ callTzbtcClient $
           tzbtcClientEnvArgs <> args <> ["--user", TezosClient.toCmdArg (unSender sender)
