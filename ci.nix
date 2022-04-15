@@ -10,7 +10,7 @@ rec {
   xrefcheck = import sources.xrefcheck;
   morley-infra = import sources.morley-infra;
 
-  inherit (morley-infra) tezos-client weeder-hacks;
+  inherit (morley-infra) tezos-client weeder-hacks run-chain-tests;
 
   tzbtc-with-commit = commitInfo: import ./tzbtc.nix { inherit pkgs weeder-hacks commitInfo; };
   tzbtc-release = import ./tzbtc.nix { inherit pkgs weeder-hacks; release = true; };
