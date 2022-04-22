@@ -116,7 +116,7 @@ data Handlers m = Handlers
   , hRevealKey :: Alias -> Maybe ScrubbedBytes -> m ()
   , hWaitForOperation :: OperationHash -> m ()
   , hRememberContract :: Bool -> Address -> AliasOrAliasHint -> m ()
-  , hImportKey :: Bool -> AliasOrAliasHint -> SecretKey -> m ()
+  , hImportKey :: Bool -> AliasOrAliasHint -> SecretKey -> m Alias
   , hResolveAddressMaybe :: AddressOrAlias -> m (Maybe Address)
   , hGetAlias :: AddressOrAlias -> m Alias
   , hGetPublicKey :: AddressOrAlias -> m PublicKey
