@@ -11,6 +11,13 @@ Changes that affect Michelson code are tagged with `[CONTRACT]`.
 Unreleased
 ==========
 
+0.8.0
+==========
+* [#172](https://github.com/tz-wrapped/tezos-btc/pull/172)
+  + Morley dependencies updated to provide changes that support Ithaca protocol.
+* [#159](https://github.com/tz-wrapped/tezos-btc/pull/159)
+  + Switch tests to nettest engine.
+
 0.7.0
 ==========
 * [#137](https://github.com/tz-wrapped/tezos-btc/pull/141)
