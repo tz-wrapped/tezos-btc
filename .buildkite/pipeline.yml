@@ -3,11 +3,6 @@
 
 env:
   TEZOS_CLIENT_UNSAFE_DISABLE_DISCLAIMER: "Y"
-  # Moneybag address is tz1Vona7MnADxXVFugpHohxSTFmah5Aj5xBM. It's supposed to be auto-refilled.
-  # Insufficient balance errors during testnet runs should be checked.
-  CHAIN_TEST_MONEYBAG_SECRET_KEY: "unencrypted:edsk3D3Gx5q6mVL4jCAuFCoekWjM6hzrmSA3MCtDUnMAjxmxJ2rtes"
-  # this key is defined in local-chain bootstrap accounts list in
-  # https://github.com/serokell/aquarius-infra/blob/master/servers/albali/chain.nix
 
 steps:
   - label: hlint
@@ -55,6 +50,9 @@ steps:
     depends_on: build
     env:
       TASTY_CLEVELAND_NODE_ENDPOINT: "http://localhost:8733"
+      CHAIN_TEST_MONEYBAG_SECRET_KEY: "unencrypted:edsk3D3Gx5q6mVL4jCAuFCoekWjM6hzrmSA3MCtDUnMAjxmxJ2rtes"
+      # this key is defined in local-chain bootstrap accounts list in
+      # https://github.com/serokell/aquarius-infra/blob/master/servers/albali/chain.nix
     commands: &run-nettest
     - export PATH=$(nix-build ci.nix -A tzbtc.components.exes.tzbtc-client)/bin:$PATH
     - nix-build ci.nix -A tzbtc.components.tests.tzbtc-test
@@ -62,15 +60,43 @@ steps:
     # which may need to be adjusted in case of insufficient balance errors
     - $(nix-build ci.nix -A run-chain-tests
         --argstr refill-balance 3300
-        --argstr node-endpoint $$TASTY_CLEVELAND_NODE_ENDPOINT
-        --argstr step-moneybag $$CHAIN_TEST_MONEYBAG_SECRET_KEY --no-out-link
+        --argstr node-endpoint "$$TASTY_CLEVELAND_NODE_ENDPOINT"
+        --argstr step-moneybag "$$CHAIN_TEST_MONEYBAG_SECRET_KEY"
+        --argstr step-moneybag-password "$$CHAIN_TEST_MONEYBAG_PASSWORD"
+        --no-out-link
         --argstr scenario './result/bin/tzbtc-test --cleveland-mode=only-network')
+
+  - label: test-local-chain-013
+    if: *not_scheduled_autodoc
+    depends_on: build
+    env:
+      TASTY_CLEVELAND_NODE_ENDPOINT: "http://localhost:8734"
+      CHAIN_TEST_MONEYBAG_SECRET_KEY: "unencrypted:edsk3D3Gx5q6mVL4jCAuFCoekWjM6hzrmSA3MCtDUnMAjxmxJ2rtes"
+      # this key is defined in local-chain bootstrap accounts list in
+      # https://github.com/serokell/aquarius-infra/blob/master/servers/albali/chain.nix
+    commands: *run-nettest
 
   - label: scheduled ithacanet test
     if: build.source == "schedule"
     depends_on: build
     env:
       TASTY_CLEVELAND_NODE_ENDPOINT: "https://ithaca.testnet.tezos.serokell.team"
+      # Moneybag address is tz1Vona7MnADxXVFugpHohxSTFmah5Aj5xBM. It's supposed to be auto-refilled.
+      # Insufficient balance errors during testnet runs should be checked.
+      CHAIN_TEST_MONEYBAG_SECRET_KEY: "unencrypted:edsk3D3Gx5q6mVL4jCAuFCoekWjM6hzrmSA3MCtDUnMAjxmxJ2rtes"
+    commands: *run-nettest
+    retry:
+      automatic:
+        limit: 1
+    timeout_in_minutes: 240
+
+  - label: scheduled jakartanet test
+    if: build.source == "schedule"
+    depends_on: build
+    env:
+      TASTY_CLEVELAND_NODE_ENDPOINT: "https://jakarta.testnet.tezos.serokell.team"
+      CHAIN_TEST_MONEYBAG_SECRET_KEY: "$JAKARTANET_MONEYBAG"
+      CHAIN_TEST_MONEYBAG_PASSWORD: "$JAKARTANET_MONEYBAG_PASSWORD"
     commands: *run-nettest
     retry:
       automatic:
