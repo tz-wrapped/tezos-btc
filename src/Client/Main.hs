@@ -17,8 +17,8 @@ import Lorentz.Contracts.Multisig
 import Morley.Client.Logging (WithClientLog)
 import Morley.Client.RPC.Class
 import Morley.Client.TezosClient.Class
-import Morley.Client.TezosClient.Types (AddressOrAlias(..))
 import Morley.Michelson.Typed (UnpackedValScope)
+import Morley.Tezos.Address.Alias (AddressOrAlias(..))
 import Morley.Util.Named
 import Morley.Util.TypeLits
 

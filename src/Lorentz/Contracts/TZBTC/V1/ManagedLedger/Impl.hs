@@ -113,19 +113,19 @@ approveCAS = do
   nil; pair
 
 getAllowance
-  :: (LedgerC store, Dupable store)
+  :: (IsNotInView, LedgerC store, Dupable store)
   => Entrypoint GetAllowanceArg store
 getAllowance = do
   doc $ DDescription getAllowanceDoc
   view_ allowance
 
-getBalance :: (LedgerC store, Dupable store) => Entrypoint GetBalanceArg store
+getBalance :: (IsNotInView, LedgerC store, Dupable store) => Entrypoint GetBalanceArg store
 getBalance = view_ $ do
   doc $ DDescription getBalanceDoc
   fromNamed #owner; stGet #ledger
   ifSome (toField #balance) (push 0)
 
-getTotalSupply :: (LedgerC store, Dupable store) => Entrypoint GetTotalSupplyArg store
+getTotalSupply :: (IsNotInView, LedgerC store, Dupable store) => Entrypoint GetTotalSupplyArg store
 getTotalSupply = do
   doc $ DDescription getTotalSupplyDoc
   view_ (do drop @(); stToField #totalSupply)
@@ -145,7 +145,7 @@ setAdministrator = do
   stSetField #admin
   nil; pair;
 
-getAdministrator :: StorageC store => Entrypoint (View_ () Address) store
+getAdministrator :: (IsNotInView, StorageC store) => Entrypoint (View_ () Address) store
 getAdministrator = do
   doc $ DDescription getAdministratorDoc
   view_ (do drop @(); stToField #admin)

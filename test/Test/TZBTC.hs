@@ -39,7 +39,7 @@ import Fmt (Builder, pretty, (+|), (|+))
 import Test.Tasty (TestTree, testGroup)
 
 import Lorentz
-  (Address, BigMapId, Contract(cMichelsonContract), Empty, EpName, IsoValue(..), Value, mkView_)
+  (Address, BigMapId, Contract(cMichelsonContract), EpName, IsoValue(..), Value, mkView_)
 import Lorentz.Contracts.Metadata (singleTokenTokenId)
 import Lorentz.Contracts.Spec.ApprovableLedgerInterface qualified as AL
 import Lorentz.Contracts.Test.ApprovableLedger qualified as AL
@@ -48,7 +48,8 @@ import Lorentz.Contracts.Test.ManagedLedger qualified as ML
 import Lorentz.Contracts.Upgradeable.Client (UStoreElemRef(..))
 import Lorentz.Contracts.Upgradeable.Common
   (EpwUpgradeParameters(..), KnownContractVersion, VerPermanent, VerUStoreTemplate,
-  emptyPermanentImpl)
+  emptyPermanentImplCompat)
+import Lorentz.Contracts.Upgradeable.Common.Empty (Empty)
 import Lorentz.UStore (DecomposeUStoreTW, KnownUStoreMarker(mkFieldMarkerUKey), UStoreTraversable)
 import Lorentz.UStore.Migration (manualConcatMigrationScripts)
 import Lorentz.UStore.Types (UMarkerPlainField, UStoreSubmapKeyT)
@@ -211,7 +212,7 @@ entrypointsRef = mkEntrypointsMap <$> tzbtcParameterType
   where
     tzbtcParameterType :: IO U.ParameterType
     tzbtcParameterType = do
-      code <- Utf8.readFile "./test/resources/tzbtc-parameter-entrypoints-ref.mtz"
+      code <- Utf8.readFile "./test/resources/tzbtc-parameter-entrypoints-ref.tz"
       case parseExpandContract MSUnspecified code of
         Right c -> pure $ U.contractParameter c
         Left e -> error ("Error in parsing reference contract paramter:" <> pretty e)
@@ -516,7 +517,7 @@ test_approvableLedgerV1 = testGroup "TZBTC contract approvable ledger tests"
             Identity $
             manualConcatMigrationScripts (migrationScriptsV1 opTZBTC)
           , upNewCode = tzbtcContractRouterV1
-          , upNewPermCode = emptyPermanentImpl
+          , upNewPermCode = emptyPermanentImplCompat
           }
       withSender owner $
         call c CallDefault $ fromFlatParameter $ Upgrade upgradeParams
@@ -535,7 +536,7 @@ test_approvableLedgerV2 = testGroup "TZBTC contract approvable ledger tests"
             Identity $
             manualConcatMigrationScripts (migrationScriptsV2 opTZBTC)
           , upNewCode = tzbtcContractRouterV2
-          , upNewPermCode = emptyPermanentImpl
+          , upNewPermCode = emptyPermanentImplCompat
           }
       withSender owner $
         call c CallDefault $ fromFlatParameter $ Upgrade upgradeParams

@@ -64,7 +64,7 @@ v2Impl = recFromTuple
     callPart ::
       forall arg.
       TZBTCPartInstr arg StoreTemplateV2 ->
-      Lambda (arg, UStore StoreTemplateV2) ([Operation], UStore StoreTemplateV2)
+      Fn (arg, UStore StoreTemplateV2) ([Operation], UStore StoreTemplateV2)
     callPart part = unpair # part # pair
 
     -- We convert an entry point from storage, that has an input of
@@ -86,6 +86,11 @@ v2Impl = recFromTuple
     -- Helper operator which is essentially the same as `/==>` but
     -- takes 'TZBTCPartInstr' so that we don't have to write 'callPart'
     -- for almost each method.
+    (//==>)
+      :: Label name
+      -> (IsNotInView =>
+          '[arg, UStore StoreTemplateV2] :-> '[([Operation], UStore StoreTemplateV2)])
+      -> EpwCaseClause StoreTemplateV2 '(name, arg)
     label //==> part = label /==> callPart (part # unpair)
 
 -- | Contract router before preprocessing.
@@ -97,7 +102,8 @@ migrationScriptsRaw :: V2Parameters -> [MigrationScript StoreTemplateV0 StoreTem
 migrationScriptsRaw v2p = migrateStorage v2p : epwCodeMigrations epwContract
 
 -- | Migrations to version 2 from version 1 before preprocessing.
-migrationScriptsFromV1Raw :: V2ParametersFromV1 -> [MigrationScript V1.StoreTemplateV1 StoreTemplateV2]
+migrationScriptsFromV1Raw
+  :: V2ParametersFromV1 -> [MigrationScript V1.StoreTemplateV1 StoreTemplateV2]
 migrationScriptsFromV1Raw V2ParametersFromV1 = migrateStorageFromV1 : epwCodeMigrations epwContract
 
 epwContract :: EpwContract TZBTCv2
@@ -115,7 +121,7 @@ migrateStorageFromV1 =
 
     migrationFinish
 
-tzbtcDoc :: Lambda () ()
+tzbtcDoc :: Fn () ()
 tzbtcDoc = fakeCoercing $ do
   doc licenseInfoDoc
   docGroup "TZBTC" $ do
@@ -124,4 +130,4 @@ tzbtcDoc = fakeCoercing $ do
     doc $ DUpgradeability $ U.contractDoc <> "\n" <> additionalDeployNotes
     doc $ T.DStorageType $ DType $ Proxy @UStoreV2
     doc $ DUStoreTemplate (Proxy @(VerUStoreTemplate TZBTCv2))
-    V0.tzbtcContractRaw
+    unContractCode $ V0.tzbtcContractRaw

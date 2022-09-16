@@ -191,6 +191,8 @@ instance Show UnpackageError where
 instance Exception UnpackageError where
   displayException = pretty
 
+deriveJSON (aesonPrefix camelCase) ''Package
+
 -- | Encode package
 encodePackage
   :: Package
@@ -241,8 +243,6 @@ mkMultiSigParam pks packages = do
       (toTAddress address_, (payload, sortSigs sigs))
     sortSigs :: [(PublicKey, Sign)] -> [Maybe Sign]
     sortSigs sigs = flip lookup sigs <$> pks
-
-deriveJSON (aesonPrefix camelCase) ''Package
 
 deriving newtype instance ToJSON (TSignature a)
 deriving newtype instance FromJSON (TSignature a)

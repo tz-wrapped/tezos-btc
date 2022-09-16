@@ -62,32 +62,33 @@ type StorageC store =
 -- value from the storage as is.
 getSingleField
   :: forall store label val.
-    (StoreHasField store label val, NiceParameter val, Dupable store)
+    (IsNotInView, StoreHasField store label val, NiceParameter val, Dupable store)
   => Label label -> Markdown -> Entrypoint (View_ () val) store
 getSingleField label entrypointDocDesc = do
   doc $ DDescription $ "This view returns " <> entrypointDocDesc <> "."
   view_ $ do drop @(); stToField $ fieldNameFromLabel label
 
 getTotalMinted
-  :: forall store. StorageC store => Entrypoint (View_ () Natural) store
+  :: forall store. (IsNotInView, StorageC store) => Entrypoint (View_ () Natural) store
 getTotalMinted = getSingleField #totalMinted "the total number of minted tokens"
 
 getTotalBurned
-  :: forall store. StorageC store => Entrypoint (View_ () Natural) store
+  :: forall store. (IsNotInView, StorageC store) => Entrypoint (View_ () Natural) store
 getTotalBurned = getSingleField #totalBurned "the total number of burned tokens"
 
 getOwner
-  :: forall store. StorageC store => Entrypoint (View_ () Address) store
+  :: forall store. (IsNotInView, StorageC store) => Entrypoint (View_ () Address) store
 getOwner = getSingleField #owner "the current contract owner"
 
 getRedeemAddress
-  :: forall store. StorageC store => Entrypoint (View_ () Address) store
+  :: forall store. (IsNotInView, StorageC store) => Entrypoint (View_ () Address) store
 getRedeemAddress = getSingleField #redeemAddress "the redeem address"
 
 -- | Assert that all of the given `TokenId`'s are @0@ (since this is a single
 -- token contract) and replace each with the current `TokenMetadata`.
 getTokenMetadata
-  :: forall store. StorageC store => Entrypoint (View_ [TokenId] [TokenMetadata]) store
+  :: forall store. (IsNotInView, StorageC store)
+  => Entrypoint (View_ [TokenId] [TokenMetadata]) store
 getTokenMetadata =  do
   doc $ DDescription $ "This view returns the token metadata."
   view_ $ do

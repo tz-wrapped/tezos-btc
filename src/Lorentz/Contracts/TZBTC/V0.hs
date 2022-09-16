@@ -3,8 +3,7 @@
  - SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
  -}
 {-# LANGUAGE DerivingVia, RebindableSyntax #-}
-{-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
-{-# OPTIONS_GHC -Wno-orphans #-}
+{-# OPTIONS_GHC -fno-warn-unused-do-bind -Wno-orphans -Wno-deprecations #-}
 
 module Lorentz.Contracts.TZBTC.V0
   ( Parameter(..)
@@ -53,12 +52,13 @@ mkEmptyStorageV0 owner = Storage
   }
 
 emptyCode :: UContractRouter ver
-emptyCode = UContractRouter $ cdr # nil # pair
+emptyCode = UContractRouter $ mkLambda $ cdr # nil # pair
 
 data TZBTCv0 :: VersionKind
 instance KnownContractVersion TZBTCv0 where
   type VerInterface TZBTCv0 = Interface
   type VerUStoreTemplate TZBTCv0 = StoreTemplateV0
+  type VerPermanent _ = Empty -- legacy compatibility
   contractVersion _ = 0
 
 -- | Entry point of upgradeable contract.
@@ -172,7 +172,7 @@ safeEntrypoints = entryCase @(SafeParameter TZBTCv0) (Proxy @SafeEntrypointKind)
 -- It generally should not be used because we preprocess it before
 -- actually using. See 'Lorentz.Contracts.TZBTC.Preprocess'.
 tzbtcContractRaw :: ContractCode (Parameter TZBTCv0) UStoreV0
-tzbtcContractRaw = do
+tzbtcContractRaw = mkContractCode $ do
   unpair
   finalizeParamCallingDoc $
     entryCase @(Parameter TZBTCv0) (Proxy @UpgradeableEntrypointKind)

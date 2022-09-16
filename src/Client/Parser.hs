@@ -24,8 +24,8 @@ import Text.Megaparsec.Error (ParseErrorBundle, ShowErrorComponent(..))
 import Lorentz.Contracts.Multisig
 import Morley.CLI (mutezOption)
 import Morley.Client.Parser (clientConfigParser)
-import Morley.Client.TezosClient.Types (AddressOrAlias(..))
 import Morley.Tezos.Address (Address, parseAddress)
+import Morley.Tezos.Address.Alias (AddressOrAlias(..))
 import Morley.Tezos.Crypto (PublicKey, Signature, parsePublicKey, parseSignature)
 import Morley.Util.CLI
 import Morley.Util.Named
@@ -37,7 +37,7 @@ import Lorentz.Contracts.TZBTC.Common.Types
 clientArgParser :: Opt.Parser ClientArgs
 clientArgParser =
   ClientArgs
-    <$> (clientConfigParser (pure Nothing))
+    <$> clientConfigParser
     <*> clientArgRawParser
     <*> (#userOverride <:!> userOption)
     <*> (#multisigOverride <:!> multisigOption)

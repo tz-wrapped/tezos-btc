@@ -2,7 +2,7 @@
  -
  - SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
  -}
-{-# OPTIONS_GHC -Wno-orphans #-}
+{-# OPTIONS_GHC -Wno-orphans -Wno-deprecations #-}
 module Lorentz.Contracts.TZBTC.V2.Types
   ( module Lorentz.Contracts.TZBTC.Common.Types
   , Interface
@@ -99,6 +99,7 @@ data TZBTCv2 :: VersionKind
 instance KnownContractVersion TZBTCv2 where
   type VerInterface TZBTCv2 = Interface
   type VerUStoreTemplate TZBTCv2 = StoreTemplateV2
+  type VerPermanent _ = Empty -- legacy compatibility
   contractVersion _ = 2
 
 

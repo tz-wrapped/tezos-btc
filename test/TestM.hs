@@ -29,6 +29,7 @@ import Morley.Client.TezosClient (CalcOriginationFeeData, CalcTransferFeeData, T
 import Morley.Micheline
 import Morley.Michelson.Typed.Scope (UntypedValScope)
 import Morley.Tezos.Address
+import Morley.Tezos.Address.Alias (AddressOrAlias(..), Alias(..))
 import Morley.Tezos.Core
 import Morley.Tezos.Crypto (KeyHash, PublicKey, SecretKey, Signature)
 import Morley.Util.ByteString
@@ -47,7 +48,7 @@ data Expectation
   | ReadsFile
   | GetsUserConfirmation
   | PrintByteString ByteString
-  | RememberContract Address Text
+  | RememberContract Address Alias
   | LooksupEnv
   deriving stock (Eq, Show, Ord)
 
@@ -88,7 +89,7 @@ data Handlers m = Handlers
   , hPrintByteString :: ByteString -> m ()
   , hConfirmAction :: Text -> m ConfirmationResult
 
-  , hGetHeadBlock :: m Text
+  , hGetHeadBlock :: m BlockHash
   , hGetCounter :: Address -> m TezosInt64
   , hGetBlockHeader :: BlockId -> m BlockHeader
   , hGetBlockConstants :: BlockId -> m BlockConstants
@@ -111,12 +112,12 @@ data Handlers m = Handlers
 
   -- HasTezosClient
   , hSignBytes :: AddressOrAlias -> Maybe ScrubbedBytes -> ByteString -> m Signature
-  , hGenKey :: AliasOrAliasHint -> m Address
-  , hGenFreshKey :: AliasOrAliasHint -> m Address
+  , hGenKey :: Alias -> m Address
+  , hGenFreshKey :: Alias -> m Address
   , hRevealKey :: Alias -> Maybe ScrubbedBytes -> m ()
-  , hWaitForOperation :: OperationHash -> m ()
-  , hRememberContract :: Bool -> Address -> AliasOrAliasHint -> m ()
-  , hImportKey :: Bool -> AliasOrAliasHint -> SecretKey -> m Alias
+  , hWaitForOperation :: m OperationHash -> m OperationHash
+  , hRememberContract :: Bool -> Address -> Alias -> m ()
+  , hImportKey :: Bool -> Alias -> SecretKey -> m Alias
   , hResolveAddressMaybe :: AddressOrAlias -> m (Maybe Address)
   , hGetAlias :: AddressOrAlias -> m Alias
   , hGetPublicKey :: AddressOrAlias -> m PublicKey
@@ -126,12 +127,15 @@ data Handlers m = Handlers
   , hCalcOriginationFee
     :: forall cp st. UntypedValScope st => CalcOriginationFeeData cp st -> m TezosMutez
   , hGetKeyPassword :: Address -> m (Maybe ScrubbedBytes)
-  , hRegisterDelegate :: AliasOrAliasHint -> Maybe ScrubbedBytes -> m ()
+  , hRegisterDelegate :: Alias -> Maybe ScrubbedBytes -> m ()
 
   , hLookupEnv :: m AppEnv
   , hWithLocal :: forall a. (AppEnv -> AppEnv) -> m a -> m a
 
   , hLogAction :: ClientLogAction m
+  , hGetSecretKey :: AddressOrAlias -> m SecretKey
+  , hGetBlockOperationHashes :: BlockId -> m [[OperationHash]]
+  , hGetScriptSizeAtBlock :: BlockId -> CalcSize -> m ScriptSize
   }
 
 getHandler :: (Handlers TestM -> fn) -> TestM fn
@@ -145,8 +149,8 @@ instance HasLog (MyHandlers, AppEnv) Message TestM where
 
 instance HasFilesystem TestM where
   writeFileUtf8 fp t = do
-    fn <- getHandler hWriteFileUtf8
-    fn fp t
+    handlers <- asks (unMyHandlers . fst)
+    hWriteFileUtf8 handlers fp t
   writeFile fp bs = do
     fn <- getHandler hWriteFile
     fn fp bs
@@ -159,8 +163,8 @@ instance HasFilesystem TestM where
 
 instance HasCmdLine TestM where
   printTextLn m = do
-    fn <- getHandler hPrintTextLn
-    fn m
+    handlers <- asks (unMyHandlers . fst)
+    hPrintTextLn handlers m
   printStringLn m = do
     fn <- getHandler hPrintStringLn
     fn m
@@ -228,6 +232,15 @@ instance HasTezosRpc TestM where
   getManagerKeyAtBlock block addr = do
     h <- getHandler hGetManagerKeyAtBlock
     h block addr
+  waitForOperation op = do
+    h <- getHandler hWaitForOperation
+    h op
+  getScriptSizeAtBlock x cs = do
+    h <- getHandler hGetScriptSizeAtBlock
+    h x cs
+  getBlockOperationHashes x = do
+    h <- getHandler hGetBlockOperationHashes
+    h x
 
 instance HasTezosClient TestM where
   signBytes alias mbPassword op = do
@@ -242,9 +255,6 @@ instance HasTezosClient TestM where
   revealKey alias mbPassword = do
     h <- getHandler hRevealKey
     h alias mbPassword
-  waitForOperation op = do
-    h <- getHandler hWaitForOperation
-    h op
   rememberContract replaceExisting addr alias = do
     h <- getHandler hRememberContract
     h replaceExisting addr alias
@@ -266,18 +276,21 @@ instance HasTezosClient TestM where
     h <- getHandler hCalcTransferFee
     h sender mbPassword fee transferData
   calcOriginationFee origData = do
-    h <- getHandler hCalcOriginationFee
-    h origData
+    handlers <- asks (unMyHandlers . fst)
+    hCalcOriginationFee handlers origData
   getKeyPassword addr = do
     h <- getHandler hGetKeyPassword
     h addr
   registerDelegate kh pw = do
     h <- getHandler hRegisterDelegate
     h kh pw
+  getSecretKey a = do
+    h <- getHandler hGetSecretKey
+    h a
 
 instance HasEnv TestM where
   lookupEnv = do
     join $ getHandler hLookupEnv
   withLocal f act = do
-    fn <- getHandler hWithLocal
-    fn f act
+    handlers <- asks (unMyHandlers . fst)
+    hWithLocal handlers f act
