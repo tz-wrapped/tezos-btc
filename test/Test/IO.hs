@@ -28,11 +28,10 @@ import Lorentz (TSignature(..), toTAddress)
 import Lorentz.Contracts.Multisig
 import Lorentz.Contracts.TZBTC qualified as TZBTC
 import Lorentz.Contracts.TZBTC.Types qualified as TZBTCTypes
-import Morley.Client.TezosClient.Types
-  (AddressOrAlias(..), Alias(..), AliasHint(..), AliasOrAliasHint(..), mkAlias)
 import Morley.Micheline
 import Morley.Michelson.Typed.Haskell.Value (toVal)
 import Morley.Tezos.Address
+import Morley.Tezos.Address.Alias (AddressOrAlias(..), Alias(..))
 import Morley.Tezos.Core (ChainId, dummyChainId)
 import Morley.Tezos.Crypto
 import Morley.Tezos.Crypto.Ed25519 qualified as Ed25519
@@ -86,9 +85,7 @@ defaultHandlers = Handlers
   , hGenFreshKey = \_ -> unavailable "genFreshKey"
   , hRevealKey = \_ _ -> unavailable "revealKey"
   , hWaitForOperation = \_ -> unavailable "waitForOperation"
-  , hRememberContract = \_ c a -> meetExpectation $ RememberContract c $ case a of
-      AnAlias x -> unsafeGetAliasText x
-      AnAliasHint x -> unsafeGetAliasHintText x
+  , hRememberContract = \_ c a -> meetExpectation $ RememberContract c a
   , hImportKey = \_ _ _ -> unavailable "importKey"
   , hResolveAddressMaybe = \_ -> unavailable "resolveAddressMaybe"
   , hGetAlias = \_ -> unavailable "getAlias"
@@ -97,7 +94,7 @@ defaultHandlers = Handlers
   , hCalcTransferFee = \_ _ _ _ -> unavailable "calcTransferFee"
   , hCalcOriginationFee = \_ -> unavailable "calcOriginationFee"
   , hGetKeyPassword = \_ -> unavailable "getKeyPassword"
-  , hRegisterDelegate = \_ _ -> unavailable "hRegisterDelegate"
+  , hRegisterDelegate = \_ _ -> unavailable "registerDelegate"
 
   , hLookupEnv = do
       meetExpectation LooksupEnv;
@@ -105,6 +102,9 @@ defaultHandlers = Handlers
   , hWithLocal = \fn action -> local (second fn) action
 
   , hLogAction = mempty
+  , hGetBlockOperationHashes = \_ -> unavailable "getBlockOperationHashes"
+  , hGetSecretKey = \_ -> unavailable "getSecretKey"
+  , hGetScriptSizeAtBlock = \_ _ -> unavailable "getScriptSizeAtBlock"
   }
   where
     unavailable :: String -> TestM a
@@ -180,7 +180,7 @@ multiSigCreationTestHandlers =
     , hGetTezosClientConfig = throwM $ TestError "Unexpected tezos-client get config call"
     , hResolveAddressMaybe = \case
         AddressResolved addr -> pure $ Just addr
-        AddressAlias a -> case unsafeGetAliasText a of
+        AddressAlias a -> case a of
           "tzbtc" -> pure $ Just contractAddress
           "tzbtc-multisig" -> pure $ Just multiSigAddress
           _ -> pure $ Nothing
@@ -234,7 +234,7 @@ multiSigCreationWithMSigOverrideTestHandlers =
     , hGetTezosClientConfig = throwM $ TestError "Unexpected tezos-client get config call"
     , hResolveAddressMaybe = \case
         AddressResolved addr -> pure $ Just addr
-        AddressAlias a -> case unsafeGetAliasText a of
+        AddressAlias a -> case a of
           "tzbtc" -> pure $ Just contractAddress
           "tzbtc-multisig-override" -> pure $ Just multiSigOverrideAddress
           _ -> pure $ Nothing
@@ -278,7 +278,7 @@ test_createMultisigPackageWithMSigOverride = testGroup "Create multisig package 
   where
     mockArgs = CmdAddOperator (AddressResolved operatorAddress1) (Just multiSigFilePath)
     envWithOverride = emptyEnv { aeConfigOverride = emptyConfigOverride
-                                 { coTzbtcMultisig = Just $ AddressAlias $ mkAlias "tzbtc-multisig-override" }
+                                 { coTzbtcMultisig = Just $ AddressAlias "tzbtc-multisig-override" }
                                }
 
 ---- Test Signing of multisig package
@@ -300,14 +300,14 @@ multisigSigningTestHandlers =
     , hGetPublicKey = \case
         AddressResolved addr -> if addr == johnAddress then pure $ johnAddressPK else
           throwM $ TestError ("Unexpected address " ++ pretty addr)
-        AddressAlias a | unsafeGetAliasText a == "tzbtc-user" -> pure johnAddressPK
+        AddressAlias "tzbtc-user" -> pure johnAddressPK
         AddressAlias alias -> throwM $
-          TestError ("Unexpected alias " ++ toString (unsafeGetAliasText alias))
+          TestError ("Unexpected alias " ++ toString (unAlias alias))
     , hSignBytes = \_ _ _ ->
        pure $ unTSignature multisigSignPackageTestSignature
     , hResolveAddressMaybe = \case
         AddressResolved addr -> pure $ Just addr
-        AddressAlias a -> case unsafeGetAliasText a of
+        AddressAlias a -> case a of
           "tzbtc" -> pure $ Just contractAddress
           "tzbtc-multisig" -> pure $ Just multiSigAddress
           "tzbtc-user" -> pure $ Just johnAddress

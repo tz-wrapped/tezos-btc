@@ -97,12 +97,16 @@ instance HasTezosRpc AppM where
   runCodeAtBlock = morleyClientMToAppM ... runCodeAtBlock
   getChainId = morleyClientMToAppM ... getChainId
   getManagerKeyAtBlock = morleyClientMToAppM ... getManagerKeyAtBlock
+  getScriptSizeAtBlock = morleyClientMToAppM ... getScriptSizeAtBlock
+  getBlockOperationHashes = morleyClientMToAppM ... getBlockOperationHashes
+  waitForOperation = \action -> do
+    env <- ask
+    morleyClientMToAppM $ waitForOperation $ liftIO $ runAppM env action
 
 instance HasTezosClient AppM where
   signBytes = morleyClientMToAppM ... signBytes
   genKey = morleyClientMToAppM ... genKey
   revealKey = morleyClientMToAppM ... revealKey
-  waitForOperation = morleyClientMToAppM ... waitForOperation
   rememberContract = morleyClientMToAppM ... rememberContract
   genFreshKey = morleyClientMToAppM ... genFreshKey
   importKey = morleyClientMToAppM ... importKey
@@ -114,3 +118,4 @@ instance HasTezosClient AppM where
   calcOriginationFee = morleyClientMToAppM ... calcOriginationFee
   getKeyPassword = morleyClientMToAppM ... getKeyPassword
   registerDelegate = morleyClientMToAppM ... registerDelegate
+  getSecretKey = morleyClientMToAppM ... getSecretKey

@@ -14,8 +14,8 @@ module Client.Types
   ) where
 
 import Morley.Client (MorleyClientConfig)
-import Morley.Client.TezosClient.Types (AddressOrAlias(..))
 import Morley.Michelson.Typed (IsoValue)
+import Morley.Tezos.Address.Alias (AddressOrAlias(..))
 import Morley.Tezos.Core (Mutez)
 import Morley.Tezos.Crypto (PublicKey, Signature)
 import Morley.Util.Named

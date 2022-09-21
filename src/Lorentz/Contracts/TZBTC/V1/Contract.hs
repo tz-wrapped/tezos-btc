@@ -69,7 +69,7 @@ v1Impl = recFromTuple
     callPart ::
       forall arg.
       TZBTCPartInstr arg StoreTemplateV1 ->
-      Lambda (arg, UStore StoreTemplateV1) ([Operation], UStore StoreTemplateV1)
+      Fn (arg, UStore StoreTemplateV1) ([Operation], UStore StoreTemplateV1)
     callPart part = unpair # part # pair
 
     -- We convert an entry point from storage, that has an input of
@@ -91,6 +91,11 @@ v1Impl = recFromTuple
     -- Helper operator which is essentially the same as `/==>` but
     -- takes 'TZBTCPartInstr' so that we don't have to write 'callPart'
     -- for almost each method.
+    (//==>)
+      :: Label name
+      -> (IsNotInView =>
+          '[arg, UStore StoreTemplateV1] :-> '[([Operation], UStore StoreTemplateV1)])
+      -> EpwCaseClause StoreTemplateV1 '(name, arg)
     label //==> part = label /==> callPart (part # unpair)
 
 -- | Contract router before preprocessing.
@@ -131,7 +136,7 @@ migrateStorage v1p =
     templateToMigration template =
       migrationToScript $ mkUStoreMigration $ migrateFillUStore template
 
-tzbtcDoc :: Lambda () ()
+tzbtcDoc :: Fn () ()
 tzbtcDoc = fakeCoercing $ do
   doc licenseInfoDoc
   docGroup (DName "TZBTC") $ do
@@ -140,7 +145,7 @@ tzbtcDoc = fakeCoercing $ do
     doc $ DUpgradeability $ U.contractDoc <> "\n" <> additionalDeployNotes
     doc $ T.DStorageType $ DType $ Proxy @UStoreV1
     doc $ DUStoreTemplate (Proxy @(VerUStoreTemplate TZBTCv1))
-    V0.tzbtcContractRaw
+    unContractCode $ V0.tzbtcContractRaw
 
 tzbtcContractDesc :: DDescription
 tzbtcContractDesc = DDescription

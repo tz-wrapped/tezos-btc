@@ -39,13 +39,12 @@ import Morley.Client.Logging (WithClientLog)
 import Morley.Client.RPC.Class
 import Morley.Client.RPC.Getters (getContractStorage, readBigMapValueMaybe)
 import Morley.Client.TezosClient.Class
-import Morley.Client.TezosClient.Types
-  (AddressOrAlias(..), AliasOrAliasHint(..), mkAlias, mkAliasHint)
 import Morley.Micheline
 import Morley.Michelson.Text
 import Morley.Michelson.Typed (UnpackedValScope)
 import Morley.Michelson.Untyped (EpName(..))
 import Morley.Tezos.Address
+import Morley.Tezos.Address.Alias (AddressOrAlias(..), Alias(..))
 import Morley.Util.ByteString (HexJSONByteString(..))
 import Morley.Util.Exception (throwLeft)
 import Morley.Util.Named
@@ -101,7 +100,7 @@ getTzbtcSpecificAddress
   => Text -> (ConfigOverride -> Maybe AddressOrAlias) -> m Address
 getTzbtcSpecificAddress defaultAlias getFromOverride = do
   tzbtcOverrides <- aeConfigOverride <$> lookupEnv
-  let alias = fromMaybe (AddressAlias $ mkAlias defaultAlias) $
+  let alias = fromMaybe (AddressAlias $ Alias defaultAlias) $
         getFromOverride tzbtcOverrides
   addressOrAliasToAddr alias
 
@@ -280,7 +279,7 @@ performTzbtcDeployment deployAction = do
   contractAddr <- deployAction
   printTextLn $ "Contract was successfully deployed. Contract address: " <> formatAddress contractAddr
   let contractAlias = "tzbtc"
-  mbTzbtcAddress <- resolveAddressMaybe (AddressAlias $ mkAlias contractAlias)
+  mbTzbtcAddress <- resolveAddressMaybe (AddressAlias $ Alias contractAlias)
   printTextLn $ case mbTzbtcAddress of
     Just c ->
       "Current contract address for alias '" <> contractAlias <>
@@ -293,7 +292,7 @@ performTzbtcDeployment deployAction = do
     "' with the newly deployed contract?"
   case res of
     Canceled -> pass
-    Confirmed -> rememberContract True contractAddr $ AnAliasHint $ mkAliasHint $ contractAlias
+    Confirmed -> rememberContract True contractAddr $ Alias contractAlias
 
 originateTzbtcContract
   :: (HasTezosClient m, HasTezosRpc m, HasEnv m, WithClientLog env m)
@@ -342,7 +341,7 @@ deployMultisigContract msigStorage useCustomErrors = do
     msigToOriginate msigStorage mbFee
   printTextLn $ "Contract was successfully deployed. Contract address: " <> formatAddress msigAddr
   let contractAlias = "tzbtc-multisig"
-  mbMsigAddress <- resolveAddressMaybe (AddressAlias $ mkAlias contractAlias)
+  mbMsigAddress <- resolveAddressMaybe (AddressAlias $ Alias contractAlias)
   printTextLn $ case mbMsigAddress of
     Just c ->
       "Current contract address for alias '" <> contractAlias <>
@@ -355,4 +354,4 @@ deployMultisigContract msigStorage useCustomErrors = do
     "' with the newly deployed contract?"
   case res of
     Canceled -> pass
-    Confirmed -> rememberContract True msigAddr $ AnAliasHint $ mkAliasHint contractAlias
+    Confirmed -> rememberContract True msigAddr $ Alias contractAlias

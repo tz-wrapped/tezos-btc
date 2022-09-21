@@ -118,4 +118,4 @@ parameter (or (or (or (pair %getVersion (unit %viewParam)
                                                                (unit %acceptOwnership))))))))));
 
 storage unit;
-code { cdr; nil operation; pair }
+code { CDR; NIL operation; PAIR }
