@@ -6,7 +6,7 @@
 
 # TZBTC
 
-**Code revision:** [76151f2](https://github.com/tz-wrapped/tezos-btc/commit/76151f2acf780b5b711f51a84b09d6b1ad0f95a9) *(Tue Jun 28 15:18:31 2022 +0300)*
+**Code revision:** [f646e85](https://github.com/tz-wrapped/tezos-btc/commit/f646e8597bba92ce7ea9d622953ce6ff354a5209) *(Wed Sep 21 21:13:55 2022 +0300)*
 
 
 
@@ -47,7 +47,6 @@ There are two special entities for this contract:
   - [BigMap](#types-BigMap)
   - [Bool](#types-Bool)
   - [ByteString](#types-ByteString)
-  - [Code (extended lambda)](#types-Code-lparenextended-lambdarparen)
   - [Contract](#types-Contract)
   - [Empty](#types-Empty)
   - [Integer](#types-Integer)
@@ -69,6 +68,7 @@ There are two special entities for this contract:
   - [Upgradeable storage](#types-Upgradeable-storage)
   - [Version](#types-Version)
   - [View](#types-View)
+  - [WrappedLambda (extended lambda)](#types-WrappedLambda-lparenextended-lambdarparen)
 - [Errors](#section-Errors)
   - [InternalError](#errors-InternalError)
   - [InvalidSingleTokenId](#errors-InvalidSingleTokenId)
@@ -158,13 +158,14 @@ This entry point is used to get contract version.
   + **In Michelson:** `(pair unit (contract nat))`
     + **Example:** <span id="example-id">`Pair Unit "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
+<p>
 <details>
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
 1. Call contract's `getVersion` entrypoint passing the constructed argument.
 </details>
-<p>
+</p>
 
 
 
@@ -183,13 +184,14 @@ Returns the approval value between two given addresses.
   + **In Michelson:** `(pair (pair address address) (contract nat))`
     + **Example:** <span id="example-id">`Pair (Pair "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB" "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB") "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
+<p>
 <details>
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
 1. Call contract's `getAllowance` entrypoint passing the constructed argument.
 </details>
-<p>
+</p>
 
 
 
@@ -211,13 +213,14 @@ Returns the balance of the address in the ledger.
   + **In Michelson:** `(pair address (contract nat))`
     + **Example:** <span id="example-id">`Pair "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB" "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
+<p>
 <details>
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
 1. Call contract's `getBalance` entrypoint passing the constructed argument.
 </details>
-<p>
+</p>
 
 
 
@@ -239,13 +242,14 @@ Returns total number of tokens.
   + **In Michelson:** `(pair unit (contract nat))`
     + **Example:** <span id="example-id">`Pair Unit "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
+<p>
 <details>
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
 1. Call contract's `getTotalSupply` entrypoint passing the constructed argument.
 </details>
-<p>
+</p>
 
 
 
@@ -267,13 +271,14 @@ This view returns the total number of minted tokens.
   + **In Michelson:** `(pair unit (contract nat))`
     + **Example:** <span id="example-id">`Pair Unit "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
+<p>
 <details>
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
 1. Call contract's `getTotalMinted` entrypoint passing the constructed argument.
 </details>
-<p>
+</p>
 
 
 
@@ -295,13 +300,14 @@ This view returns the total number of burned tokens.
   + **In Michelson:** `(pair unit (contract nat))`
     + **Example:** <span id="example-id">`Pair Unit "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
+<p>
 <details>
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
 1. Call contract's `getTotalBurned` entrypoint passing the constructed argument.
 </details>
-<p>
+</p>
 
 
 
@@ -323,13 +329,14 @@ This view returns the current contract owner.
   + **In Michelson:** `(pair unit (contract address))`
     + **Example:** <span id="example-id">`Pair Unit "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
+<p>
 <details>
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
 1. Call contract's `getOwner` entrypoint passing the constructed argument.
 </details>
-<p>
+</p>
 
 
 
@@ -351,13 +358,14 @@ This view returns the redeem address.
   + **In Michelson:** `(pair unit (contract address))`
     + **Example:** <span id="example-id">`Pair Unit "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
+<p>
 <details>
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
 1. Call contract's `getRedeemAddress` entrypoint passing the constructed argument.
 </details>
-<p>
+</p>
 
 
 
@@ -379,13 +387,14 @@ This view returns the token metadata.
   + **In Michelson:** `(pair (list nat) (contract (list (pair nat string string nat (map string string)))))`
     + **Example:** <span id="example-id">`Pair { 0 } "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
+<p>
 <details>
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
 1. Call contract's `getTokenMetadata` entrypoint passing the constructed argument.
 </details>
-<p>
+</p>
 
 
 
@@ -409,13 +418,14 @@ This entry point is used to call the safe entrypoints of the contract. Entrypoin
   + **In Michelson:** `(or (or (or (or (pair string bytes) (pair (pair nat nat) (lambda (big_map bytes bytes) (big_map bytes bytes)) (option (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))) (option (lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))))) (or (pair nat nat) (lambda (big_map bytes bytes) (big_map bytes bytes)))) (or (or (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))) unit) (or (pair address address nat) (pair address nat)))) (or (or (or (pair address nat) nat) (or address address)) (or (or address unit) (or unit (or address unit)))))`
     + **Example:** <span id="example-id">`Left (Left (Left (Left (Pair "hello" 0x0a))))`</span>
 
+<p>
 <details>
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
 1. Call contract's `safeEntrypoints` entrypoint passing the constructed argument.
 </details>
-<p>
+</p>
 
 
 
@@ -436,13 +446,14 @@ This entrypoint extracts contract code kept in storage under the corresponding n
   + **In Michelson:** `(pair string bytes)`
     + **Example:** <span id="example-id">`Pair "hello" 0x0a`</span>
 
+<p>
 <details>
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
 1. Call contract's `run` entrypoint passing the constructed argument.
 </details>
-<p>
+</p>
 
 
 
@@ -470,13 +481,14 @@ provided migration lambda.
   + **In Michelson:** `(pair (pair nat nat) (lambda (big_map bytes bytes) (big_map bytes bytes)) (option (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))) (option (lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))))`
     + **Example:** <span id="example-id">`{ Pair 0 0; { PUSH string "lambda sample";FAILWITH }; Some { PUSH string "lambda sample";FAILWITH }; Some { PUSH string "lambda sample";FAILWITH } }`</span>
 
+<p>
 <details>
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
 1. Call contract's `upgrade` entrypoint passing the constructed argument.
 </details>
-<p>
+</p>
 
 
 
@@ -502,13 +514,14 @@ This entry point is used to start an entrypoint wise upgrade of the contract.
   + **In Michelson:** `(pair nat nat)`
     + **Example:** <span id="example-id">`Pair 0 0`</span>
 
+<p>
 <details>
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
 1. Call contract's `epwBeginUpgrade` entrypoint passing the constructed argument.
 </details>
-<p>
+</p>
 
 
 
@@ -534,13 +547,14 @@ This entry point is used to apply a storage migration script as part of an upgra
   + **In Michelson:** `(lambda (big_map bytes bytes) (big_map bytes bytes))`
     + **Example:** <span id="example-id">`{ PUSH string "lambda sample";FAILWITH }`</span>
 
+<p>
 <details>
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
 1. Call contract's `epwApplyMigration` entrypoint passing the constructed argument.
 </details>
-<p>
+</p>
 
 
 
@@ -564,13 +578,14 @@ This entry point is used to set the dispatching code that calls the packed entry
   + **In Michelson:** `(lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))`
     + **Example:** <span id="example-id">`{ PUSH string "lambda sample";FAILWITH }`</span>
 
+<p>
 <details>
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
 1. Call contract's `epwSetCode` entrypoint passing the constructed argument.
 </details>
-<p>
+</p>
 
 
 
@@ -591,13 +606,14 @@ This entry point is used to mark that an upgrade has been finsihed.
 
 **Argument:** none (pass unit)
 
+<p>
 <details>
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
 1. Call contract's `epwFinishUpgrade` entrypoint passing the constructed argument.
 </details>
-<p>
+</p>
 
 
 
@@ -629,13 +645,14 @@ In this case current number of tokens that sender is allowed to withdraw from th
   + **In Michelson:** `(pair address address nat)`
     + **Example:** <span id="example-id">`{ "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"; "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"; 0 }`</span>
 
+<p>
 <details>
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
 1. Call contract's `transfer` entrypoint passing the constructed argument.
 </details>
-<p>
+</p>
 
 
 
@@ -688,13 +705,14 @@ safely change the allowance for `X` to `K` token must:
   + **In Michelson:** `(pair address nat)`
     + **Example:** <span id="example-id">`Pair "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB" 0`</span>
 
+<p>
 <details>
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
 1. Call contract's `approve` entrypoint passing the constructed argument.
 </details>
-<p>
+</p>
 
 
 
@@ -722,13 +740,14 @@ This entry point is used mint new tokes for an account.
   + **In Michelson:** `(pair address nat)`
     + **Example:** <span id="example-id">`Pair "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB" 0`</span>
 
+<p>
 <details>
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
 1. Call contract's `mint` entrypoint passing the constructed argument.
 </details>
-<p>
+</p>
 
 
 
@@ -754,13 +773,14 @@ Burn some tokens from the `redeem` address.
   + **In Michelson:** `nat`
     + **Example:** <span id="example-id">`0`</span>
 
+<p>
 <details>
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
 1. Call contract's `burn` entrypoint passing the constructed argument.
 </details>
-<p>
+</p>
 
 
 
@@ -788,13 +808,14 @@ This entry point is used to add a new operator.
   + **In Michelson:** `address`
     + **Example:** <span id="example-id">`"KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
+<p>
 <details>
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
 1. Call contract's `addOperator` entrypoint passing the constructed argument.
 </details>
-<p>
+</p>
 
 
 
@@ -820,13 +841,14 @@ This entry point is used to remove an operator.
   + **In Michelson:** `address`
     + **Example:** <span id="example-id">`"KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
+<p>
 <details>
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
 1. Call contract's `removeOperator` entrypoint passing the constructed argument.
 </details>
-<p>
+</p>
 
 
 
@@ -852,13 +874,14 @@ This entry point is used to set the redeem address.
   + **In Michelson:** `address`
     + **Example:** <span id="example-id">`"KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
+<p>
 <details>
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
 1. Call contract's `setRedeemAddress` entrypoint passing the constructed argument.
 </details>
-<p>
+</p>
 
 
 
@@ -884,13 +907,14 @@ This entry point is used to pause the contract.
   + **In Michelson:** `unit`
     + **Example:** <span id="example-id">`Unit`</span>
 
+<p>
 <details>
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
 1. Call contract's `pause` entrypoint passing the constructed argument.
 </details>
-<p>
+</p>
 
 
 
@@ -916,13 +940,14 @@ This entry point is used to resume the contract during a paused state.
   + **In Michelson:** `unit`
     + **Example:** <span id="example-id">`Unit`</span>
 
+<p>
 <details>
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
 1. Call contract's `unpause` entrypoint passing the constructed argument.
 </details>
-<p>
+</p>
 
 
 
@@ -948,13 +973,14 @@ This entry point is used to transfer ownership to a new owner.
   + **In Michelson:** `address`
     + **Example:** <span id="example-id">`"KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
+<p>
 <details>
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
 1. Call contract's `transferOwnership` entrypoint passing the constructed argument.
 </details>
-<p>
+</p>
 
 
 
@@ -980,13 +1006,14 @@ This entry point is used to accept ownership by a new owner.
   + **In Michelson:** `unit`
     + **Example:** <span id="example-id">`Unit`</span>
 
+<p>
 <details>
   <summary><b>How to call this entrypoint</b></summary>
 
 0. Construct an argument for the entrypoint.
 1. Call contract's `acceptOwnership` entrypoint passing the constructed argument.
 </details>
-<p>
+</p>
 
 
 
@@ -1116,20 +1143,6 @@ Bytes primitive.
 
 
 
-<a name="types-Code-lparenextended-lambdarparen"></a>
-
----
-
-### `Code (extended lambda)`
-
-`Code i o` stands for a sequence of instructions which accepts stack of type `i` and returns stack of type `o`.
-
-When both `i` and `o` are of length 1, this primitive corresponds to the Michelson lambda. In more complex cases code is surrounded with `pair`and `unpair` instructions until fits into mentioned restriction.
-
-**Final Michelson representation (example):** `Code [Integer, Natural, MText, ()] [ByteString]` = `lambda (pair int nat string unit) bytes`
-
-
-
 <a name="types-Contract"></a>
 
 ---
@@ -1215,7 +1228,7 @@ Option primitive.
 A code which updates storage in order to make it compliant with the new version of the contract.
 It is common to have a group of migration scripts because each of it is to be used in Tezos transaction and thus should fit into gas and operation size limits.
 
-**Structure:** [`Code`](#types-Code-lparenextended-lambdarparen) **[**[`UStore`](#types-Upgradeable-storage) [`Some`](#ustore-template-Some)**]** **[**[`UStore`](#types-Upgradeable-storage) [`Some`](#ustore-template-Some)**]**
+**Structure:** [`WrappedLambda`](#types-WrappedLambda-lparenextended-lambdarparen) **[**[`UStore`](#types-Upgradeable-storage) [`Some`](#ustore-template-Some)**]** **[**[`UStore`](#types-Upgradeable-storage) [`Some`](#ustore-template-Some)**]**
 
 **Final Michelson representation:** `lambda (big_map bytes bytes) (big_map bytes bytes)`
 
@@ -1299,7 +1312,7 @@ Parameter which does not have unsafe arguments, like raw `Contract p` values.
 
 Implementation of permanent entrypoints.
 
-**Structure:** [`Code`](#types-Code-lparenextended-lambdarparen) **[**[`Empty`](#types-Empty)**,** [`UStore`](#types-Upgradeable-storage) [`Some`](#ustore-template-Some)**]** **[**([`List`](#types-List) [`Operation`](#types-Operation), [`UStore`](#types-Upgradeable-storage) [`Some`](#ustore-template-Some))**]**
+**Structure:** [`WrappedLambda`](#types-WrappedLambda-lparenextended-lambdarparen) **[**[`Empty`](#types-Empty)**,** [`UStore`](#types-Upgradeable-storage) [`Some`](#ustore-template-Some)**]** **[**([`List`](#types-List) [`Operation`](#types-Operation), [`UStore`](#types-Upgradeable-storage) [`Some`](#ustore-template-Some))**]**
 
 **Final Michelson representation:** `lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))`
 
@@ -1372,7 +1385,7 @@ Various token metadata information.
 
 Parameter dispatching logic, main purpose of this code is to pass control to an entrypoint carrying the main logic of the contract.
 
-**Structure:** [`Code`](#types-Code-lparenextended-lambdarparen) **[**([`UParam`](#types-Upgradable-parameter), [`UStore`](#types-Upgradeable-storage) [`Some`](#ustore-template-Some))**]** **[**([`List`](#types-List) [`Operation`](#types-Operation), [`UStore`](#types-Upgradeable-storage) [`Some`](#ustore-template-Some))**]**
+**Structure:** [`WrappedLambda`](#types-WrappedLambda-lparenextended-lambdarparen) **[**([`UParam`](#types-Upgradable-parameter), [`UStore`](#types-Upgradeable-storage) [`Some`](#ustore-template-Some))**]** **[**([`List`](#types-List) [`Operation`](#types-Operation), [`UStore`](#types-Upgradeable-storage) [`Some`](#ustore-template-Some))**]**
 
 **Final Michelson representation:** `lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))`
 
@@ -1436,6 +1449,20 @@ Read more in [A1 conventions document](https://gitlab.com/tzip/tzip/-/blob/c42e3
   * [`ContractRef`](#types-Contract) [`Integer`](#types-Integer)
 
 **Final Michelson representation (example):** `View_ MText Integer` = `pair string (contract int)`
+
+
+
+<a name="types-WrappedLambda-lparenextended-lambdarparen"></a>
+
+---
+
+### `WrappedLambda (extended lambda)`
+
+`WrappedLambda i o` stands for a sequence of instructions which accepts stack of type `i` and returns stack of type `o`.
+
+When both `i` and `o` are of length 1, this primitive corresponds to the Michelson lambda. In more complex cases code is surrounded with `pair`and `unpair` instructions until fits into mentioned restriction.
+
+**Final Michelson representation (example):** `Code [Integer, Natural, MText, ()] [ByteString]` = `lambda (pair int nat string unit) bytes`
 
 
 
@@ -1693,6 +1720,7 @@ This includes administrator address which is necessary for a secure upgrade to V
 
 **Contents:** 
 * **Field** `owner`: [`Address`](#types-Address)
+<p>
 <details>
   <summary><b>Encoding</b></summary>
 
@@ -1704,7 +1732,7 @@ This includes administrator address which is necessary for a secure upgrade to V
 
 
 </details>
-<p>
+</p>
 
 
 
@@ -1721,6 +1749,7 @@ Contains all the storage entries for V1 contract.
 
 **Contents:** 
 * **Field** `owner`: [`Address`](#types-Address)
+<p>
 <details>
   <summary><b>Encoding</b></summary>
 
@@ -1732,9 +1761,10 @@ Contains all the storage entries for V1 contract.
 
 
 </details>
-<p>
+</p>
 
 * **Field** `paused`: [`Bool`](#types-Bool)
+<p>
 <details>
   <summary><b>Encoding</b></summary>
 
@@ -1746,9 +1776,10 @@ Contains all the storage entries for V1 contract.
 
 
 </details>
-<p>
+</p>
 
 * **Field** `totalSupply`: [`Natural`](#types-Natural)
+<p>
 <details>
   <summary><b>Encoding</b></summary>
 
@@ -1760,9 +1791,10 @@ Contains all the storage entries for V1 contract.
 
 
 </details>
-<p>
+</p>
 
 * **Field** `totalBurned`: [`Natural`](#types-Natural)
+<p>
 <details>
   <summary><b>Encoding</b></summary>
 
@@ -1774,9 +1806,10 @@ Contains all the storage entries for V1 contract.
 
 
 </details>
-<p>
+</p>
 
 * **Field** `totalMinted`: [`Natural`](#types-Natural)
+<p>
 <details>
   <summary><b>Encoding</b></summary>
 
@@ -1788,9 +1821,10 @@ Contains all the storage entries for V1 contract.
 
 
 </details>
-<p>
+</p>
 
 * **Field** `newOwner`: [`Maybe`](#types-Maybe) [`Address`](#types-Address)
+<p>
 <details>
   <summary><b>Encoding</b></summary>
 
@@ -1802,9 +1836,10 @@ Contains all the storage entries for V1 contract.
 
 
 </details>
-<p>
+</p>
 
 * **Field** `operators`: [`Set`](#types-Set) [`Address`](#types-Address)
+<p>
 <details>
   <summary><b>Encoding</b></summary>
 
@@ -1816,9 +1851,10 @@ Contains all the storage entries for V1 contract.
 
 
 </details>
-<p>
+</p>
 
 * **Field** `redeemAddress`: [`Address`](#types-Address)
+<p>
 <details>
   <summary><b>Encoding</b></summary>
 
@@ -1830,9 +1866,10 @@ Contains all the storage entries for V1 contract.
 
 
 </details>
-<p>
+</p>
 
 * **Field** `tokenMetadata`: [`TokenMetadata`](#types-TokenMetadata)
+<p>
 <details>
   <summary><b>Encoding</b></summary>
 
@@ -1844,9 +1881,10 @@ Contains all the storage entries for V1 contract.
 
 
 </details>
-<p>
+</p>
 
-* **Submap** `code`: [`Text`](#types-Text) -> [`Code`](#types-Code-lparenextended-lambdarparen) **[**([`ByteString`](#types-ByteString), [`UStore`](#types-Upgradeable-storage) [`Store template V1`](#ustore-template-Store-template-V1))**]** **[**([`List`](#types-List) [`Operation`](#types-Operation), [`UStore`](#types-Upgradeable-storage) [`Store template V1`](#ustore-template-Store-template-V1))**]**
+* **Submap** `code`: [`Text`](#types-Text) -> [`WrappedLambda`](#types-WrappedLambda-lparenextended-lambdarparen) **[**([`ByteString`](#types-ByteString), [`UStore`](#types-Upgradeable-storage) [`Store template V1`](#ustore-template-Store-template-V1))**]** **[**([`List`](#types-List) [`Operation`](#types-Operation), [`UStore`](#types-Upgradeable-storage) [`Store template V1`](#ustore-template-Store-template-V1))**]**
+<p>
 <details>
   <summary><b>Encoding</b></summary>
 
@@ -1858,9 +1896,10 @@ Contains all the storage entries for V1 contract.
 
 
 </details>
-<p>
+</p>
 
-* **Field** `fallback`: [`Code`](#types-Code-lparenextended-lambdarparen) **[**(([`Text`](#types-Text), [`ByteString`](#types-ByteString)), [`UStore`](#types-Upgradeable-storage) [`Store template V1`](#ustore-template-Store-template-V1))**]** **[**([`List`](#types-List) [`Operation`](#types-Operation), [`UStore`](#types-Upgradeable-storage) [`Store template V1`](#ustore-template-Store-template-V1))**]**
+* **Field** `fallback`: [`WrappedLambda`](#types-WrappedLambda-lparenextended-lambdarparen) **[**(([`Text`](#types-Text), [`ByteString`](#types-ByteString)), [`UStore`](#types-Upgradeable-storage) [`Store template V1`](#ustore-template-Store-template-V1))**]** **[**([`List`](#types-List) [`Operation`](#types-Operation), [`UStore`](#types-Upgradeable-storage) [`Store template V1`](#ustore-template-Store-template-V1))**]**
+<p>
 <details>
   <summary><b>Encoding</b></summary>
 
@@ -1872,9 +1911,10 @@ Contains all the storage entries for V1 contract.
 
 
 </details>
-<p>
+</p>
 
 * **Submap** `ledger`: [`Address`](#types-Address) -> (***balance*** : [`Natural`](#types-Natural), ***approvals*** : [`Map`](#types-Map) [`Address`](#types-Address) [`Natural`](#types-Natural))
+<p>
 <details>
   <summary><b>Encoding</b></summary>
 
@@ -1886,5 +1926,5 @@ Contains all the storage entries for V1 contract.
 
 
 </details>
-<p>
+</p>
 
