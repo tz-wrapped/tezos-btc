@@ -2,6 +2,9 @@
  -
  - SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
  -}
+
+{-# OPTIONS_GHC -Wno-deprecations #-}
+
 module Test.Smoke
   ( test_smokeTests
 
@@ -22,7 +25,7 @@ import Test.Tasty.Providers (IsTest(..), singleTest, testPassed)
 
 import Lorentz (TrustEpName(..), View_(..), mkView_, toAddress)
 import Lorentz.Contracts.Metadata
-import Lorentz.Contracts.Upgradeable.Common (EpwUpgradeParameters(..), emptyPermanentImpl)
+import Lorentz.Contracts.Upgradeable.Common (EpwUpgradeParameters(..), emptyPermanentImplCompat)
 import Lorentz.UStore.Migration
 import Morley.Client (OperationInfo(..), Result, disableAlphanetWarning)
 import Morley.Client.TezosClient qualified as TezosClient
@@ -106,7 +109,7 @@ testUpgradeToV1 = TestUpgrade $ \admin redeem balances tzbtc -> do
         Identity $
         manualConcatMigrationScripts (migrationScriptsV1 opTZBTC)
       , upNewCode = tzbtcContractRouterV1
-      , upNewPermCode = emptyPermanentImpl
+      , upNewPermCode = emptyPermanentImplCompat
       }
   transferMoney admin [tz|50|] -- 50 XTZ
   withSender admin $ call
@@ -124,7 +127,7 @@ testUpgradeToV2 = TestUpgrade $ \admin redeem balances tzbtc -> do
         Identity $
         manualConcatMigrationScripts (migrationScriptsV2 opTZBTC)
       , upNewCode = tzbtcContractRouterV2
-      , upNewPermCode = emptyPermanentImpl
+      , upNewPermCode = emptyPermanentImplCompat
       }
   transferMoney admin [tz|50|] -- 50 XTZ
   withSender admin $ call
@@ -320,6 +323,7 @@ runNettestTzbtcClient env scenario' = do
 nettestImplTzbtcClient :: MorleyClientEnv -> Sender -> ClevelandOpsImpl ClientM
 nettestImplTzbtcClient env sender =
   impl { coiRunOperationBatch = \case
+      [] -> pure [] -- this happens when `newAddress` reuses addresses that have enough tez
       [op] -> case op of
         OpOriginate oud -> tzbtcClientOriginate oud
         OpTransfer td -> tzbtcClientTransfer td >> pure [OpTransfer ()]
@@ -336,7 +340,7 @@ nettestImplTzbtcClient env sender =
 
     tzbtcClientOriginate :: UntypedOriginateData -> ClientM [OperationInfo Result]
     tzbtcClientOriginate od@(UntypedOriginateData {..}) =
-      if TezosClient.unsafeGetAliasHintText uodName == "TZBTCContract" then do
+      if uodName == "TZBTCContract" then do
         let senderAddr = unSender sender
         output <- liftIO $ callTzbtcClient $ tzbtcClientEnvArgs <>
           [ "deployTzbtcContract"

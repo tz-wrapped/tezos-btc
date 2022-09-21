@@ -13,7 +13,6 @@ module Test.Migration
 
 import Test.Tasty (TestTree, testGroup)
 
-import Lorentz qualified as L
 import Lorentz.Base ((#))
 import Lorentz.Coercions (checkedCoerce)
 import Lorentz.Contracts.TZBTC as TZBTC

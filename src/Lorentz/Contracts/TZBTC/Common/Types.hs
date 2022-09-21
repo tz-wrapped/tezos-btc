@@ -33,6 +33,7 @@ module Lorentz.Contracts.TZBTC.Common.Types
   , TZBTCPartInstr
   , OneShotUpgradeParameters
   , Upgradeable.makeOneShotUpgradeParameters
+  , Empty
   ) where
 
 import Fmt (Buildable(..), (+|), (|+))
@@ -47,6 +48,7 @@ import Lorentz.Contracts.Upgradeable.Common
   (KnownContractVersion(..), MigrationScriptFrom, OneShotUpgradeParameters, PermanentImpl,
   SomeUContractRouter, UContractRouter(..), VerParam, VerUStore, Version, VersionKind)
 import Lorentz.Contracts.Upgradeable.Common qualified as Upgradeable
+import Lorentz.Contracts.Upgradeable.Common.Empty (Empty)
 import Lorentz.UStore
 import Lorentz.UStore.Migration (SomeUTemplate)
 import Morley.Util.Instances ()
@@ -274,6 +276,7 @@ data SomeTZBTCVersion :: VersionKind
 instance KnownContractVersion SomeTZBTCVersion where
   type VerInterface SomeTZBTCVersion = SomeInterface
   type VerUStoreTemplate SomeTZBTCVersion = SomeUTemplate
+  type VerPermanent _ = Empty -- legacy compatibility
   contractVersion _ = 999
 
 -- | A safe view to act as argument to the inner stored procedures that

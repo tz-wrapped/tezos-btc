@@ -3,6 +3,8 @@
  - SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
  -}
 
+{-# OPTIONS_GHC -Wno-deprecations #-}
+
 -- | Preprocessing of TZBTC contract. We modify Lorentz code (by
 -- optimizing it) before compiling to Michelson.
 
@@ -21,6 +23,7 @@ module Lorentz.Contracts.TZBTC.Preprocess
   ) where
 
 import Lorentz
+import Lorentz.Lambda
 
 import Morley.Michelson.Optimizer (OptimizerConf(..))
 
@@ -40,7 +43,8 @@ tzbtcContract = mkContractWith compilationOptions V0.tzbtcContractRaw
 -- | Preprocessed version of contract router for V1.
 tzbtcContractRouterV1 :: UContractRouter V1.TZBTCv1
 tzbtcContractRouterV1 =
-  UContractRouter . preprocess . unUContractRouter $ V1.tzbtcContractRouterRaw
+  UContractRouter $ mkLambda $
+    preprocess . unWrappedLambda . unUContractRouter $ V1.tzbtcContractRouterRaw
 
 -- | Preprocessed migrations for V1.
 migrationScriptsV1 :: V1.V1Parameters -> [MigrationScript V0.StoreTemplateV0 V1.StoreTemplateV1]
@@ -55,13 +59,14 @@ upgradeParametersV1 op =
         Identity . manualConcatMigrationScripts $
         migrationScriptsV1 op
     , upNewCode = tzbtcContractRouterV1
-    , upNewPermCode = emptyPermanentImpl
+    , upNewPermCode = emptyPermanentImplCompat
     }
 
 -- | Preprocessed version of contract router for V1.
 tzbtcContractRouterV2 :: UContractRouter V2.TZBTCv2
 tzbtcContractRouterV2 =
-  UContractRouter . preprocess . unUContractRouter $ V2.tzbtcContractRouterRaw
+  UContractRouter $ mkLambda $
+    preprocess . unWrappedLambda . unUContractRouter $ V2.tzbtcContractRouterRaw
 
 -- | Preprocessed migrations for V2.
 migrationScriptsV2 :: V2.V2Parameters -> [MigrationScript V0.StoreTemplateV0 V2.StoreTemplateV2]
@@ -75,11 +80,12 @@ upgradeParametersV2 op =
         Identity . manualConcatMigrationScripts $
         migrationScriptsV2 op
     , upNewCode = tzbtcContractRouterV2
-    , upNewPermCode = emptyPermanentImpl
+    , upNewPermCode = emptyPermanentImplCompat
     }
 
 -- | Preprocessed migrations for V2 from V1.
-migrationScriptsV2FromV1 :: V2.V2ParametersFromV1 -> [MigrationScript V1.StoreTemplateV1 V2.StoreTemplateV2]
+migrationScriptsV2FromV1
+  :: V2.V2ParametersFromV1 -> [MigrationScript V1.StoreTemplateV1 V2.StoreTemplateV2]
 migrationScriptsV2FromV1 op =
   manualMapMigrationScript preprocess <$> V2.migrationScriptsFromV1Raw op
 
@@ -90,7 +96,7 @@ upgradeParametersV2FromV1 op =
         Identity . manualConcatMigrationScripts $
         migrationScriptsV2FromV1 op
     , upNewCode = tzbtcContractRouterV2
-    , upNewPermCode = emptyPermanentImpl
+    , upNewPermCode = emptyPermanentImplCompat
     }
 
 preprocess :: inp :-> out -> inp :-> out
