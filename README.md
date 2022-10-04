@@ -147,6 +147,8 @@ Note that instead of plain addresses you can use `tezos-client` aliases as an ar
 in `tzbtc-client`. E.g. `tzbtc-client mint --to alice --value 500` (assuming that
 `alice` is an alias for some address in `tezos-client`).
 
+Aliases in `tezos-client` can be ambiguous, so you may need to prefix the alias with `implicit:` for `tz1`/`tz2`/`tz3` addresses or `contract:` for `KT1` addresses. If an unprefixed alias could resolve to either, `tzbtc` will refuse to accept it. E.g. `tzbtc-client mint --to implicit:alice --value 500`
+
 `tzbtc-client` also provides multisig support.
 
 Multisig interaction based on specialized multisig contract.

@@ -9,11 +9,7 @@ module CLI.Parser
   ( CmdLnArgs (..)
   , VersionArg (..)
   , MigrationArgs (..)
-  , addressArgument
-  , addressOption
   , argParser
-  , biNamedParser
-  , mTextOption
   , parseSingleTokenMetadata
   ) where
 
@@ -25,13 +21,15 @@ import Options.Applicative qualified as Opt
 import Lorentz.Contracts.Metadata
 import Morley.CLI
 import Morley.Michelson.Text
-import Morley.Tezos.Address (Address)
+import Morley.Tezos.Address
 import Morley.Util.CLI
 import Morley.Util.Named
 
+import CLI.L1AddressOrAlias ()
+
 -- | Represents the Cmd line commands with inputs/arguments.
 data CmdLnArgs
-  = CmdPrintInitialStorage Address
+  = CmdPrintInitialStorage L1Address
   | CmdPrintContract Bool (Maybe FilePath)
   | CmdPrintMultisigContract Bool Bool (Maybe FilePath)
   | CmdPrintDoc VersionArg (Maybe FilePath)
@@ -46,10 +44,10 @@ data VersionArg
 
 data MigrationArgs
   = MigrateV1
-      ("redeemAddress" :! Address)
+      ("redeemAddress" :! L1Address)
       ("tokenMetadata" :! TokenMetadata)
   | MigrateV2
-      ("redeemAddress" :! Address)
+      ("redeemAddress" :! L1Address)
       ("tokenMetadata" :! TokenMetadata)
   | MigrateV2FromV1
 
@@ -83,7 +81,7 @@ argParser = hsubparser $
       (mkCommandParser
          "printInitialStorage"
          (CmdPrintInitialStorage
-            <$> addressOption Nothing
+            <$> mkCLOptionParser Nothing
             (#name :! "owner-address") (#help :! "Owner's address")
          )
          "Print initial contract storage with the given owner and \
@@ -118,14 +116,14 @@ argParser = hsubparser $
           "Print migration scripts. When version is unspecified, v1 is used."
     migrateV1Parser =
       MigrateV1
-          <$> biNamedParser Nothing "Redeem address"
+          <$> biNamedParser @_ @L1Address Nothing "Redeem address"
           <*> fmap (#tokenMetadata :!) parseSingleTokenMetadata
     migrateV1Cmd :: Opt.Mod Opt.CommandFields MigrationArgs
     migrateV1Cmd =
       mkCommandParser
         "v1"
         (MigrateV1
-          <$> biNamedParser Nothing "Redeem address"
+          <$> biNamedParser @_ @L1Address Nothing "Redeem address"
           <*> fmap (#tokenMetadata :!) parseSingleTokenMetadata
         )
         "Migration from V0 to V1."
@@ -134,7 +132,7 @@ argParser = hsubparser $
       mkCommandParser
         "v2"
         (MigrateV2
-          <$> biNamedParser Nothing "Redeem address"
+          <$> biNamedParser @_ @L1Address Nothing "Redeem address"
           <*> fmap (#tokenMetadata :!) parseSingleTokenMetadata
         )
         "Migration from V0 to V2."
@@ -151,9 +149,6 @@ argParser = hsubparser $
          metavar "NUMBER" <>
          Opt.value V1 <>
          Opt.showDefaultWith (\_ -> "1"))
-
-addressArgument :: String -> Opt.Parser Address
-addressArgument hInfo = mkCLArgumentParser Nothing (#help :! hInfo)
 
 -- | For value named in camelCase, parse the respective CLI option
 -- if provided in camelCase (legacy) or in spinal-case.

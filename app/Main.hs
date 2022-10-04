@@ -71,7 +71,7 @@ main = do
             (arg #tokenMetadata -> tokenMetadata) -> do
               let
                 originationParams = V1Parameters
-                  { v1RedeemAddress = redeem
+                  { v1RedeemAddress = toAddress redeem
                   , v1TokenMetadata = tokenMetadata
                   , v1Balances = mempty
                   }
@@ -82,7 +82,7 @@ main = do
             (arg #tokenMetadata -> tokenMetadata) -> do
               let
                 originationParams = V1Parameters
-                  { v1RedeemAddress = redeem
+                  { v1RedeemAddress = toAddress redeem
                   , v1TokenMetadata = tokenMetadata
                   , v1Balances = mempty
                   }

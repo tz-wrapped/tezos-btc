@@ -31,7 +31,7 @@ rec {
     let tzbtc-exe = (tzbtc-with-commit commitInfo).components.exes.tzbtc;
     in pkgs.runCommand "contract-doc" {} ''
       mkdir $out
-      ${tzbtc-exe}/bin/tzbtc printContractDoc > $out/TZBTC-contract.md
+      ${tzbtc-exe}/bin/tzbtc printContractDoc -o $out/TZBTC-contract.md
     '';
   contract-doc-dev = contract-doc-with-commit null;
   contract-doc-release = { sha, date }@commitInfo: contract-doc-with-commit commitInfo;

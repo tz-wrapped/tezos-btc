@@ -23,7 +23,7 @@ import Lorentz.Contracts.Upgradeable.Common (UContractRouter, mkUContractRouter)
 import Lorentz.Instr as Lorentz (drop, nil, pair)
 import Lorentz.UParam (mkUParam)
 import Lorentz.UStore.Migration
-import Morley.Tezos.Address (Address, ta)
+import Morley.Tezos.Address (ta)
 import Morley.Util.Named
 import Test.Cleveland
 
@@ -39,27 +39,27 @@ test_ownerCheck = testGroup "TZBTC contract migration endpoints test"
   [ testScenario "Test call to administrative endpoints are only available to owner" $ scenario $ do
       admin <- newAddress "admin"
       bob <- newAddress "bob"
-      v0 <- originateSimple "tzbtc" (mkEmptyStorageV0 admin) tzbtcContract
+      v0 <- originate "tzbtc" (mkEmptyStorageV0 $ toL1Address admin) tzbtcContract
       expectCustomError_ #senderIsNotOwner $ withSender bob $
-        call v0 CallDefault $ fromFlatParameter $ EpwBeginUpgrade (#current :! 0, #new :! 1)
+        transfer v0 $ calling def $ fromFlatParameter $ EpwBeginUpgrade (#current :! 0, #new :! 1)
   , testScenario "Test call to `ApplyMigration` endpoints are only available to owner" $ scenario $ do
       admin <- newAddress "admin"
       bob <- newAddress "bob"
-      v0 <- originateSimple "tzbtc" (mkEmptyStorageV0 admin) tzbtcContract
+      v0 <- originate "tzbtc" (mkEmptyStorageV0 $ toL1Address admin) tzbtcContract
       expectCustomError_ #senderIsNotOwner $ withSender bob $
-        call v0 CallDefault $ fromFlatParameter $ EpwApplyMigration (checkedCoerce migrationScriptV1)
+        transfer v0 $ calling def $ fromFlatParameter $ EpwApplyMigration (checkedCoerce migrationScriptV1)
   , testScenario "Test call to `SetCode` endpoints are only available to owner" $ scenario $ do
       admin <- newAddress "admin"
       bob <- newAddress "bob"
-      v0 <- originateSimple "tzbtc" (mkEmptyStorageV0 admin) tzbtcContract
+      v0 <- originate "tzbtc" (mkEmptyStorageV0 $ toL1Address admin) tzbtcContract
       expectCustomError_ #senderIsNotOwner $ withSender bob $
-        call v0 CallDefault $ fromFlatParameter $ EpwSetCode emptyCode
+        transfer v0 $ calling def $ fromFlatParameter $ EpwSetCode emptyCode
   , testScenario "Test call to `EpwFinishUpgrade` endpoints are only available to owner" $ scenario $ do
       admin <- newAddress "admin"
       bob <- newAddress "bob"
-      v0 <- originateSimple "tzbtc" (mkEmptyStorageV0 admin) tzbtcContract
+      v0 <- originate "tzbtc" (mkEmptyStorageV0 $ toL1Address admin) tzbtcContract
       expectCustomError_ #senderIsNotOwner $ withSender bob $
-        call v0 CallDefault $ fromFlatParameter $ EpwFinishUpgrade
+        transfer v0 $ calling def $ fromFlatParameter $ EpwFinishUpgrade
   ]
 
 -- Test that migration entrypoints check a not migrating status
@@ -67,19 +67,19 @@ test_notMigratingStatus :: TestTree
 test_notMigratingStatus = testGroup "TZBTC contract migration status not active check"
   [ testScenario "Test call to `ApplyMigration` that require a migrating state fails in non migrating state" $ scenario $ do
       admin <- newAddress "admin"
-      v0 <- originateSimple "tzbtc" (mkEmptyStorageV0 admin) tzbtcContract
+      v0 <- originate "tzbtc" (mkEmptyStorageV0 $ toL1Address admin) tzbtcContract
       expectCustomError_ #upgContractIsNotMigrating $ withSender admin $
-        call v0 CallDefault $ fromFlatParameter $ EpwApplyMigration (checkedCoerce migrationScriptV1)
+        transfer v0 $ calling def $ fromFlatParameter $ EpwApplyMigration (checkedCoerce migrationScriptV1)
   , testScenario "Test call to `EpwSetCode` that require a non-migrating state fails in migrating state" $ scenario $ do
       admin <- newAddress "admin"
-      v0 <- originateSimple "tzbtc" (mkEmptyStorageV0 admin) tzbtcContract
+      v0 <- originate "tzbtc" (mkEmptyStorageV0 $ toL1Address admin) tzbtcContract
       expectCustomError_ #upgContractIsNotMigrating $ withSender admin $
-        call v0 CallDefault $ fromFlatParameter $ EpwSetCode emptyCode
+        transfer v0 $ calling def $ fromFlatParameter $ EpwSetCode emptyCode
   , testScenario "Test call to `EpwFinishUpgrade` that require a non-migrating state fails in migrating state" $ scenario $ do
       admin <- newAddress "admin"
-      v0 <- originateSimple "tzbtc" (mkEmptyStorageV0 admin) tzbtcContract
+      v0 <- originate "tzbtc" (mkEmptyStorageV0 $ toL1Address admin) tzbtcContract
       expectCustomError_ #upgContractIsNotMigrating $ withSender admin $
-        call v0 CallDefault $ fromFlatParameter $ EpwFinishUpgrade
+        transfer v0 $ calling def $ fromFlatParameter $ EpwFinishUpgrade
   ]
 
 -- Test that other entrypoints respect migrating status and fail
@@ -87,25 +87,25 @@ test_migratingStatus :: TestTree
 test_migratingStatus = testGroup "TZBTC contract migration status active check"
   [ testScenario "Test call to `Upgrade` that require a non-migrating state fails in migrating state" $ scenario $ do
       admin <- newAddress "admin"
-      v0 <- originateSimple "tzbtc" (mkEmptyStorageV0 admin) tzbtcContract
+      v0 <- originate "tzbtc" (mkEmptyStorageV0 $ toL1Address admin) tzbtcContract
       withSender admin $ do
-        call v0 CallDefault $ fromFlatParameter $ EpwBeginUpgrade (#current :! 0, #new :! 1)
+        transfer v0 $ calling def $ fromFlatParameter $ EpwBeginUpgrade (#current :! 0, #new :! 1)
         expectCustomError_ #upgContractIsMigrating $
-          call v0 CallDefault $ fromFlatParameter $ Upgrade upgradeParamsV1
+          transfer v0 $ calling def $ fromFlatParameter $ Upgrade upgradeParamsV1
   , testScenario "Test call to `Run` that require a non-migrating state fails in migrating state" $ scenario $ do
       admin <- newAddress "admin"
-      v0 <- originateSimple "tzbtc" (mkEmptyStorageV0 admin) tzbtcContract
+      v0 <- originate "tzbtc" (mkEmptyStorageV0 $ toL1Address admin) tzbtcContract
       withSender admin $ do
-        call v0 CallDefault $ fromFlatParameter $ EpwBeginUpgrade (#current :! 0, #new :! 1)
+        transfer v0 $ calling def $ fromFlatParameter $ EpwBeginUpgrade (#current :! 0, #new :! 1)
         expectCustomError_ #upgContractIsMigrating $
-          call v0 CallDefault $ fromFlatParameter $ Run $ mkUParam #callBurn (#value :! 100)
+          transfer v0 $ calling def $ fromFlatParameter $ Run $ mkUParam #callBurn (#value :! 100)
   , testScenario "Test call to `Burn` that require a non-migrating state fails in migrating state" $ scenario $ do
       admin <- newAddress "admin"
-      v0 <- originateSimple "tzbtc" (mkEmptyStorageV0 admin) tzbtcContract
+      v0 <- originate "tzbtc" (mkEmptyStorageV0 $ toL1Address admin) tzbtcContract
       withSender admin $ do
-        call v0 CallDefault $ fromFlatParameter $ EpwBeginUpgrade (#current :! 0, #new :! 1)
+        transfer v0 $ calling def $ fromFlatParameter $ EpwBeginUpgrade (#current :! 0, #new :! 1)
         expectCustomError_ #upgContractIsMigrating $
-          call v0 CallDefault $ fromFlatParameter $ Burn (#value :! 100)
+          transfer v0 $ calling def $ fromFlatParameter $ Burn (#value :! 100)
   ]
 
 -- Test that migration bumps version
@@ -113,10 +113,10 @@ test_migratingVersion :: TestTree
 test_migratingVersion = testGroup "TZBTC contract migration version check"
   [ testScenario "Test EpwFinishUpgrade bumps version" $ scenario $ do
       admin <- newAddress "admin"
-      v0 <- originateSimple "tzbtc" (mkEmptyStorageV0 admin) tzbtcContract
+      v0 <- originate "tzbtc" (mkEmptyStorageV0 $ toL1Address admin) tzbtcContract
       withSender admin $ do
-        call v0 CallDefault $ fromFlatParameter $ EpwBeginUpgrade (#current :! 0, #new :! 1)
-        call v0 CallDefault $ fromFlatParameter EpwFinishUpgrade
+        transfer v0 $ calling def $ fromFlatParameter $ EpwBeginUpgrade (#current :! 0, #new :! 1)
+        transfer v0 $ calling def $ fromFlatParameter EpwFinishUpgrade
       storage <- getStorage v0
       assert ((TZBTCTypes.currentVersion . RPC.fields) storage == 1)
         "Version was not updated"
@@ -133,8 +133,8 @@ migrationScriptV1 =
 emptyCode :: UContractRouter ver
 emptyCode = mkUContractRouter (Lorentz.drop # nil # pair)
 
-redeemAddress_ :: Address
+redeemAddress_ :: ImplicitAddress
 redeemAddress_ = [ta|tz1Mdd7rL6jGFAWCMUqatQ64K9pTpe8kazfy|]
 
 v1Parameters :: V1Parameters
-v1Parameters = dummyV1Parameters redeemAddress_ mempty
+v1Parameters = dummyV1Parameters (toAddress redeemAddress_) mempty
