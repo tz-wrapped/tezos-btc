@@ -22,6 +22,7 @@ import Lorentz
 import Lorentz.Contracts.Upgradeable.Common hiding (Parameter(..), Storage)
 import Lorentz.UStore
 import Morley.Michelson.Text
+import Morley.Tezos.Address
 import Morley.Util.Markdown (md)
 
 import Lorentz.Contracts.TZBTC.Common.Types
@@ -41,9 +42,9 @@ instance UStoreTemplateHasDoc StoreTemplateV0 where
 
 type UStoreV0 = Storage TZBTCv0
 
-mkEmptyStorageV0 :: Address -> UStoreV0
+mkEmptyStorageV0 :: L1Address -> UStoreV0
 mkEmptyStorageV0 owner = Storage
-  { dataMap = mkUStore (StoreTemplateWithCommons (UStoreField owner) ())
+  { dataMap = mkUStore (StoreTemplateWithCommons (UStoreField (toAddress owner)) ())
   , fields = StorageFields
     { contractRouter = emptyCode
     , currentVersion = 0

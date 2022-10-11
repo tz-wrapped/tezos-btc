@@ -22,14 +22,15 @@ import Text.Megaparsec.Char.Lexer (symbol)
 import Text.Megaparsec.Error (ParseErrorBundle, ShowErrorComponent(..))
 
 import Lorentz.Contracts.Multisig
-import Morley.CLI (mutezOption)
+import Morley.CLI (addressOrAliasOption, mutezOption)
 import Morley.Client.Parser (clientConfigParser)
-import Morley.Tezos.Address (Address, parseAddress)
-import Morley.Tezos.Address.Alias (AddressOrAlias(..))
+import Morley.Tezos.Address
+import Morley.Tezos.Address.Alias (ContractAddressOrAlias)
 import Morley.Tezos.Crypto (PublicKey, Signature, parsePublicKey, parseSignature)
 import Morley.Util.CLI
 import Morley.Util.Named
 
+import CLI.L1AddressOrAlias
 import CLI.Parser
 import Client.Types
 import Lorentz.Contracts.TZBTC.Common.Types
@@ -45,9 +46,12 @@ clientArgParser =
     <*> (#fee <:!> explictFee)
     <*> dryRunSwitch
   where
-    multisigOption = mbAddrOrAliasOption "multisig-addr" "The multisig contract address/alias to use"
-    contractOverride = mbAddrOrAliasOption "contract-addr" "The tzbtc contract address/alias to use"
-    userOption = mbAddrOrAliasOption "user" "User to send operations as"
+    multisigOption = optional $ addressOrAliasOption Nothing (#name :! "multisig-addr")
+      (#help :! "The multisig contract address/alias to use")
+    contractOverride = optional $ addressOrAliasOption Nothing (#name :! "contract-addr")
+      (#help :! "The tzbtc contract address/alias to use")
+    userOption = optional $ addressOrAliasOption Nothing (#name :! "user")
+      (#help :! "User to send operations as")
     explictFee =
       optional $ mutezOption
             Nothing
@@ -325,17 +329,18 @@ clientArgRawParser = Opt.hsubparser $
                 \This flag will deploy the custom version of specialized multisig\n\
                 \contract with human-readable string errors.")
 
-    callbackParser :: Opt.Parser (Maybe AddressOrAlias)
-    callbackParser = mbAddrOrAliasOption "callback" "Callback address"
+    callbackParser :: Opt.Parser (Maybe ContractAddressOrAlias)
+    callbackParser = optional $
+      addressOrAliasOption Nothing (#name :! "callback") (#help :! "Callback address")
 
-addrOrAliasOption :: String -> String -> Opt.Parser AddressOrAlias
+addrOrAliasOption :: String -> String -> Opt.Parser L1AddressOrAlias
 addrOrAliasOption name hInfo =
-  mkCLOptionParser Nothing (#name :! name) (#help :! hInfo)
+  l1AddressOrAliasOption Nothing (#name :! name) (#help :! hInfo)
 
-mbAddrOrAliasOption :: String -> String -> Opt.Parser (Maybe AddressOrAlias)
+mbAddrOrAliasOption :: String -> String -> Opt.Parser (Maybe L1AddressOrAlias)
 mbAddrOrAliasOption = optional ... addrOrAliasOption
 
-addrOrAliasArg :: String -> Opt.Parser AddressOrAlias
+addrOrAliasArg :: String -> Opt.Parser L1AddressOrAlias
 addrOrAliasArg hInfo = mkCLArgumentParser Nothing (#help :! hInfo)
 
 natOption :: String -> String -> Opt.Parser Natural
@@ -383,15 +388,15 @@ isBase58Char :: Char -> Bool
 isBase58Char c =
   (isDigit c && c /= '0') || (isAlpha c && c /= 'O' && c /= 'I' && c /= 'l')
 
-tzbtcClientAddressParser :: Parser Address
+tzbtcClientAddressParser :: Parser ContractAddress
 tzbtcClientAddressParser = do
   P.skipManyTill (printChar <|> newline) $ do
     void $ symbol space "Contract address:"
     rawAddr <- P.many (P.satisfy isBase58Char)
-    case parseAddress (fromString rawAddr) of
+    case parseKindedAddress (fromString rawAddr) of
       Left err -> P.customFailure $ OutputParseError "address" $ pretty err
       Right addr -> return addr
 
 parseContractAddressFromOutput
-  :: Text -> Either (ParseErrorBundle Text OutputParseError) Address
+  :: Text -> Either (ParseErrorBundle Text OutputParseError) ContractAddress
 parseContractAddressFromOutput output = P.parse tzbtcClientAddressParser "" output

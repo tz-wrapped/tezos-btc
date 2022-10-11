@@ -37,7 +37,7 @@ setup () {
 
 @test "invoking tzbtc 'printInitialStorage' command" {
   result="$($tzbtc printInitialStorage --owner-address tz1f1S7V2hZJ3mhj47djb5j1saek8c2yB2Cx)"
-  [ "$result" == '{ { Elt 0x0501000000056f776e6572 0x050a000000160000d476acd953eb55d38c398c85c3f53e19b62b167a }; { CDR;NIL operation;PAIR }; 0; False }' ]
+  [ "$result" == '{ { Elt 0x0501000000056f776e6572 0x050a000000160000d476acd953eb55d38c398c85c3f53e19b62b167a }; { CDR; NIL operation; PAIR }; 0; False }' ]
 }
 
 @test "invoking 'parseContractParameter' command to parse burn parameter" {

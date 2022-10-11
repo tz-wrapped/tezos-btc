@@ -11,6 +11,13 @@ Changes that affect Michelson code are tagged with `[CONTRACT]`.
 Unreleased
 ==========
 
+* [180](https://github.com/tz-wrapped/tezos-btc/pull/180)
+  Morley dependencies updated to provide changes for Kathmandu protocol support.
+  + Note that due to changes upstream, CLI changed slightly. Previously,
+    ambiguous tezos-client aliases would always resolve to a contract addresses,
+    now those will fail unless explicitly disambiguated with `implicit:` or
+    `contract:` prefix.
+
 0.8.0
 ==========
 * [#172](https://github.com/tz-wrapped/tezos-btc/pull/172)

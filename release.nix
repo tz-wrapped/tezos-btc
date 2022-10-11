@@ -34,8 +34,8 @@ let
 in rec {
   static = tzbtc-static;
   rpm = vmTools.runInLinuxImage
-    (buildRpm.packageRpm // { diskImage = fedoraImage; });
+    (buildRpm.packageRpm // { diskImageFormat = "qcow2"; diskImage = fedoraImage; });
 
   deb = vmTools.runInLinuxImage
-    (buildDeb.packageDeb // { diskImage = ubuntuImage; });
+    (buildDeb.packageDeb // { diskImageFormat = "qcow2"; diskImage = ubuntuImage; });
 }
