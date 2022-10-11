@@ -6,7 +6,7 @@
 
 # TZBTC
 
-**Code revision:** [f646e85](https://github.com/tz-wrapped/tezos-btc/commit/f646e8597bba92ce7ea9d622953ce6ff354a5209) *(Wed Sep 21 21:13:55 2022 +0300)*
+**Code revision:** [b9ec7d8](https://github.com/tz-wrapped/tezos-btc/commit/b9ec7d83139137e152f7883b7fc1087f4312af7b) *(Tue Oct 11 13:13:46 2022 +0300)*
 
 
 
@@ -479,7 +479,7 @@ provided migration lambda.
 **Argument:** 
   + **In Haskell:** (***currentVersion*** : [`Version`](#types-Version), ***newVersion*** : [`Version`](#types-Version), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript) [`Store template V0`](#ustore-template-Store-template-V0) [`Some`](#ustore-template-Some), ***newCode*** : [`Maybe`](#types-Maybe) [`UContractRouter`](#types-UContractRouter), ***newPermCode*** : [`Maybe`](#types-Maybe) [`PermanentImpl`](#types-PermanentImpl))
   + **In Michelson:** `(pair (pair nat nat) (lambda (big_map bytes bytes) (big_map bytes bytes)) (option (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))) (option (lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))))`
-    + **Example:** <span id="example-id">`{ Pair 0 0; { PUSH string "lambda sample";FAILWITH }; Some { PUSH string "lambda sample";FAILWITH }; Some { PUSH string "lambda sample";FAILWITH } }`</span>
+    + **Example:** <span id="example-id">`{ Pair 0 0; { PUSH string "lambda sample"; FAILWITH }; Some { PUSH string "lambda sample"; FAILWITH }; Some { PUSH string "lambda sample"; FAILWITH } }`</span>
 
 <p>
 <details>
@@ -545,7 +545,7 @@ This entry point is used to apply a storage migration script as part of an upgra
 **Argument:** 
   + **In Haskell:** ***migrationscript*** : [`MigrationScript`](#types-MigrationScript) [`Store template V0`](#ustore-template-Store-template-V0) [`Some`](#ustore-template-Some)
   + **In Michelson:** `(lambda (big_map bytes bytes) (big_map bytes bytes))`
-    + **Example:** <span id="example-id">`{ PUSH string "lambda sample";FAILWITH }`</span>
+    + **Example:** <span id="example-id">`{ PUSH string "lambda sample"; FAILWITH }`</span>
 
 <p>
 <details>
@@ -576,7 +576,7 @@ This entry point is used to set the dispatching code that calls the packed entry
 **Argument:** 
   + **In Haskell:** ***contractcode*** : [`UContractRouter`](#types-UContractRouter)
   + **In Michelson:** `(lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))`
-    + **Example:** <span id="example-id">`{ PUSH string "lambda sample";FAILWITH }`</span>
+    + **Example:** <span id="example-id">`{ PUSH string "lambda sample"; FAILWITH }`</span>
 
 <p>
 <details>
@@ -1103,7 +1103,7 @@ even if it refers to a contract; this won't be checked, so passing an entrypoint
 name may result in unexpected errors.
 
 
-**Final Michelson representation:** `address`
+**Final Michelson representation:** `key_hash`
 
 
 
@@ -1927,4 +1927,3 @@ Contains all the storage entries for V1 contract.
 
 </details>
 </p>
-
