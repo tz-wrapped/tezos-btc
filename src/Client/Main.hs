@@ -18,7 +18,8 @@ import Morley.Client.Logging (WithClientLog)
 import Morley.Client.RPC.Class
 import Morley.Client.TezosClient.Class
 import Morley.Michelson.Typed (UnpackedValScope)
-import Morley.Tezos.Address.Alias (AddressOrAlias(..))
+import Morley.Tezos.Address (ConstrainedAddress(..))
+import Morley.Tezos.Address.Alias (ContractAddressOrAlias)
 import Morley.Util.Named
 import Morley.Util.TypeLits
 
@@ -38,13 +39,14 @@ mainProgram
   , HasFilesystem m
   , HasCmdLine m
   , WithClientLog env m
+  , ExtTezosClient m
   , HasEnv m
   ) => ClientArgsRaw -> m ()
 mainProgram cmd = case cmd of
   CmdMint to' value mbMultisig -> do
     to <- addressOrAliasToAddr to'
     runMultisigTzbtcContract mbMultisig $
-      fromFlatParameter $ Mint (#to :! to, #value :! value)
+      fromFlatParameter $ Mint (#to :! toAddress to, #value :! value)
   CmdBurn burnParams mbMultisig ->
     runMultisigTzbtcContract mbMultisig $
       fromFlatParameter $ Burn burnParams
@@ -52,11 +54,11 @@ mainProgram cmd = case cmd of
     from <- addressOrAliasToAddr from'
     to <- addressOrAliasToAddr to'
     runTzbtcContract $
-      fromFlatParameter $ Transfer (#from :! from, #to :! to, #value :! value)
+      fromFlatParameter $ Transfer (#from :! toAddress from, #to :! toAddress to, #value :! value)
   CmdApprove spender' value -> do
     spender <- addressOrAliasToAddr spender'
     runTzbtcContract $
-      fromFlatParameter $ Approve (#spender :! spender, #value :! value)
+      fromFlatParameter $ Approve (#spender :! toAddress spender, #value :! value)
   CmdGetAllowance (owner', spender') mbCallback' ->
     case mbCallback' of
       Just callback' -> do
@@ -64,12 +66,12 @@ mainProgram cmd = case cmd of
         spender <- addressOrAliasToAddr spender'
         callback <- addressOrAliasToAddr callback'
         runTzbtcContract $ fromFlatParameter $ GetAllowance $
-          mkView_ (#owner :! owner, #spender :! spender)
+          mkView_ (#owner :! toAddress owner, #spender :! toAddress spender)
                   (toTAddress callback)
       Nothing -> do
         owner <- addressOrAliasToAddr owner'
         spender <- addressOrAliasToAddr spender'
-        allowance <- getAllowance owner spender
+        allowance <- getAllowance (toAddress owner) (toAddress spender)
         printStringLn $ "Allowance: " <> show allowance
   CmdGetBalance owner' mbCallback' -> do
     case mbCallback' of
@@ -78,19 +80,19 @@ mainProgram cmd = case cmd of
         callback <- addressOrAliasToAddr callback'
         runTzbtcContract $
           fromFlatParameter $ GetBalance $
-            mkView_ (#owner :! owner) (toTAddress callback)
+            mkView_ (#owner :! toAddress owner) (toTAddress callback)
       Nothing -> do
         owner <- addressOrAliasToAddr owner'
-        balance <- getBalance owner
+        balance <- getBalance $ toAddress owner
         printStringLn $ "Balance: " <> show balance
   CmdAddOperator operator' mbMultisig -> do
     operator <- addressOrAliasToAddr operator'
     runMultisigTzbtcContract mbMultisig $
-      fromFlatParameter $ AddOperator (#operator :! operator)
+      fromFlatParameter $ AddOperator (#operator :! toAddress operator)
   CmdRemoveOperator operator' mbMultisig -> do
     operator <- addressOrAliasToAddr operator'
     runMultisigTzbtcContract mbMultisig $
-      fromFlatParameter $ RemoveOperator (#operator :! operator)
+      fromFlatParameter $ RemoveOperator (#operator :! toAddress operator)
   CmdPause mbMultisig -> runMultisigTzbtcContract mbMultisig $
     fromFlatParameter $ Pause ()
   CmdUnpause mbMultisig -> runMultisigTzbtcContract mbMultisig $
@@ -98,11 +100,11 @@ mainProgram cmd = case cmd of
   CmdSetRedeemAddress redeem' mbMultisig -> do
     redeem <- addressOrAliasToAddr redeem'
     runMultisigTzbtcContract mbMultisig $
-      fromFlatParameter $ SetRedeemAddress (#redeem :! redeem)
+      fromFlatParameter $ SetRedeemAddress (#redeem :! toAddress redeem)
   CmdTransferOwnership newOwner' mbMultisig -> do
     newOwner <- addressOrAliasToAddr newOwner'
     runMultisigTzbtcContract mbMultisig $
-      fromFlatParameter $ TransferOwnership (#newOwner :! newOwner)
+      fromFlatParameter $ TransferOwnership (#newOwner :! toAddress newOwner)
   CmdAcceptOwnership p mbMultisig -> do
     runMultisigTzbtcContract mbMultisig $
       fromFlatParameter $ AcceptOwnership p
@@ -162,14 +164,14 @@ mainProgram cmd = case cmd of
       Left err -> printTextLn err
       Right packages -> runMultisigContract packages
   CmdDeployContract (arg #owner -> mOwner) deployOptions -> do
-    owner <- maybe getTzbtcUserAddress addressOrAliasToAddr mOwner
+    owner <- maybe (MkConstrainedAddress <$> getTzbtcUserAddress) addressOrAliasToAddr mOwner
     let toDeployParamsV1 :: DeployContractOptionsV1 -> m V1DeployParameters
         toDeployParamsV1 DeployContractOptionsV1{..} = do
           redeem <- addressOrAliasToAddr dcoRedeem
           return V1DeployParameters
               { v1Owner = owner
               , v1MigrationParams = V1Parameters
-                { v1RedeemAddress = redeem
+                { v1RedeemAddress = toAddress redeem
                 , v1TokenMetadata = dcoTokenMetadata
                 , v1Balances = mempty
                 }
@@ -215,7 +217,7 @@ mainProgram cmd = case cmd of
       , UnpackedValScope (ToT a)
       ) =>
       Label name -> Text -> (View_ () a -> FlatParameter SomeTZBTCVersion) ->
-      Maybe AddressOrAlias -> m ()
+      Maybe ContractAddressOrAlias -> m ()
     simpleGetter label descr mkFlatParam = \case
       Just callback' -> do
         callback <- addressOrAliasToAddr callback'

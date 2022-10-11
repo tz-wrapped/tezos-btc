@@ -25,13 +25,12 @@ import Data.Map qualified as Map
 import Morley.Client
 import Morley.Client.Logging (ClientLogAction)
 import Morley.Client.RPC
-import Morley.Client.TezosClient (CalcOriginationFeeData, CalcTransferFeeData, TezosClientConfig)
+import Morley.Client.TezosClient (TezosClientConfig)
 import Morley.Micheline
-import Morley.Michelson.Typed.Scope (UntypedValScope)
 import Morley.Tezos.Address
-import Morley.Tezos.Address.Alias (AddressOrAlias(..), Alias(..))
+import Morley.Tezos.Address.Alias
 import Morley.Tezos.Core
-import Morley.Tezos.Crypto (KeyHash, PublicKey, SecretKey, Signature)
+import Morley.Tezos.Crypto (KeyHash, PublicKey, Signature)
 import Morley.Util.ByteString
 
 import Client.Env
@@ -48,7 +47,7 @@ data Expectation
   | ReadsFile
   | GetsUserConfirmation
   | PrintByteString ByteString
-  | RememberContract Address Alias
+  | RememberContract ContractAddress ContractAlias
   | LooksupEnv
   deriving stock (Eq, Show, Ord)
 
@@ -90,7 +89,7 @@ data Handlers m = Handlers
   , hConfirmAction :: Text -> m ConfirmationResult
 
   , hGetHeadBlock :: m BlockHash
-  , hGetCounter :: Address -> m TezosInt64
+  , hGetCounter :: ImplicitAddress -> m TezosInt64
   , hGetBlockHeader :: BlockId -> m BlockHeader
   , hGetBlockConstants :: BlockId -> m BlockConstants
   , hGetBlockOperations :: BlockId -> m [[BlockOperation]]
@@ -99,41 +98,35 @@ data Handlers m = Handlers
   , hPreApplyOperations :: [PreApplyOperation] -> m [RunOperationResult]
   , hForgeOperation :: ForgeOperation -> m HexJSONByteString
   , hInjectOperation :: HexJSONByteString -> m OperationHash
-  , hGetContractScript :: Address -> m OriginationScript
-  , hGetContractStorageAtBlock :: BlockId -> Address -> m Expression
-  , hGetContractBigMap :: Address -> GetBigMap -> m GetBigMapResult
+  , hGetContractScript :: ContractAddress -> m OriginationScript
+  , hGetContractStorageAtBlock :: BlockId -> ContractAddress -> m Expression
+  , hGetContractBigMap :: ContractAddress -> GetBigMap -> m GetBigMapResult
   , hGetBigMapValueAtBlock :: BlockId -> Natural -> Text -> m Expression
   , hGetBalance :: Address -> m Mutez
   , hRunCode :: RunCode -> m RunCodeResult
   , hGetChainId :: m ChainId
   , hGetBigMapValuesAtBlock  :: BlockId -> Natural -> Maybe Natural -> Maybe Natural -> m Expression
-  , hGetManagerKeyAtBlock :: BlockId -> Address -> m (Maybe PublicKey)
-  , hGetDelegateAtBlock :: BlockId -> Address -> m (Maybe KeyHash)
+  , hGetManagerKeyAtBlock :: BlockId -> ImplicitAddress -> m (Maybe PublicKey)
+  , hGetDelegateAtBlock :: BlockId -> ContractAddress -> m (Maybe KeyHash)
 
   -- HasTezosClient
-  , hSignBytes :: AddressOrAlias -> Maybe ScrubbedBytes -> ByteString -> m Signature
-  , hGenKey :: Alias -> m Address
-  , hGenFreshKey :: Alias -> m Address
-  , hRevealKey :: Alias -> Maybe ScrubbedBytes -> m ()
+  , hSignBytes :: ImplicitAddressOrAlias -> Maybe ScrubbedBytes -> ByteString -> m Signature
+  , hGenKey :: ImplicitAlias -> m ImplicitAddress
+  , hGenFreshKey :: ImplicitAlias -> m ImplicitAddress
+  , hRevealKey :: ImplicitAlias -> Maybe ScrubbedBytes -> m ()
   , hWaitForOperation :: m OperationHash -> m OperationHash
-  , hRememberContract :: Bool -> Address -> Alias -> m ()
-  , hImportKey :: Bool -> Alias -> SecretKey -> m Alias
-  , hResolveAddressMaybe :: AddressOrAlias -> m (Maybe Address)
-  , hGetAlias :: AddressOrAlias -> m Alias
-  , hGetPublicKey :: AddressOrAlias -> m PublicKey
+  , hRememberContract :: Bool -> ContractAddress -> ContractAlias -> m ()
+  , hResolveAddressMaybe :: forall kind. AddressOrAlias kind -> m (Maybe (KindedAddress kind))
+  , hGetAlias :: forall kind. AddressOrAlias kind -> m (Alias kind)
+  , hGetPublicKey :: ImplicitAddressOrAlias -> m PublicKey
   , hGetTezosClientConfig :: m TezosClientConfig
-  , hCalcTransferFee
-    :: AddressOrAlias -> Maybe ScrubbedBytes -> TezosInt64 -> [CalcTransferFeeData] -> m [TezosMutez]
-  , hCalcOriginationFee
-    :: forall cp st. UntypedValScope st => CalcOriginationFeeData cp st -> m TezosMutez
-  , hGetKeyPassword :: Address -> m (Maybe ScrubbedBytes)
-  , hRegisterDelegate :: Alias -> Maybe ScrubbedBytes -> m ()
+  , hGetKeyPassword :: ImplicitAddress -> m (Maybe ScrubbedBytes)
+  , hRegisterDelegate :: ImplicitAlias -> Maybe ScrubbedBytes -> m ()
 
   , hLookupEnv :: m AppEnv
   , hWithLocal :: forall a. (AppEnv -> AppEnv) -> m a -> m a
 
   , hLogAction :: ClientLogAction m
-  , hGetSecretKey :: AddressOrAlias -> m SecretKey
   , hGetBlockOperationHashes :: BlockId -> m [[OperationHash]]
   , hGetScriptSizeAtBlock :: BlockId -> CalcSize -> m ScriptSize
   }
@@ -258,35 +251,24 @@ instance HasTezosClient TestM where
   rememberContract replaceExisting addr alias = do
     h <- getHandler hRememberContract
     h replaceExisting addr alias
-  importKey replaceExisting alias key = do
-    h <- getHandler hImportKey
-    h replaceExisting alias key
   resolveAddressMaybe addr = do
-    h <- getHandler hResolveAddressMaybe
-    h addr
+    h <- asks (unMyHandlers . fst)
+    hResolveAddressMaybe h addr
   getAlias originator = do
-    h <- getHandler hGetAlias
-    h originator
-  getPublicKey a = do
-    h <- getHandler hGetPublicKey
-    h a
-  getTezosClientConfig =
-    join $ getHandler hGetTezosClientConfig
-  calcTransferFee sender mbPassword fee transferData = do
-    h <- getHandler hCalcTransferFee
-    h sender mbPassword fee transferData
-  calcOriginationFee origData = do
-    handlers <- asks (unMyHandlers . fst)
-    hCalcOriginationFee handlers origData
+    h <- asks (unMyHandlers . fst)
+    hGetAlias h originator
   getKeyPassword addr = do
     h <- getHandler hGetKeyPassword
     h addr
   registerDelegate kh pw = do
     h <- getHandler hRegisterDelegate
     h kh pw
-  getSecretKey a = do
-    h <- getHandler hGetSecretKey
+
+instance ExtTezosClient TestM where
+  getPublicKey a = do
+    h <- getHandler hGetPublicKey
     h a
+  getTezosClientConfig = join $ getHandler hGetTezosClientConfig
 
 instance HasEnv TestM where
   lookupEnv = do

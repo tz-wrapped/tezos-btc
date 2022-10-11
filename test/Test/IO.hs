@@ -21,17 +21,18 @@ import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase)
 import Text.Hex (decodeHex)
 
+import CLI.L1AddressOrAlias
 import Client.Env
 import Client.Main (mainProgram)
 import Client.Types
-import Lorentz (TSignature(..), toTAddress)
+import Lorentz (TSignature(..), toAddress, toTAddress)
 import Lorentz.Contracts.Multisig
 import Lorentz.Contracts.TZBTC qualified as TZBTC
 import Lorentz.Contracts.TZBTC.Types qualified as TZBTCTypes
 import Morley.Micheline
 import Morley.Michelson.Typed.Haskell.Value (toVal)
 import Morley.Tezos.Address
-import Morley.Tezos.Address.Alias (AddressOrAlias(..), Alias(..))
+import Morley.Tezos.Address.Alias (AddressOrAlias(..), Alias(..), unAlias)
 import Morley.Tezos.Core (ChainId, dummyChainId)
 import Morley.Tezos.Crypto
 import Morley.Tezos.Crypto.Ed25519 qualified as Ed25519
@@ -86,13 +87,10 @@ defaultHandlers = Handlers
   , hRevealKey = \_ _ -> unavailable "revealKey"
   , hWaitForOperation = \_ -> unavailable "waitForOperation"
   , hRememberContract = \_ c a -> meetExpectation $ RememberContract c a
-  , hImportKey = \_ _ _ -> unavailable "importKey"
   , hResolveAddressMaybe = \_ -> unavailable "resolveAddressMaybe"
   , hGetAlias = \_ -> unavailable "getAlias"
   , hGetPublicKey = \_ -> unavailable "getPublicKey"
   , hGetTezosClientConfig = unavailable "getTezosClientConfig"
-  , hCalcTransferFee = \_ _ _ _ -> unavailable "calcTransferFee"
-  , hCalcOriginationFee = \_ -> unavailable "calcOriginationFee"
   , hGetKeyPassword = \_ -> unavailable "getKeyPassword"
   , hRegisterDelegate = \_ _ -> unavailable "registerDelegate"
 
@@ -103,7 +101,6 @@ defaultHandlers = Handlers
 
   , hLogAction = mempty
   , hGetBlockOperationHashes = \_ -> unavailable "getBlockOperationHashes"
-  , hGetSecretKey = \_ -> unavailable "getSecretKey"
   , hGetScriptSizeAtBlock = \_ _ -> unavailable "getScriptSizeAtBlock"
   }
   where
@@ -148,16 +145,16 @@ johnAddress = mkKeyAddress johnAddressPK
 johnAddressPK = PublicKeyEd25519 . Ed25519.toPublic $ johnSecretKey
 johnSecretKey = Ed25519.detSecretKey "john"
 
-contractAddress :: Address
+contractAddress :: ContractAddress
 contractAddress = [ta|KT1HmhmNcZKmm2NsuyahdXAaHQwYfWfdrBxi|]
 
-multiSigAddress :: Address
+multiSigAddress :: ContractAddress
 multiSigAddress = [ta|KT1MLCp7v3NiY9xeLe4XyPoS4AEgfXT7X5PX|]
 
-multiSigOverrideAddress :: Address
+multiSigOverrideAddress :: ContractAddress
 multiSigOverrideAddress = [ta|KT1MwaBC3G3cUa3PfjJ1StFkSuBLbRuoReRK|]
 
-operatorAddress1 :: Address
+operatorAddress1 :: ImplicitAddress
 operatorAddress1 = [ta|tz1cLwfiFZWA4ZgDdxKiMgxACvGZbTJ2tiQQ|]
 
 multiSigFilePath = "/home/user/multisig_package"
@@ -180,10 +177,11 @@ multiSigCreationTestHandlers =
     , hGetTezosClientConfig = throwM $ TestError "Unexpected tezos-client get config call"
     , hResolveAddressMaybe = \case
         AddressResolved addr -> pure $ Just addr
-        AddressAlias a -> case a of
+        AddressAlias a@ContractAlias{} -> case a of
           "tzbtc" -> pure $ Just contractAddress
           "tzbtc-multisig" -> pure $ Just multiSigAddress
           _ -> pure $ Nothing
+        _ -> pure $ Nothing
     , hGetContractStorageAtBlock = \_ x -> if x == multiSigAddress
       then pure $ toExpression . toVal $ mkStorage 14 3 []
       else throwM $ TestError "Unexpected contract address"
@@ -197,7 +195,7 @@ multiSigCreationTestHandlers =
 
       checkToSign package = case getToSign package of
         Right ((chainId, addr), (Counter counter, _)) -> pure $
-          ( addr == multiSigAddress && chainId == testChainId &&
+          ( addr == toAddress multiSigAddress && chainId == testChainId &&
             counter == 14 )
         _ -> throwM $ TestError "Getting address and counter from package failed"
       checkPackage bs = case decodePackage bs of
@@ -206,7 +204,7 @@ multiSigCreationTestHandlers =
             toSignOk <- checkToSign package
             pure $ toSignOk &&
               (param == (TZBTC.fromFlatParameter $ TZBTC.AddOperator
-                (#operator :! operatorAddress1)))
+                (#operator :! toAddress operatorAddress1)))
           _ -> throwM $ TestError "Fetching parameter failed"
         _ -> throwM $ TestError "Decoding package failed"
 
@@ -223,7 +221,7 @@ test_createMultisigPackage = testGroup "Create multisig package"
     in runMock multiSigCreationTestHandlers emptyEnv test
   ]
   where
-    mockArgs = CmdAddOperator (AddressResolved operatorAddress1) (Just multiSigFilePath)
+    mockArgs = CmdAddOperator (L1AOAKindSpecified $ AddressResolved operatorAddress1) (Just multiSigFilePath)
 
 -- Test multisig contract address override
 multiSigCreationWithMSigOverrideTestHandlers :: Handlers TestM
@@ -234,10 +232,11 @@ multiSigCreationWithMSigOverrideTestHandlers =
     , hGetTezosClientConfig = throwM $ TestError "Unexpected tezos-client get config call"
     , hResolveAddressMaybe = \case
         AddressResolved addr -> pure $ Just addr
-        AddressAlias a -> case a of
+        AddressAlias a@ContractAlias{} -> case a of
           "tzbtc" -> pure $ Just contractAddress
           "tzbtc-multisig-override" -> pure $ Just multiSigOverrideAddress
           _ -> pure $ Nothing
+        _ -> pure $ Nothing
     , hGetContractStorageAtBlock = \_ x -> if x == multiSigOverrideAddress
       then pure $ toExpression . toVal $ mkStorage 14 3 []
       else throwM $ TestError "Unexpected contract address"
@@ -251,7 +250,7 @@ multiSigCreationWithMSigOverrideTestHandlers =
 
       checkToSign package = case getToSign package of
         Right ((chainId, addr), (Counter counter, _)) -> pure $
-          ( addr == multiSigOverrideAddress && chainId == testChainId &&
+          ( addr == toAddress multiSigOverrideAddress && chainId == testChainId &&
             counter == 14 )
         _ -> throwM $ TestError "Getting address and counter from package failed"
       checkPackage bs = case decodePackage bs of
@@ -260,7 +259,7 @@ multiSigCreationWithMSigOverrideTestHandlers =
             toSignOk <- checkToSign package
             pure $ toSignOk &&
               (param == (TZBTC.fromFlatParameter $ TZBTC.AddOperator
-                (#operator :! operatorAddress1)))
+                (#operator :! toAddress operatorAddress1)))
           _ -> throwM $ TestError "Fetching parameter failed"
         _ -> throwM $ TestError "Decoding package failed"
 
@@ -276,7 +275,7 @@ test_createMultisigPackageWithMSigOverride = testGroup "Create multisig package 
     in runMock multiSigCreationWithMSigOverrideTestHandlers envWithOverride test
   ]
   where
-    mockArgs = CmdAddOperator (AddressResolved operatorAddress1) (Just multiSigFilePath)
+    mockArgs = CmdAddOperator (L1AOAKindSpecified $ AddressResolved operatorAddress1) (Just multiSigFilePath)
     envWithOverride = emptyEnv { aeConfigOverride = emptyConfigOverride
                                  { coTzbtcMultisig = Just $ AddressAlias "tzbtc-multisig-override" }
                                }
@@ -308,9 +307,9 @@ multisigSigningTestHandlers =
     , hResolveAddressMaybe = \case
         AddressResolved addr -> pure $ Just addr
         AddressAlias a -> case a of
-          "tzbtc" -> pure $ Just contractAddress
-          "tzbtc-multisig" -> pure $ Just multiSigAddress
-          "tzbtc-user" -> pure $ Just johnAddress
+          ContractAlias "tzbtc" -> pure $ Just contractAddress
+          ContractAlias "tzbtc-multisig" -> pure $ Just multiSigAddress
+          ImplicitAlias "tzbtc-user" -> pure $ Just johnAddress
           _ -> pure $ Nothing
     , hGetKeyPassword = \_ -> pure Nothing
     }
@@ -329,7 +328,7 @@ multisigSignPackageTestPackage = mkPackage
   testChainId
   14
   (toTAddress @(TZBTC.Parameter TZBTC.SomeTZBTCVersion) contractAddress)
-  (TZBTCTypes.AddOperator (#operator :! operatorAddress1))
+  (TZBTCTypes.AddOperator (#operator :! toAddress operatorAddress1))
 
 multisigSignPackageTestSignature :: Sign
 multisigSignPackageTestSignature =

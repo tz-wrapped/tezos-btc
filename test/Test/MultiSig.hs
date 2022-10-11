@@ -45,7 +45,7 @@ withMultiSigContract_
   -> (ContractHandle MSigParameter MSigStorage () -> m ())
   -> m ()
 withMultiSigContract_ counter thresh pkList callback = do
-  msig <- originateSimple "Multisig Contract" (mkStorage counter thresh pkList)
+  msig <- originate "Multisig Contract" (mkStorage counter thresh pkList)
     (tzbtcMultisigContract @'CustomErrors)
   callback msig
 
@@ -77,7 +77,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         operatorAddress <- newFreshAddress "operator"
         let
           -- Make the multi-sig call that adds an operator
-          tzbtcParam = TZBTCTypes.AddOperator (#operator :! operatorAddress)
+          tzbtcParam = TZBTCTypes.AddOperator (#operator :! toAddress operatorAddress)
           package = MSig.mkPackage msig testChainId 1 (toTAddress $ coerceContractHandler tzbtc) tzbtcParam
           bytesToSign = getBytesToSign package
           encodedPackage = MSig.encodePackage package
@@ -92,9 +92,9 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           (_, mparam) = fromRight_ "Making multisig parameter failed" $
             MSig.mkMultiSigParam masterPKList ((alicePackage) :| [carlosPackage])
         -- Finally call the multisig contract
-        call msig (Call @"MainParameter") mparam
+        transfer msig $ calling (ep @"MainParameter") mparam
         st <- getStorage tzbtc
-        checkField (getOperators @TZBTCv1) (Set.member operatorAddress) st
+        checkField (getOperators @TZBTCv1) (Set.member $ toAddress operatorAddress) st
           "New operator not found"
 
   , testScenario "Test call to multisig to add an operator fails with one signature less" $ scenario $ do
@@ -107,7 +107,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         operatorAddress <- newFreshAddress "operator"
         -- Make the multi-sig call that adds an operator
         let
-          tzbtcParam = TZBTCTypes.AddOperator (#operator :! operatorAddress)
+          tzbtcParam = TZBTCTypes.AddOperator (#operator :! toAddress operatorAddress)
           package = MSig.mkPackage msig testChainId 1 (toTAddress $ coerceContractHandler tzbtc) tzbtcParam
           bytesToSign = getBytesToSign package
           encodedPackage = MSig.encodePackage package
@@ -120,7 +120,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           (_, mparam) = fromRight_ "Making multisig parameter failed" $
             MSig.mkMultiSigParam masterPKList ((alicePackage) :| [])
         -- Finally call the multisig contract
-        expectCustomError_ #insufficientSignatures $ call msig (Call @"MainParameter") mparam
+        expectCustomError_ #insufficientSignatures $ transfer msig $ calling (ep @"MainParameter") mparam
   , testScenario "Test call to multisig to add an operator fails for bad signatures" $ scenario $ do
       -- Originate multisig with threshold 2 and a master pk list of
       -- three public keys
@@ -131,7 +131,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         operatorAddress <- newFreshAddress "operator"
         -- Make the multi-sig call that adds an operator
         let
-          tzbtcParam = TZBTCTypes.AddOperator (#operator :! operatorAddress)
+          tzbtcParam = TZBTCTypes.AddOperator (#operator :! toAddress operatorAddress)
           package = MSig.mkPackage msig testChainId 1 (toTAddress $ coerceContractHandler tzbtc) tzbtcParam
           bytesToSign = getBytesToSign package
           encodedPackage = MSig.encodePackage package
@@ -147,7 +147,8 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           (msaddr, mparam) = fromRight_ "Making multisig parameter failed" $
             MSig.mkMultiSigParam masterPKList ((alicePackage) :| [carlosPackage])
         -- Finally call the multisig contract
-        expectCustomError_ #invalidSignature $ call msaddr (Call @"MainParameter") mparam
+        expectCustomError_ #invalidSignature $
+          transfer msaddr $ calling (ep @"MainParameter") mparam
   , testScenario "Test replay attack prevention counter" $ scenario $ do
       -- Originate multisig with threshold 2 and a master pk list of
       -- three public keys
@@ -158,7 +159,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         operatorAddress <- newFreshAddress "operator"
         -- Make the multi-sig call that adds an operator
         let
-          tzbtcParam = TZBTCTypes.AddOperator (#operator :! operatorAddress)
+          tzbtcParam = TZBTCTypes.AddOperator (#operator :! toAddress operatorAddress)
           package = MSig.mkPackage msig testChainId 1 (toTAddress $ coerceContractHandler tzbtc) tzbtcParam
           bytesToSign = getBytesToSign package
           encodedPackage = MSig.encodePackage package
@@ -173,16 +174,16 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
           (msaddr, mparam) = fromRight_ "Making multisig parameter failed" $
             MSig.mkMultiSigParam masterPKList ((alicePackage) :| [carlosPackage])
         -- Finally call the multisig contract
-        call msaddr (Call @"MainParameter") mparam
+        transfer msaddr $ calling (ep @"MainParameter") mparam
         -- Now call again with the same param, this should fail.
         expectCustomError_ #counterDoesntMatch $
-          call msaddr (Call @"MainParameter") mparam
+          transfer msaddr $ calling (ep @"MainParameter") mparam
   , testScenario "Test signed bundle created for one msig contract does not work on other" $ scenario $ do
       -- Originate multisig with threshold 2 and a master pk list of
       -- three public keys
       withMultiSigContract 0 2 masterPKList $ \msig -> do
         -- Originate another multisig, with a different initial balance
-        mClone <- originateSimple "Multisig Contract Clone" (mkStorage 1 2 masterPKList) $
+        mClone <- originate "Multisig Contract Clone" (mkStorage 1 2 masterPKList) $
           tzbtcMultisigContract @'CustomErrors
         -- Originate main contract with owner set to multisig
         tzbtc <- originateTzbtc msig
@@ -190,7 +191,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         operatorAddress <- newFreshAddress "operator"
         -- Make the multi-sig call that adds an operator
         let
-          tzbtcParam = TZBTCTypes.AddOperator (#operator :! operatorAddress)
+          tzbtcParam = TZBTCTypes.AddOperator (#operator :! toAddress operatorAddress)
           -- Here we make the multi-sig pacakge for `msig` address.
           -- But will call the cloned multi-sig using it.
           package = MSig.mkPackage msig testChainId 1 (toTAddress $ coerceContractHandler tzbtc) tzbtcParam
@@ -209,23 +210,23 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
 
         -- Call the actual contract with the bundle. Should work as
         -- expected.
-        call msaddr (Call @"MainParameter") mparam
+        transfer msaddr $ calling (ep @"MainParameter") mparam
         st <- getStorage tzbtc
-        checkField (getOperators @TZBTCv1) (Set.member operatorAddress) st
+        checkField (getOperators @TZBTCv1) (Set.member $ toAddress operatorAddress) st
           "New operator not found"
 
         -- Call the clone with the bundle created for the real multisig
         -- contract.
-        expectCustomError_ #invalidSignature $ call mClone (Call @"MainParameter") mparam
+        expectCustomError_ #invalidSignature $ transfer mClone $ calling (ep @"MainParameter") mparam
 
   , testCase "Test mkMultiSigParam function arranges the signatures in the order of public keys" $ do
       let
-        msig  = TAddress @MSigParameter [ta|KT19rTTBPeG1JAvrECgoQ8LJj1mJrN7gsdaH|]
-        tzbtc = TAddress @(TZBTC.Parameter SomeTZBTCVersion)
+        msig  = toTAddress @MSigParameter [ta|KT19rTTBPeG1JAvrECgoQ8LJj1mJrN7gsdaH|]
+        tzbtc = toL1TAddress @(TZBTC.Parameter SomeTZBTCVersion)
           [ta|KT1XXJWcjrwfcPL4n3vjmwCBsvkazDt8scYY|]
         operatorAddress = [ta|tz1fdBQ4jHa2xVNHte8pVFHvCokidE4MvDxm|]
 
-        tzbtcParam = TZBTCTypes.AddOperator (#operator :! operatorAddress)
+        tzbtcParam = TZBTCTypes.AddOperator (#operator :! toAddress operatorAddress)
         package = MSig.mkPackage @(TAddress MSigParameter ()) msig dummyChainId 0 (toTAddress tzbtc) tzbtcParam
         bytesToSign = getBytesToSign package
         encodedPackage = MSig.encodePackage package
@@ -271,7 +272,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
     masterPKList = [alicePK, bobPK, carlosPK]
 
     originateTzbtc
-      :: (HasCallStack, MonadCleveland caps m)
+      :: (HasCallStack, MonadCleveland caps m, MonadFail m)
       => ContractHandle MSigParameter MSigStorage ()
       -> m (ContractHandle (TZBTC.Parameter TZBTCv1) (TZBTC.Storage TZBTCv1) ())
     originateTzbtc msig = do
@@ -279,11 +280,12 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
       chainId <- getChainId
       redeem <- newFreshAddress "redeem"
       tzbtc <- originateTzbtcV1ContractRaw redeem $ OriginationParams
-        { opAdmin = admin
+        { opAdmin = toAddress admin
         , opBalances = mempty
         }
       withSender admin $
-        call tzbtc CallDefault $ fromFlatParameter $ TransferOwnership (#newOwner :! toAddress msig)
+        transfer tzbtc $ calling def $
+          fromFlatParameter $ TransferOwnership (#newOwner :! toAddress msig)
       let
         tzbtcParam = TZBTCTypes.AcceptOwnership ()
         package = MSig.mkPackage msig chainId 0 (toTAddress $ coerceContractHandler tzbtc) tzbtcParam
@@ -298,5 +300,5 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
         --Make multisig param
         (_, mparam) = fromRight_ "Making multisig parameter failed" $
           MSig.mkMultiSigParam masterPKList ((alicePackage) :| [bobPackage])
-      call msig (Call @"MainParameter") mparam
+      transfer msig $ calling (ep @"MainParameter") mparam
       return tzbtc

@@ -23,14 +23,13 @@ import System.Process (readProcessWithExitCode)
 import Test.Tasty (TestName, TestTree, testGroup)
 import Test.Tasty.Providers (IsTest(..), singleTest, testPassed)
 
-import Lorentz (TrustEpName(..), View_(..), mkView_, toAddress)
+import Lorentz (View_(..), mkView_)
 import Lorentz.Contracts.Metadata
 import Lorentz.Contracts.Upgradeable.Common (EpwUpgradeParameters(..), emptyPermanentImplCompat)
 import Lorentz.UStore.Migration
-import Morley.Client (OperationInfo(..), Result, disableAlphanetWarning)
+import Morley.Client (OperationInfo(..), disableAlphanetWarning)
 import Morley.Client.TezosClient qualified as TezosClient
 import Morley.Michelson.Typed.Haskell.Value
-import Morley.Michelson.Untyped.Entrypoints
 import Morley.Tezos.Address
 import Morley.Tezos.Core
 import Morley.Util.Named
@@ -61,7 +60,7 @@ instance IsTest RunOnNetworkViaTzbtcClient where
   run opts (RunOnNetworkViaTzbtcClient scenario') _ = do
     let tastyEnv = tastyEnvFromOpts opts
     useNetworkEnv tastyEnv $ \nettestEnv -> case scenario' of
-      ScenarioCleveland s -> runNettestTzbtcClient nettestEnv s $> testPassed ""
+      ScenarioNetwork s -> runNettestTzbtcClient nettestEnv s $> testPassed ""
   testOptions = Tagged clevelandOptions
 
 -- | Helper to run nettest scenario only on real network, because there is no
@@ -70,20 +69,20 @@ nettestScenarioOnNetworkViaTzbtcClient :: TestName -> Scenario ClientM -> TestTr
 nettestScenarioOnNetworkViaTzbtcClient testName scenario' =
   testGroup testName [singleTest "On network" (RunOnNetworkViaTzbtcClient scenario')]
 
-dummyV1Parameters :: Address -> TokenMetadata -> Map Address Natural -> V1Parameters
+dummyV1Parameters :: ImplicitAddress -> TokenMetadata -> Map Address Natural -> V1Parameters
 dummyV1Parameters redeem tokenMetadata balances = V1Parameters
-  { v1RedeemAddress = redeem
+  { v1RedeemAddress = toAddress redeem
   , v1TokenMetadata = tokenMetadata
   , v1Balances = balances
   }
 
-dummyV2Parameters :: Address -> TokenMetadata -> Map Address Natural -> V2Parameters
+dummyV2Parameters :: ImplicitAddress -> TokenMetadata -> Map Address Natural -> V2Parameters
 dummyV2Parameters = dummyV1Parameters
 
 newtype TestUpgrade m = TestUpgrade
   { unTestUpgrade
-      :: Address  --- ^ Admin's address
-      -> Address --- ^ Redeem address
+      :: ImplicitAddress  --- ^ Admin's address
+      -> ImplicitAddress --- ^ Redeem address
       -> Map Address Natural --- ^ Initial balances
       -> ContractHandle (Parameter TZBTCv0) (Storage TZBTCv0) ()
       -> m ()
@@ -111,10 +110,8 @@ testUpgradeToV1 = TestUpgrade $ \admin redeem balances tzbtc -> do
       , upNewCode = tzbtcContractRouterV1
       , upNewPermCode = emptyPermanentImplCompat
       }
-  transferMoney admin [tz|50|] -- 50 XTZ
-  withSender admin $ call
-    tzbtc
-    (TrustEpName DefEpName)
+  transfer admin [tz|50|] -- 50 XTZ
+  withSender admin $ transfer tzbtc $ calling def
     (fromFlatParameter $ Upgrade upgradeParams :: Parameter TZBTCv0)
 
 testUpgradeToV2 :: MonadCleveland caps m => TestUpgrade m
@@ -129,10 +126,8 @@ testUpgradeToV2 = TestUpgrade $ \admin redeem balances tzbtc -> do
       , upNewCode = tzbtcContractRouterV2
       , upNewPermCode = emptyPermanentImplCompat
       }
-  transferMoney admin [tz|50|] -- 50 XTZ
-  withSender admin $ call
-    tzbtc
-    (TrustEpName DefEpName)
+  transfer admin [tz|50|] -- 50 XTZ
+  withSender admin $ transfer tzbtc $ unsafeCalling def
     (fromFlatParameter $ Upgrade upgradeParams :: Parameter TZBTCv0)
 
 simpleScenario
@@ -141,19 +136,20 @@ simpleScenario
 simpleScenario upg = do
   -- admin <- resolveNettestAddress -- Fetch address for alias `nettest`.
   admin <- newAddress "admin"
-  transferMoney admin [tz|15|]
+  transfer admin [tz|15|]
   -- Originate and upgrade
   -- sender is made an admin in the tzbtc-client based implementation
-  tzbtc <- withSender admin $ originateSimple "TZBTCContract" (mkEmptyStorageV0 admin) tzbtcContract
+  tzbtc <- withSender admin $
+    originate "TZBTCContract" (mkEmptyStorageV0 $ toL1Address admin) tzbtcContract
 
   -- Originate Address view callback
-  addressView <- originateSimple "Address view" [] (contractConsumer @Address)
+  addressView <- originate "Address view" [] (contractConsumer @Address)
 
   -- Originate Natural view callback
-  naturalView <- originateSimple "Natural view" [] (contractConsumer @Natural)
+  naturalView <- originate "Natural view" [] (contractConsumer @Natural)
 
   -- Originate [TokenMetadata] view callback
-  tokenMetadatasView <- originateSimple "[TokenMetadata] view" [] (contractConsumer @[TokenMetadata])
+  tokenMetadatasView <- originate "[TokenMetadata] view" [] (contractConsumer @[TokenMetadata])
 
   -- Run upgrade
   unTestUpgrade upg admin admin mempty tzbtc
@@ -167,157 +163,117 @@ simpleScenario upg = do
   operatorToRemove <- newAddress "operator_to_remove"
 
   withSender admin $ do
-    call
-      tzbtc
-      (TrustEpName DefEpName)
-      (fromFlatParameterV1 $ AddOperator (#operator :! operator))
+    transfer tzbtc $ unsafeCalling def
+      (fromFlatParameterV1 $ AddOperator (#operator :! toAddress operator))
 
   -- Add another operator
-    call
-      tzbtc
-      (TrustEpName DefEpName)
-      (fromFlatParameterV1 $ AddOperator (#operator :! operatorToRemove))
+    transfer tzbtc $ unsafeCalling def
+      (fromFlatParameterV1 $ AddOperator (#operator :! toAddress operatorToRemove))
 
   -- Mint some coins for alice
   alice <- newAddress "alice"
 
   -- use the new operator to make sure it has been added.
-  withSender operatorToRemove $ call
-    tzbtc
-    (TrustEpName DefEpName)
-    (fromFlatParameterV1 $ Mint (#to :! alice, #value :! 100))
+  withSender operatorToRemove $ transfer tzbtc $ unsafeCalling def
+    (fromFlatParameterV1 $ Mint (#to :! toAddress alice, #value :! 100))
 
   -- Remove an operator
   withSender admin $
-    call
-      tzbtc
-      (TrustEpName DefEpName)
-      (fromFlatParameterV1 $ RemoveOperator (#operator :! operatorToRemove))
+    transfer tzbtc $ unsafeCalling def
+      (fromFlatParameterV1 $ RemoveOperator (#operator :! toAddress operatorToRemove))
 
   -- Set allowance
   -- Mint some coins for john
   john <- newAddress "john"
 
-  withSender operator $ call
+  withSender operator $ transfer tzbtc $ unsafeCalling def
     -- We use alias instead of address to let the nettest implementation
     -- to call the `tzbtc-client` program with --user override (which does not work with addresses)
     -- using the alias.
-    tzbtc
-    (TrustEpName DefEpName)
-    (fromFlatParameterV1 $ Mint (#to :! john, #value :! 100))
+    (fromFlatParameterV1 $ Mint (#to :! toAddress john, #value :! 100))
 
   -- Set allowance for alice to transfer from john
 
-  withSender john $ call
-    tzbtc
-    (TrustEpName DefEpName)
-    (fromFlatParameterV1 $ Approve (#spender :! alice, #value :! 100))
+  withSender john $ transfer tzbtc $ unsafeCalling def
+    (fromFlatParameterV1 $ Approve (#spender :! toAddress alice, #value :! 100))
 
   -- Transfer coins from john to alice by alice
-  withSender alice $ call
-    tzbtc
-    (TrustEpName DefEpName)
-    (fromFlatParameterV1 $ Transfer (#from :! john, #to :! alice, #value :! 15))
+  withSender alice $ transfer tzbtc $ unsafeCalling def
+    (fromFlatParameterV1 $ Transfer (#from :! toAddress john, #to :! toAddress alice, #value :! 15))
 
   -- Burn some coins from john to redeem address to burn
-  withSender john $ call
-    tzbtc
-    (TrustEpName DefEpName)
-    (fromFlatParameterV1 $ Transfer (#from :! john, #to :! admin, #value :! 7))
+  withSender john $ transfer tzbtc $ unsafeCalling def
+    (fromFlatParameterV1 $ Transfer (#from :! toAddress john, #to :! toAddress admin, #value :! 7))
 
   -- Burn it
   withSender operator $ do
-    call
-      tzbtc
-      (TrustEpName DefEpName)
+    transfer tzbtc $ unsafeCalling def
       (fromFlatParameterV1 $ Burn (#value :! 7))
 
   -- Pause operations
-    call
-      tzbtc
-      (TrustEpName DefEpName)
+    transfer tzbtc $ unsafeCalling def
       (fromFlatParameterV1 $ Pause ())
 
   -- Resume operations
   newOwner <- newAddress "newOwner"
   withSender admin $ do
-    call
-      tzbtc
-      (TrustEpName DefEpName)
+    transfer tzbtc $ unsafeCalling def
       (fromFlatParameterV1 $ Unpause ())
 
     -- Transfer ownership
-    call
-      tzbtc
-      (TrustEpName DefEpName)
-      (fromFlatParameterV1 $ TransferOwnership (#newOwner :! newOwner))
+    transfer tzbtc $ unsafeCalling def
+      (fromFlatParameterV1 $ TransferOwnership (#newOwner :! toAddress newOwner))
 
   -- Accept ownership
-  withSender newOwner $ call
-    tzbtc
-    (TrustEpName DefEpName)
+  withSender newOwner $ transfer tzbtc $ unsafeCalling def
     (fromFlatParameterV1 $ AcceptOwnership ())
 
   -- Make an anonymous address
   guest <- newAddress "guest"
 
   withSender guest $ do
-    call
-      tzbtc
-      (TrustEpName DefEpName)
-      (fromFlatParameterV1 $ GetAllowance (mkView_ (#owner :! john, #spender :! alice) naturalView))
+    transfer tzbtc $ unsafeCalling def
+      (fromFlatParameterV1 $
+        GetAllowance (mkView_ (#owner :! toAddress john, #spender :! toAddress alice) naturalView))
 
-    call
-      tzbtc
-      (TrustEpName DefEpName)
-      (fromFlatParameterV1 $ GetBalance (mkView_ (#owner :! john) naturalView))
+    transfer tzbtc $ unsafeCalling def
+      (fromFlatParameterV1 $ GetBalance (mkView_ (#owner :! toAddress john) naturalView))
 
-    call
-      tzbtc
-      (TrustEpName DefEpName)
+    transfer tzbtc $ unsafeCalling def
       (fromFlatParameterV1 $ GetTotalSupply (mkView_ () naturalView))
 
-    call
-      tzbtc
-      (TrustEpName DefEpName)
+    transfer tzbtc $ unsafeCalling def
       (fromFlatParameterV1 $ GetTotalMinted (mkView_ () naturalView))
 
-    call
-      tzbtc
-      (TrustEpName DefEpName)
+    transfer tzbtc $ unsafeCalling def
       (fromFlatParameterV1 $ GetTotalBurned (mkView_ () naturalView))
 
-    call
-      tzbtc
-      (TrustEpName DefEpName)
+    transfer tzbtc $ unsafeCalling def
       (fromFlatParameterV1 $ GetTokenMetadata (mkView_ [singleTokenTokenId] tokenMetadatasView))
 
-    call
-      tzbtc
-      (TrustEpName DefEpName)
+    transfer tzbtc $ unsafeCalling def
       (fromFlatParameterV1 $ GetOwner (mkView_ () addressView))
 
-    call
-      tzbtc
-      (TrustEpName DefEpName)
+    transfer tzbtc $ unsafeCalling def
       (fromFlatParameterV1 $ GetRedeemAddress (mkView_ () addressView))
 
-runNettestTzbtcClient :: NetworkEnv -> ClevelandT ClientM a -> IO a
+runNettestTzbtcClient :: NetworkEnv -> NetworkT ClientM a -> IO a
 runNettestTzbtcClient env scenario' = do
   disableAlphanetWarning
   moneybagAddr <- setupMoneybagAddress env
   let caps = ClevelandCaps
         { ccSender = Sender $ unMoneybag moneybagAddr
         , ccMoneybag = moneybagAddr
-        , ccMiscCap = networkMiscImpl (neMorleyClientEnv env)
+        , ccMiscCap = networkMiscImpl env
         , ccOpsCap = nettestImplTzbtcClient (neMorleyClientEnv env)
         }
+      netc = NetworkCaps { ncNetworkEnv = env, ncClevelandCaps = caps }
   ist <- newIORef ClientState
     { csDefaultAliasCounter = DefaultAliasCounter 0
     , csRefillableAddresses = Set.empty
     , csMoneybagAddress = moneybagAddr
     }
-  let clientM = runReaderT scenario' caps
+  let clientM = runReaderT scenario' netc
   runReaderT (unClientM clientM) ist
 
 nettestImplTzbtcClient :: MorleyClientEnv -> Sender -> ClevelandOpsImpl ClientM
@@ -326,7 +282,7 @@ nettestImplTzbtcClient env sender =
       [] -> pure [] -- this happens when `newAddress` reuses addresses that have enough tez
       [op] -> case op of
         OpOriginate oud -> tzbtcClientOriginate oud
-        OpTransfer td -> tzbtcClientTransfer td >> pure [OpTransfer ()]
+        OpTransfer td -> tzbtcClientTransfer td >> pure [OpTransfer []]
         OpReveal _ -> error "Reveal operation is not supported"
       _ -> error "Batch operations are not supported"
     }
@@ -338,7 +294,7 @@ nettestImplTzbtcClient env sender =
       [ "-E", TezosClient.toCmdArg $ tceEndpointUrl tezosClientEnv
       ] <> (maybe [] (\dataDir -> ["-d", dataDir]) $ tceMbTezosClientDataDir tezosClientEnv)
 
-    tzbtcClientOriginate :: UntypedOriginateData -> ClientM [OperationInfo Result]
+    tzbtcClientOriginate :: UntypedOriginateData 'NotLarge -> ClientM [OperationInfo ClevelandResult]
     tzbtcClientOriginate od@(UntypedOriginateData {..}) =
       if uodName == "TZBTCContract" then do
         let senderAddr = unSender sender
@@ -360,26 +316,27 @@ nettestImplTzbtcClient env sender =
       -- use `tdParameter` directly.
       case castSing (toVal tdParameter) of
         Just srcVal -> case (fromVal srcVal :: TZBTCTypes.Parameter SomeTZBTCVersion) of
-          TZBTCTypes.GetTotalSupply (viewCallbackTo -> (crAddress -> view_)) ->
+          TZBTCTypes.GetTotalSupply (viewCallbackTo -> (crAddress -> MkAddress view_)) ->
             callTzbtc
               [ "getTotalSupply"
               , "--callback", toString (formatAddress view_)
               ]
 
-          TZBTCTypes.GetTotalMinted (viewCallbackTo -> (crAddress -> view_)) ->
+          TZBTCTypes.GetTotalMinted (viewCallbackTo -> (crAddress -> MkAddress view_)) ->
             callTzbtc
               [ "getTotalMinted"
               , "--callback", toString (formatAddress view_)
               ]
 
-          TZBTCTypes.GetTotalBurned (viewCallbackTo -> (crAddress -> view_)) ->
+          TZBTCTypes.GetTotalBurned (viewCallbackTo -> (crAddress -> MkAddress view_)) ->
             callTzbtc
               [ "getTotalBurned"
               , "--callback", toString (formatAddress view_)
               ]
 
           TZBTCTypes.GetAllowance
-            (View_ (arg #owner -> owner, arg #spender -> spender) (crAddress -> view_)) ->
+            (View_ (arg #owner -> MkAddress owner, arg #spender -> MkAddress spender)
+              (crAddress -> MkAddress view_)) ->
               callTzbtc
                 [ "getAllowance"
                 , "--owner", toString (formatAddress owner)
@@ -387,26 +344,27 @@ nettestImplTzbtcClient env sender =
                 , "--callback", toString (formatAddress view_)
                 ]
 
-          TZBTCTypes.GetOwner (viewCallbackTo -> (crAddress -> view_)) ->
+          TZBTCTypes.GetOwner (viewCallbackTo -> (crAddress -> MkAddress view_)) ->
             callTzbtc
               [ "getOwner"
               , "--callback", toString (formatAddress view_)
               ]
 
-          TZBTCTypes.GetRedeemAddress (viewCallbackTo -> (crAddress -> view_)) ->
+          TZBTCTypes.GetRedeemAddress (viewCallbackTo -> (crAddress -> MkAddress view_)) ->
             callTzbtc
               [ "getRedeemAddress"
               , "--callback", toString (formatAddress view_)
               ]
 
-          TZBTCTypes.GetTokenMetadata (viewCallbackTo -> (crAddress -> view_)) ->
+          TZBTCTypes.GetTokenMetadata (viewCallbackTo -> (crAddress -> MkAddress view_)) ->
             callTzbtc
               [ "getTokenMetadata"
               , "--callback", toString (formatAddress view_)
               ]
 
           TZBTCTypes.SafeEntrypoints sp -> case sp of
-            TZBTCTypes.Transfer (arg #from -> from, arg #to -> to, arg #value -> value) ->
+            TZBTCTypes.Transfer
+              (arg #from -> MkAddress from, arg #to -> MkAddress to, arg #value -> value) ->
               callTzbtc
                 [ "transfer"
                 , "--from", toString $ formatAddress from
@@ -414,14 +372,14 @@ nettestImplTzbtcClient env sender =
                 , "--value", show value
                 ]
 
-            TZBTCTypes.Approve (arg #spender -> spender, arg #value -> value) ->
+            TZBTCTypes.Approve (arg #spender -> MkAddress spender, arg #value -> value) ->
               callTzbtc
                 [ "approve"
                 , "--spender", toString $ formatAddress spender
                 , "--value", show value
                 ]
 
-            TZBTCTypes.Mint (arg #to -> to, arg #value -> value) ->
+            TZBTCTypes.Mint (arg #to -> MkAddress to, arg #value -> value) ->
               callTzbtc
                 [ "mint"
                 , "--to", toString $ formatAddress to
@@ -429,13 +387,13 @@ nettestImplTzbtcClient env sender =
                 ]
 
             TZBTCTypes.Burn (arg #value -> value) -> callTzbtc [ "burn" , "--value", show value ]
-            TZBTCTypes.AddOperator (arg #operator -> operator) ->
+            TZBTCTypes.AddOperator (arg #operator -> MkAddress operator) ->
               callTzbtc [ "addOperator" , "--operator", toString $ formatAddress operator ]
-            TZBTCTypes.RemoveOperator (arg #operator -> operator) ->
+            TZBTCTypes.RemoveOperator (arg #operator -> MkAddress operator) ->
               callTzbtc [ "removeOperator" , "--operator", toString $ formatAddress operator ]
             TZBTCTypes.Pause _  -> callTzbtc $ [ "pause" ]
             TZBTCTypes.Unpause _  -> callTzbtc $ [ "unpause" ]
-            TZBTCTypes.TransferOwnership (arg #newOwner -> newOwnerAddress) ->
+            TZBTCTypes.TransferOwnership (arg #newOwner -> MkAddress newOwnerAddress) ->
               callTzbtc [ "transferOwnership" , toString $ formatAddress newOwnerAddress ]
             TZBTCTypes.AcceptOwnership _ -> callTzbtc $ [ "acceptOwnership" ]
             _ -> callMorleyClient
@@ -446,7 +404,7 @@ nettestImplTzbtcClient env sender =
         callTzbtc :: [String] -> ClientM ()
         callTzbtc args = void $ liftIO $ callTzbtcClient $
           tzbtcClientEnvArgs <> args <> ["--user", TezosClient.toCmdArg (unSender sender)
-                                        , "--contract-addr", TezosClient.toCmdArg $ toAddress tdTo
+                                        , "--contract-addr", TezosClient.toCmdArg $ toAddress $ toL1Address tdTo
                                         ]
 
 -- | Write something to stderr.

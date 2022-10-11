@@ -32,6 +32,7 @@ import Lorentz.Contracts.Upgradeable.Common (KnownContractVersion(..), VersionKi
 import Lorentz.Contracts.Upgradeable.EntrypointWise
 import Lorentz.UStore
 import Lorentz.UStore.Instances
+import Morley.Tezos.Address
 import Morley.Util.Instances ()
 import Morley.Util.Markdown (md)
 
@@ -88,7 +89,7 @@ type V2Parameters = V1.V1Parameters
 -- | The data required to initialize the V2 version of the contract storage
 -- from scratch.
 data V2DeployParameters = V2DeployParameters
-  { v2Owner :: Address
+  { v2Owner :: L1Address
   , v2MigrationParams :: V2Parameters
   }
 

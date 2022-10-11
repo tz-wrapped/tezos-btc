@@ -42,6 +42,8 @@ import Lorentz.Contracts.Multisig
 import Lorentz.Contracts.Multisig.Specialized.Types qualified as Spec
 import Lorentz.Contracts.TZBTC as TZBTC
 import Lorentz.Contracts.TZBTC.Common.Types as TZBTC
+import Morley.Tezos.Address
+import Test.Cleveland.Lorentz.Types (L1TAddress, toL1TAddress)
 
 
 -- The workflow consists of first calling the `mkPackage` function with the
@@ -223,24 +225,31 @@ addSignature package sig =
 -- The list of public keys should be in the same order that the contract has
 -- them in it's storage.
 mkMultiSigParam
-  :: [PublicKey]
+  :: HasCallStack
+  => [PublicKey]
   -> NonEmpty Package
-  -> Either UnpackageError ((TAddress MSigParameter ()), MSigParamMain)
+  -> Either UnpackageError ((L1TAddress MSigParameter ()), MSigParamMain)
 mkMultiSigParam pks packages = do
   package <- mergePackages packages
   toSign <- getToSign package
   return $ mkParameter toSign (pkSignatures package)
   where
     mkParameter
-      :: ToSign
+      :: HasCallStack
+      => ToSign
       -> [(PublicKey, Sign)]
-      -> (TAddress MSigParameter (), MSigParamMain)
+      -> (L1TAddress MSigParameter (), MSigParamMain)
     mkParameter ((_, address_), payload) sigs =
       -- There should be as may signatures in the submitted request
       -- as there are keys in the contract's storage. Not all keys should
       -- be present, but they should be marked as absent using Nothing values [1].
       -- So we pad the list with Nothings to make up for missing signatures.
-      (toTAddress address_, (payload, sortSigs sigs))
+      (toL1TAddress $ toL1 address_, (payload, sortSigs sigs))
+    toL1 :: HasCallStack => Address -> L1Address
+    toL1 (MkAddress addr) = case addr of
+      ImplicitAddress{} -> MkConstrainedAddress addr
+      ContractAddress{} -> MkConstrainedAddress addr
+      _ -> error "txr1 address occurred when L1 address expected"
     sortSigs :: [(PublicKey, Sign)] -> [Maybe Sign]
     sortSigs sigs = flip lookup sigs <$> pks
 

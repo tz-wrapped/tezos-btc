@@ -29,6 +29,7 @@ import Lorentz.Contracts.TZBTC.V1.ManagedLedger qualified as ManagedLedger
 import Lorentz.Contracts.Upgradeable.Common (KnownContractVersion(..), VersionKind)
 import Lorentz.Contracts.Upgradeable.EntrypointWise
 import Lorentz.UStore
+import Morley.Tezos.Address
 import Morley.Util.Instances ()
 import Morley.Util.Markdown (md)
 
@@ -63,7 +64,7 @@ data V1Parameters = V1Parameters
 -- | The data required to initialize the V1 version of the contract storage
 -- from scratch.
 data V1DeployParameters = V1DeployParameters
-  { v1Owner :: Address
+  { v1Owner :: L1Address
   , v1MigrationParams :: V1Parameters
   }
 

@@ -15,11 +15,12 @@ module Client.Types
 
 import Morley.Client (MorleyClientConfig)
 import Morley.Michelson.Typed (IsoValue)
-import Morley.Tezos.Address.Alias (AddressOrAlias(..))
+import Morley.Tezos.Address.Alias (ContractAddressOrAlias, ImplicitAddressOrAlias)
 import Morley.Tezos.Core (Mutez)
 import Morley.Tezos.Crypto (PublicKey, Signature)
 import Morley.Util.Named
 
+import CLI.L1AddressOrAlias
 import Lorentz.Contracts.Metadata
 import Lorentz.Contracts.Multisig
 import Lorentz.Contracts.TZBTC.Common.Types
@@ -29,39 +30,39 @@ data ClientArgs =
   ClientArgs
     MorleyClientConfig
     ClientArgsRaw
-      ("userOverride" :! Maybe AddressOrAlias)
-      ("multisigOverride" :! Maybe AddressOrAlias)
-      ("contractOverride" :! Maybe AddressOrAlias)
+      ("userOverride" :! Maybe ImplicitAddressOrAlias)
+      ("multisigOverride" :! Maybe ContractAddressOrAlias)
+      ("contractOverride" :! Maybe ContractAddressOrAlias)
       ("fee" :! Maybe Mutez)
       Bool
 
 data ClientArgsRaw
-  = CmdMint AddressOrAlias Natural (Maybe FilePath)
+  = CmdMint L1AddressOrAlias Natural (Maybe FilePath)
   | CmdBurn BurnParams (Maybe FilePath)
-  | CmdTransfer AddressOrAlias AddressOrAlias Natural
-  | CmdApprove AddressOrAlias Natural
-  | CmdGetAllowance (AddressOrAlias, AddressOrAlias) (Maybe AddressOrAlias)
-  | CmdGetBalance AddressOrAlias (Maybe AddressOrAlias)
-  | CmdAddOperator AddressOrAlias (Maybe FilePath)
-  | CmdRemoveOperator AddressOrAlias (Maybe FilePath)
+  | CmdTransfer L1AddressOrAlias L1AddressOrAlias Natural
+  | CmdApprove L1AddressOrAlias Natural
+  | CmdGetAllowance (L1AddressOrAlias, L1AddressOrAlias) (Maybe ContractAddressOrAlias)
+  | CmdGetBalance L1AddressOrAlias (Maybe ContractAddressOrAlias)
+  | CmdAddOperator L1AddressOrAlias (Maybe FilePath)
+  | CmdRemoveOperator L1AddressOrAlias (Maybe FilePath)
   | CmdPause (Maybe FilePath)
   | CmdUnpause (Maybe FilePath)
-  | CmdSetRedeemAddress AddressOrAlias (Maybe FilePath)
-  | CmdTransferOwnership AddressOrAlias (Maybe FilePath)
+  | CmdSetRedeemAddress L1AddressOrAlias (Maybe FilePath)
+  | CmdTransferOwnership L1AddressOrAlias (Maybe FilePath)
   | CmdAcceptOwnership AcceptOwnershipParams (Maybe FilePath)
-  | CmdGetTotalSupply (Maybe AddressOrAlias)
-  | CmdGetTotalMinted (Maybe AddressOrAlias)
-  | CmdGetTotalBurned (Maybe AddressOrAlias)
-  | CmdGetOwner (Maybe AddressOrAlias)
-  | CmdGetTokenMetadata (Maybe AddressOrAlias)
-  | CmdGetRedeemAddress (Maybe AddressOrAlias)
+  | CmdGetTotalSupply (Maybe ContractAddressOrAlias)
+  | CmdGetTotalMinted (Maybe ContractAddressOrAlias)
+  | CmdGetTotalBurned (Maybe ContractAddressOrAlias)
+  | CmdGetOwner (Maybe ContractAddressOrAlias)
+  | CmdGetTokenMetadata (Maybe ContractAddressOrAlias)
+  | CmdGetRedeemAddress (Maybe ContractAddressOrAlias)
   | CmdGetOperators
   | CmdGetOpDescription FilePath
   | CmdGetBytesToSign FilePath
   | CmdAddSignature PublicKey Signature FilePath
   | CmdSignPackage FilePath
   | CmdCallMultisig (NonEmpty FilePath)
-  | CmdDeployContract ("owner" :! Maybe AddressOrAlias) !DeployContractOptions
+  | CmdDeployContract ("owner" :! Maybe L1AddressOrAlias) !DeployContractOptions
   | CmdDeployMultisigContract Threshold Keys Bool
   | CmdShowConfig
 
@@ -70,7 +71,7 @@ data DeployContractOptions
   | DeployContractV2 DeployContractOptionsV2
 
 data DeployContractOptionsV1 = DeployContractOptionsV1
-  { dcoRedeem :: !AddressOrAlias
+  { dcoRedeem :: !L1AddressOrAlias
   , dcoTokenMetadata :: !TokenMetadata
   }
 
@@ -79,9 +80,9 @@ data DeployContractOptionsV2 = DeployContractOptionsV2
   }
 
 data ConfigOverride = ConfigOverride
-  { coTzbtcUser :: Maybe AddressOrAlias
-  , coTzbtcMultisig :: Maybe AddressOrAlias
-  , coTzbtcContract :: Maybe AddressOrAlias
+  { coTzbtcUser :: Maybe ImplicitAddressOrAlias
+  , coTzbtcMultisig :: Maybe ContractAddressOrAlias
+  , coTzbtcContract :: Maybe ContractAddressOrAlias
   } deriving stock Show
 
 data AlmostStorage ver = AlmostStorage
