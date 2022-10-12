@@ -110,7 +110,6 @@ testUpgradeToV1 = TestUpgrade $ \admin redeem balances tzbtc -> do
       , upNewCode = tzbtcContractRouterV1
       , upNewPermCode = emptyPermanentImplCompat
       }
-  transfer admin [tz|50|] -- 50 XTZ
   withSender admin $ transfer tzbtc $ calling def
     (fromFlatParameter $ Upgrade upgradeParams :: Parameter TZBTCv0)
 
@@ -126,7 +125,6 @@ testUpgradeToV2 = TestUpgrade $ \admin redeem balances tzbtc -> do
       , upNewCode = tzbtcContractRouterV2
       , upNewPermCode = emptyPermanentImplCompat
       }
-  transfer admin [tz|50|] -- 50 XTZ
   withSender admin $ transfer tzbtc $ unsafeCalling def
     (fromFlatParameter $ Upgrade upgradeParams :: Parameter TZBTCv0)
 
@@ -134,13 +132,13 @@ simpleScenario
   :: (MonadFail m, MonadCleveland caps m)
   => TestUpgrade m -> m ()
 simpleScenario upg = do
-  admin <- newAddress "admin"
+  admin <- refillable $ newAddress "admin"
 
   -- TODO [morley#887]: currently there's a hard implicit limit on 5 ops per
   -- batch, we could also create "guest" in the batch otherwise.
   operator ::< operatorToRemove ::< alice ::< john ::< newOwner ::< Nil' <-
     newAddresses $ "operator" :< "operator_to_remove" :< "alice" :< "john" :< "newOwner" :< Nil
-  guest <- newAddress "guest"
+  guest <- refillable $ newAddress "guest"
 
   transfer admin [tz|15|]
   -- Originate and upgrade
