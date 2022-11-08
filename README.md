@@ -206,7 +206,7 @@ it parses raw Michelson value to the TZBTC contract parameter.
 
 Use `tzbtc --help` to get a list of available commands.
 
-## Build instructions [↑](#TZBTC)
+## Build instructions [↑](#tzbtc)
 
 You can build `tzbtc-client` and `tzbtc` from the sources with stack.
 Build the project using `stack build`, run executables using
@@ -245,15 +245,15 @@ Installing `.rpm` package:
 sudo yum localinstall <path to the rpm file>
 ```
 
-## Tests [↑](#TZBTC)
+## Tests [↑](#tzbtc)
 
 Run `stack test` and explore the tests.
 
-## Contract documentation [↑](#TZBTC)
+## Contract documentation [↑](#tzbtc)
 
 Contract documentation is located at [TZBTC-contract.md](https://github.com/tz-wrapped/tezos-btc/blob/autodoc/master/TZBTC-contract.md).
 
-## Security considerations and trust model [↑](#TZBTC)
+## Security considerations and trust model [↑](#tzbtc)
 
 This contract has `approve` entrypoint, which should be used carefully, you can read more
 about the potential unsafety of this entrypoint in the [corresponding section](https://github.com/tz-wrapped/tezos-btc/blob/autodoc/master/TZBTC-contract.md#approve)
@@ -267,11 +267,11 @@ contract storage including the user's balances.
 
 You can read more about `operator` and `owner` abilities in the [contract documentation](https://github.com/tz-wrapped/tezos-btc/blob/autodoc/master/TZBTC-contract.md#tzbtc).
 
-## Issue Tracker [↑](#TZBTC)
+## Issue Tracker [↑](#tzbtc)
 
 If you want to create a new issue please do it on [GitHub](https://github.com/tz-wrapped/tezos-btc/issues/new).
 
-## For Contributors [↑](#TZBTC)
+## For Contributors [↑](#tzbtc)
 
 Please see [CONTRIBUTING.md](CONTRIBUTING.md) for more information.
 
