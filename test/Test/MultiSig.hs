@@ -276,7 +276,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
       => ContractHandle MSigParameter MSigStorage ()
       -> m (ContractHandle (TZBTC.Parameter TZBTCv1) (TZBTC.Storage TZBTCv1) ())
     originateTzbtc msig = do
-      admin <- newAddress auto
+      admin <- refillable $ newAddress auto
       chainId <- getChainId
       redeem <- newFreshAddress "redeem"
       tzbtc <- originateTzbtcV1ContractRaw redeem $ OriginationParams
