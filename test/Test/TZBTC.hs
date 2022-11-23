@@ -248,19 +248,19 @@ test_addOperator = testGroup "TZBTC contract `addOperator` test"
   [ testContract
       "Call to `addOperator` from random address gets denied with `senderIsNotOwner` error." $
       \originateContract _ -> do
-        admin <- newAddress "admin"
+        admin <- refillable $ newAddress "admin"
         c <- originateContract $ toAddress admin
-        bob <- newAddress auto
-        operator <- newAddress auto
+        bob <- refillable $ newAddress auto
+        operator <- refillable $ newAddress auto
         withSender bob $
           expectCustomError_ #senderIsNotOwner $ transfer c $ calling def $
           fromFlatParameter $ AddOperator (#operator :! toAddress operator)
   , testContract
       "Call to `addOperator` from owner adds operator to the set." $
       \originateContract (_ :: Proxy ver) -> do
-        admin <- newAddress "admin"
+        admin <- refillable $ newAddress "admin"
         c <- originateContract $ toAddress admin
-        operator <- newAddress auto
+        operator <- refillable $ newAddress auto
         withSender admin $
           transfer c $ calling def $ fromFlatParameter $ AddOperator (#operator :! toAddress operator)
         st <- getStorage c
@@ -273,10 +273,10 @@ test_removeOperator = testGroup "TZBTC contract `addOperator` test"
   [ testContract
       "Call to `removeOperator` from random address gets denied with `senderIsNotOwner` error." $
       \originateContract _ -> do
-        admin <- newAddress "admin"
+        admin <- refillable $ newAddress "admin"
         c <- originateContract $ toAddress admin
-        bob <- newAddress auto
-        operator <- newAddress auto
+        bob <- refillable $ newAddress auto
+        operator <- refillable $ newAddress auto
         withSender bob $
           expectCustomError_ #senderIsNotOwner $
           transfer c $ calling def $ fromFlatParameter $ RemoveOperator (#operator :! toAddress operator)
@@ -284,9 +284,9 @@ test_removeOperator = testGroup "TZBTC contract `addOperator` test"
   , testContract
       "Call to `removeOperator` from owner removes operator from the set." $
       \originateContract (_ :: Proxy ver) -> do
-        admin <- newAddress "admin"
+        admin <- refillable $ newAddress "admin"
         c <- originateContract $ toAddress admin
-        operator <- newAddress auto
+        operator <- refillable $ newAddress auto
         withSender admin $ transfer c $ calling def $ fromFlatParameter $ AddOperator (#operator :! toAddress operator)
         st1 <- getStorage c
         checkField (getOperators @ver) (Set.member $ toAddress operator) st1
@@ -302,18 +302,18 @@ test_transferOwnership = testGroup "TZBTC contract `transferOwnership` test"
   [ testContract
       "Call to `transferOwnership` from random address gets denied with `senderIsNotOwner` error." $
       \originateContract _ -> do
-        admin <- newAddress "admin"
+        admin <- refillable $ newAddress "admin"
         c <- originateContract $ toAddress admin
-        bob <- newAddress auto
-        replaceAddress <- newAddress "replaceAddress"
+        bob <- refillable $ newAddress auto
+        replaceAddress <- refillable $ newAddress "replaceAddress"
         withSender bob $ expectCustomError_ #senderIsNotOwner $
           transfer c $ calling def $ fromFlatParameter $ TransferOwnership (#newOwner :! toAddress replaceAddress)
   , testContract
       "Call to `transferOwnership` from owner address gets denied with `senderIsNotOwner` error." $
       \originateContract (_ :: Proxy ver) -> do
-        admin <- newAddress "admin"
+        admin <- refillable $ newAddress "admin"
         c <- originateContract $ toAddress admin
-        replaceAddress <- newAddress auto
+        replaceAddress <- refillable $ newAddress auto
         withSender admin $
           transfer c $ calling def $ fromFlatParameter $ TransferOwnership (#newOwner :! toAddress replaceAddress)
         st <- getStorage c
@@ -326,18 +326,18 @@ test_acceptOwnership = testGroup "TZBTC contract `acceptOwnership` test"
   [ testContract
       "Call to `acceptOwnership` to non-transfering contract gets denied with `notInTransferOwnershipMode` error " $
       \originateContract _ -> do
-        admin <- newAddress "admin"
+        admin <- refillable $ newAddress "admin"
         c <- originateContract $ toAddress admin
-        bob <- newAddress auto
+        bob <- refillable $ newAddress auto
         withSender bob $ expectCustomError_ #notInTransferOwnershipMode $
           transfer c $ calling def $ fromFlatParameter $ AcceptOwnership ()
   , testContract
       "Call to `acceptOwnership` to transferring contract from random address gets denied with `senderIsNotNewOwner` error." $
       \originateContract _ -> do
-        admin <- newAddress "admin"
+        admin <- refillable $ newAddress "admin"
         c <- originateContract $ toAddress admin
-        bob <- newAddress auto
-        replaceAddress <- newAddress auto
+        bob <- refillable $ newAddress auto
+        replaceAddress <- refillable $ newAddress auto
         withSender admin $
           transfer c $ calling def $ fromFlatParameter $ TransferOwnership (#newOwner :! toAddress replaceAddress)
         withSender bob $ expectCustomError_ #senderIsNotNewOwner $
@@ -345,9 +345,9 @@ test_acceptOwnership = testGroup "TZBTC contract `acceptOwnership` test"
   , testContract
       "Call to `acceptOwnership` to transferring contract from random address gets denied with `senderIsNotNewOwner` error." $
       \originateContract _ -> do
-        admin <- newAddress "admin"
+        admin <- refillable $ newAddress "admin"
         c <- originateContract $ toAddress admin
-        replaceAddress <- newAddress auto
+        replaceAddress <- refillable $ newAddress auto
         withSender admin $
           transfer c $ calling def $ fromFlatParameter $ TransferOwnership (#newOwner :! toAddress replaceAddress)
         withSender replaceAddress $ do
@@ -359,9 +359,9 @@ test_acceptOwnership = testGroup "TZBTC contract `acceptOwnership` test"
   , testContract
       "Call to `acceptOwnership` to transferring contract from current address gets denied with `senderIsNotNewOwner` error." $
       \originateContract _ -> do
-        admin <- newAddress "admin"
+        admin <- refillable $ newAddress "admin"
         c <- originateContract $ toAddress admin
-        replaceAddress <- newAddress auto
+        replaceAddress <- refillable $ newAddress auto
         withSender admin $
           transfer c $ calling def $ fromFlatParameter $ TransferOwnership (#newOwner :! toAddress replaceAddress)
         expectCustomError_ #senderIsNotNewOwner $
@@ -373,18 +373,18 @@ test_setRedeemAddress = testGroup "TZBTC contract `setRedeemAddress` test"
   [ testContract
       "Call to `setRedeemAddress` from random address is denied with `SenderIsNotOwner` error" $
       \originateContract _ -> do
-        admin <- newAddress "admin"
+        admin <- refillable $ newAddress "admin"
         c <- originateContract $ toAddress admin
-        replaceAddress <- newAddress auto
-        bob <- newAddress auto
+        replaceAddress <- refillable $ newAddress auto
+        bob <- refillable $ newAddress auto
         withSender bob $ expectCustomError_ #senderIsNotOwner $
           transfer c $ calling def $ fromFlatParameter $ SetRedeemAddress (#redeem :! toAddress replaceAddress)
   , testContract
       "Call to `setRedeemAddress` sets redeem address correctly" $
       \originateContract _ -> do
-        admin <- newAddress "admin"
+        admin <- refillable $ newAddress "admin"
         c <- originateContract $ toAddress admin
-        replaceAddress <- newAddress auto
+        replaceAddress <- refillable $ newAddress auto
         withSender admin $
           transfer c $ calling def $ fromFlatParameter $ SetRedeemAddress (#redeem :! toAddress replaceAddress)
         consumer <- originate "consumer" [] contractConsumer
@@ -398,24 +398,24 @@ test_burn = testGroup "TZBTC contract `burn` test"
   [ testContract
       "Call to `burn` from random address is denied with `SenderIsNotOperator` error" $
       \originateContract _ -> do
-        admin <- newAddress "admin"
+        admin <- refillable $ newAddress "admin"
         c <- originateContract $ toAddress admin
-        bob <- newAddress auto
+        bob <- refillable $ newAddress auto
         withSender bob $ expectCustomError_ #senderIsNotOperator $
           transfer c $ calling def $ fromFlatParameter $ Burn (#value :! 100)
   , testContract
       "Call to `burn` from owner address is denied with `SenderIsNotOperator` error" $
       \originateContract _ -> do
-        admin <- newAddress "admin"
+        admin <- refillable $ newAddress "admin"
         c <- originateContract $ toAddress admin
         withSender admin $ expectCustomError_ #senderIsNotOperator $
           transfer c $ calling def $ fromFlatParameter $ Burn (#value :! 100)
   , testContract
       "Call to `burn` from operator subtracts from redeemAddress and update bookkeeping fields" $
       \originateContract _ -> do
-        admin <- newAddress "admin"
+        admin <- refillable $ newAddress "admin"
         c <- originateContract $ toAddress admin
-        operator <- newAddress "operator"
+        operator <- refillable $ newAddress "operator"
         consumer <- originate "consumer" [] contractConsumer
 
         -- Add an operator
@@ -447,27 +447,27 @@ test_mint = testGroup "TZBTC contract `mint` test"
   [ testContract
       "Call to `mint` from random address is denied with `SenderIsNotOperator` error" $
       \originateContract _ -> do
-        admin <- newAddress "admin"
+        admin <- refillable $ newAddress "admin"
         c <- originateContract $ toAddress admin
-        alice <- newAddress auto
-        bob <- newAddress auto
+        alice <- refillable $ newAddress auto
+        bob <- refillable $ newAddress auto
         withSender bob $ expectCustomError_ #senderIsNotOperator $
           transfer c $ calling def $ fromFlatParameter $ Mint (#to :! toAddress alice, #value :! 100)
   , testContract
       "Call to `mint` from owner address is denied with `SenderIsNotOperator` error" $
       \originateContract _ -> do
-        admin <- newAddress "admin"
+        admin <- refillable $ newAddress "admin"
         c <- originateContract $ toAddress admin
-        alice <- newAddress auto
+        alice <- refillable $ newAddress auto
         withSender admin $ expectCustomError_ #senderIsNotOperator $
           transfer c $ calling def $ fromFlatParameter $ Mint (#to :! toAddress alice, #value :! 100)
   , testContract
       "Call to `mint` from operator adds to account and update bookkeeping fields" $
       \originateContract _ -> do
-        admin <- newAddress "admin"
+        admin <- refillable $ newAddress "admin"
         c <- originateContract $ toAddress admin
-        operator <- newAddress "operator"
-        alice <- newAddress auto
+        operator <- refillable $ newAddress "operator"
+        alice <- refillable $ newAddress auto
         consumer <- originate "consumer" [] contractConsumer
 
         -- Add an operator
@@ -506,7 +506,7 @@ test_approvableLedgerV1 = testGroup "TZBTC contract approvable ledger tests"
       :: (MonadCleveland caps m)
       => ImplicitAddress -> AL.AlSettings -> m (ContractHandle (Parameter TZBTCv1) (Storage TZBTCv1) ())
     alOriginate = originateManagedLedger $ \op  -> do
-      let owner = case ML.opAdmin op of
+      owner <- refillable $ pure $ case ML.opAdmin op of
             MkAddress x@ImplicitAddress{} -> x
             _ -> error "Unexpected address type in alOriginate"
       c <- originate "TZBTC Contract" (mkEmptyStorageV0 $ toL1Address owner) tzbtcContract
@@ -527,7 +527,7 @@ test_approvableLedgerV2 :: TestTree
 test_approvableLedgerV2 = testGroup "TZBTC contract approvable ledger tests"
   [ AL.approvableLedgerGenericTest @(Parameter SomeTZBTCVersion) @(Storage SomeTZBTCVersion) $
     originateManagedLedger $ \op -> do
-      let owner = case ML.opAdmin op of
+      owner <- refillable $ pure $ case ML.opAdmin op of
             MkAddress x@ImplicitAddress{} -> x
             _ -> error "Unexpected address type in originateManagedLedger"
       c <- originate "TZBTC Contract" (mkEmptyStorageV0 $ toL1Address owner) tzbtcContract
@@ -550,24 +550,24 @@ test_pause = testGroup "TZBTC contract `pause` test"
   [ testContract
       "Call to `pause` from random address is denied with `SenderIsNotOperator` error" $
       \originateContract _ -> do
-        admin <- newAddress "admin"
+        admin <- refillable $ newAddress "admin"
         c <- originateContract $ toAddress admin
-        bob <- newAddress auto
+        bob <- refillable $ newAddress auto
         withSender bob $ expectCustomError_ #senderIsNotOperator $
           transfer c $ calling def $ fromFlatParameter $ Pause ()
   , testContract
       "Call to `pause` from owner address is denied with `SenderIsNotOperator` error" $
       \originateContract _ -> do
-        admin <- newAddress "admin"
+        admin <- refillable $ newAddress "admin"
         c <- originateContract $ toAddress admin
         withSender admin $ expectCustomError_ #senderIsNotOperator $
           transfer c $ calling def $ fromFlatParameter $ Pause ()
   , testContract
       "Call to `pause` from operator sets the paused status" $
       \originateContract (_ :: Proxy ver) -> do
-        admin <- newAddress "admin"
+        admin <- refillable $ newAddress "admin"
         c <- originateContract $ toAddress admin
-        operator <- newAddress "operator"
+        operator <- refillable $ newAddress "operator"
         -- Add an operator
         withSender admin $ transfer c $ calling def $ fromFlatParameter $ AddOperator (#operator :! toAddress operator)
 
@@ -584,17 +584,17 @@ test_unpause = testGroup "TZBTC contract `unpause` test"
   [ testContract
       "Call to `unpause` from random address is denied with `SenderIsNotOwner` error" $
       \originateContract _ -> do
-        admin <- newAddress "admin"
+        admin <- refillable $ newAddress "admin"
         c <- originateContract $ toAddress admin
-        bob <- newAddress "bob"
+        bob <- refillable $ newAddress "bob"
         withSender bob $ expectCustomError_ #senderIsNotOwner $
           transfer c $ calling def $ fromFlatParameter $ Unpause ()
   , testContract
       "Call to `unpause` from operator address is denied with `SenderIsNotOwner` error" $
       \originateContract _ -> do
-        admin <- newAddress "admin"
+        admin <- refillable $ newAddress "admin"
         c <- originateContract $ toAddress admin
-        operator <- newAddress "operator"
+        operator <- refillable $ newAddress "operator"
         -- Add an operator
         withSender admin $ transfer c $ calling def $ fromFlatParameter $ AddOperator (#operator :! toAddress operator)
         withSender operator $ expectCustomError_ #senderIsNotOwner $
@@ -602,9 +602,9 @@ test_unpause = testGroup "TZBTC contract `unpause` test"
   , testContract
       "Call to `unpause` from owner unsets the paused status" $
       \originateContract (_ :: Proxy ver) -> do
-        admin <- newAddress "admin"
+        admin <- refillable $ newAddress "admin"
         c <- originateContract $ toAddress admin
-        operator <- newAddress "operator"
+        operator <- refillable $ newAddress "operator"
         -- Add an operator
         withSender admin $ transfer c $ calling def $ fromFlatParameter $ AddOperator (#operator :! toAddress operator)
         -- Pause the contract
@@ -625,10 +625,10 @@ test_bookkeeping = testGroup "TZBTC contract bookkeeping views test"
   [ testContract
       "calling book keeping views returns expected result" $
       \originateContract _ -> do
-          admin <- newAddress "admin"
+          admin <- refillable $ newAddress "admin"
           v1 <- originateContract $ toAddress admin
-          operator <- newAddress "operator"
-          alice <- newAddress "alice"
+          operator <- refillable $ newAddress "operator"
+          alice <- refillable $ newAddress "alice"
           -- Add an operator
           withSender admin $ transfer v1 $ calling def $ fromFlatParameter $ AddOperator (#operator :! toAddress operator)
           withSender operator $ do
@@ -658,7 +658,7 @@ test_get_meta :: TestTree
 test_get_meta =
   testContract "Can get TZBTC metadata" $
     \originateContract _ -> do
-      admin <- newAddress "admin"
+      admin <- refillable $ newAddress "admin"
       v1 <- originateContract $ toAddress admin
       consumer <- originate "consumer" [] contractConsumer
       transfer v1 $ calling def $ fromFlatParameter $ GetTokenMetadata (mkView_ [singleTokenTokenId] consumer)

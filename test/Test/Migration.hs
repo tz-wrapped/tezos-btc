@@ -37,26 +37,26 @@ import Test.TZBTC (dummyV1Parameters)
 test_ownerCheck :: TestTree
 test_ownerCheck = testGroup "TZBTC contract migration endpoints test"
   [ testScenario "Test call to administrative endpoints are only available to owner" $ scenario $ do
-      admin <- newAddress "admin"
-      bob <- newAddress "bob"
+      admin <- refillable $ newAddress "admin"
+      bob <- refillable $ newAddress "bob"
       v0 <- originate "tzbtc" (mkEmptyStorageV0 $ toL1Address admin) tzbtcContract
       expectCustomError_ #senderIsNotOwner $ withSender bob $
         transfer v0 $ calling def $ fromFlatParameter $ EpwBeginUpgrade (#current :! 0, #new :! 1)
   , testScenario "Test call to `ApplyMigration` endpoints are only available to owner" $ scenario $ do
-      admin <- newAddress "admin"
-      bob <- newAddress "bob"
+      admin <- refillable $ newAddress "admin"
+      bob <- refillable $ newAddress "bob"
       v0 <- originate "tzbtc" (mkEmptyStorageV0 $ toL1Address admin) tzbtcContract
       expectCustomError_ #senderIsNotOwner $ withSender bob $
         transfer v0 $ calling def $ fromFlatParameter $ EpwApplyMigration (checkedCoerce migrationScriptV1)
   , testScenario "Test call to `SetCode` endpoints are only available to owner" $ scenario $ do
-      admin <- newAddress "admin"
-      bob <- newAddress "bob"
+      admin <- refillable $ newAddress "admin"
+      bob <- refillable $ newAddress "bob"
       v0 <- originate "tzbtc" (mkEmptyStorageV0 $ toL1Address admin) tzbtcContract
       expectCustomError_ #senderIsNotOwner $ withSender bob $
         transfer v0 $ calling def $ fromFlatParameter $ EpwSetCode emptyCode
   , testScenario "Test call to `EpwFinishUpgrade` endpoints are only available to owner" $ scenario $ do
-      admin <- newAddress "admin"
-      bob <- newAddress "bob"
+      admin <- refillable $ newAddress "admin"
+      bob <- refillable $ newAddress "bob"
       v0 <- originate "tzbtc" (mkEmptyStorageV0 $ toL1Address admin) tzbtcContract
       expectCustomError_ #senderIsNotOwner $ withSender bob $
         transfer v0 $ calling def $ fromFlatParameter $ EpwFinishUpgrade
@@ -66,17 +66,17 @@ test_ownerCheck = testGroup "TZBTC contract migration endpoints test"
 test_notMigratingStatus :: TestTree
 test_notMigratingStatus = testGroup "TZBTC contract migration status not active check"
   [ testScenario "Test call to `ApplyMigration` that require a migrating state fails in non migrating state" $ scenario $ do
-      admin <- newAddress "admin"
+      admin <- refillable $ newAddress "admin"
       v0 <- originate "tzbtc" (mkEmptyStorageV0 $ toL1Address admin) tzbtcContract
       expectCustomError_ #upgContractIsNotMigrating $ withSender admin $
         transfer v0 $ calling def $ fromFlatParameter $ EpwApplyMigration (checkedCoerce migrationScriptV1)
   , testScenario "Test call to `EpwSetCode` that require a non-migrating state fails in migrating state" $ scenario $ do
-      admin <- newAddress "admin"
+      admin <- refillable $ newAddress "admin"
       v0 <- originate "tzbtc" (mkEmptyStorageV0 $ toL1Address admin) tzbtcContract
       expectCustomError_ #upgContractIsNotMigrating $ withSender admin $
         transfer v0 $ calling def $ fromFlatParameter $ EpwSetCode emptyCode
   , testScenario "Test call to `EpwFinishUpgrade` that require a non-migrating state fails in migrating state" $ scenario $ do
-      admin <- newAddress "admin"
+      admin <- refillable $ newAddress "admin"
       v0 <- originate "tzbtc" (mkEmptyStorageV0 $ toL1Address admin) tzbtcContract
       expectCustomError_ #upgContractIsNotMigrating $ withSender admin $
         transfer v0 $ calling def $ fromFlatParameter $ EpwFinishUpgrade
@@ -86,21 +86,21 @@ test_notMigratingStatus = testGroup "TZBTC contract migration status not active 
 test_migratingStatus :: TestTree
 test_migratingStatus = testGroup "TZBTC contract migration status active check"
   [ testScenario "Test call to `Upgrade` that require a non-migrating state fails in migrating state" $ scenario $ do
-      admin <- newAddress "admin"
+      admin <- refillable $ newAddress "admin"
       v0 <- originate "tzbtc" (mkEmptyStorageV0 $ toL1Address admin) tzbtcContract
       withSender admin $ do
         transfer v0 $ calling def $ fromFlatParameter $ EpwBeginUpgrade (#current :! 0, #new :! 1)
         expectCustomError_ #upgContractIsMigrating $
           transfer v0 $ calling def $ fromFlatParameter $ Upgrade upgradeParamsV1
   , testScenario "Test call to `Run` that require a non-migrating state fails in migrating state" $ scenario $ do
-      admin <- newAddress "admin"
+      admin <- refillable $ newAddress "admin"
       v0 <- originate "tzbtc" (mkEmptyStorageV0 $ toL1Address admin) tzbtcContract
       withSender admin $ do
         transfer v0 $ calling def $ fromFlatParameter $ EpwBeginUpgrade (#current :! 0, #new :! 1)
         expectCustomError_ #upgContractIsMigrating $
           transfer v0 $ calling def $ fromFlatParameter $ Run $ mkUParam #callBurn (#value :! 100)
   , testScenario "Test call to `Burn` that require a non-migrating state fails in migrating state" $ scenario $ do
-      admin <- newAddress "admin"
+      admin <- refillable $ newAddress "admin"
       v0 <- originate "tzbtc" (mkEmptyStorageV0 $ toL1Address admin) tzbtcContract
       withSender admin $ do
         transfer v0 $ calling def $ fromFlatParameter $ EpwBeginUpgrade (#current :! 0, #new :! 1)
@@ -112,7 +112,7 @@ test_migratingStatus = testGroup "TZBTC contract migration status active check"
 test_migratingVersion :: TestTree
 test_migratingVersion = testGroup "TZBTC contract migration version check"
   [ testScenario "Test EpwFinishUpgrade bumps version" $ scenario $ do
-      admin <- newAddress "admin"
+      admin <- refillable $ newAddress "admin"
       v0 <- originate "tzbtc" (mkEmptyStorageV0 $ toL1Address admin) tzbtcContract
       withSender admin $ do
         transfer v0 $ calling def $ fromFlatParameter $ EpwBeginUpgrade (#current :! 0, #new :! 1)

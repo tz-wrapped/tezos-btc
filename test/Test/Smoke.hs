@@ -31,9 +31,9 @@ import Morley.Client (OperationInfo(..), disableAlphanetWarning)
 import Morley.Client.TezosClient qualified as TezosClient
 import Morley.Michelson.Typed.Haskell.Value
 import Morley.Tezos.Address
-import Morley.Tezos.Core
 import Morley.Util.Named
 import Morley.Util.Sing (castSing)
+import Morley.Util.SizedList (SizedList'(..))
 import Test.Cleveland
 import Test.Cleveland.Internal.Abstract
 import Test.Cleveland.Internal.Client
@@ -110,7 +110,6 @@ testUpgradeToV1 = TestUpgrade $ \admin redeem balances tzbtc -> do
       , upNewCode = tzbtcContractRouterV1
       , upNewPermCode = emptyPermanentImplCompat
       }
-  transfer admin [tz|50|] -- 50 XTZ
   withSender admin $ transfer tzbtc $ calling def
     (fromFlatParameter $ Upgrade upgradeParams :: Parameter TZBTCv0)
 
@@ -126,30 +125,35 @@ testUpgradeToV2 = TestUpgrade $ \admin redeem balances tzbtc -> do
       , upNewCode = tzbtcContractRouterV2
       , upNewPermCode = emptyPermanentImplCompat
       }
-  transfer admin [tz|50|] -- 50 XTZ
   withSender admin $ transfer tzbtc $ unsafeCalling def
     (fromFlatParameter $ Upgrade upgradeParams :: Parameter TZBTCv0)
 
 simpleScenario
-  :: MonadCleveland caps m
+  :: (MonadFail m, MonadCleveland caps m)
   => TestUpgrade m -> m ()
 simpleScenario upg = do
-  -- admin <- resolveNettestAddress -- Fetch address for alias `nettest`.
-  admin <- newAddress "admin"
+  admin <- refillable $ newAddress "admin"
+
+  -- TODO [morley#887]: currently there's a hard implicit limit on 5 ops per
+  -- batch, we could also create "guest" in the batch otherwise.
+  operator ::< operatorToRemove ::< alice ::< john ::< newOwner ::< Nil' <-
+    newAddresses $ "operator" :< "operator_to_remove" :< "alice" :< "john" :< "newOwner" :< Nil
+  guest <- refillable $ newAddress "guest"
+
   transfer admin [tz|15|]
   -- Originate and upgrade
   -- sender is made an admin in the tzbtc-client based implementation
   tzbtc <- withSender admin $
     originate "TZBTCContract" (mkEmptyStorageV0 $ toL1Address admin) tzbtcContract
 
-  -- Originate Address view callback
-  addressView <- originate "Address view" [] (contractConsumer @Address)
-
-  -- Originate Natural view callback
-  naturalView <- originate "Natural view" [] (contractConsumer @Natural)
-
-  -- Originate [TokenMetadata] view callback
-  tokenMetadatasView <- originate "[TokenMetadata] view" [] (contractConsumer @[TokenMetadata])
+  (addressView, naturalView, tokenMetadatasView) <- inBatch $ do
+    -- Originate Address view callback
+    av <- originate "Address view" [] (contractConsumer @Address)
+    -- Originate Natural view callback
+    nv <- originate "Natural view" [] (contractConsumer @Natural)
+    -- Originate [TokenMetadata] view callback
+    tmv <- originate "[TokenMetadata] view" [] (contractConsumer @[TokenMetadata])
+    pure (av, nv, tmv)
 
   -- Run upgrade
   unTestUpgrade upg admin admin mempty tzbtc
@@ -159,8 +163,6 @@ simpleScenario upg = do
     fromFlatParameterV1 = fromFlatParameter
 
   -- Add an operator
-  operator <- newAddress "operator"
-  operatorToRemove <- newAddress "operator_to_remove"
 
   withSender admin $ do
     transfer tzbtc $ unsafeCalling def
@@ -171,7 +173,6 @@ simpleScenario upg = do
       (fromFlatParameterV1 $ AddOperator (#operator :! toAddress operatorToRemove))
 
   -- Mint some coins for alice
-  alice <- newAddress "alice"
 
   -- use the new operator to make sure it has been added.
   withSender operatorToRemove $ transfer tzbtc $ unsafeCalling def
@@ -184,7 +185,6 @@ simpleScenario upg = do
 
   -- Set allowance
   -- Mint some coins for john
-  john <- newAddress "john"
 
   withSender operator $ transfer tzbtc $ unsafeCalling def
     -- We use alias instead of address to let the nettest implementation
@@ -215,7 +215,6 @@ simpleScenario upg = do
       (fromFlatParameterV1 $ Pause ())
 
   -- Resume operations
-  newOwner <- newAddress "newOwner"
   withSender admin $ do
     transfer tzbtc $ unsafeCalling def
       (fromFlatParameterV1 $ Unpause ())
@@ -229,7 +228,6 @@ simpleScenario upg = do
     (fromFlatParameterV1 $ AcceptOwnership ())
 
   -- Make an anonymous address
-  guest <- newAddress "guest"
 
   withSender guest $ do
     transfer tzbtc $ unsafeCalling def
@@ -277,16 +275,12 @@ runNettestTzbtcClient env scenario' = do
   runReaderT (unClientM clientM) ist
 
 nettestImplTzbtcClient :: MorleyClientEnv -> Sender -> ClevelandOpsImpl ClientM
-nettestImplTzbtcClient env sender =
-  impl { coiRunOperationBatch = \case
-      [] -> pure [] -- this happens when `newAddress` reuses addresses that have enough tez
-      [op] -> case op of
-        OpOriginate oud -> tzbtcClientOriginate oud
-        OpTransfer td -> tzbtcClientTransfer td >> pure [OpTransfer []]
-        OpReveal _ -> error "Reveal operation is not supported"
-      _ -> error "Batch operations are not supported"
-    }
+nettestImplTzbtcClient env sender = impl { coiRunOperationBatch = concatMapM runOp }
   where
+    runOp = \case
+      OpOriginate oud -> tzbtcClientOriginate oud
+      OpTransfer td -> tzbtcClientTransfer td >> pure [OpTransfer []]
+      OpReveal _ -> error "Reveal operation is not supported"
     impl = networkOpsImpl env sender
 
     tezosClientEnv = mceTezosClient env

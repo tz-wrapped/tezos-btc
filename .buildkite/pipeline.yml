@@ -69,7 +69,7 @@ steps:
       automatic:
         limit: 1
 
-  - label: scheduled jakartanet test
+  - label: scheduled kathmandunet test
     if: build.source == "schedule"
     depends_on: build
     env:
