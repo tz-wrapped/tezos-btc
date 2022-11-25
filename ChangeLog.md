@@ -11,6 +11,8 @@ Changes that affect Michelson code are tagged with `[CONTRACT]`.
 Unreleased
 ==========
 
+0.9.0
+==========
 * [180](https://github.com/tz-wrapped/tezos-btc/pull/180)
   Morley dependencies updated to provide changes for Kathmandu protocol support.
   + Note that due to changes upstream, CLI changed slightly. Previously,
