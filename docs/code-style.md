@@ -356,8 +356,8 @@ are partial functions.
 
 As usual, separate type classes with `, ` (comma and a space).
 
-If you are using GHC-8.2.2 or higher you *should* use
-[`-XDerivingStrategies`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#deriving-strategies)
+If you are using GHC-8.2.1 or higher you *should* use
+[`-XDerivingStrategies`](https://downloads.haskell.org/ghc/latest/docs/users_guide/exts/deriving_strategies.html)
 and specify the way you derive explicitly. Example:
 
 ``` haskell
@@ -386,7 +386,7 @@ You *should* avoid overly general signatures for functions that are actually
 used with only one type for each parameter. If you need the polymorhic version
 (i.e. if you are instantiating it more than once or if you are writing a
 library), you *may* use GHC's [`SPECIALIZE`
-pragma](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#specialize-pragma).
+pragma](https://downloads.haskell.org/ghc/latest/docs/users_guide/exts/pragmas.html#specialize-instance-pragma).
 
 You *should* omit parentheses if you have only one constraint.
 
@@ -575,7 +575,7 @@ group independently.
 You *may* use [`weeder`][weeder] to detect
 unused dependencies and exported modules.
 
-[stylish-haskell]: https://github.com/serokell/metatemplates/blob/master/templates/haskell/.stylish-haskell.yaml
-[hlint]: https://github.com/serokell/metatemplates/blob/master/templates/haskell/.hlint.yaml
-[editorconfig]: https://github.com/serokell/metatemplates/blob/master/templates/haskell/.editorconfig
+[stylish-haskell]: https://github.com/serokell/metatemplates/blob/master/haskell/.stylish-haskell.yaml
+[hlint]: https://github.com/serokell/metatemplates/blob/master/haskell/.hlint.yaml
+[editorconfig]: https://github.com/serokell/metatemplates/blob/master/.editorconfig
 [weeder]: https://hackage.haskell.org/package/weeder
