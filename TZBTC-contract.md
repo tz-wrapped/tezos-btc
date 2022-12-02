@@ -6,7 +6,7 @@
 
 # TZBTC
 
-**Code revision:** [61af4c4](https://github.com/tz-wrapped/tezos-btc/commit/61af4c49b14f4e1150efa870ecf3c358aa267280) *(Fri Nov 25 08:47:30 2022 +0100)*
+**Code revision:** [9942370](https://github.com/tz-wrapped/tezos-btc/commit/99423705ec11ed629b92f837cd5692d23e6b636b) *(Fri Dec 2 14:24:31 2022 +0100)*
 
 
 
