@@ -24,12 +24,10 @@ steps:
     commands:
     - .buildkite/check-trailing-whitespace.sh
 
-  - label: crossref-verify
+  - label: xrefcheck
     if: *not_scheduled_autodoc
     commands:
-    - nix run -f ci.nix xrefcheck -c
-        xrefcheck --mode local-only --config ./.crossref-verifier.yaml
-    soft_fail: true # TODO: remove
+    - nix shell -f ci.nix xrefcheck -c xrefcheck
 
   - label: build
     key: build
@@ -124,8 +122,8 @@ steps:
     artifact_paths:
       - TZBTC-contract.md
 
-  - label: crossref-verify generated doc
-    key: crossref-verify-generated
+  - label: xrefcheck generated doc
+    key: xrefcheck-generated
     if: *not_scheduled_autodoc
     depends_on:
       - contract-doc
@@ -137,9 +135,7 @@ steps:
       else CONTRACT_DOC_STEP="contract-doc";
       fi
     - buildkite-agent artifact download TZBTC-contract.md tmp/ --step "$$CONTRACT_DOC_STEP"
-    - nix run -f ci.nix xrefcheck -c
-        xrefcheck --mode local-only --config ./.crossref-verifier.yaml --root tmp
-    soft_fail: true # TODO: remove
+    - nix shell -f ci.nix xrefcheck -c xrefcheck --root tmp
 
   - label: autodoc upload
     if: *not_scheduled_master
