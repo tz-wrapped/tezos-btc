@@ -23,7 +23,6 @@ module Lorentz.Contracts.TZBTC.Preprocess
   ) where
 
 import Lorentz
-import Lorentz.Lambda
 
 import Morley.Michelson.Optimizer (OptimizerConf(..))
 
@@ -43,8 +42,7 @@ tzbtcContract = mkContractWith compilationOptions V0.tzbtcContractRaw
 -- | Preprocessed version of contract router for V1.
 tzbtcContractRouterV1 :: UContractRouter V1.TZBTCv1
 tzbtcContractRouterV1 =
-  UContractRouter $ mkLambda $
-    preprocess . unWrappedLambda . unUContractRouter $ V1.tzbtcContractRouterRaw
+  UContractRouter $ preprocess . unUContractRouter $ V1.tzbtcContractRouterRaw
 
 -- | Preprocessed migrations for V1.
 migrationScriptsV1 :: V1.V1Parameters -> [MigrationScript V0.StoreTemplateV0 V1.StoreTemplateV1]
@@ -65,8 +63,7 @@ upgradeParametersV1 op =
 -- | Preprocessed version of contract router for V1.
 tzbtcContractRouterV2 :: UContractRouter V2.TZBTCv2
 tzbtcContractRouterV2 =
-  UContractRouter $ mkLambda $
-    preprocess . unWrappedLambda . unUContractRouter $ V2.tzbtcContractRouterRaw
+  UContractRouter $ preprocess . unUContractRouter $ V2.tzbtcContractRouterRaw
 
 -- | Preprocessed migrations for V2.
 migrationScriptsV2 :: V2.V2Parameters -> [MigrationScript V0.StoreTemplateV0 V2.StoreTemplateV2]
@@ -99,8 +96,10 @@ upgradeParametersV2FromV1 op =
     , upNewPermCode = emptyPermanentImplCompat
     }
 
-preprocess :: inp :-> out -> inp :-> out
-preprocess = optimizeLorentzWithConf optimizationOptions
+preprocess :: WrappedLambda inp out -> WrappedLambda inp out
+preprocess = \case
+  WrappedLambda code -> WrappedLambda $ optimizeLorentzWithConf optimizationOptions code
+  RecLambda code -> RecLambda $ optimizeLorentzWithConf optimizationOptions code
 
 compilationOptions :: CompilationOptions
 compilationOptions = defaultCompilationOptions

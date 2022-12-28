@@ -12,7 +12,7 @@ import Options.Applicative
   (execParser, footerDoc, fullDesc, header, help, helper, info, infoOption, long, progDesc)
 import Options.Applicative.Help.Pretty (Doc, linebreak)
 
-import Morley.Client.Init (mkMorleyClientEnv)
+import Morley.Client.Full (mkMorleyClientEnv)
 import Paths_tzbtc (version)
 
 import Client.Env

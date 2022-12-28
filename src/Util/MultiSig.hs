@@ -247,8 +247,8 @@ mkMultiSigParam pks packages = do
       (toL1TAddress $ toL1 address_, (payload, sortSigs sigs))
     toL1 :: HasCallStack => Address -> L1Address
     toL1 (MkAddress addr) = case addr of
-      ImplicitAddress{} -> MkConstrainedAddress addr
-      ContractAddress{} -> MkConstrainedAddress addr
+      ImplicitAddress{} -> Constrained addr
+      ContractAddress{} -> Constrained addr
       _ -> error "txr1 address occurred when L1 address expected"
     sortSigs :: [(PublicKey, Sign)] -> [Maybe Sign]
     sortSigs sigs = flip lookup sigs <$> pks

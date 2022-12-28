@@ -281,6 +281,7 @@ nettestImplTzbtcClient env sender = impl { coiRunOperationBatch = concatMapM run
       OpOriginate oud -> tzbtcClientOriginate oud
       OpTransfer td -> tzbtcClientTransfer td >> pure [OpTransfer []]
       OpReveal _ -> error "Reveal operation is not supported"
+      OpDelegation _ -> error "Delegation operation is not supported"
     impl = networkOpsImpl env sender
 
     tezosClientEnv = mceTezosClient env

@@ -5,17 +5,17 @@
 module Client.Env
   ( AppEnv (..)
   , AppM (..)
-  , TzbtcClientEnv' (..)
+  , TzbtcClientEnv (..)
   , ExtTezosClient (..)
   , emptyConfigOverride
   , emptyEnv
   , runAppM
   ) where
 
-import Colog (HasLog(..), LogAction(..), Message)
+import Colog (HasLog(..), Message, hoistLogAction)
 
 import Morley.Client (MorleyClientEnv, MorleyClientM, runMorleyClientM)
-import Morley.Client.Env (MorleyClientEnv'(..))
+import Morley.Client.Full (MorleyClientEnv(..))
 import Morley.Client.RPC.Class
 import Morley.Client.TezosClient.Class
 import Morley.Client.TezosClient.Impl qualified as Impl
@@ -31,12 +31,10 @@ data AppEnv = AppEnv
   , aeFees :: Maybe Mutez
   }
 
-data TzbtcClientEnv' m = TzbtcClientEnv
+data TzbtcClientEnv = TzbtcClientEnv
   { tzbtcEnv :: AppEnv
-  , mcEnv :: (MorleyClientEnv' m)
+  , mcEnv :: MorleyClientEnv
   }
-
-type TzbtcClientEnv = TzbtcClientEnv' AppM
 
 emptyEnv :: AppEnv
 emptyEnv = AppEnv
@@ -51,9 +49,16 @@ newtype AppM a = AppM { unAppM :: ReaderT TzbtcClientEnv IO a }
     )
 
 instance HasLog TzbtcClientEnv Message AppM where
-  getLogAction (TzbtcClientEnv _ mcEnv) = mceLogAction mcEnv
-  setLogAction action (TzbtcClientEnv tzbtcEnv mcEnv) =
-    TzbtcClientEnv tzbtcEnv $ mcEnv {mceLogAction = action}
+  getLogAction (TzbtcClientEnv _ mcEnv) =
+    hoistLogAction (liftToAppM mcEnv) $ mceLogAction mcEnv
+  setLogAction action env@(TzbtcClientEnv tzbtcEnv mcEnv) =
+    TzbtcClientEnv tzbtcEnv $ mcEnv {mceLogAction = hoistLogAction (unliftFromAppM env) action}
+
+liftToAppM :: MorleyClientEnv -> MorleyClientM a -> AppM a
+liftToAppM mcEnv action = AppM $ lift $ runMorleyClientM mcEnv action
+
+unliftFromAppM :: MonadIO m => TzbtcClientEnv -> AppM a -> m a
+unliftFromAppM env action = liftIO $ runAppM env action
 
 runAppM :: TzbtcClientEnv -> AppM a -> IO a
 runAppM tzbtcClientEnv action =
@@ -61,22 +66,7 @@ runAppM tzbtcClientEnv action =
 
 morleyClientMToAppM :: MorleyClientM a -> AppM a
 morleyClientMToAppM action =
-  AppM $ ReaderT $ \(TzbtcClientEnv _ mcEnv) -> runMorleyClientM (convertEnv mcEnv) action
-  where
-    convertEnv :: MorleyClientEnv' AppM -> MorleyClientEnv
-    convertEnv env = env
-      { mceLogAction = LogAction $ \msg -> appMToMorleyClientM $
-        unLogAction (mceLogAction env) msg
-      }
-    convertEnv' :: MorleyClientEnv -> MorleyClientEnv' AppM
-    convertEnv' env = env
-      { mceLogAction = LogAction $ \msg -> morleyClientMToAppM $
-        unLogAction (mceLogAction env) msg
-      }
-    appMToMorleyClientM :: AppM a -> MorleyClientM a
-    appMToMorleyClientM action' = do
-      mcEnv <- ask
-      liftIO $ runAppM (TzbtcClientEnv emptyEnv (convertEnv' mcEnv)) action'
+  AppM $ ReaderT $ \(TzbtcClientEnv _ mcEnv) -> runMorleyClientM mcEnv action
 
 emptyConfigOverride :: ConfigOverride
 emptyConfigOverride  = ConfigOverride Nothing Nothing Nothing
@@ -121,10 +111,8 @@ instance HasTezosClient AppM where
   revealKey = morleyClientMToAppM ... revealKey
   rememberContract = morleyClientMToAppM ... rememberContract
   genFreshKey = morleyClientMToAppM ... genFreshKey
-  resolveAddressMaybe = morleyClientMToAppM ... resolveAddressMaybe
-  getAlias = morleyClientMToAppM ... getAlias
+  getAliasesAndAddresses = morleyClientMToAppM ... getAliasesAndAddresses
   getKeyPassword = morleyClientMToAppM ... getKeyPassword
-  registerDelegate = morleyClientMToAppM ... registerDelegate
 
 instance ExtTezosClient AppM where
   getPublicKey = morleyClientMToAppM ... Impl.getPublicKey

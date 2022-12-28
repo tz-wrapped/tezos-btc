@@ -34,6 +34,7 @@ import Lorentz hiding (address, balance, chainId, cons, map)
 import Lorentz.Contracts.Multisig
 import Lorentz.UStore
 import Lorentz.UStore.Types
+import Morley.Client (resolveAddressMaybe)
 import Morley.Client.Action (lOriginateContract, lTransfer)
 import Morley.Client.Logging (WithClientLog)
 import Morley.Client.RPC.Class
@@ -41,15 +42,13 @@ import Morley.Client.RPC.Getters (getContractStorage, readBigMapValueMaybe)
 import Morley.Client.TezosClient.Class
 import Morley.Micheline
 import Morley.Michelson.Text
-import Morley.Michelson.Typed (UnpackedValScope)
 import Morley.Michelson.Untyped (EpName(..))
 import Morley.Tezos.Address
-import Morley.Tezos.Address.Alias (AddressOrAlias(..), Alias(..))
+import Morley.Tezos.Address.Alias (AddressOrAlias(..), Alias(..), SomeAddressOrAlias)
 import Morley.Util.ByteString (HexJSONByteString(..))
 import Morley.Util.Exception (throwLeft)
 import Morley.Util.Named
 
-import CLI.L1AddressOrAlias
 import Client.Env
 import Client.Error
 import Client.IO.CmdLine qualified as IO
@@ -90,7 +89,7 @@ instance HasEnv AppM where
 
 class AddressResolver a where
   type ResolvedResult a
-  addressOrAliasToAddr :: (MonadThrow m, HasTezosClient m) => a -> m (ResolvedResult a)
+  addressOrAliasToAddr :: (MonadThrow m, HasTezosClient m, WithClientLog env m) => a -> m (ResolvedResult a)
 
 instance AddressResolver (AddressOrAlias kind) where
   type ResolvedResult (AddressOrAlias kind) = KindedAddress kind
@@ -101,17 +100,17 @@ instance AddressResolver (AddressOrAlias kind) where
       Nothing -> throwM $ TzbtcUnknownAliasError $
         "failed to resolve address: " <> pretty addressOrAlias
 
-instance AddressResolver L1AddressOrAlias where
-  type ResolvedResult L1AddressOrAlias = L1Address
+instance AddressResolver SomeAddressOrAlias where
+  type ResolvedResult SomeAddressOrAlias = L1Address
   addressOrAliasToAddr addressOrAlias = do
-    mbAddr <- resolveL1AddressMaybe addressOrAlias
+    mbAddr <- resolveAddressMaybe addressOrAlias
     case mbAddr of
       Just addr -> pure addr
       Nothing -> throwM $ TzbtcUnknownAliasError $
         "failed to resolve address: " <> pretty addressOrAlias
 
 getTzbtcSpecificAddress
-  :: (MonadThrow m, HasTezosClient m, HasEnv m)
+  :: (MonadThrow m, HasTezosClient m, HasEnv m, WithClientLog env m)
   => Alias kind -> (ConfigOverride -> Maybe (AddressOrAlias kind)) -> m (KindedAddress kind)
 getTzbtcSpecificAddress defaultAlias getFromOverride = do
   tzbtcOverrides <- aeConfigOverride <$> lookupEnv
@@ -120,17 +119,17 @@ getTzbtcSpecificAddress defaultAlias getFromOverride = do
   addressOrAliasToAddr alias
 
 getTzbtcUserAddress
-  :: (MonadThrow m, HasTezosClient m, HasEnv m)
+  :: (MonadThrow m, HasTezosClient m, HasEnv m, WithClientLog env m)
   => m ImplicitAddress
 getTzbtcUserAddress = getTzbtcSpecificAddress "tzbtc-user" coTzbtcUser
 
 getTzbtcContractAddress
-  :: (MonadThrow m, HasTezosClient m, HasEnv m)
+  :: (MonadThrow m, HasTezosClient m, HasEnv m, WithClientLog env m)
   => m ContractAddress
 getTzbtcContractAddress = getTzbtcSpecificAddress "tzbtc" coTzbtcContract
 
 getMultisigAddress
-  :: (MonadThrow m, HasTezosClient m, HasEnv m)
+  :: (MonadThrow m, HasTezosClient m, HasEnv m, WithClientLog env m)
   => m ContractAddress
 getMultisigAddress = getTzbtcSpecificAddress "tzbtc-multisig" coTzbtcMultisig
 
@@ -153,7 +152,7 @@ runMultisigContract packages = do
   package <- throwLeft $ pure $ mergePackages packages
   multisigAddr <- throwLeft $ pure (snd . fst <$> getToSign package)
   case multisigAddr of
-    MkConstrainedAddress dst@ContractAddress{} -> do
+    Constrained dst@ContractAddress{} -> do
       (_, (_, (Keys keys'))) <- getMultisigStorage dst
       (_, multisigParam) <- throwLeft $ pure $ mkMultiSigParam keys' packages
       mbFees <- aeFees <$> lookupEnv
@@ -168,7 +167,7 @@ getMultisigStorage addr = do
   either throwM (pure . fromVal) (fromExpression @(Value (ToT MSigStorage)) mSigStorageRaw)
 
 createMultisigPackage
-  :: (MonadThrow m, HasFilesystem m, HasTezosRpc m, HasTezosClient m, HasEnv m)
+  :: (MonadThrow m, HasFilesystem m, HasTezosRpc m, HasTezosClient m, HasEnv m, WithClientLog env m)
   => FilePath
   -> SafeParameter SomeTZBTCVersion
   -> m ()
@@ -192,7 +191,7 @@ getPackageFromFile packageFilePath = do
     Right package -> Right package
 
 signPackageForConfiguredUser
-  :: (MonadThrow m, HasCmdLine m, HasTezosClient m, ExtTezosClient m, HasEnv m)
+  :: (MonadThrow m, HasCmdLine m, HasTezosClient m, ExtTezosClient m, HasEnv m, WithClientLog env m)
   => Package
   -> m (Either String Package)
 signPackageForConfiguredUser pkg = do
@@ -209,7 +208,7 @@ signPackageForConfiguredUser pkg = do
       pure $ addSignature pkg (pk, TSignature signature')
 
 getBalance
-  :: (HasTezosRpc m, HasTezosClient m, HasEnv m)
+  :: (HasTezosRpc m, HasTezosClient m, HasEnv m, WithClientLog env m)
   => Address -> m Natural
 getBalance addr = do
   mbLedgerValue <- getValueFromTzbtcUStoreSubmap @"ledger" addr
@@ -218,7 +217,7 @@ getBalance addr = do
     Just (arg #balance -> balance, _) -> pure balance
 
 getAllowance
-  :: (HasTezosRpc m, HasTezosClient m, HasEnv m)
+  :: (HasTezosRpc m, HasTezosClient m, HasEnv m, WithClientLog env m)
   => Address -> Address -> m Natural
 getAllowance owner spender = do
   mbLedgerValue <- getValueFromTzbtcUStoreSubmap @"ledger" owner
@@ -239,9 +238,10 @@ type HasStoreTemplateSubmap key value name =
 
 -- | Get field with given name from TZBTC contract UStore.
 getFieldFromTzbtcUStore
-  :: forall name t m.
+  :: forall name t m env.
      ( HasTezosRpc m, HasTezosClient m, HasEnv m
-     , HasStoreTemplateField t name, UnpackedValScope (ToT t)
+     , HasStoreTemplateField t name
+     , WithClientLog env m
      )
   => m (Maybe t)
 getFieldFromTzbtcUStore =
@@ -250,9 +250,10 @@ getFieldFromTzbtcUStore =
 -- | Get value assosiated with given key from given submap of
 -- TZBTC contract UStore.
 getValueFromTzbtcUStoreSubmap
-  :: forall name key value m.
+  :: forall name key value m env.
      ( HasTezosRpc m, HasTezosClient m, HasEnv m
-     , HasStoreTemplateSubmap key value name, UnpackedValScope (ToT value)
+     , HasStoreTemplateSubmap key value name
+     , WithClientLog env m
      )
   => key -> m (Maybe value)
 getValueFromTzbtcUStoreSubmap key =
@@ -265,11 +266,11 @@ getValueFromTzbtcUStoreSubmap key =
 -- `ByteString` and perform getting from BigMap using RPC call.
 -- After obtaining value we unpack it to the desired type.
 getFromTzbtcUStore
-  :: forall m key value.
+  :: forall m key value env.
      ( NicePackedValue key
      , NiceUnpackedValue value
-     , UnpackedValScope (ToT value)
      , HasTezosRpc m, HasTezosClient m, HasEnv m
+     , WithClientLog env m
      )
   => key -> m (Maybe value)
 getFromTzbtcUStore key = do
@@ -291,7 +292,7 @@ getTzbtcStorage contractAddr = do
     fromExpression @(Value (ToT (AlmostStorage ver))) storageRaw
 
 performTzbtcDeployment
-  :: (MonadThrow m, HasTezosClient m, HasCmdLine m)
+  :: (MonadThrow m, HasTezosClient m, HasCmdLine m, WithClientLog env m)
   => m ContractAddress -> m ()
 performTzbtcDeployment deployAction = do
   contractAddr <- deployAction
@@ -310,15 +311,15 @@ performTzbtcDeployment deployAction = do
     "' with the newly deployed contract?"
   case res of
     Canceled -> pass
-    Confirmed -> rememberContract True contractAddr $ ContractAlias contractAlias
+    Confirmed -> rememberContract OverwriteDuplicateAlias contractAddr $ ContractAlias contractAlias
 
 originateTzbtcContract
   :: (HasTezosClient m, HasTezosRpc m, HasEnv m, WithClientLog env m)
   => ImplicitAddress -> L1Address -> m ContractAddress
 originateTzbtcContract originator owner = do
   mbFee <- aeFees <$> lookupEnv
-  snd <$> lOriginateContract False "" (AddressResolved originator) zeroMutez
-    tzbtcContract (mkEmptyStorageV0 owner) mbFee
+  snd <$> lOriginateContract KeepDuplicateAlias "" (AddressResolved originator) zeroMutez
+    tzbtcContract (mkEmptyStorageV0 owner) mbFee Nothing
 
 deployTzbtcContractV1
   :: (HasTezosClient m, HasTezosRpc m, HasEnv m, HasCmdLine m, WithClientLog env m)
@@ -355,8 +356,8 @@ deployMultisigContract msigStorage useCustomErrors = do
         else tzbtcMultisigContract @'BaseErrors
   tzbtcUser <- getTzbtcUserAddress
   mbFee <- aeFees <$> lookupEnv
-  msigAddr <- snd <$> lOriginateContract False "" (AddressResolved tzbtcUser) zeroMutez
-    msigToOriginate msigStorage mbFee
+  msigAddr <- snd <$> lOriginateContract KeepDuplicateAlias "" (AddressResolved tzbtcUser) zeroMutez
+    msigToOriginate msigStorage mbFee Nothing
   printTextLn $ "Contract was successfully deployed. Contract address: " <> formatAddress msigAddr
   let contractAlias = "tzbtc-multisig"
   mbMsigAddress <- resolveAddressMaybe (AddressAlias $ ContractAlias contractAlias)
@@ -372,4 +373,4 @@ deployMultisigContract msigStorage useCustomErrors = do
     "' with the newly deployed contract?"
   case res of
     Canceled -> pass
-    Confirmed -> rememberContract True msigAddr $ ContractAlias contractAlias
+    Confirmed -> rememberContract OverwriteDuplicateAlias msigAddr $ ContractAlias contractAlias
