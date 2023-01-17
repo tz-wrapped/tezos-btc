@@ -6,7 +6,7 @@
 
 # TZBTC
 
-**Code revision:** [9942370](https://github.com/tz-wrapped/tezos-btc/commit/99423705ec11ed629b92f837cd5692d23e6b636b) *(Fri Dec 2 14:24:31 2022 +0100)*
+**Code revision:** [c26e3cf](https://github.com/tz-wrapped/tezos-btc/commit/c26e3cf4e00bd53121c15929407a859b57c74527) *(Wed Jan 18 01:36:50 2023 +0300)*
 
 
 
@@ -60,6 +60,7 @@ There are two special entities for this contract:
   - [Parameter.SafeParameter](#types-Parameter.SafeParameter)
   - [PermanentImpl](#types-PermanentImpl)
   - [Set](#types-Set)
+  - [SomePermanentImpl](#types-SomePermanentImpl)
   - [Text](#types-Text)
   - [TokenId](#types-TokenId)
   - [TokenMetadata](#types-TokenMetadata)
@@ -95,11 +96,11 @@ This smart contract is developed in Haskell using the [Morley framework](https:/
 
 There are multiple ways to interact with this contract:
 
-* Use this contract in your Haskell application, thus all operation submissions should be handled separately, e.g. via calling `tezos-client`, which will communicate with the `tezos-node`. In order to be able to call `tezos-client` you'll need to be able to construct Michelson values from Haskell.
+* Use this contract in your Haskell application, thus all operation submissions should be handled separately, e.g. via calling `octez-client`, which will communicate with the `octez-node`. In order to be able to call `octez-client` you'll need to be able to construct Michelson values from Haskell.
 
-  The easiest way to do that is to serialize Haskell value using `lPackValue` function from [`Lorentz.Pack`](https://gitlab.com/morley-framework/morley/-/blob/2441e26bebd22ac4b30948e8facbb698d3b25c6d/code/lorentz/src/Lorentz/Pack.hs) module, encode resulting bytestring to hexadecimal representation using `encodeHex` function. Resulting hexadecimal encoded bytes sequence can be decoded back to Michelson value via `tezos-client unpack michelson data`.
+  The easiest way to do that is to serialize Haskell value using `lPackValue` function from [`Lorentz.Pack`](https://gitlab.com/morley-framework/morley/-/blob/2441e26bebd22ac4b30948e8facbb698d3b25c6d/code/lorentz/src/Lorentz/Pack.hs) module, encode resulting bytestring to hexadecimal representation using `encodeHex` function. Resulting hexadecimal encoded bytes sequence can be decoded back to Michelson value via `octez-client unpack michelson data`.
 
-  Reverse conversion from Michelson value to the Haskell value can be done by serializing Michelson value using `tezos-client hash data` command, resulting `Raw packed data` should be decoded from the hexadecimal representation using `decodeHex` and deserialized to the Haskell value via `lUnpackValue` function from [`Lorentz.Pack`](https://gitlab.com/morley-framework/morley/-/blob/2441e26bebd22ac4b30948e8facbb698d3b25c6d/code/lorentz/src/Lorentz/Pack.hs).
+  Reverse conversion from Michelson value to the Haskell value can be done by serializing Michelson value using `octez-client hash data` command, resulting `Raw packed data` should be decoded from the hexadecimal representation using `decodeHex` and deserialized to the Haskell value via `lUnpackValue` function from [`Lorentz.Pack`](https://gitlab.com/morley-framework/morley/-/blob/2441e26bebd22ac4b30948e8facbb698d3b25c6d/code/lorentz/src/Lorentz/Pack.hs).
 
 * Construct values for this contract directly on Michelson level using types provided in the documentation.
 
@@ -477,7 +478,7 @@ provided migration lambda.
 
 
 **Argument:** 
-  + **In Haskell:** (***currentVersion*** : [`Version`](#types-Version), ***newVersion*** : [`Version`](#types-Version), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript) [`Store template V0`](#ustore-template-Store-template-V0) [`Some`](#ustore-template-Some), ***newCode*** : [`Maybe`](#types-Maybe) [`UContractRouter`](#types-UContractRouter), ***newPermCode*** : [`Maybe`](#types-Maybe) [`PermanentImpl`](#types-PermanentImpl))
+  + **In Haskell:** (***currentVersion*** : [`Version`](#types-Version), ***newVersion*** : [`Version`](#types-Version), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript) [`Store template V0`](#ustore-template-Store-template-V0) [`Some`](#ustore-template-Some), ***newCode*** : [`Maybe`](#types-Maybe) [`UContractRouter`](#types-UContractRouter), ***newPermCode*** : [`Maybe`](#types-Maybe) ([`SomePermanentImpl`](#types-SomePermanentImpl) [`Empty`](#types-Empty)))
   + **In Michelson:** `(pair (pair nat nat) (lambda (big_map bytes bytes) (big_map bytes bytes)) (option (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))) (option (lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))))`
     + **Example:** <span id="example-id">`{ Pair 0 0; { PUSH string "lambda sample"; FAILWITH }; Some { PUSH string "lambda sample"; FAILWITH }; Some { PUSH string "lambda sample"; FAILWITH } }`</span>
 
@@ -1282,7 +1283,7 @@ Parameter which does not have unsafe arguments, like raw `Contract p` values.
 
 **Structure:** *one of* 
 + **Run**[`UParam`](#types-Upgradable-parameter)
-+ **Upgrade**(***currentVersion*** : [`Version`](#types-Version), ***newVersion*** : [`Version`](#types-Version), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript) [`Store template V0`](#ustore-template-Store-template-V0) [`Some`](#ustore-template-Some), ***newCode*** : [`Maybe`](#types-Maybe) [`UContractRouter`](#types-UContractRouter), ***newPermCode*** : [`Maybe`](#types-Maybe) [`PermanentImpl`](#types-PermanentImpl))
++ **Upgrade**(***currentVersion*** : [`Version`](#types-Version), ***newVersion*** : [`Version`](#types-Version), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript) [`Store template V0`](#ustore-template-Store-template-V0) [`Some`](#ustore-template-Some), ***newCode*** : [`Maybe`](#types-Maybe) [`UContractRouter`](#types-UContractRouter), ***newPermCode*** : [`Maybe`](#types-Maybe) ([`SomePermanentImpl`](#types-SomePermanentImpl) [`Empty`](#types-Empty)))
 + **EpwBeginUpgrade**(***current*** : [`Version`](#types-Version), ***new*** : [`Version`](#types-Version))
 + **EpwApplyMigration**(***migrationscript*** : [`MigrationScript`](#types-MigrationScript) [`Store template V0`](#ustore-template-Store-template-V0) [`Some`](#ustore-template-Some))
 + **EpwSetCode**(***contractcode*** : [`UContractRouter`](#types-UContractRouter))
@@ -1327,6 +1328,18 @@ Implementation of permanent entrypoints.
 Set primitive.
 
 **Final Michelson representation (example):** `Set Integer` = `set int`
+
+
+
+<a name="types-SomePermanentImpl"></a>
+
+---
+
+### `SomePermanentImpl`
+
+Implementation of permanent entrypoints that doesn't remember any other details.
+
+**Final Michelson representation:** `lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))`
 
 
 
@@ -1462,7 +1475,7 @@ Read more in [A1 conventions document](https://gitlab.com/tzip/tzip/-/blob/c42e3
 
 When both `i` and `o` are of length 1, this primitive corresponds to the Michelson lambda. In more complex cases code is surrounded with `pair`and `unpair` instructions until fits into mentioned restriction.
 
-**Final Michelson representation (example):** `Code [Integer, Natural, MText, ()] [ByteString]` = `lambda (pair int nat string unit) bytes`
+**Final Michelson representation (example):** `WrappedLambda [Integer, Natural, MText, ()] [ByteString]` = `lambda (pair int nat string unit) bytes`
 
 
 
