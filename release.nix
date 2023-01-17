@@ -1,8 +1,7 @@
 # SPDX-FileCopyrightText: 2019 Bitcoin Suisse
 #
 # SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
-let sources = import ./nix/sources.nix;
-in { pkgs ? import sources.nixpkgs { } }:
+{ pkgs ? (import ./ci.nix).pkgs }:
 with pkgs;
 
 let

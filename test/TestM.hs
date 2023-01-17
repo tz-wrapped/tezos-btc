@@ -107,7 +107,7 @@ data Handlers m = Handlers
   , hGetChainId :: m ChainId
   , hGetBigMapValuesAtBlock  :: BlockId -> Natural -> Maybe Natural -> Maybe Natural -> m Expression
   , hGetManagerKeyAtBlock :: BlockId -> ImplicitAddress -> m (Maybe PublicKey)
-  , hGetDelegateAtBlock :: BlockId -> ContractAddress -> m (Maybe KeyHash)
+  , hGetDelegateAtBlock :: BlockId -> L1Address -> m (Maybe KeyHash)
 
   -- HasTezosClient
   , hSignBytes :: ImplicitAddressOrAlias -> Maybe ScrubbedBytes -> ByteString -> m Signature
@@ -115,13 +115,10 @@ data Handlers m = Handlers
   , hGenFreshKey :: ImplicitAlias -> m ImplicitAddress
   , hRevealKey :: ImplicitAlias -> Maybe ScrubbedBytes -> m ()
   , hWaitForOperation :: m OperationHash -> m OperationHash
-  , hRememberContract :: Bool -> ContractAddress -> ContractAlias -> m ()
-  , hResolveAddressMaybe :: forall kind. AddressOrAlias kind -> m (Maybe (KindedAddress kind))
-  , hGetAlias :: forall kind. AddressOrAlias kind -> m (Alias kind)
+  , hRememberContract :: AliasBehavior -> ContractAddress -> ContractAlias -> m ()
   , hGetPublicKey :: ImplicitAddressOrAlias -> m PublicKey
   , hGetTezosClientConfig :: m TezosClientConfig
   , hGetKeyPassword :: ImplicitAddress -> m (Maybe ScrubbedBytes)
-  , hRegisterDelegate :: ImplicitAlias -> Maybe ScrubbedBytes -> m ()
 
   , hLookupEnv :: m AppEnv
   , hWithLocal :: forall a. (AppEnv -> AppEnv) -> m a -> m a
@@ -129,6 +126,7 @@ data Handlers m = Handlers
   , hLogAction :: ClientLogAction m
   , hGetBlockOperationHashes :: BlockId -> m [[OperationHash]]
   , hGetScriptSizeAtBlock :: BlockId -> CalcSize -> m ScriptSize
+  , hGetAliasesAndAddresses :: m [(Text, Text)]
   }
 
 getHandler :: (Handlers TestM -> fn) -> TestM fn
@@ -251,18 +249,10 @@ instance HasTezosClient TestM where
   rememberContract replaceExisting addr alias = do
     h <- getHandler hRememberContract
     h replaceExisting addr alias
-  resolveAddressMaybe addr = do
-    h <- asks (unMyHandlers . fst)
-    hResolveAddressMaybe h addr
-  getAlias originator = do
-    h <- asks (unMyHandlers . fst)
-    hGetAlias h originator
   getKeyPassword addr = do
     h <- getHandler hGetKeyPassword
     h addr
-  registerDelegate kh pw = do
-    h <- getHandler hRegisterDelegate
-    h kh pw
+  getAliasesAndAddresses = join $ getHandler hGetAliasesAndAddresses
 
 instance ExtTezosClient TestM where
   getPublicKey a = do

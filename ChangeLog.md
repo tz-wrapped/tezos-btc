@@ -11,6 +11,9 @@ Changes that affect Michelson code are tagged with `[CONTRACT]`.
 Unreleased
 ==========
 
+* [184](https://github.com/tz-wrapped/tezos-btc/pull/184)
+  Morley dependencies updated to provide changes for Lima protocol support.
+
 0.9.0
 ==========
 * [180](https://github.com/tz-wrapped/tezos-btc/pull/180)

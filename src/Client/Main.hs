@@ -17,8 +17,7 @@ import Lorentz.Contracts.Multisig
 import Morley.Client.Logging (WithClientLog)
 import Morley.Client.RPC.Class
 import Morley.Client.TezosClient.Class
-import Morley.Michelson.Typed (UnpackedValScope)
-import Morley.Tezos.Address (ConstrainedAddress(..))
+import Morley.Tezos.Address (Constrained(..))
 import Morley.Tezos.Address.Alias (ContractAddressOrAlias)
 import Morley.Util.Named
 import Morley.Util.TypeLits
@@ -164,7 +163,7 @@ mainProgram cmd = case cmd of
       Left err -> printTextLn err
       Right packages -> runMultisigContract packages
   CmdDeployContract (arg #owner -> mOwner) deployOptions -> do
-    owner <- maybe (MkConstrainedAddress <$> getTzbtcUserAddress) addressOrAliasToAddr mOwner
+    owner <- maybe (Constrained <$> getTzbtcUserAddress) addressOrAliasToAddr mOwner
     let toDeployParamsV1 :: DeployContractOptionsV1 -> m V1DeployParameters
         toDeployParamsV1 DeployContractOptionsV1{..} = do
           redeem <- addressOrAliasToAddr dcoRedeem
@@ -202,7 +201,7 @@ mainProgram cmd = case cmd of
           _ -> printStringLn "Unable to call multisig for View_ entrypoints"
         Nothing -> runTzbtcContract param
     printFieldFromStorage
-      :: forall t name. (HasStoreTemplateField t name, Buildable t, UnpackedValScope (ToT t))
+      :: forall t name. (HasStoreTemplateField t name, Buildable t)
       => Label name -> Text -> m ()
     printFieldFromStorage _ descr = do
       mbField <- getFieldFromTzbtcUStore @name @t
@@ -214,7 +213,6 @@ mainProgram cmd = case cmd of
       forall a name.
       ( HasStoreTemplateField a name, Buildable a
       , NiceParameterFull a, NoExplicitDefaultEntrypoint a
-      , UnpackedValScope (ToT a)
       ) =>
       Label name -> Text -> (View_ () a -> FlatParameter SomeTZBTCVersion) ->
       Maybe ContractAddressOrAlias -> m ()

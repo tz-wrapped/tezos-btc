@@ -97,7 +97,7 @@ data SafeParameter (ver :: VersionKind)
   | Unpause             !()
   | TransferOwnership   !TransferOwnershipParams
   | AcceptOwnership     !AcceptOwnershipParams
-  deriving stock (Eq, Generic, Show)
+  deriving stock (Generic, Show)
 
 deriving anyclass instance IsoValue (VerPermanent ver) => IsoValue (SafeParameter ver)
 
@@ -130,7 +130,7 @@ data Parameter (ver :: VersionKind)
   | GetRedeemAddress    !(View_ () Address)
   | GetTokenMetadata    !(View_ [TokenId] [TokenMetadata])
   | SafeEntrypoints !(SafeParameter ver)
-  deriving stock (Eq, Generic, Show)
+  deriving stock (Generic, Show)
 
 deriving anyclass instance IsoValue (VerPermanent ver) => IsoValue (Parameter ver)
 
