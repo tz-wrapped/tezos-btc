@@ -1,14 +1,11 @@
 # SPDX-FileCopyrightText: 2019 Bitcoin Suisse
 #
 # SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
+
 rec {
   sources = import ./nix/sources.nix;
-  haskellNix = import sources."haskell.nix" {
-    sourcesOverride = { hackage = sources."hackage.nix"; stackage = sources."stackage.nix"; };
-  };
-  pkgs = import sources.nixpkgs haskellNix.nixpkgsArgs;
-  xrefcheck = import sources.xrefcheck;
   morley-infra = import sources.morley-infra;
+  pkgs = morley-infra.legacyPackages.${builtins.currentSystem};
 
   inherit (morley-infra) tezos-client weeder-hacks run-chain-tests;
 

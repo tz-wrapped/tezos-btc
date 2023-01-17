@@ -27,7 +27,7 @@ steps:
   - label: xrefcheck
     if: *not_scheduled_autodoc
     commands:
-    - nix shell -f ci.nix xrefcheck -c xrefcheck
+    - nix shell -f ci.nix pkgs.xrefcheck -c xrefcheck
 
   - label: build
     key: build
@@ -43,11 +43,11 @@ steps:
     - nix-build ci.nix -A tzbtc.components.tests.tzbtc-test
     - ./result/bin/tzbtc-test --cleveland-mode=disable-network
 
-  - label: test-local-chain-014
+  - label: test-local-chain-015
     if: *not_scheduled_autodoc
     depends_on: build
     env:
-      TASTY_CLEVELAND_NODE_ENDPOINT: "http://localhost:8733"
+      TASTY_CLEVELAND_NODE_ENDPOINT: "http://localhost:8734"
       CHAIN_TEST_MONEYBAG_SECRET_KEY: "unencrypted:edsk3D3Gx5q6mVL4jCAuFCoekWjM6hzrmSA3MCtDUnMAjxmxJ2rtes"
       # this key is defined in local-chain bootstrap accounts list in
       # https://github.com/serokell/aquarius-infra/blob/master/servers/albali/chain.nix
@@ -67,11 +67,11 @@ steps:
       automatic:
         limit: 1
 
-  - label: scheduled kathmandunet test
+  - label: scheduled limanet test
     if: build.source == "schedule"
     depends_on: build
     env:
-      TASTY_CLEVELAND_NODE_ENDPOINT: "https://kathmandu.testnet.tezos.serokell.team"
+      TASTY_CLEVELAND_NODE_ENDPOINT: "https://lima.testnet.tezos.serokell.team"
       CHAIN_TEST_MONEYBAG_SECRET_KEY: "$TESTNET_MONEYBAG"
       CHAIN_TEST_MONEYBAG_PASSWORD: "$TESTNET_MONEYBAG_PASSWORD"
     commands: *run-nettest
@@ -95,7 +95,7 @@ steps:
     commands:
     - nix run -f ci.nix pkgs.bats tzbtc.components.exes.tzbtc
         -c bats bats/tzbtc.bats
-    - nix run -f ci.nix pkgs.bats tezos-client tzbtc.components.exes.tzbtc-client
+    - nix run -f ci.nix pkgs.bats pkgs.tezos-client tzbtc.components.exes.tzbtc-client
         -c bats bats/tzbtc-client.bats
 
   - label: contract-doc
@@ -135,7 +135,7 @@ steps:
       else CONTRACT_DOC_STEP="contract-doc";
       fi
     - buildkite-agent artifact download TZBTC-contract.md tmp/ --step "$$CONTRACT_DOC_STEP"
-    - nix shell -f ci.nix xrefcheck -c xrefcheck --root tmp
+    - nix shell -f ci.nix pkgs.xrefcheck -c xrefcheck --root tmp
 
   - label: autodoc upload
     if: *not_scheduled_master

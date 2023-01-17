@@ -29,7 +29,6 @@ library:
     - bytestring
     - cleveland
     - co-log
-    - constraints
     - containers
     - directory
     - hex-text
@@ -43,7 +42,6 @@ library:
     - morley-client
     - named
     - optparse-applicative
-    - singletons
     - megaparsec
     - text
     - transformers

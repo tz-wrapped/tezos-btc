@@ -22,15 +22,14 @@ import Text.Megaparsec.Char.Lexer (symbol)
 import Text.Megaparsec.Error (ParseErrorBundle, ShowErrorComponent(..))
 
 import Lorentz.Contracts.Multisig
-import Morley.CLI (addressOrAliasOption, mutezOption)
+import Morley.CLI (addressOrAliasOption, mutezOption, someAddressOrAliasOption)
 import Morley.Client.Parser (clientConfigParser)
 import Morley.Tezos.Address
-import Morley.Tezos.Address.Alias (ContractAddressOrAlias)
+import Morley.Tezos.Address.Alias (ContractAddressOrAlias, SomeAddressOrAlias)
 import Morley.Tezos.Crypto (PublicKey, Signature, parsePublicKey, parseSignature)
 import Morley.Util.CLI
 import Morley.Util.Named
 
-import CLI.L1AddressOrAlias
 import CLI.Parser
 import Client.Types
 import Lorentz.Contracts.TZBTC.Common.Types
@@ -333,14 +332,14 @@ clientArgRawParser = Opt.hsubparser $
     callbackParser = optional $
       addressOrAliasOption Nothing (#name :! "callback") (#help :! "Callback address")
 
-addrOrAliasOption :: String -> String -> Opt.Parser L1AddressOrAlias
+addrOrAliasOption :: String -> String -> Opt.Parser SomeAddressOrAlias
 addrOrAliasOption name hInfo =
-  l1AddressOrAliasOption Nothing (#name :! name) (#help :! hInfo)
+  someAddressOrAliasOption Nothing (#name :! name) (#help :! hInfo)
 
-mbAddrOrAliasOption :: String -> String -> Opt.Parser (Maybe L1AddressOrAlias)
+mbAddrOrAliasOption :: String -> String -> Opt.Parser (Maybe SomeAddressOrAlias)
 mbAddrOrAliasOption = optional ... addrOrAliasOption
 
-addrOrAliasArg :: String -> Opt.Parser L1AddressOrAlias
+addrOrAliasArg :: String -> Opt.Parser SomeAddressOrAlias
 addrOrAliasArg hInfo = mkCLArgumentParser Nothing (#help :! hInfo)
 
 natOption :: String -> String -> Opt.Parser Natural

@@ -56,8 +56,7 @@ import Morley.Michelson.Interpret.Pack (packValue')
 import Morley.Michelson.Interpret.Unpack (unpackValue')
 import Morley.Michelson.Parser.Types (MichelsonSource(..))
 import Morley.Michelson.Runtime (parseExpandContract)
-import Morley.Michelson.Typed
-  (SomeConstrainedValue(SomeConstrainedValue), UnpackedValScope, Value'(VPair), convertContract)
+import Morley.Michelson.Typed (UnpackedValScope, Value'(VPair), convertContract)
 import Morley.Michelson.Untyped qualified as U
 import Morley.Michelson.Untyped.Entrypoints (mkEntrypointsMap)
 import Morley.Tezos.Address
@@ -97,7 +96,7 @@ readUStore bmId ref = do
     refToKey = \case
       UrField field ->
         mkFieldMarkerUKey @UMarkerPlainField field
-      UrSubmap field (SomeConstrainedValue key) ->
+      UrSubmap field (Constrained key) ->
         packValue' @(UStoreSubmapKeyT _) $ VPair (toVal field, key)
 
 newtype TUStoreElemRef t = TUStoreElemRef UStoreElemRef
@@ -206,7 +205,7 @@ initialSupply = 500
 -- test fails. If the tzbtc parameter has to be changed, then this test should
 -- be fixed by editing the `tzbtc-parameter-entrypoints-ref.tz` file.
 entrypointsRef :: IO (Map EpName U.Ty)
-entrypointsRef = mkEntrypointsMap <$> tzbtcParameterType
+entrypointsRef = mkEntrypointsMap U.WithImplicitDefaultEp <$> tzbtcParameterType
   where
     tzbtcParameterType :: IO U.ParameterType
     tzbtcParameterType = do
