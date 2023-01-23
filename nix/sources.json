@@ -1,9 +1,0 @@
-{
-    "morley-infra": {
-        "rev": "4fb8c45107f4266075c2da81742341ad440a699a",
-        "sha256": "0g2walab21ra2al9sl2ahd884hmn251cl80sw4h5pxan6v9lrgas",
-        "type": "tarball",
-        "url": "https://gitlab.com/morley-framework/morley-infra/-/archive/4fb8c45107f4266075c2da81742341ad440a699a/morley-infra-4fb8c45107f4266075c2da81742341ad440a699a.tar.gz",
-        "url_template": "https://gitlab.com/morley-framework/morley-infra/-/archive/<rev>/morley-infra-<rev>.tar.gz"
-    }
-}

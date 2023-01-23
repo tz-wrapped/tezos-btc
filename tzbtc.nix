@@ -73,8 +73,6 @@ with rec {
         };
       };
   };
-
-  tzbtc = hs-pkgs.tzbtc;
 };
 
-tzbtc
+hs-pkgs
