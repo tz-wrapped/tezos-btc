@@ -10,37 +10,31 @@ steps:
     if: &not_scheduled_autodoc
       build.branch != "autodoc/master" && build.branch != "master" && build.source != "schedule"
     commands:
-    - nix run -f ci.nix pkgs.hlint -c
+    - nix shell .#haskellPackages.hlint -c
         ./scripts/lint.sh
 
-  - label: reuse lint
+  - label: check
     if: *not_scheduled_autodoc
     commands:
-    - nix run -f ci.nix pkgs.reuse -c
-        reuse lint
-
-  - label: check trailing whitespace
-    if: *not_scheduled_autodoc
-    commands:
-    - .buildkite/check-trailing-whitespace.sh
+    - nix flake check -L
 
   - label: xrefcheck
     if: *not_scheduled_autodoc
     commands:
-    - nix shell -f ci.nix pkgs.xrefcheck -c xrefcheck
+    - nix shell .#xrefcheck --impure -c xrefcheck
 
   - label: build
     key: build
     if: *not_scheduled_autodoc
     depends_on: hlint
     commands:
-    - nix-build ci.nix -A all-components
+    - nix build -L .#all-components
 
   - label: test
     if: *not_scheduled_autodoc
     depends_on: build
     commands:
-    - nix-build ci.nix -A tzbtc.components.tests.tzbtc-test
+    - nix build .#tzbtc:test:tzbtc-test
     - ./result/bin/tzbtc-test --cleveland-mode=disable-network
 
   - label: test-local-chain-015
@@ -52,17 +46,17 @@ steps:
       # this key is defined in local-chain bootstrap accounts list in
       # https://github.com/serokell/aquarius-infra/blob/master/servers/albali/chain.nix
     commands: &run-nettest
-    - export PATH=$(nix-build ci.nix -A tzbtc.components.exes.tzbtc-client)/bin:$PATH
-    - nix-build ci.nix -A tzbtc.components.tests.tzbtc-test
+    - export PATH=$(nix build .#tzbtc:exe:tzbtc-client --print-out-paths)/bin:$PATH
+    - nix build -L .#tzbtc:test:tzbtc-test --out-link tzbtc-test
     # Note that 'refill-balance' below is the initial 'TASTY_CLEVELAND_MONEYBAG_SECRET_KEY' balance
     # which may need to be adjusted in case of insufficient balance errors
-    - $(nix-build ci.nix -A run-chain-tests
+    - $(nix-build . -A utils.run-chain-tests
         --argstr refill-balance 3300
         --argstr node-endpoint "$$TASTY_CLEVELAND_NODE_ENDPOINT"
         --argstr step-moneybag "$$CHAIN_TEST_MONEYBAG_SECRET_KEY"
         --argstr step-moneybag-password "$$CHAIN_TEST_MONEYBAG_PASSWORD"
         --no-out-link
-        --argstr scenario './result/bin/tzbtc-test --cleveland-mode=only-network')
+        --argstr scenario './tzbtc-test/bin/tzbtc-test --cleveland-mode=only-network')
     retry: &retry-nettest
       automatic:
         limit: 1
@@ -84,18 +78,18 @@ steps:
     if: *not_scheduled_autodoc
     depends_on: build
     commands:
-    - nix-build ci.nix -A weeder-script
+    - nix build -L .#weeder-script
       # weeder needs .cabal file:
-    - nix run -f ci.nix pkgs.haskellPackages.hpack -c hpack
+    - nix shell .#haskellPackages.hpack -c hpack
     - ./result
 
   - label: bats
     if: *not_scheduled_autodoc
     depends_on: build
     commands:
-    - nix run -f ci.nix pkgs.bats tzbtc.components.exes.tzbtc
+    - nix shell .#bats .#tzbtc:exe:tzbtc
         -c bats bats/tzbtc.bats
-    - nix run -f ci.nix pkgs.bats pkgs.tezos-client tzbtc.components.exes.tzbtc-client
+    - nix shell .#bats .#tezos-client .#tzbtc:exe:tzbtc-client
         -c bats bats/tzbtc-client.bats
 
   - label: contract-doc
@@ -103,7 +97,7 @@ steps:
     if: *not_scheduled_autodoc
     depends_on: build
     commands:
-    - nix-build ci.nix -A contract-doc-dev
+    - nix build -L .#contract-doc-dev
     - ln -s ./result/TZBTC-contract.md TZBTC-contract.md
     artifact_paths:
       - TZBTC-contract.md
@@ -115,7 +109,7 @@ steps:
       build.branch == "master" && build.source != "schedule"
     depends_on: build
     commands:
-    - nix-build ci.nix -A contract-doc-release
+    - nix-build . -A utils.contract-doc-release
         --argstr sha "$(git rev-parse HEAD)"
         --argstr date "$(git log HEAD -1 --format=%cd)"
     - ln -s ./result/TZBTC-contract.md TZBTC-contract.md
@@ -135,7 +129,7 @@ steps:
       else CONTRACT_DOC_STEP="contract-doc";
       fi
     - buildkite-agent artifact download TZBTC-contract.md tmp/ --step "$$CONTRACT_DOC_STEP"
-    - nix shell -f ci.nix pkgs.xrefcheck -c xrefcheck --root tmp
+    - nix shell .#xrefcheck --impure -c xrefcheck --root tmp
 
   - label: autodoc upload
     if: *not_scheduled_master
@@ -151,9 +145,9 @@ steps:
     key: packaging
     if: build.branch != "autodoc/master" && build.source != "schedule"
     commands:
-    - nix-build release.nix -A static -o tzbtc-static
-    - nix-build release.nix -A deb -o tzbtc-client-deb
-    - nix-build release.nix -A rpm -o tzbtc-client-rpm
+    - nix-build -A release.static -o tzbtc-static
+    - nix-build -A release.deb -o tzbtc-client-deb
+    - nix-build -A release.rpm -o tzbtc-client-rpm
     artifact_paths:
       - ./tzbtc-static/bin/tzbtc-client
       - ./tzbtc-client-deb/*
@@ -172,10 +166,10 @@ steps:
     - cp tzbtc-client-deb/*.deb assets/
     - cp tzbtc-client-rpm/*.rpm assets/
     # delete existing auto-release if present
-    - nix run -f ci.nix pkgs.gitAndTools.gh -c gh release delete auto-release --yes || true
-    - nix run -f ci.nix pkgs.git -c git fetch && git tag -f auto-release && git push --force --tags
-    - nix run -f ci.nix pkgs.gitAndTools.gh -c gh release create --prerelease auto-release --title auto-release --notes ""
-    - nix run -f ci.nix pkgs.gitAndTools.gh -c gh release upload auto-release assets/*
+    - nix shell .#gitAndTools.gh -c gh release delete auto-release --yes || true
+    - nix shell .#git -c git fetch && git tag -f auto-release && git push --force --tags
+    - nix shell .#gitAndTools.gh -c gh release create --prerelease auto-release --title auto-release --notes ""
+    - nix shell .#gitAndTools.gh -c gh release upload auto-release assets/*
 
 notify:
   - email: "tezos-alerts@serokell.io"
