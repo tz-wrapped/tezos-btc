@@ -1,11 +1,10 @@
 # SPDX-FileCopyrightText: 2019 Bitcoin Suisse
 #
 # SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
-{ pkgs ? (import ./ci.nix).pkgs }:
+{ pkgs }:
 with pkgs;
 
 let
-  tzbtc-static = (import ./ci.nix).tzbtc-release.components.exes.tzbtc-client;
   root = ./.;
   packageDesc = {
     project = "tzbtc-client";
