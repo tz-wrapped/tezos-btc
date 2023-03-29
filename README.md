@@ -4,6 +4,10 @@
  - SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
  -->
 
+> :warning: **Note:** [Morley framework](https://gitlab.com/morley-framework/) and set of tools are planned for deprecation after protocol "N".
+>
+> This smart contract will no longer be actively developed then, but future bugs or security issues will be addressed.
+
 # TZBTC
 
 [![Build status](https://badge.buildkite.com/aecd40f89a7a0f1b78495ee2afc40ec575de85e18d42116186.svg?branch=master)](https://buildkite.com/serokell/tezos-btc)
