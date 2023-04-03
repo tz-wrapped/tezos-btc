@@ -14,6 +14,7 @@ import Fmt (Buildable, pretty)
 import Lorentz hiding (address, balance, chainId, cons, map)
 import Lorentz.Contracts.Metadata
 import Lorentz.Contracts.Multisig
+import Morley.Client (awaAddress)
 import Morley.Client.Logging (WithClientLog)
 import Morley.Client.RPC.Class
 import Morley.Client.TezosClient.Class
@@ -163,7 +164,7 @@ mainProgram cmd = case cmd of
       Left err -> printTextLn err
       Right packages -> runMultisigContract packages
   CmdDeployContract (arg #owner -> mOwner) deployOptions -> do
-    owner <- maybe (Constrained <$> getTzbtcUserAddress) addressOrAliasToAddr mOwner
+    owner <- maybe (Constrained . awaAddress <$> getTzbtcUserAddress) addressOrAliasToAddr mOwner
     let toDeployParamsV1 :: DeployContractOptionsV1 -> m V1DeployParameters
         toDeployParamsV1 DeployContractOptionsV1{..} = do
           redeem <- addressOrAliasToAddr dcoRedeem

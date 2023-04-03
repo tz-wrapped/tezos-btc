@@ -29,6 +29,8 @@ import Lorentz.Contracts.TZBTC.V0 qualified as V0
 import Lorentz.Contracts.TZBTC.V1 qualified as V1
 import Lorentz.Contracts.TZBTC.V2 qualified as V2
 import Morley.Michelson.Parser.Types
+import Morley.Michelson.Printer (printUntypedValue)
+import Morley.Michelson.Typed (untypeValueOptimized)
 import Util.AbstractIO
 import Util.Migration
 
@@ -43,7 +45,9 @@ main = do
         then printContract singleLine mbFilePath (multisigContract @'CustomErrors)
         else printContract singleLine mbFilePath (multisigContract @'BaseErrors)
     CmdPrintInitialStorage ownerAddress -> do
-      printTextLn $ printLorentzValue True (mkEmptyStorageV0 ownerAddress)
+      let printLorentzValueOptimized forceSingleLine =
+            printUntypedValue forceSingleLine . untypeValueOptimized . toVal
+      printTextLn $ printLorentzValueOptimized True (mkEmptyStorageV0 ownerAddress)
     CmdPrintDoc ver mbFilePath -> let
       gitRev =
         $mkDGitRevision $ GitRepoSettings $

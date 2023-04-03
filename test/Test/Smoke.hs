@@ -81,7 +81,7 @@ dummyV2Parameters = dummyV1Parameters
 
 newtype TestUpgrade m = TestUpgrade
   { unTestUpgrade
-      :: ImplicitAddress  --- ^ Admin's address
+      :: ImplicitAddressWithAlias  --- ^ Admin's address
       -> ImplicitAddress --- ^ Redeem address
       -> Map Address Natural --- ^ Initial balances
       -> ContractHandle (Parameter TZBTCv0) (Storage TZBTCv0) ()
@@ -156,7 +156,7 @@ simpleScenario upg = do
     pure (av, nv, tmv)
 
   -- Run upgrade
-  unTestUpgrade upg admin admin mempty tzbtc
+  unTestUpgrade upg admin (toImplicitAddress admin) mempty tzbtc
 
   let
     fromFlatParameterV1  :: FlatParameter SomeTZBTCVersion -> Parameter SomeTZBTCVersion
@@ -282,6 +282,7 @@ nettestImplTzbtcClient env sender = impl { coiRunOperationBatch = concatMapM run
       OpTransfer td -> tzbtcClientTransfer td >> pure [OpTransfer []]
       OpReveal _ -> error "Reveal operation is not supported"
       OpDelegation _ -> error "Delegation operation is not supported"
+      OpTransferTicket _ -> error "Transfer_ticket operation is not supported"
     impl = networkOpsImpl env sender
 
     tezosClientEnv = mceTezosClient env
@@ -289,15 +290,15 @@ nettestImplTzbtcClient env sender = impl { coiRunOperationBatch = concatMapM run
       [ "-E", TezosClient.toCmdArg $ tceEndpointUrl tezosClientEnv
       ] <> (maybe [] (\dataDir -> ["-d", dataDir]) $ tceMbTezosClientDataDir tezosClientEnv)
 
-    tzbtcClientOriginate :: UntypedOriginateData 'NotLarge -> ClientM [OperationInfo ClevelandResult]
-    tzbtcClientOriginate od@(UntypedOriginateData {..}) =
-      if uodName == "TZBTCContract" then do
+    tzbtcClientOriginate :: SomeOriginateData 'NotLarge -> ClientM [OperationInfo ClevelandResult]
+    tzbtcClientOriginate od@(SomeOriginateData OriginateData {..}) =
+      if odName == "TZBTCContract" then do
         let senderAddr = unSender sender
         output <- liftIO $ callTzbtcClient $ tzbtcClientEnvArgs <>
           [ "deployTzbtcContract"
-          , "--owner", TezosClient.toCmdArg senderAddr
-          , "--redeem", TezosClient.toCmdArg senderAddr
-          , "--user", TezosClient.toCmdArg senderAddr
+          , "--owner", TezosClient.toCmdArg $ toImplicitAddress senderAddr
+          , "--redeem", TezosClient.toCmdArg $ toImplicitAddress senderAddr
+          , "--user", TezosClient.toCmdArg $ toImplicitAddress senderAddr
           ]
         case parseContractAddressFromOutput output of
           Right a -> pure [OpOriginate a]
@@ -398,7 +399,7 @@ nettestImplTzbtcClient env sender = impl { coiRunOperationBatch = concatMapM run
         callMorleyClient = coiRunOperationBatch impl [OpTransfer td] >> pass
         callTzbtc :: [String] -> ClientM ()
         callTzbtc args = void $ liftIO $ callTzbtcClient $
-          tzbtcClientEnvArgs <> args <> ["--user", TezosClient.toCmdArg (unSender sender)
+          tzbtcClientEnvArgs <> args <> ["--user", TezosClient.toCmdArg $ toImplicitAddress $ unSender sender
                                         , "--contract-addr", TezosClient.toCmdArg $ toAddress $ toL1Address tdTo
                                         ]
 

@@ -15,9 +15,9 @@ import Test.Tasty.HUnit (testCase)
 
 import Lorentz hiding (assert, chainId)
 import Lorentz.Contracts.Multisig
+import Lorentz.Contracts.Test.ManagedLedger (OriginationParams(..))
 import Lorentz.Contracts.TZBTC as TZBTC
 import Lorentz.Contracts.TZBTC.Types qualified as TZBTCTypes (SafeParameter(..))
-import Lorentz.Contracts.Test.ManagedLedger (OriginationParams(..))
 import Morley.Tezos.Address
 import Morley.Tezos.Core (dummyChainId)
 import Morley.Tezos.Crypto
@@ -279,7 +279,7 @@ test_multisig = testGroup "TZBTC contract multi-sig functionality test"
       admin <- refillable $ newAddress auto
       chainId <- getChainId
       redeem <- newFreshAddress "redeem"
-      tzbtc <- originateTzbtcV1ContractRaw redeem $ OriginationParams
+      tzbtc <- originateTzbtcV1ContractRaw admin (toImplicitAddress redeem) $ OriginationParams
         { opAdmin = toAddress admin
         , opBalances = mempty
         }

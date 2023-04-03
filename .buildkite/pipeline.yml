@@ -89,7 +89,7 @@ steps:
     commands:
     - nix shell .#bats .#tzbtc:exe:tzbtc
         -c bats bats/tzbtc.bats
-    - nix shell .#bats .#tezos-client .#tzbtc:exe:tzbtc-client
+    - nix shell .#bats .#octez-client .#tzbtc:exe:tzbtc-client
         -c bats bats/tzbtc-client.bats
 
   - label: contract-doc
