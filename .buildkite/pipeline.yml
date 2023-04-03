@@ -37,11 +37,11 @@ steps:
     - nix build .#tzbtc:test:tzbtc-test
     - ./result/bin/tzbtc-test --cleveland-mode=disable-network
 
-  - label: test-local-chain-015
+  - label: test-local-chain-016
     if: *not_scheduled_autodoc
     depends_on: build
     env:
-      TASTY_CLEVELAND_NODE_ENDPOINT: "http://localhost:8734"
+      TASTY_CLEVELAND_NODE_ENDPOINT: "http://localhost:8733"
       CHAIN_TEST_MONEYBAG_SECRET_KEY: "unencrypted:edsk3D3Gx5q6mVL4jCAuFCoekWjM6hzrmSA3MCtDUnMAjxmxJ2rtes"
       # this key is defined in local-chain bootstrap accounts list in
       # https://github.com/serokell/aquarius-infra/blob/master/servers/albali/chain.nix
@@ -61,11 +61,11 @@ steps:
       automatic:
         limit: 1
 
-  - label: scheduled limanet test
+  - label: scheduled mumbainet test
     if: build.source == "schedule"
     depends_on: build
     env:
-      TASTY_CLEVELAND_NODE_ENDPOINT: "https://lima.testnet.tezos.serokell.team"
+      TASTY_CLEVELAND_NODE_ENDPOINT: "https://mumbai.testnet.tezos.serokell.team"
       CHAIN_TEST_MONEYBAG_SECRET_KEY: "$TESTNET_MONEYBAG"
       CHAIN_TEST_MONEYBAG_PASSWORD: "$TESTNET_MONEYBAG_PASSWORD"
     commands: *run-nettest
