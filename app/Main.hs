@@ -142,5 +142,5 @@ usageDoc =
     , linebreak
     , "  This command will return raw Michelson representation", linebreak
     , "  of TZBTC contract storage that can later be used for", linebreak
-    , "  contract origination using tezos-client", linebreak
+    , "  contract origination using octez-client", linebreak
     ]

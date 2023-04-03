@@ -304,10 +304,10 @@ performTzbtcDeployment deployAction = do
   printTextLn $ case mbTzbtcAddress of
     Just c ->
       "Current contract address for alias '" <> contractAlias <>
-      "' in the tezos-client config is " <> formatAddress c <> "."
+      "' in the octez-client config is " <> formatAddress c <> "."
     Nothing ->
       "Right now there is no contract aliased as '" <> contractAlias <>
-      "' in tezos-client config."
+      "' in octez-client config."
   res <- confirmAction $
     "Would you like to add/replace alias '" <> contractAlias <>
     "' with the newly deployed contract?"
@@ -366,10 +366,10 @@ deployMultisigContract msigStorage useCustomErrors = do
   printTextLn $ case mbMsigAddress of
     Just c ->
       "Current contract address for alias '" <> contractAlias <>
-      "' in the tezos-client config is " <> formatAddress c <> "."
+      "' in the octez-client config is " <> formatAddress c <> "."
     Nothing ->
       "Right now there is no contract aliased as '" <> contractAlias <>
-      "' in tezos-client config."
+      "' in octez-client config."
   res <- confirmAction $
     "Would you like to add/replace alias '" <> contractAlias <>
     "' with the newly deployed contract?"

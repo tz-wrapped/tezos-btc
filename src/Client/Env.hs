@@ -100,7 +100,7 @@ instance HasTezosRpc AppM where
 
 class ExtTezosClient m where
   getTezosClientConfig :: m TezosClientConfig
-  -- ^ Retrieve the current @tezos-client@ config.
+  -- ^ Retrieve the current @octez-client@ config.
 
 instance HasTezosClient AppM where
   signBytes = morleyClientMToAppM ... signBytes

@@ -173,7 +173,7 @@ multiSigCreationTestHandlers =
   defaultHandlers
     { hReadFile = \_ -> throwM $ TestError "Unexpected file read"
     , hInjectOperation = \_ -> throwM $ TestError "Unexpected `injectOperation` call"
-    , hGetTezosClientConfig = throwM $ TestError "Unexpected tezos-client get config call"
+    , hGetTezosClientConfig = throwM $ TestError "Unexpected octez-client get config call"
     , hGetAliasesAndAddresses = pure
           [ ("tzbtc", pretty contractAddress)
           , ("tzbtc-multisig", pretty multiSigAddress)
@@ -223,7 +223,7 @@ multiSigCreationWithMSigOverrideTestHandlers =
   defaultHandlers
     { hReadFile = \_ -> throwM $ TestError "Unexpected file read"
     , hInjectOperation = \_ -> throwM $ TestError "Unexpected `injectOperation` call"
-    , hGetTezosClientConfig = throwM $ TestError "Unexpected tezos-client get config call"
+    , hGetTezosClientConfig = throwM $ TestError "Unexpected octez-client get config call"
     , hGetAliasesAndAddresses = pure
         [ ("tzbtc", pretty contractAddress)
         , ("tzbtc-multisig-override", pretty multiSigOverrideAddress)
@@ -277,7 +277,7 @@ test_createMultisigPackageWithMSigOverride = testGroup "Create multisig package 
 
 ---- Test Signing of multisig package
 ---- Checks that the `signPackage` command correctly includes the
----- signature returned by the tezos-client.
+---- signature returned by the octez-client.
 multisigSigningTestHandlers :: Handlers TestM
 multisigSigningTestHandlers =
   defaultHandlers

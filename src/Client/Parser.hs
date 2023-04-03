@@ -268,7 +268,7 @@ clientArgRawParser = Opt.hsubparser $
       "signPackage"
       (CmdSignPackage <$> namedFilePathOption "package" "Package filepath"
       )
-      "Sign given multisig package using secret key from `tezos-client` \
+      "Sign given multisig package using secret key from `octez-client` \
       \assotiated with the user alias from ClientConfig and add signature \
       \to the package."
 
