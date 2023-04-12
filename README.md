@@ -29,13 +29,13 @@ If you want to use `tzbtc-client` on MacOS, you can try [building it from source
 
 ### Executables
 
-In order to use `tzbtc-client` you will need to obtain `tezos-client`
-executable. `tezos-client` is used for key storing, operation signing and ledger interaction.
+In order to use `tzbtc-client` you will need to obtain `octez-client`
+executable. `octez-client` is used for key storing, operation signing and ledger interaction.
 
 Tezos ledger application supports packed value signing since [v2.2.7](https://github.com/obsidiansystems/ledger-app-tezos/releases/tag/v2.2.7).
 In order to use it install the newest version of this app using Ledger Live.
-If you have this version installed, you can use non-patched `tezos-client` binary with `tzbtc-client`.
-Various forms of distribution for `tezos-client` are presented in [tezos-packaging repo](https://github.com/serokell/tezos-packaging).
+If you have this version installed, you can use non-patched `octez-client` binary with `tzbtc-client`.
+Various forms of distribution for `octez-client` are presented in [tezos-packaging repo](https://github.com/serokell/tezos-packaging).
 
 ## `tzbtc-client` executable
 
@@ -49,14 +49,14 @@ Use `tzbtc-client --help` to get a list of available commands.
 #### Setup `tzbtc-client`
 
 `tzbtc-client` program inherits configuration from the configuration of
-`tezos-client`. So you should use it to configure the tezos node, port,
+`octez-client`. So you should use it to configure the tezos node, port,
 https/tls settings for `tzbtc-client` program as well.
 
-The `tezos-client` program is expected to be in the path. You can
+The `octez-client` program is expected to be in the path. You can
 also use the `TZBTC_TEZOS_CLIENT` environment variable to set the
-`tezos-client` program that `tzbtc-client` should use.
+`octez-client` program that `tzbtc-client` should use.
 
-There are also a number of `tezos-client` aliases that `tzbtc-client`
+There are also a number of `octez-client` aliases that `tzbtc-client`
 program expects.
 
 `tzbtc-user` is the alias that will be used to create transactions.
@@ -68,11 +68,11 @@ If there is an existing address that you want to use for tzbtc operations,
 then you probably have to use the force flag to add a duplicate alias as shown below.
 
 ```
-tezos-client add address tzbtc-user tz1RyNvnKnkcD6m9E5VAMxVWVQM5fb9pQo4d --force
+octez-client add address tzbtc-user tz1RyNvnKnkcD6m9E5VAMxVWVQM5fb9pQo4d --force
 ```
 
 But unfortunately, right now there is [a bug](https://gitlab.com/tezos/tezos/issues/653)
-in `tezos-client` that does not allow adding duplicate alias that point to one of the
+in `octez-client` that does not allow adding duplicate alias that point to one of the
 existing aliased address. So instead, you will have to rename the existing alias as
 `tzbtc-user` to use it with `tzbtc-client`. Or you can also override the default
 alias `tzbtc-user` using the `--user` argument, in all the commands.
@@ -87,8 +87,8 @@ Run `tzbtc-client deployTzbtcContract` command passing the desired owner and red
 The `--owner` argument is optional. If left out `tzbtc-user` alias will be used instead.
 
 After the contract deploy, it is possible to save the newly deployed contract with the alias
-`tzbtc`, in the `tezos-client` configuration. You can also manually note the address and
-use the `tezos-client` program to alias it as `tzbtc`, as expected by the `tzbtc-client` program.
+`tzbtc`, in the `octez-client` configuration. You can also manually note the address and
+use the `octez-client` program to alias it as `tzbtc`, as expected by the `tzbtc-client` program.
 
 #### Deploy specialized multisig contract using `tzbtc-client`
 
@@ -108,8 +108,8 @@ tzbtc-client deployMultisigContract --threshold 2 \
 ```
 
 After the contract deploy, it is possible to save the newly deployed multisig contract with the alias
-`tzbtc-multisig`, in the `tezos-client` configuration. You can also manually note the address and
-use the `tezos-client` program to alias it as `tzbtc-multisig`, as expected by the `tzbtc-client` program.
+`tzbtc-multisig`, in the `octez-client` configuration. You can also manually note the address and
+use the `octez-client` program to alias it as `tzbtc-multisig`, as expected by the `tzbtc-client` program.
 
 #### Interact with TZBTC contract
 
@@ -126,7 +126,7 @@ Transaction forging takes place in several stages:
 * Dry-run this transaction in order to get estimated consumed gas and storage size.
 Also, on this stage transaction correctness is ensured.
 * Forge transaction with estimated consumed gas, storage size and fee.
-* Sign the transaction using `tezos-client`. If your secret key is stored on the
+* Sign the transaction using `octez-client`. If your secret key is stored on the
 ledger, you will have to open `Tezos Wallet` app and confirm this signing on
 your device.
 * Inject signed operation using hexademical representation and signature obtained
@@ -135,7 +135,7 @@ on the previous steps.
 
 So the workflow for interacting with the TZBTC contract on the chain is the following:
 
-* Setup `tezos-client` and add `tzbtc-user` alias and make sure it is available in PATH
+* Setup `octez-client` and add `tzbtc-user` alias and make sure it is available in PATH
 (or use the environment variable `TZBTC_TEZOS_CLIENT` to set the path)
 * Deploy contract using `deployTzbtcContract` command and alias it as `tzbtc` (either manually or
   by letting the `tzbtc-client` program create the alias when prompted) or alias an existing
@@ -147,11 +147,11 @@ All `tzbtc-client` commands can be performed with `--dry-run` flag, thus they wo
 interact with the chain at all. This flag is basically used for testing purposes in
 order to check that argument parser is sane.
 
-Note that instead of plain addresses you can use `tezos-client` aliases as an arguments
+Note that instead of plain addresses you can use `octez-client` aliases as an arguments
 in `tzbtc-client`. E.g. `tzbtc-client mint --to alice --value 500` (assuming that
-`alice` is an alias for some address in `tezos-client`).
+`alice` is an alias for some address in `octez-client`).
 
-Aliases in `tezos-client` can be ambiguous, so you may need to prefix the alias with `implicit:` for `tz1`/`tz2`/`tz3` addresses or `contract:` for `KT1` addresses. If an unprefixed alias could resolve to either, `tzbtc` will refuse to accept it. E.g. `tzbtc-client mint --to implicit:alice --value 500`
+Aliases in `octez-client` can be ambiguous, so you may need to prefix the alias with `implicit:` for `tz1`/`tz2`/`tz3` addresses or `contract:` for `KT1` addresses. If an unprefixed alias could resolve to either, `tzbtc` will refuse to accept it. E.g. `tzbtc-client mint --to implicit:alice --value 500`
 
 `tzbtc-client` also provides multisig support.
 
@@ -204,7 +204,7 @@ do this in the new terminal to get autocompletion there.
 
 You can use `tzbtc` executable in order to get contract code converted
 to Michelson, raw Michelson contract storage. This stuff can be used for
-contract origination via `tezos-client`.
+contract origination via `octez-client`.
 `parseContractParameter` subcommand can be used for debugging,
 it parses raw Michelson value to the TZBTC contract parameter.
 

@@ -17,7 +17,7 @@ Brief overview is provided below.
 
 CI runs some executable to test them. It is done from
 [bats/tzbtc.bats](../bats/tzbtc.bats) file.  Note that for now we do not use Tezos
-network there at all and do not use `tezos-client` or similar software.  It
+network there at all and do not use `octez-client` or similar software.  It
 runs the above scripts in `--dry-run` mode.
 
 CI also have a script, [scripts/ci/upload-autodoc.sh](ci/upload-autodoc.sh)

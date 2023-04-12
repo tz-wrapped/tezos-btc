@@ -2,7 +2,7 @@
  -
  - SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
  -}
-{-# LANGUAGE RebindableSyntax #-}
+{-# LANGUAGE RebindableSyntax, DerivingVia #-}
 {-# OPTIONS_GHC -fno-warn-unused-do-bind -Wno-orphans #-}
 
 module Lorentz.Contracts.Metadata
@@ -17,6 +17,7 @@ import Lorentz
 import Fmt (Buildable(..), (+|), (|+))
 
 import Lorentz.Contracts.Spec.FA2Interface (TokenId, theTokenId)
+import Morley.Michelson.Typed.Haskell.Doc (FieldSnakeCase)
 
 data TokenMetadata = TokenMetadata
   { tmTokenId :: TokenId
@@ -26,13 +27,13 @@ data TokenMetadata = TokenMetadata
   , tmExtras :: Map MText MText
   }
   deriving stock (Eq, Show)
+  deriving TypeHasFieldNamingStrategy via FieldSnakeCase
 
 $(customGeneric "TokenMetadata" rightComb)
 
-deriving anyclass instance IsoValue TokenMetadata
+instance IsoValue TokenMetadata
 
-instance HasAnnotation TokenMetadata where
-  annOptions = defaultAnnOptions { fieldAnnModifier = dropPrefixThen toSnake }
+instance HasAnnotation TokenMetadata
 
 instance Buildable TokenMetadata where
   build TokenMetadata {..} =

@@ -9,12 +9,12 @@
 
   inputs.morley-infra.url = "gitlab:morley-framework/morley-infra";
 
-  outputs = inputs@{ self, flake-utils, haskell-nix, morley-infra, ... }:
+  outputs = { self, flake-utils, morley-infra, ... }:
     (flake-utils.lib.eachSystem [ "x86_64-linux" ] (system:
       let
         pkgs = morley-infra.legacyPackages.${system};
 
-        inherit (pkgs) tezos-client;
+        inherit (pkgs) octez-client;
 
         inherit (morley-infra.utils.${system}) weeder-hacks weeder-script run-chain-tests;
 

@@ -20,9 +20,7 @@ import Morley.Client.RPC.Class
 import Morley.Client.TezosClient.Class
 import Morley.Client.TezosClient.Impl qualified as Impl
 import Morley.Client.TezosClient.Types
-import Morley.Tezos.Address.Alias
 import Morley.Tezos.Core (Mutez)
-import Morley.Tezos.Crypto
 
 import Client.Types
 
@@ -97,25 +95,23 @@ instance HasTezosRpc AppM where
   waitForOperation = \action -> do
     env <- ask
     morleyClientMToAppM $ waitForOperation $ liftIO $ runAppM env action
+  getTicketBalanceAtBlock = morleyClientMToAppM ... getTicketBalanceAtBlock
+  getAllTicketBalancesAtBlock = morleyClientMToAppM ... getAllTicketBalancesAtBlock
 
 class ExtTezosClient m where
-  getPublicKey :: ImplicitAddressOrAlias -> m PublicKey
-  -- ^ Get public key for given address. Public keys are often used when interacting
-  -- with the multising contracts
   getTezosClientConfig :: m TezosClientConfig
-  -- ^ Retrieve the current @tezos-client@ config.
+  -- ^ Retrieve the current @octez-client@ config.
 
 instance HasTezosClient AppM where
   signBytes = morleyClientMToAppM ... signBytes
   genKey = morleyClientMToAppM ... genKey
-  revealKey = morleyClientMToAppM ... revealKey
   rememberContract = morleyClientMToAppM ... rememberContract
   genFreshKey = morleyClientMToAppM ... genFreshKey
   getAliasesAndAddresses = morleyClientMToAppM ... getAliasesAndAddresses
   getKeyPassword = morleyClientMToAppM ... getKeyPassword
+  getPublicKey = morleyClientMToAppM ... getPublicKey
 
 instance ExtTezosClient AppM where
-  getPublicKey = morleyClientMToAppM ... Impl.getPublicKey
   getTezosClientConfig = do
     tce <- view tezosClientEnvL <$> asks mcEnv
     let path = tceTezosClientPath tce
