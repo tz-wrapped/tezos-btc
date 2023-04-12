@@ -28,6 +28,7 @@ import Lorentz (TSignature(..), toAddress, toTAddress)
 import Lorentz.Contracts.Multisig
 import Lorentz.Contracts.TZBTC qualified as TZBTC
 import Lorentz.Contracts.TZBTC.Types qualified as TZBTCTypes
+import Morley.Client (AddressWithAlias(..))
 import Morley.Micheline
 import Morley.Michelson.Typed.Haskell.Value (toVal)
 import Morley.Tezos.Address
@@ -76,14 +77,15 @@ defaultHandlers = Handlers
   , hGetBalance = \_ -> unavailable "getBalance"
   , hRunCode = \_ -> unavailable "runCode"
   , hGetChainId = pure $ testChainId
-  , hGetBigMapValuesAtBlock = \_ _ _ _ -> unavailable "hGetBigMapValuesAtBlock"
-  , hGetManagerKeyAtBlock = \_ _ -> unavailable "hGetManagerKeyAtBlock"
-  , hGetDelegateAtBlock = \_ _ -> unavailable "hGetDelegateAtBlock"
+  , hGetBigMapValuesAtBlock = \_ _ _ _ -> unavailable "getBigMapValuesAtBlock"
+  , hGetManagerKeyAtBlock = \_ _ -> unavailable "getManagerKeyAtBlock"
+  , hGetDelegateAtBlock = \_ _ -> unavailable "getDelegateAtBlock"
+  , hGetTicketBalanceAtBlock = \_ _ _ -> unavailable "getTicketBalanceAtBlock"
+  , hGetAllTicketBalancesAtBlock = \_ _ -> unavailable "getAllTicketBalancesAtBlock"
 
   , hSignBytes = \_ _ _ -> unavailable "signBytes"
   , hGenKey = \_ -> unavailable "genKey"
   , hGenFreshKey = \_ -> unavailable "genFreshKey"
-  , hRevealKey = \_ _ -> unavailable "revealKey"
   , hWaitForOperation = \_ -> unavailable "waitForOperation"
   , hRememberContract = \_ c a -> meetExpectation $ RememberContract c a
   , hGetPublicKey = \_ -> unavailable "getPublicKey"
@@ -171,7 +173,7 @@ multiSigCreationTestHandlers =
   defaultHandlers
     { hReadFile = \_ -> throwM $ TestError "Unexpected file read"
     , hInjectOperation = \_ -> throwM $ TestError "Unexpected `injectOperation` call"
-    , hGetTezosClientConfig = throwM $ TestError "Unexpected tezos-client get config call"
+    , hGetTezosClientConfig = throwM $ TestError "Unexpected octez-client get config call"
     , hGetAliasesAndAddresses = pure
           [ ("tzbtc", pretty contractAddress)
           , ("tzbtc-multisig", pretty multiSigAddress)
@@ -221,7 +223,7 @@ multiSigCreationWithMSigOverrideTestHandlers =
   defaultHandlers
     { hReadFile = \_ -> throwM $ TestError "Unexpected file read"
     , hInjectOperation = \_ -> throwM $ TestError "Unexpected `injectOperation` call"
-    , hGetTezosClientConfig = throwM $ TestError "Unexpected tezos-client get config call"
+    , hGetTezosClientConfig = throwM $ TestError "Unexpected octez-client get config call"
     , hGetAliasesAndAddresses = pure
         [ ("tzbtc", pretty contractAddress)
         , ("tzbtc-multisig-override", pretty multiSigOverrideAddress)
@@ -275,7 +277,7 @@ test_createMultisigPackageWithMSigOverride = testGroup "Create multisig package 
 
 ---- Test Signing of multisig package
 ---- Checks that the `signPackage` command correctly includes the
----- signature returned by the tezos-client.
+---- signature returned by the octez-client.
 multisigSigningTestHandlers :: Handlers TestM
 multisigSigningTestHandlers =
   defaultHandlers
@@ -289,12 +291,12 @@ multisigSigningTestHandlers =
         meetExpectation ReadsFile
         if fp == multiSigFilePath then pure $ encodePackage multisigSignPackageTestPackage
         else throwM $ TestError "Unexpected file read"
-    , hGetPublicKey = \case
-        AddressResolved addr -> if addr == johnAddress then pure $ johnAddressPK else
-          throwM $ TestError ("Unexpected address " ++ pretty addr)
-        AddressAlias "tzbtc-user" -> pure johnAddressPK
-        AddressAlias alias -> throwM $
-          TestError ("Unexpected alias " ++ toString (unAlias alias))
+    , hGetPublicKey = \(AddressWithAlias{..}) -> do
+        when (awaAlias /= "tzbtc-user") $
+          throwM $ TestError ("Unexpected alias " ++ toString (unAlias awaAlias))
+        when (awaAddress /= johnAddress) $
+          throwM $ TestError ("Unexpected address " ++ pretty awaAddress)
+        pure $ johnAddressPK
     , hSignBytes = \_ _ _ ->
        pure $ unTSignature multisigSignPackageTestSignature
     , hGetAliasesAndAddresses = pure

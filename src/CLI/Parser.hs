@@ -25,8 +25,6 @@ import Morley.Tezos.Address
 import Morley.Util.CLI
 import Morley.Util.Named
 
-import CLI.L1AddressOrAlias ()
-
 -- | Represents the Cmd line commands with inputs/arguments.
 data CmdLnArgs
   = CmdPrintInitialStorage L1Address

@@ -108,17 +108,18 @@ data Handlers m = Handlers
   , hGetBigMapValuesAtBlock  :: BlockId -> Natural -> Maybe Natural -> Maybe Natural -> m Expression
   , hGetManagerKeyAtBlock :: BlockId -> ImplicitAddress -> m (Maybe PublicKey)
   , hGetDelegateAtBlock :: BlockId -> L1Address -> m (Maybe KeyHash)
+  , hGetTicketBalanceAtBlock :: BlockId -> Address -> GetTicketBalance ->  m Natural
+  , hGetAllTicketBalancesAtBlock :: BlockId -> ContractAddress -> m [GetAllTicketBalancesResponse]
 
   -- HasTezosClient
-  , hSignBytes :: ImplicitAddressOrAlias -> Maybe ScrubbedBytes -> ByteString -> m Signature
-  , hGenKey :: ImplicitAlias -> m ImplicitAddress
-  , hGenFreshKey :: ImplicitAlias -> m ImplicitAddress
-  , hRevealKey :: ImplicitAlias -> Maybe ScrubbedBytes -> m ()
+  , hSignBytes :: ImplicitAddressWithAlias -> Maybe ScrubbedBytes -> ByteString -> m Signature
+  , hGenKey :: ImplicitAlias -> m ImplicitAddressWithAlias
+  , hGenFreshKey :: ImplicitAlias -> m ImplicitAddressWithAlias
   , hWaitForOperation :: m OperationHash -> m OperationHash
   , hRememberContract :: AliasBehavior -> ContractAddress -> ContractAlias -> m ()
-  , hGetPublicKey :: ImplicitAddressOrAlias -> m PublicKey
+  , hGetPublicKey :: ImplicitAddressWithAlias -> m PublicKey
   , hGetTezosClientConfig :: m TezosClientConfig
-  , hGetKeyPassword :: ImplicitAddress -> m (Maybe ScrubbedBytes)
+  , hGetKeyPassword :: ImplicitAddressWithAlias -> m (Maybe ScrubbedBytes)
 
   , hLookupEnv :: m AppEnv
   , hWithLocal :: forall a. (AppEnv -> AppEnv) -> m a -> m a
@@ -232,6 +233,12 @@ instance HasTezosRpc TestM where
   getBlockOperationHashes x = do
     h <- getHandler hGetBlockOperationHashes
     h x
+  getTicketBalanceAtBlock block addr args = do
+    h <- getHandler hGetTicketBalanceAtBlock
+    h block addr args
+  getAllTicketBalancesAtBlock block addr = do
+    h <- getHandler hGetAllTicketBalancesAtBlock
+    h block addr
 
 instance HasTezosClient TestM where
   signBytes alias mbPassword op = do
@@ -243,9 +250,6 @@ instance HasTezosClient TestM where
   genFreshKey alias = do
     h <- getHandler hGenFreshKey
     h alias
-  revealKey alias mbPassword = do
-    h <- getHandler hRevealKey
-    h alias mbPassword
   rememberContract replaceExisting addr alias = do
     h <- getHandler hRememberContract
     h replaceExisting addr alias
@@ -253,11 +257,11 @@ instance HasTezosClient TestM where
     h <- getHandler hGetKeyPassword
     h addr
   getAliasesAndAddresses = join $ getHandler hGetAliasesAndAddresses
-
-instance ExtTezosClient TestM where
   getPublicKey a = do
     h <- getHandler hGetPublicKey
     h a
+
+instance ExtTezosClient TestM where
   getTezosClientConfig = join $ getHandler hGetTezosClientConfig
 
 instance HasEnv TestM where
