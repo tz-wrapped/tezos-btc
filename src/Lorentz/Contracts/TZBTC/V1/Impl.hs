@@ -32,7 +32,7 @@ module Lorentz.Contracts.TZBTC.V1.Impl
   , authorizeOperator
   ) where
 
-import Fmt (Builder)
+import Fmt (Buildable(..))
 
 import Morley.Util.Markdown (mdTicked)
 
@@ -281,20 +281,28 @@ setPause = do
   stSetField #paused
   nil; pair
 
-data DRequireRole = DRequireRole Builder
+data DRequireRole = DRequireRole Role
+
+data Role = RoleOwner | RoleNewOwner | RoleOperator
+
+instance Buildable Role where
+  build = \case
+    RoleOwner -> "owner"
+    RoleNewOwner -> "new owner"
+    RoleOperator -> "operator"
 
 instance DocItem DRequireRole where
   docItemPos = 53
   docItemSectionName = Nothing
   docItemToMarkdown _ (DRequireRole role) =
-    "The sender has to be the " <> mdTicked role <> "."
+    "The sender has to be the " <> mdTicked (build role) <> "."
 
 -- | Check that the sender is owner
 authorizeOwner
   :: StorageC store
   => store : s :-> store : s
 authorizeOwner = do
-  doc $ DRequireRole "owner"
+  doc $ DRequireRole RoleOwner
   stGetField #owner; sender; eq
   if_ nop (failCustom_ #senderIsNotOwner)
 
@@ -305,7 +313,7 @@ authorizeNewOwner
   => store : s :-> store : s
 authorizeNewOwner = do
   stGetField #newOwner;
-  doc $ DRequireRole "new owner"
+  doc $ DRequireRole RoleNewOwner
   if IsSome then do
     sender
     eq
@@ -317,7 +325,7 @@ authorizeOperator
   :: (StorageContains store '["operators" := Set Address], Dupable store)
   => store : s :-> store : s
 authorizeOperator = do
-  doc $ DRequireRole "operator"
+  doc $ DRequireRole RoleOperator
   stGetField #operators; sender; mem;
   assert (CustomError #senderIsNotOperator
           (errorTagToMText #senderIsNotOperator, ())
