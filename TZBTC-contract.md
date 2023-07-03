@@ -6,7 +6,7 @@
 
 # TZBTC
 
-**Code revision:** [f794bd5](https://github.com/tz-wrapped/tezos-btc/commit/f794bd5ca1dcaf6196980ef588cd8028c315b223) *(Wed Apr 12 22:26:49 2023 +0300)*
+**Code revision:** [11bcd27](https://github.com/tz-wrapped/tezos-btc/commit/11bcd2764ba6700d2a15241e0a8293ade882912f) *(Mon Jul 3 21:12:07 2023 +0300)*
 
 
 
@@ -156,7 +156,7 @@ This entry point is used to get contract version.
 
 **Argument:** 
   + **In Haskell:** [`View_`](#types-View) [`()`](#types-lparenrparen) [`Version`](#types-Version)
-  + **In Michelson:** `(pair unit (contract nat))`
+  + **In Michelson:** `pair unit (contract nat)`
     + **Example:** <span id="example-id">`Pair Unit "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <p>
@@ -182,7 +182,7 @@ Returns the approval value between two given addresses.
 
 **Argument:** 
   + **In Haskell:** [`View_`](#types-View) (***owner*** : [`Address`](#types-Address), ***spender*** : [`Address`](#types-Address)) [`Natural`](#types-Natural)
-  + **In Michelson:** `(pair (pair address address) (contract nat))`
+  + **In Michelson:** `pair (pair address address) (contract nat)`
     + **Example:** <span id="example-id">`Pair (Pair "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB" "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB") "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <p>
@@ -211,7 +211,7 @@ Returns the balance of the address in the ledger.
 
 **Argument:** 
   + **In Haskell:** [`View_`](#types-View) (***owner*** : [`Address`](#types-Address)) [`Natural`](#types-Natural)
-  + **In Michelson:** `(pair address (contract nat))`
+  + **In Michelson:** `pair address (contract nat)`
     + **Example:** <span id="example-id">`Pair "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB" "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <p>
@@ -240,7 +240,7 @@ Returns total number of tokens.
 
 **Argument:** 
   + **In Haskell:** [`View_`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
-  + **In Michelson:** `(pair unit (contract nat))`
+  + **In Michelson:** `pair unit (contract nat)`
     + **Example:** <span id="example-id">`Pair Unit "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <p>
@@ -269,7 +269,7 @@ This view returns the total number of minted tokens.
 
 **Argument:** 
   + **In Haskell:** [`View_`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
-  + **In Michelson:** `(pair unit (contract nat))`
+  + **In Michelson:** `pair unit (contract nat)`
     + **Example:** <span id="example-id">`Pair Unit "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <p>
@@ -298,7 +298,7 @@ This view returns the total number of burned tokens.
 
 **Argument:** 
   + **In Haskell:** [`View_`](#types-View) [`()`](#types-lparenrparen) [`Natural`](#types-Natural)
-  + **In Michelson:** `(pair unit (contract nat))`
+  + **In Michelson:** `pair unit (contract nat)`
     + **Example:** <span id="example-id">`Pair Unit "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <p>
@@ -327,7 +327,7 @@ This view returns the current contract owner.
 
 **Argument:** 
   + **In Haskell:** [`View_`](#types-View) [`()`](#types-lparenrparen) [`Address`](#types-Address)
-  + **In Michelson:** `(pair unit (contract address))`
+  + **In Michelson:** `pair unit (contract address)`
     + **Example:** <span id="example-id">`Pair Unit "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <p>
@@ -356,7 +356,7 @@ This view returns the redeem address.
 
 **Argument:** 
   + **In Haskell:** [`View_`](#types-View) [`()`](#types-lparenrparen) [`Address`](#types-Address)
-  + **In Michelson:** `(pair unit (contract address))`
+  + **In Michelson:** `pair unit (contract address)`
     + **Example:** <span id="example-id">`Pair Unit "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <p>
@@ -385,9 +385,7 @@ This view returns the token metadata.
 
 **Argument:** 
   + **In Haskell:** [`View_`](#types-View) ([`List`](#types-List) [`TokenId`](#types-TokenId)) ([`List`](#types-List) [`TokenMetadata`](#types-TokenMetadata))
-  + **In Michelson:** `(pair
-  (list nat)
-  (contract (list (pair nat string string nat (map string string)))))`
+  + **In Michelson:** `pair (list nat) (contract (list (pair nat string string nat (map string string))))`
     + **Example:** <span id="example-id">`Pair { 0 } "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB"`</span>
 
 <p>
@@ -418,27 +416,7 @@ This entry point is used to call the safe entrypoints of the contract. Entrypoin
 
 **Argument:** 
   + **In Haskell:** [`Parameter.SafeParameter`](#types-Parameter.SafeParameter)
-  + **In Michelson:** `(or (or (or (or (pair string bytes)
-                (pair
-                  (pair nat nat)
-                  (lambda (big_map bytes bytes) (big_map bytes bytes))
-                  (option
-                    (lambda
-                      (pair (pair string bytes) (big_map bytes bytes))
-                      (pair (list operation) (big_map bytes bytes))))
-                  (option
-                    (lambda
-                      (pair unit (big_map bytes bytes))
-                      (pair (list operation) (big_map bytes bytes))))))
-            (or (pair nat nat)
-                (lambda (big_map bytes bytes) (big_map bytes bytes))))
-        (or (or (lambda
-                  (pair (pair string bytes) (big_map bytes bytes))
-                  (pair (list operation) (big_map bytes bytes)))
-                unit)
-            (or (pair address address nat) (pair address nat))))
-    (or (or (or (pair address nat) nat) (or address address))
-        (or (or address unit) (or unit (or address unit)))))`
+  + **In Michelson:** `or (or (or (or (pair string bytes) (pair (pair nat nat) (lambda (big_map bytes bytes) (big_map bytes bytes)) (option (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))) (option (lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))))) (or (pair nat nat) (lambda (big_map bytes bytes) (big_map bytes bytes)))) (or (or (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))) unit) (or (pair address address nat) (pair address nat)))) (or (or (or (pair address nat) nat) (or address address)) (or (or address unit) (or unit (or address unit))))`
     + **Example:** <span id="example-id">`Left (Left (Left (Left (Pair "hello" 0x0a))))`</span>
 
 <p>
@@ -466,7 +444,7 @@ This entrypoint extracts contract code kept in storage under the corresponding n
 
 **Argument:** 
   + **In Haskell:** [`UParam`](#types-Upgradable-parameter)
-  + **In Michelson:** `(pair string bytes)`
+  + **In Michelson:** `pair string bytes`
     + **Example:** <span id="example-id">`Pair "hello" 0x0a`</span>
 
 <p>
@@ -501,17 +479,7 @@ provided migration lambda.
 
 **Argument:** 
   + **In Haskell:** (***currentVersion*** : [`Version`](#types-Version), ***newVersion*** : [`Version`](#types-Version), ***migrationScript*** : [`MigrationScript`](#types-MigrationScript) [`Store template V0`](#ustore-template-Store-template-V0) [`Some`](#ustore-template-Some), ***newCode*** : [`Maybe`](#types-Maybe) [`UContractRouter`](#types-UContractRouter), ***newPermCode*** : [`Maybe`](#types-Maybe) ([`SomePermanentImpl`](#types-SomePermanentImpl) [`Empty`](#types-Empty)))
-  + **In Michelson:** `(pair
-  (pair nat nat)
-  (lambda (big_map bytes bytes) (big_map bytes bytes))
-  (option
-    (lambda
-      (pair (pair string bytes) (big_map bytes bytes))
-      (pair (list operation) (big_map bytes bytes))))
-  (option
-    (lambda
-      (pair unit (big_map bytes bytes))
-      (pair (list operation) (big_map bytes bytes)))))`
+  + **In Michelson:** `pair (pair nat nat) (lambda (big_map bytes bytes) (big_map bytes bytes)) (option (lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes)))) (option (lambda (pair unit (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))))`
     + **Example:** <span id="example-id">`Pair (Pair 0 0) (Pair { PUSH string "lambda sample"; FAILWITH } (Pair (Some { PUSH string "lambda sample"; FAILWITH }) (Some { PUSH string "lambda sample"; FAILWITH })))`</span>
 
 <p>
@@ -544,7 +512,7 @@ This entry point is used to start an entrypoint wise upgrade of the contract.
 
 **Argument:** 
   + **In Haskell:** (***current*** : [`Version`](#types-Version), ***new*** : [`Version`](#types-Version))
-  + **In Michelson:** `(pair nat nat)`
+  + **In Michelson:** `pair nat nat`
     + **Example:** <span id="example-id">`Pair 0 0`</span>
 
 <p>
@@ -577,7 +545,7 @@ This entry point is used to apply a storage migration script as part of an upgra
 
 **Argument:** 
   + **In Haskell:** ***migrationscript*** : [`MigrationScript`](#types-MigrationScript) [`Store template V0`](#ustore-template-Store-template-V0) [`Some`](#ustore-template-Some)
-  + **In Michelson:** `(lambda (big_map bytes bytes) (big_map bytes bytes))`
+  + **In Michelson:** `lambda (big_map bytes bytes) (big_map bytes bytes)`
     + **Example:** <span id="example-id">`{ PUSH string "lambda sample"; FAILWITH }`</span>
 
 <p>
@@ -608,9 +576,7 @@ This entry point is used to set the dispatching code that calls the packed entry
 
 **Argument:** 
   + **In Haskell:** ***contractcode*** : [`UContractRouter`](#types-UContractRouter)
-  + **In Michelson:** `(lambda
-  (pair (pair string bytes) (big_map bytes bytes))
-  (pair (list operation) (big_map bytes bytes)))`
+  + **In Michelson:** `lambda (pair (pair string bytes) (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))`
     + **Example:** <span id="example-id">`{ PUSH string "lambda sample"; FAILWITH }`</span>
 
 <p>
@@ -677,7 +643,7 @@ In this case current number of tokens that sender is allowed to withdraw from th
 
 **Argument:** 
   + **In Haskell:** (***from*** : [`Address`](#types-Address), ***to*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
-  + **In Michelson:** `(pair address address nat)`
+  + **In Michelson:** `pair address address nat`
     + **Example:** <span id="example-id">`Pair "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB" (Pair "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB" 0)`</span>
 
 <p>
@@ -737,7 +703,7 @@ safely change the allowance for `X` to `K` token must:
 
 **Argument:** 
   + **In Haskell:** (***spender*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
-  + **In Michelson:** `(pair address nat)`
+  + **In Michelson:** `pair address nat`
     + **Example:** <span id="example-id">`Pair "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB" 0`</span>
 
 <p>
@@ -772,7 +738,7 @@ This entry point is used mint new tokes for an account.
 
 **Argument:** 
   + **In Haskell:** (***to*** : [`Address`](#types-Address), ***value*** : [`Natural`](#types-Natural))
-  + **In Michelson:** `(pair address nat)`
+  + **In Michelson:** `pair address nat`
     + **Example:** <span id="example-id">`Pair "KT1AEseqMV6fk2vtvQCVyA7ZCaxv7cpxtXdB" 0`</span>
 
 <p>
