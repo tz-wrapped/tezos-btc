@@ -35,7 +35,7 @@ import Data.Map qualified as M
 import Data.Set qualified as Set
 import Data.Text.IO.Utf8 qualified as Utf8
 import Data.Typeable (typeRep)
-import Fmt (Builder, pretty, (+|), (|+))
+import Fmt (Doc, pretty, (+|), (|+))
 import Test.Tasty (TestTree, testGroup)
 
 import Lorentz (BigMapId, Contract(cMichelsonContract), EpName, IsoValue(..), Value, mkView_)
@@ -90,7 +90,7 @@ readUStore bmId ref = do
     & either (const (throwUnpackFailed uval)) pure
   where
     throwUnpackFailed uval =
-      failure $ "UStore value unpack failed" +| uval |+ " :: " +| show @Builder (typeRep (Proxy @v)) |+ ""
+      failure $ "UStore value unpack failed" +| uval |+ " :: " +| show @LText (typeRep (Proxy @v)) |+ ""
 
     refToKey :: UStoreElemRef -> ByteString
     refToKey = \case
@@ -111,7 +111,7 @@ class KnownContractVersion ver => TestTZBTCVersion ver where
     => TUStoreElemRef v
     -> (v -> Bool)
     -> StorageRPC ver
-    -> Builder
+    -> Doc
     -> m ()
   checkField (TUStoreElemRef k) fn st msg = do
     val <- readUStore (RPC.dataMap st) k

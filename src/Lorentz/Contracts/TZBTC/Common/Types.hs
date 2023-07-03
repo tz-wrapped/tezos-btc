@@ -263,9 +263,6 @@ instance CanCastTo a b =>
 
 type Operators = Set Address
 
-instance Buildable Operators where
-  build = mconcat . intersperse ", " . Prelude.map build . toList
-
 ---------------------------------------------------------------------------
 -- Utils
 ---------------------------------------------------------------------------

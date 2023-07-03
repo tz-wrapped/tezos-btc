@@ -29,6 +29,7 @@ import Lorentz.Contracts.Multisig
 import Lorentz.Contracts.TZBTC qualified as TZBTC
 import Lorentz.Contracts.TZBTC.Types qualified as TZBTCTypes
 import Morley.Client (AddressWithAlias(..))
+import Morley.Client.Types.AliasesAndAddresses (mkAliasesAndAddresses)
 import Morley.Micheline
 import Morley.Michelson.Typed.Haskell.Value (toVal)
 import Morley.Tezos.Address
@@ -82,6 +83,7 @@ defaultHandlers = Handlers
   , hGetDelegateAtBlock = \_ _ -> unavailable "getDelegateAtBlock"
   , hGetTicketBalanceAtBlock = \_ _ _ -> unavailable "getTicketBalanceAtBlock"
   , hGetAllTicketBalancesAtBlock = \_ _ -> unavailable "getAllTicketBalancesAtBlock"
+  , hPackData = \_ _ _ -> unavailable "packData"
 
   , hSignBytes = \_ _ _ -> unavailable "signBytes"
   , hGenKey = \_ -> unavailable "genKey"
@@ -174,9 +176,9 @@ multiSigCreationTestHandlers =
     { hReadFile = \_ -> throwM $ TestError "Unexpected file read"
     , hInjectOperation = \_ -> throwM $ TestError "Unexpected `injectOperation` call"
     , hGetTezosClientConfig = throwM $ TestError "Unexpected octez-client get config call"
-    , hGetAliasesAndAddresses = pure
-          [ ("tzbtc", pretty contractAddress)
-          , ("tzbtc-multisig", pretty multiSigAddress)
+    , hGetAliasesAndAddresses = pure $ mkAliasesAndAddresses
+          [ Constrained $ AddressWithAlias contractAddress "tzbtc"
+          , Constrained $ AddressWithAlias multiSigAddress "tzbtc-multisig"
           ]
     , hGetContractStorageAtBlock = \_ x -> if x == multiSigAddress
       then pure $ toExpression . toVal $ mkStorage 14 3 []
@@ -224,9 +226,9 @@ multiSigCreationWithMSigOverrideTestHandlers =
     { hReadFile = \_ -> throwM $ TestError "Unexpected file read"
     , hInjectOperation = \_ -> throwM $ TestError "Unexpected `injectOperation` call"
     , hGetTezosClientConfig = throwM $ TestError "Unexpected octez-client get config call"
-    , hGetAliasesAndAddresses = pure
-        [ ("tzbtc", pretty contractAddress)
-        , ("tzbtc-multisig-override", pretty multiSigOverrideAddress)
+    , hGetAliasesAndAddresses = pure $ mkAliasesAndAddresses
+        [ Constrained $ AddressWithAlias contractAddress "tzbtc"
+        , Constrained $ AddressWithAlias multiSigOverrideAddress "tzbtc-multisig-override"
         ]
     , hGetContractStorageAtBlock = \_ x -> if x == multiSigOverrideAddress
       then pure $ toExpression . toVal $ mkStorage 14 3 []
@@ -299,10 +301,10 @@ multisigSigningTestHandlers =
         pure $ johnAddressPK
     , hSignBytes = \_ _ _ ->
        pure $ unTSignature multisigSignPackageTestSignature
-    , hGetAliasesAndAddresses = pure
-        [ ("tzbtc", pretty contractAddress)
-        , ("tzbtc-multisig", pretty multiSigAddress)
-        , ("tzbtc-user", pretty johnAddress)
+    , hGetAliasesAndAddresses = pure $ mkAliasesAndAddresses
+        [ Constrained $ AddressWithAlias contractAddress "tzbtc"
+        , Constrained $ AddressWithAlias multiSigAddress "tzbtc-multisig"
+        , Constrained $ AddressWithAlias johnAddress "tzbtc-user"
         ]
     , hGetKeyPassword = \_ -> pure Nothing
     }

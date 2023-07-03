@@ -32,7 +32,6 @@ library:
     - containers
     - directory
     - hex-text
-    - fmt
     - lorentz
     - morley
     - morley-ledgers
@@ -55,7 +54,6 @@ executables:
     <<: *exec-common
 
     dependencies:
-      - fmt
       - lorentz
       - morley
       - morley-multisig
@@ -89,7 +87,6 @@ tests:
     - co-log-core
     - containers
     - cleveland
-    - fmt
     - hex-text
     - HUnit
     - lorentz

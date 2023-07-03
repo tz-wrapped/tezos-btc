@@ -18,6 +18,7 @@ import Morley.Client (MorleyClientEnv, MorleyClientM, runMorleyClientM)
 import Morley.Client.Full (MorleyClientEnv(..))
 import Morley.Client.RPC.Class
 import Morley.Client.TezosClient.Class
+import Morley.Client.TezosClient.Config
 import Morley.Client.TezosClient.Impl qualified as Impl
 import Morley.Client.TezosClient.Types
 import Morley.Tezos.Core (Mutez)
@@ -97,6 +98,7 @@ instance HasTezosRpc AppM where
     morleyClientMToAppM $ waitForOperation $ liftIO $ runAppM env action
   getTicketBalanceAtBlock = morleyClientMToAppM ... getTicketBalanceAtBlock
   getAllTicketBalancesAtBlock = morleyClientMToAppM ... getAllTicketBalancesAtBlock
+  packData = morleyClientMToAppM ... packData
 
 class ExtTezosClient m where
   getTezosClientConfig :: m TezosClientConfig

@@ -25,8 +25,10 @@ import Data.Map qualified as Map
 import Morley.Client
 import Morley.Client.Logging (ClientLogAction)
 import Morley.Client.RPC
-import Morley.Client.TezosClient (TezosClientConfig)
+import Morley.Client.TezosClient.Config (TezosClientConfig)
+import Morley.Client.Types.AliasesAndAddresses (AliasesAndAddresses)
 import Morley.Micheline
+import Morley.Michelson.Typed qualified as T
 import Morley.Tezos.Address
 import Morley.Tezos.Address.Alias
 import Morley.Tezos.Core
@@ -110,6 +112,7 @@ data Handlers m = Handlers
   , hGetDelegateAtBlock :: BlockId -> L1Address -> m (Maybe KeyHash)
   , hGetTicketBalanceAtBlock :: BlockId -> Address -> GetTicketBalance ->  m Natural
   , hGetAllTicketBalancesAtBlock :: BlockId -> ContractAddress -> m [GetAllTicketBalancesResponse]
+  , hPackData :: forall t. T.ForbidOp t => BlockId -> T.Value t -> T.Notes t -> m Text
 
   -- HasTezosClient
   , hSignBytes :: ImplicitAddressWithAlias -> Maybe ScrubbedBytes -> ByteString -> m Signature
@@ -127,7 +130,7 @@ data Handlers m = Handlers
   , hLogAction :: ClientLogAction m
   , hGetBlockOperationHashes :: BlockId -> m [[OperationHash]]
   , hGetScriptSizeAtBlock :: BlockId -> CalcSize -> m ScriptSize
-  , hGetAliasesAndAddresses :: m [(Text, Text)]
+  , hGetAliasesAndAddresses :: m AliasesAndAddresses
   }
 
 getHandler :: (Handlers TestM -> fn) -> TestM fn
@@ -239,6 +242,9 @@ instance HasTezosRpc TestM where
   getAllTicketBalancesAtBlock block addr = do
     h <- getHandler hGetAllTicketBalancesAtBlock
     h block addr
+  packData block val notes = do
+    Handlers{hPackData} <- unMyHandlers . fst <$> ask
+    hPackData block val notes
 
 instance HasTezosClient TestM where
   signBytes alias mbPassword op = do
