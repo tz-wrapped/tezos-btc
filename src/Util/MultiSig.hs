@@ -30,7 +30,7 @@ import Data.Aeson.Casing (aesonPrefix, camelCase)
 import Data.Aeson.TH (deriveJSON)
 import Data.ByteString.Lazy as LBS (toStrict)
 import Data.List (lookup)
-import Fmt (Buildable(..), Builder, blockListF, pretty, (|+))
+import Fmt (Buildable(..), Doc, blockListF, pretty, (|+))
 import Morley.Michelson.Interpret.Unpack
 import Morley.Tezos.Crypto
 import Morley.Util.ByteString
@@ -114,7 +114,7 @@ checkIntegrity = isRight . fetchSrcParam
 
 -- | Get Operation description from serialized value
 getOpDescription
-  :: Package -> Builder
+  :: Package -> Doc
 getOpDescription p = case fetchSrcParam p of
   Right param -> build param
   Left err -> build err

@@ -10,23 +10,24 @@ packages:
 - .
 
 extra-deps:
-# Stable versions available on Hackage
-- morley-prelude-0.5.2
-- morley-1.19.1
-- lorentz-0.15.1
-- morley-client-0.3.1
-- cleveland-0.3.1
-- indigo-0.6.0
+- morley-prelude-0.5.3
+- morley-1.19.2
+- lorentz-0.15.2
+- morley-client-0.3.2
+- cleveland-0.3.2
+
+- git: https://gitlab.com/morley-framework/indigo.git
+  commit: 78058441a44682706469aebd56f07c93c51ecef1 # master
 
 - git: https://gitlab.com/morley-framework/morley-ledgers.git
-  commit: 4e2a799063d883e401fec410512e7f382057abfc # master
+  commit: 4c60e54f2739ec8065b2f96ab6f08360b6c85aa0 # master
   subdirs:
     - code/morley-ledgers
     - code/morley-ledgers-test
 - git: https://gitlab.com/morley-framework/morley-multisig.git
-  commit: 1db87535473f757ed8a557ae748b665d2b5a3a48 # master
+  commit: 4cc0139d6cea89be4acf167199303b6f07b557e5 # master
 - git: https://gitlab.com/morley-framework/morley-upgradeable.git
-  commit: 0de78d3180d356c2908bbe22cd7c4e0e88e99a8a # master
+  commit: e91ad5036afbf88ae95ecfc5a6d1c711a6377bae # master
 
 # Required by morley
 - git: https://github.com/serokell/base-noprelude.git
