@@ -11,6 +11,8 @@ Changes that affect Michelson code are tagged with `[CONTRACT]`.
 Unreleased
 ==========
 
+* [189](https://github.com/tz-wrapped/tezos-btc/pull/189)
+  GHC updated to 9.4.5, morley dependencies updated accordingly
 * [188](https://github.com/tz-wrapped/tezos-btc/pull/188)
   Morley dependencies updated to provide changes for Nairobi protocol support.
 * [187](https://github.com/tz-wrapped/tezos-btc/pull/187)

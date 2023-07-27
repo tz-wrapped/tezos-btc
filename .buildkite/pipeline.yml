@@ -80,10 +80,7 @@ steps:
     if: *not_scheduled_autodoc
     depends_on: build
     commands:
-    - nix build -L .#weeder-script
-      # weeder needs .cabal file:
-    - nix shell .#haskellPackages.hpack -c hpack
-    - ./result
+    - nix run -L .#ci:weeder
 
   - label: bats
     if: *not_scheduled_autodoc

@@ -33,8 +33,7 @@ import Util.MultiSig
 
 mainProgram
   :: forall m env.
-  ( MonadThrow m
-  , HasTezosRpc m
+  ( HasTezosRpc m
   , HasTezosClient m
   , HasFilesystem m
   , HasCmdLine m

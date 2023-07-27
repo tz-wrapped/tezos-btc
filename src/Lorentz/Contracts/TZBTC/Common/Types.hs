@@ -104,8 +104,7 @@ deriving anyclass instance IsoValue (VerPermanent ver) => IsoValue (SafeParamete
 instance HasAnnotation (VerPermanent ver) => HasAnnotation (SafeParameter ver)
 
 instance ( Typeable ver
-         , Typeable (VerInterface ver), Typeable (VerUStoreTemplate ver)
-         , Typeable (VerPermanent ver)
+         , Typeable (VerInterface ver)
          , KnownValue (VerPermanent ver), TypeHasDoc (VerPermanent ver)
          , UStoreTemplateHasDoc (VerUStoreTemplate ver)
          ) => TypeHasDoc (SafeParameter ver) where

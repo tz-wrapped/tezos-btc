@@ -137,7 +137,7 @@ getMultisigAddress = awaAddress <$> getTzbtcSpecificAddress "tzbtc-multisig" coT
 
 runTzbtcContract
   :: forall m env.
-     (MonadThrow m, HasTezosRpc m, HasTezosClient m, WithClientLog env m, HasEnv m)
+     (HasTezosRpc m, HasTezosClient m, WithClientLog env m, HasEnv m)
   => Parameter SomeTZBTCVersion -> m ()
 runTzbtcContract param = do
   from <- getTzbtcUserAddress
@@ -147,7 +147,7 @@ runTzbtcContract param = do
 
 runMultisigContract
   :: forall m env.
-     (MonadThrow m, HasTezosRpc m, HasTezosClient m, HasEnv m, WithClientLog env m)
+     (HasTezosRpc m, HasTezosClient m, HasEnv m, WithClientLog env m)
   => NonEmpty Package -> m ()
 runMultisigContract packages = do
   from <- getTzbtcUserAddress
@@ -162,14 +162,14 @@ runMultisigContract packages = do
     _ -> error "Unexpected multisig address type"
 
 getMultisigStorage
-  :: (MonadThrow m, HasTezosRpc m)
+  :: (HasTezosRpc m)
   => ContractAddress -> m MSigStorage
 getMultisigStorage addr = do
   mSigStorageRaw <- getContractStorage addr
   either throwM (pure . fromVal) (fromExpression @(Value (ToT MSigStorage)) mSigStorageRaw)
 
 createMultisigPackage
-  :: (MonadThrow m, HasFilesystem m, HasTezosRpc m, HasTezosClient m, HasEnv m, WithClientLog env m)
+  :: (HasFilesystem m, HasTezosRpc m, HasTezosClient m, HasEnv m, WithClientLog env m)
   => FilePath
   -> SafeParameter SomeTZBTCVersion
   -> m ()
@@ -294,7 +294,7 @@ getTzbtcStorage contractAddr = do
     fromExpression @(Value (ToT (AlmostStorage ver))) storageRaw
 
 performTzbtcDeployment
-  :: (MonadThrow m, HasTezosClient m, HasCmdLine m, WithClientLog env m)
+  :: (MonadThrow m, HasTezosClient m, HasCmdLine m)
   => m ContractAddress -> m ()
 performTzbtcDeployment deployAction = do
   contractAddr <- deployAction

@@ -14,11 +14,19 @@
       let
         pkgs = morley-infra.legacyPackages.${system};
 
-        inherit (pkgs) octez-client;
+        inherit (morley-infra.utils.${system}) ci-apps run-chain-tests;
 
-        inherit (morley-infra.utils.${system}) weeder-hacks weeder-script run-chain-tests;
+        projectSrc = pkgs.haskell-nix.haskellLib.cleanGit {
+          name = "tezos-btc";
+          src = ./.;
+        };
 
-        hs-pkgs = args: import ./tzbtc.nix ({ inherit pkgs weeder-hacks; } // args);
+        local-packages = [
+          { name = "tzbtc"; subdirectory = "./."; }
+        ];
+
+        hs-pkgs =
+          args: import ./tzbtc.nix ({ inherit pkgs projectSrc; inherit (ci-apps) collect-hie; } // args);
 
         hs-pkgs-release = hs-pkgs { release = true; };
 
@@ -40,14 +48,6 @@
           inherit release;
 
           packages = {
-            # a derivation which generates a script for running weeder
-            weeder-script = weeder-script {
-              hs-pkgs = hs-pkgs-development;
-              local-packages = [
-                { name = "tzbtc"; subdirectory = "."; }
-              ];
-            };
-
             all-components = with hs-pkgs-development.tzbtc.components;
               pkgs.linkFarmFromDrvs "all-components" (
                 [ library library.haddock ]
@@ -77,6 +77,11 @@
               '';
 
             contract-doc-release = { sha, date }@commitInfo: self.utils.${system}.contract-doc-with-commit commitInfo;
+          };
+
+          apps = ci-apps.apps {
+            hs-pkgs = hs-pkgs-development;
+            inherit local-packages projectSrc;
           };
         }
       ]));
