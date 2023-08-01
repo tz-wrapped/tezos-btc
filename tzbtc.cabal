@@ -1,0 +1,344 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.4.
+--
+-- see: https://github.com/sol/hpack
+
+name:           tzbtc
+version:        0.9.0
+description:    Wrapped Bitcoin on Tezos Blockchain
+category:       Blockchain
+homepage:       https://tzbtc.io/
+bug-reports:    https://github.com/tz-wrapped/tezos-btc/issues
+author:         Serokell, Bitcoin Suisse
+maintainer:     Serokell <hi@serokell.io>
+copyright:      2019-2020 Bitcoin Suisse
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    CONTRIBUTING.md
+
+source-repository head
+  type: git
+  location: https://github.com/tz-wrapped/tezos-btc
+
+library
+  exposed-modules:
+      CLI.Parser
+      Client.Crypto
+      Client.Env
+      Client.Error
+      Client.IO
+      Client.IO.CmdLine
+      Client.Main
+      Client.Parser
+      Client.Types
+      Lorentz.Contracts.Metadata
+      Lorentz.Contracts.Multisig
+      Lorentz.Contracts.TZBTC
+      Lorentz.Contracts.TZBTC.Common.Doc
+      Lorentz.Contracts.TZBTC.Common.FlatParameter
+      Lorentz.Contracts.TZBTC.Common.Types
+      Lorentz.Contracts.TZBTC.Preprocess
+      Lorentz.Contracts.TZBTC.Types
+      Lorentz.Contracts.TZBTC.V0
+      Lorentz.Contracts.TZBTC.V1
+      Lorentz.Contracts.TZBTC.V1.Contract
+      Lorentz.Contracts.TZBTC.V1.Impl
+      Lorentz.Contracts.TZBTC.V1.ManagedLedger
+      Lorentz.Contracts.TZBTC.V1.ManagedLedger.Doc
+      Lorentz.Contracts.TZBTC.V1.ManagedLedger.Impl
+      Lorentz.Contracts.TZBTC.V1.ManagedLedger.Types
+      Lorentz.Contracts.TZBTC.V1.Types
+      Lorentz.Contracts.TZBTC.V2
+      Lorentz.Contracts.TZBTC.V2.Contract
+      Lorentz.Contracts.TZBTC.V2.Impl
+      Lorentz.Contracts.TZBTC.V2.Types
+      Util.AbstractIO
+      Util.Migration
+      Util.MultiSig
+  other-modules:
+      Paths_tzbtc
+  hs-source-dirs:
+      src
+  default-extensions:
+      AllowAmbiguousTypes
+      ApplicativeDo
+      BangPatterns
+      ConstraintKinds
+      DataKinds
+      DefaultSignatures
+      DeriveDataTypeable
+      DeriveFoldable
+      DeriveFunctor
+      DeriveGeneric
+      DeriveTraversable
+      EmptyCase
+      FlexibleContexts
+      FlexibleInstances
+      GADTs
+      GeneralizedNewtypeDeriving
+      ImportQualifiedPost
+      LambdaCase
+      MultiParamTypeClasses
+      MultiWayIf
+      NamedFieldPuns
+      NegativeLiterals
+      NumDecimals
+      OverloadedLabels
+      OverloadedStrings
+      PatternSynonyms
+      PolyKinds
+      QuasiQuotes
+      RankNTypes
+      RecordWildCards
+      RecursiveDo
+      ScopedTypeVariables
+      StandaloneDeriving
+      TemplateHaskell
+      TupleSections
+      TypeApplications
+      TypeFamilies
+      TypeOperators
+      UndecidableInstances
+      ViewPatterns
+      DerivingStrategies
+      DeriveAnyClass
+      NoApplicativeDo
+  ghc-options: -Weverything -Wno-missing-exported-signatures -Wno-missing-import-lists -Wno-missed-specialisations -Wno-all-missed-specialisations -Wno-unsafe -Wno-safe -Wno-missing-local-signatures -Wno-monomorphism-restriction -Wno-implicit-prelude -Wno-unused-packages -Wno-prepositive-qualified-module -Wno-missing-safe-haskell-mode -Wno-unticked-promoted-constructors -Wno-missing-kind-signatures -Wno-operator-whitespace -Wno-implicit-lift
+  build-depends:
+      aeson
+    , aeson-casing
+    , base-noprelude >=4.7 && <5
+    , bytestring
+    , cleveland
+    , co-log
+    , containers
+    , directory
+    , hex-text
+    , lorentz
+    , megaparsec
+    , morley
+    , morley-client
+    , morley-ledgers
+    , morley-multisig
+    , morley-prelude
+    , morley-upgradeable
+    , named
+    , optparse-applicative
+    , safe-exceptions
+    , text
+    , transformers
+    , universum
+    , vinyl
+    , with-utf8
+  default-language: Haskell2010
+
+executable tzbtc
+  main-is: Main.hs
+  other-modules:
+      Paths_tzbtc
+  hs-source-dirs:
+      app
+  default-extensions:
+      AllowAmbiguousTypes
+      ApplicativeDo
+      BangPatterns
+      ConstraintKinds
+      DataKinds
+      DefaultSignatures
+      DeriveDataTypeable
+      DeriveFoldable
+      DeriveFunctor
+      DeriveGeneric
+      DeriveTraversable
+      EmptyCase
+      FlexibleContexts
+      FlexibleInstances
+      GADTs
+      GeneralizedNewtypeDeriving
+      ImportQualifiedPost
+      LambdaCase
+      MultiParamTypeClasses
+      MultiWayIf
+      NamedFieldPuns
+      NegativeLiterals
+      NumDecimals
+      OverloadedLabels
+      OverloadedStrings
+      PatternSynonyms
+      PolyKinds
+      QuasiQuotes
+      RankNTypes
+      RecordWildCards
+      RecursiveDo
+      ScopedTypeVariables
+      StandaloneDeriving
+      TemplateHaskell
+      TupleSections
+      TypeApplications
+      TypeFamilies
+      TypeOperators
+      UndecidableInstances
+      ViewPatterns
+  ghc-options: -Weverything -Wno-missing-exported-signatures -Wno-missing-import-lists -Wno-missed-specialisations -Wno-all-missed-specialisations -Wno-unsafe -Wno-safe -Wno-missing-local-signatures -Wno-monomorphism-restriction -Wno-implicit-prelude -Wno-unused-packages -Wno-prepositive-qualified-module -Wno-missing-safe-haskell-mode -Wno-unticked-promoted-constructors -Wno-missing-kind-signatures -Wno-operator-whitespace -Wno-implicit-lift
+  build-depends:
+      base-noprelude >=4.7 && <5
+    , lorentz
+    , morley
+    , morley-multisig
+    , morley-prelude
+    , named
+    , optparse-applicative
+    , safe-exceptions
+    , tzbtc
+  default-language: Haskell2010
+
+executable tzbtc-client
+  main-is: Main.hs
+  other-modules:
+      Paths_tzbtc
+  hs-source-dirs:
+      client
+  default-extensions:
+      AllowAmbiguousTypes
+      ApplicativeDo
+      BangPatterns
+      ConstraintKinds
+      DataKinds
+      DefaultSignatures
+      DeriveDataTypeable
+      DeriveFoldable
+      DeriveFunctor
+      DeriveGeneric
+      DeriveTraversable
+      EmptyCase
+      FlexibleContexts
+      FlexibleInstances
+      GADTs
+      GeneralizedNewtypeDeriving
+      ImportQualifiedPost
+      LambdaCase
+      MultiParamTypeClasses
+      MultiWayIf
+      NamedFieldPuns
+      NegativeLiterals
+      NumDecimals
+      OverloadedLabels
+      OverloadedStrings
+      PatternSynonyms
+      PolyKinds
+      QuasiQuotes
+      RankNTypes
+      RecordWildCards
+      RecursiveDo
+      ScopedTypeVariables
+      StandaloneDeriving
+      TemplateHaskell
+      TupleSections
+      TypeApplications
+      TypeFamilies
+      TypeOperators
+      UndecidableInstances
+      ViewPatterns
+  ghc-options: -Weverything -Wno-missing-exported-signatures -Wno-missing-import-lists -Wno-missed-specialisations -Wno-all-missed-specialisations -Wno-unsafe -Wno-safe -Wno-missing-local-signatures -Wno-monomorphism-restriction -Wno-implicit-prelude -Wno-unused-packages -Wno-prepositive-qualified-module -Wno-missing-safe-haskell-mode -Wno-unticked-promoted-constructors -Wno-missing-kind-signatures -Wno-operator-whitespace -Wno-implicit-lift
+  build-depends:
+      base-noprelude >=4.7 && <5
+    , morley-client
+    , morley-prelude
+    , named
+    , optparse-applicative
+    , tzbtc
+  default-language: Haskell2010
+
+test-suite tzbtc-test
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      Test.AsRPC
+      Test.IO
+      Test.Migration
+      Test.MultiSig
+      Test.Smoke
+      Test.TZBTC
+      TestM
+      Tree
+      Paths_tzbtc
+  hs-source-dirs:
+      test
+  default-extensions:
+      AllowAmbiguousTypes
+      ApplicativeDo
+      BangPatterns
+      ConstraintKinds
+      DataKinds
+      DefaultSignatures
+      DeriveDataTypeable
+      DeriveFoldable
+      DeriveFunctor
+      DeriveGeneric
+      DeriveTraversable
+      EmptyCase
+      FlexibleContexts
+      FlexibleInstances
+      GADTs
+      GeneralizedNewtypeDeriving
+      ImportQualifiedPost
+      LambdaCase
+      MultiParamTypeClasses
+      MultiWayIf
+      NamedFieldPuns
+      NegativeLiterals
+      NumDecimals
+      OverloadedLabels
+      OverloadedStrings
+      PatternSynonyms
+      PolyKinds
+      QuasiQuotes
+      RankNTypes
+      RecordWildCards
+      RecursiveDo
+      ScopedTypeVariables
+      StandaloneDeriving
+      TemplateHaskell
+      TupleSections
+      TypeApplications
+      TypeFamilies
+      TypeOperators
+      UndecidableInstances
+      ViewPatterns
+      DerivingStrategies
+  ghc-options: -Weverything -Wno-missing-exported-signatures -Wno-missing-import-lists -Wno-missed-specialisations -Wno-all-missed-specialisations -Wno-unsafe -Wno-safe -Wno-missing-local-signatures -Wno-monomorphism-restriction -Wno-implicit-prelude -Wno-unused-packages -Wno-prepositive-qualified-module -Wno-missing-safe-haskell-mode -Wno-unticked-promoted-constructors -Wno-missing-kind-signatures -Wno-operator-whitespace -Wno-implicit-lift -threaded -with-rtsopts=-N
+  build-tool-depends:
+      tasty-discover:tasty-discover
+  build-depends:
+      HUnit
+    , base-noprelude >=4.7 && <5
+    , bytestring
+    , cleveland
+    , co-log
+    , co-log-core
+    , containers
+    , hex-text
+    , lorentz
+    , memory
+    , morley
+    , morley-client
+    , morley-ledgers
+    , morley-ledgers-test
+    , morley-multisig
+    , morley-prelude
+    , morley-upgradeable
+    , mtl
+    , named
+    , process
+    , tagged
+    , tasty
+    , tasty-hunit-compat
+    , text
+    , tzbtc
+    , universum
+    , with-utf8
+  default-language: Haskell2010
