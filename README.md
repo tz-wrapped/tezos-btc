@@ -4,9 +4,9 @@
  - SPDX-License-Identifier: LicenseRef-MIT-BitcoinSuisse
  -->
 
-> :warning: **Note:** [Morley framework](https://gitlab.com/morley-framework/) and set of tools are planned for deprecation after protocol "N".
+> :warning: **Note:** [Morley framework](https://gitlab.com/morley-framework/) and set of tools are no longer maintained since the activation of protocol "Nairobi" on the Tezos mainnet (June 24th, 2023).
 >
-> This smart contract will no longer be actively developed then, but future bugs or security issues will be addressed.
+> This smart contract is no longer be actively developed since then, but future bugs or security issues will be addressed.
 
 # TZBTC
 
